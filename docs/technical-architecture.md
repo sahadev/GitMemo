@@ -1,4 +1,4 @@
-# Claude Doc Sync — 技术架构文档
+# GitMemo — 技术架构文档
 
 > 对应 SOP 阶段 2.1：技术架构设计
 
@@ -8,10 +8,10 @@
 
 ### 1.1 架构概述
 
-Claude Doc Sync 不是一个独立运行的服务，而是**寄生在 Claude Code 基础设施上的配置注入工具**。
+GitMemo 不是一个独立运行的服务，而是**寄生在 Claude Code 基础设施上的配置注入工具**。
 
 它由三部分组成：
-1. **CLI 工具**（`claude-doc-sync` 二进制）：负责 init、笔记命令、MCP Server
+1. **CLI 工具**（`gitmemo` 二进制）：负责 init、笔记命令、MCP Server
 2. **CLAUDE.md 指令**：注入到 Claude 的 prompt 中，驱动自动对话记录
 3. **PostToolUse Hook**：注入到 Claude Code harness 中，驱动自动 Git 同步
 
@@ -19,7 +19,7 @@ Claude Doc Sync 不是一个独立运行的服务，而是**寄生在 Claude Cod
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     claude-doc-sync 二进制                    │
+│                     gitmemo 二进制                    │
 │                                                              │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐ │
 │  │ init     │  │ note     │  │ search   │  │ mcp-serve   │ │
@@ -33,7 +33,7 @@ Claude Doc Sync 不是一个独立运行的服务，而是**寄生在 Claude Cod
                    操作的数据存储
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  ~/.claude-doc-sync/  (本地 Git 仓库)                        │
+│  ~/.gitmemo/  (本地 Git 仓库)                        │
 │                                                              │
 │  conversations/    notes/         .metadata/                 │
 │  ├── 2026-03/      ├── daily/     ├── index.db (SQLite)     │
@@ -50,7 +50,7 @@ Claude Doc Sync 不是一个独立运行的服务，而是**寄生在 Claude Cod
 
 - **SQLite**：嵌入式，无需额外服务，单文件存储
 - **FTS5**：SQLite 全文搜索扩展，支持中英文搜索
-- **存储位置**：`~/.claude-doc-sync/.metadata/index.db`（在 `.gitignore` 中，不同步）
+- **存储位置**：`~/.gitmemo/.metadata/index.db`（在 `.gitignore` 中，不同步）
 
 ### 2.2 Schema
 
@@ -110,7 +110,7 @@ CREATE INDEX idx_sync_timestamp ON sync_log(timestamp);
 
 - **初次构建**：`init` 时扫描仓库中已有的 Markdown 文件，批量建立索引
 - **增量更新**：MCP Server 启动时检查文件变化（比对 content_hash），增量更新
-- **重建**：`claude-doc-sync reindex` 命令可以全量重建索引
+- **重建**：`gitmemo reindex` 命令可以全量重建索引
 
 ---
 
@@ -122,15 +122,15 @@ CREATE INDEX idx_sync_timestamp ON sync_log(timestamp);
 
 **启动方式**：
 ```bash
-claude-doc-sync mcp-serve
+gitmemo mcp-serve
 ```
 
 **注册配置**（写入 `~/.claude.json`）：
 ```json
 {
   "mcpServers": {
-    "claude-doc-sync": {
-      "command": "claude-doc-sync",
+    "gitmemo": {
+      "command": "gitmemo",
       "args": ["mcp-serve"],
       "type": "stdio"
     }
@@ -338,7 +338,7 @@ claude-doc-sync mcp-serve
 ### 4.1 命令列表
 
 ```
-claude-doc-sync <command> [options]
+gitmemo <command> [options]
 
 Commands:
   init          初始化配置（Git 仓库 + 注入 Claude Code 配置）
@@ -358,23 +358,23 @@ Commands:
 ### 4.2 `init` 命令详细流程
 
 ```
-claude-doc-sync init [--git-url <url>] [--no-mcp]
+gitmemo init [--git-url <url>] [--no-mcp]
 
 流程：
-1. 检查 ~/.claude-doc-sync/ 是否已存在
+1. 检查 ~/.gitmemo/ 是否已存在
    → 已存在：提示是否覆盖
    → 不存在：创建目录
 
 2. 交互式输入 Git 仓库地址（或 --git-url 传入）
 
 3. 初始化本地 Git 仓库
-   → git init ~/.claude-doc-sync/
+   → git init ~/.gitmemo/
    → 创建 conversations/ notes/daily/ notes/manual/ notes/scratch/ .metadata/
    → 创建 .gitignore（排除 .metadata/）
    → git remote add origin <url>
 
 4. 生成 SSH 密钥
-   → ssh-keygen -t ed25519 -f ~/.claude-doc-sync/.ssh/id_ed25519 -N ""
+   → ssh-keygen -t ed25519 -f ~/.gitmemo/.ssh/id_ed25519 -N ""
    → 显示公钥，提示用户添加到 Git 平台
 
 5. 等待用户确认 → 测试连接
@@ -391,10 +391,10 @@ claude-doc-sync init [--git-url <url>] [--no-mcp]
 
 8. 注册 MCP Server（除非 --no-mcp）
    → 读取 ~/.claude.json
-   → 在 mcpServers 中添加 claude-doc-sync 条目
+   → 在 mcpServers 中添加 gitmemo 条目
 
 9. 初始提交
-   → git add -A && git commit -m "init: claude-doc-sync"
+   → git add -A && git commit -m "init: gitmemo"
    → git push origin main
 
 10. 显示完成信息
@@ -403,13 +403,13 @@ claude-doc-sync init [--git-url <url>] [--no-mcp]
 ### 4.3 `uninstall` 命令详细流程
 
 ```
-claude-doc-sync uninstall [--remove-data]
+gitmemo uninstall [--remove-data]
 
 流程：
 1. 从 ~/.claude/CLAUDE.md 移除标记的指令块
 2. 从 ~/.claude/settings.json 移除注入的 hook
 3. 从 ~/.claude.json 移除 MCP Server 注册
-4. 如果 --remove-data：删除 ~/.claude-doc-sync/ 目录
+4. 如果 --remove-data：删除 ~/.gitmemo/ 目录
 5. 否则：保留数据，仅移除配置注入
 ```
 
@@ -423,17 +423,17 @@ claude-doc-sync uninstall [--remove-data]
 
 **CLAUDE.md 注入标记**：
 ```markdown
-<!-- [claude-doc-sync:start] -->
-## Claude Doc Sync - 自动对话记录
+<!-- [gitmemo:start] -->
+## GitMemo - 自动对话记录
 ...
-<!-- [claude-doc-sync:end] -->
+<!-- [gitmemo:end] -->
 ```
 
 **settings.json Hook 标识**：
 在 hook 对象中添加 `_source` 字段（Claude Code 会忽略未知字段）：
 ```json
 {
-  "_source": "claude-doc-sync",
+  "_source": "gitmemo",
   "matcher": "Write|Edit",
   "hooks": [...]
 }
@@ -442,18 +442,18 @@ claude-doc-sync uninstall [--remove-data]
 ### 5.2 冲突处理
 
 **CLAUDE.md 冲突**：
-- init 前检查是否已有 `[claude-doc-sync:start]` 标记
+- init 前检查是否已有 `[gitmemo:start]` 标记
 - 如有：替换旧版本
 - 如无：追加到文件末尾
 
 **settings.json Hook 冲突**：
 - 读取现有 PostToolUse 数组
-- 检查是否已有 `_source: "claude-doc-sync"` 的条目
+- 检查是否已有 `_source: "gitmemo"` 的条目
 - 如有：替换
 - 如无：追加到数组中（不影响已有 hook）
 
 **~/.claude.json MCP 冲突**：
-- 检查 mcpServers 中是否已有 `claude-doc-sync` key
+- 检查 mcpServers 中是否已有 `gitmemo` key
 - 如有：替换
 - 如无：添加
 
@@ -461,7 +461,7 @@ claude-doc-sync uninstall [--remove-data]
 
 init 前自动备份被修改的文件：
 ```
-~/.claude-doc-sync/.backups/
+~/.gitmemo/.backups/
 ├── CLAUDE.md.backup              # init 前的 CLAUDE.md
 ├── settings.json.backup          # init 前的 settings.json
 └── claude.json.backup            # init 前的 .claude.json

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Auto-sync your AI conversations and notes to Git"
 license = "MIT"
+repository = "https://github.com/sahadev/GitMemo"
 
 [[bin]]
 name = "gitmemo"

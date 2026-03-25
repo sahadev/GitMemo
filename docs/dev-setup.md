@@ -1,4 +1,4 @@
-# Claude Doc Sync — 开发环境与项目初始化
+# GitMemo — 开发环境与项目初始化
 
 > 对应 SOP 阶段 2.2-2.3：开发环境搭建 + 项目初始化
 
@@ -10,7 +10,7 @@
 
 | 项目 | 值 |
 |------|---|
-| 仓库名 | `claude-doc-sync` |
+| 仓库名 | `gitmemo` |
 | 托管平台 | GitHub（主仓库）+ Gitee（镜像） |
 | 开源协议 | MIT |
 | 默认分支 | `main` |
@@ -48,7 +48,7 @@ Thumbs.db
 ## 2. 项目结构
 
 ```
-claude-doc-sync/
+gitmemo/
 ├── Cargo.toml                  # 项目配置 + 依赖
 ├── Cargo.lock
 ├── LICENSE                     # MIT
@@ -121,15 +121,15 @@ claude-doc-sync/
 
 ```toml
 [package]
-name = "claude-doc-sync"
+name = "gitmemo"
 version = "0.1.0"
 edition = "2021"
 description = "Auto-sync your AI conversations and notes to Git"
 license = "MIT"
-repository = "https://github.com/user/claude-doc-sync"
+repository = "https://github.com/sahadev/GitMemo"
 
 [[bin]]
-name = "claude-doc-sync"
+name = "gitmemo"
 path = "src/main.rs"
 
 [dependencies]
@@ -233,16 +233,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary: claude-doc-sync
+            binary: gitmemo
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary: claude-doc-sync
+            binary: gitmemo
           - os: macos-latest
             target: x86_64-apple-darwin
-            binary: claude-doc-sync
+            binary: gitmemo
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary: claude-doc-sync.exe
+            binary: gitmemo.exe
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -336,8 +336,8 @@ docs: add user journey map to product design
 
 ```bash
 # 克隆仓库
-git clone git@github.com:user/claude-doc-sync.git
-cd claude-doc-sync
+git clone git@github.com:sahadev/GitMemo.git
+cd gitmemo
 
 # 编译
 cargo build
