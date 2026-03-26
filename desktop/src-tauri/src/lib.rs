@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{clipboard, notes, search, stats};
+use commands::{clipboard, import, notes, search, stats};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +28,8 @@ pub fn run() {
             clipboard::start_clipboard_watch,
             clipboard::stop_clipboard_watch,
             clipboard::save_clipboard_now,
+            // Import (drag-drop)
+            import::import_files,
             // Git sync
             notes::sync_to_git,
         ])

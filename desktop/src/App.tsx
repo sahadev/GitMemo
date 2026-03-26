@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Sidebar from "./components/Sidebar";
+import DropZone from "./components/DropZone";
 import NotesPage from "./pages/NotesPage";
 import ClipboardPage from "./pages/ClipboardPage";
 import SearchPage from "./pages/SearchPage";
@@ -19,6 +20,8 @@ function App() {
         {currentPage === "clipboard" && <ClipboardPage />}
         {currentPage === "search" && <SearchPage />}
       </main>
+      {/* Global drag-drop overlay — always active regardless of page */}
+      <DropZone />
     </div>
   );
 }
