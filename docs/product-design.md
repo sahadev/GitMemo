@@ -1,1078 +1,485 @@
 # GitMemo — 产品设计文档
 
-## 一、我们要解决什么问题
+> 版本：v2.0（2026-03-27 升级）
+> 阶段：SOP 阶段 1 — 产品构思与验证
 
-Novi Notes 的开发者 Hojong 精确描述了这个痛点：
+---
 
-> "当我开始在 Claude Desktop 和 Claude Code 中工作时，一个意想不到的问题出现了：markdown 文件开始在各个角落堆积。技能文档、agent 配置、项目笔记、CLAUDE.md 文件——散落在数十个项目目录中。版本控制成了噩梦，每次启动新项目，都不得不翻遍旧文件夹来寻找和重新配置一切。"
+## 一、痛点识别
 
-这个问题正在被每一个 AI 重度用户经历，但它实际上由两个子问题组成：
+### 1.1 核心痛点
 
-**问题 A：对话即用即弃**
-用户与 Claude 的每一次深度对话都包含大量有价值的知识——问题分析、解决方案、代码片段、设计决策。但对话结束后，这些知识就沉入历史记录，难以检索、无法版本管理、不能跨设备共享。
+开发者在 AI 时代面临三个碎片化问题：
 
-**问题 B：笔记碎片化**
-开发者在使用 AI 的过程中会产生大量笔记——会议记录、技术备忘、项目文档、学习心得。这些内容散落在不同工具和目录中，缺乏统一管理。
+**痛点 A：知识碎片化**
+每天与 Claude/ChatGPT/Cursor 的深度对话产出大量有价值知识——问题分析、解决方案、代码片段、设计决策——但对话关闭后这些知识即刻流失。无法搜索、无法版本控制、不能跨设备共享。
 
-**现有方案的不足**：
+**痛点 B：信息输入碎片化**
+有价值的信息散布在浏览器、剪贴板、终端、IM、文件系统各处。用户每天复制大量文本、截图、代码片段，但没有一个统一的收集器把它们汇聚到一起。
+
+**痛点 C：工具碎片化**
+Obsidian 管笔记、Notion 管项目、浏览器管书签、Git 管代码——用户在 5+ 个工具间反复跳转，数据孤岛严重。没有一个工具以 Git 为底层统一管理所有知识。
+
+### 1.2 现有方案的不足
 
 | 方案 | 解决了什么 | 没解决什么 |
 |------|-----------|-----------|
 | Claude 自带历史 | 能回看对话 | 不能导出、不能搜索、不能版本控制、厂商锁定 |
-| Notion/Obsidian | 笔记管理强大 | 需要手动复制粘贴对话，无法自动化 |
-| Novi Notes | MCP 集成、本地优先 | 仅 Mac、闭源、无 Git 同步、不能自动记录对话 |
-| 手动复制到 Git | 版本控制 | 太费时间，不可持续 |
+| Notion/Obsidian | 笔记管理强大 | 不能自动捕获 AI 对话、无 Git 原生同步、剪贴板不能自动归档 |
+| Novi Notes | MCP 集成、本地优先 | 仅 Mac、闭源、无 Git 同步、无剪贴板/文件导入能力 |
+| 手动复制到 Git | 版本控制 | 操作成本太高，不可持续 |
+| Raindrop/Pocket | 网页书签管理 | 不管本地内容，不支持 Git，不是开发者工具 |
+
+### 1.3 价值主张
+
+> **GitMemo 为开发者提供一站式知识收集站：AI 对话自动记录、笔记随手写、剪贴板自动捕获、文件拖入即归档——所有知识通过 Git 版本控制，数据永远属于你。**
 
 ---
 
-## 二、产品定位
+## 二、产品定位（v2.0 升级）
 
-### 核心定义
+### 2.1 定位演进
 
-**GitMemo 是一个面向开发者的 AI 知识管理工具，它同时做两件事：**
-1. **自动记录**：在后台静默捕获所有 AI 对话，用户无感知
-2. **主动笔记**：提供轻量的笔记能力，用户可以随时记录想法
+| 版本 | 定位 | 核心能力 |
+|------|------|---------|
+| v0.1（已完成） | AI 对话备份工具 | CLI + MCP + Git 自动同步 |
+| **v0.2（当前）** | **个人知识收集站** | **桌面客户端 + 笔记 + 剪贴板 + 文件导入** |
+| v0.3（远期） | 个人知识操作系统 | 插件生态 + 浏览器扩展 + 多设备同步 |
 
-**两者通过 Git 统一管理，实现版本控制、跨设备同步、永久保存。**
+### 2.2 核心定义（v0.2）
 
-### Tagline
+**GitMemo 是一个面向开发者的本地优先知识收集站，提供三种知识入口：**
 
-> **你的 AI 对话与笔记，自动备份到 Git**
+1. **自动收集**：AI 对话自动记录（CLI 后台） + 剪贴板自动捕获（桌面客户端）
+2. **主动记录**：轻量笔记（便签/日记/手册），桌面客户端或 CLI 都能写
+3. **拖拽导入**：文件拖入窗口自动路由到正确位置（Markdown/图片/代码/文档）
 
-### 一句话描述
+**三者通过 Git 统一管理，Markdown 为通用格式，数据完全本地可控。**
 
-> GitMemo 自动记录你与 AI 的每一次对话，同时支持你随时创建笔记，所有内容通过 Git 同步，数据完全属于你。
+### 2.3 Tagline
 
-### 与 Novi Notes 的定位差异
+> **复制即收藏，拖入即归档，一切知识自动备份到 Git**
 
-| 维度 | Novi Notes | GitMemo |
-|------|-----------|----------------|
-| **核心动作** | 用户主动写笔记 | 对话自动记录 + 用户主动写笔记 |
-| **AI 集成** | MCP（Claude 读写笔记） | MCP + 文件监控（Claude 读写 + 自动捕获对话） |
-| **数据同步** | 本地存储，无云同步 | 本地 + Git 自动同步 |
-| **平台** | 仅 Mac GUI 应用 | 跨平台 CLI 工具 |
-| **开源** | 闭源，一次性买断 | 开源，免费 |
-| **目标用户** | Mac 用户 | 所有终端用户（开发者优先） |
+### 2.4 一句话描述
 
-**我们不是 Novi Notes 的竞品，而是互补品**：
-- Novi Notes 是一个**笔记应用**，碰巧支持 AI
-- GitMemo 是一个**AI 对话备份工具**，同时支持笔记
+> GitMemo 自动捕获你的 AI 对话和剪贴板内容，支持笔记和文件拖拽导入，所有知识以 Markdown 格式存储在 Git 仓库中——本地优先，数据属于你。
+
+### 2.5 产品形态
+
+| 形态 | 作用 | 状态 |
+|------|------|------|
+| **CLI 工具** (`gitmemo`) | 安装初始化 + AI 对话自动备份 + 命令行笔记 | ✅ v0.1.4 已发布 |
+| **Tauri 桌面客户端** | 笔记编辑 + 剪贴板监听 + 文件拖拽 + 搜索浏览 | 🚧 v0.2 开发中 |
+| **MCP Server** | AI 助手读写笔记和搜索历史对话 | ✅ 已完成 |
+
+### 2.6 与竞品的差异化定位
+
+| 维度 | Obsidian | Notion | Novi Notes | GitMemo |
+|------|----------|--------|-----------|---------|
+| 核心动作 | 用户主动写笔记 | 用户主动建文档 | 用户写笔记+AI读写 | **自动收集+主动笔记+拖拽导入** |
+| AI 对话备份 | ❌ | ❌ | ❌ | ✅ 自动 |
+| 剪贴板捕获 | ❌ | ❌ | ❌ | ✅ 自动 |
+| 文件拖拽导入 | 支持 | 支持 | ❌ | ✅ 自动路由 |
+| 数据同步 | 本地/付费云同步 | 云端 | 本地 | **Git（用户完全控制）** |
+| 数据格式 | 私有+Markdown | 私有 | 私有 | **纯 Markdown** |
+| 客户端 | Electron (>200MB) | Web | Mac only | **Tauri (~16MB)** |
+| 开源 | ❌ | ❌ | ❌ | ✅ MIT |
+| 离线 | ✅ | ❌ | ✅ | ✅ |
+
+**GitMemo 的独特象限：自动收集 + Git 原生 + 本地优先 + 开源**
 
 ---
 
 ## 三、目标用户
 
-### 核心用户画像
+### 3.1 核心用户画像
 
-**开发者 Hojong**（Novi Notes 的开发者恰好就是典型用户）
-- 每天使用 Claude Desktop / Claude Code 工作
-- 在 TypeScript、Kotlin、Swift 等多语言间切换
-- 痛点：对话内容散落各处，CLAUDE.md 和项目笔记版本控制困难
-- 需求：一个地方统一管理所有 AI 产出，且支持 Git
+**Alex，28 岁，全栈开发者**
+- 每天用 Claude Code 写代码 4-6 小时，和 AI 产生大量有价值对话
+- 频繁在浏览器、Stack Overflow、GitHub 之间复制代码片段
+- 用 Git 管理一切，但对话和笔记散落各处
+- 痛点：Claude 对话关掉就找不到了，剪贴板里的好东西转瞬即逝
+- 需求：一个能自动帮他把所有碎片知识收集到 Git 仓库的工具
 
-### 用户分层
+### 3.2 用户分层与版本映射
 
-**第一层：CLI 开发者**（MVP 目标用户）
-- 每天使用 Claude Code / CLI
-- 熟悉 Git，有自己的 Git 服务
-- 核心需求：对话自动备份到 Git，偶尔写笔记
-
-**第二层：AI 重度用户**
-- 使用 Claude Desktop、Cursor、GitHub Copilot 等多种 AI 工具
-- 需要统一管理不同 AI 工具的对话记录
-- 核心需求：多 Agent 支持，强搜索能力
-
-**第三层：团队用户**
-- 团队共用 Git 仓库管理 AI 知识
-- 需要分享、协作、审计对话历史
-- 核心需求：团队仓库、权限管理
+| 用户层 | 画像 | 对应版本 | 进入方式 |
+|--------|------|---------|---------|
+| **第一层：CLI 开发者** | 用 Claude Code，熟悉 Git | v0.1（已覆盖） | `gitmemo init` 一行命令 |
+| **第二层：桌面用户** | 不爱 CLI，但想管理知识和剪贴板 | **v0.2（当前目标）** | 下载 App，拖拽/复制即用 |
+| **第三层：AI 多工具用户** | 同时用 Claude + Cursor + ChatGPT | v0.3 | 浏览器扩展 + 多 Agent |
+| **第四层：团队用户** | 团队知识共享 | 远期 | 团队仓库 + 权限管理 |
 
 ---
 
-## 四、产品架构
+## 四、MVP 定义（v0.2 桌面客户端）
 
-### 4.1 核心洞察：不需要守护进程
+### 4.1 核心功能清单（严格 3+2）
 
-分析用户本机现有的"自动保存会话"机制后发现，Claude Code 自身已经提供了完整的自动化基础设施：
+**3 个核心功能（必须有，否则产品没意义）：**
 
-| Claude Code 机制 | 作用 | 我们如何利用 |
-|-----------------|------|------------|
-| **`CLAUDE.md` 指令** | Claude 每次对话都会读取并遵循 | 注入"自动保存对话记录"指令，让 Claude 主动将对话保存为文件 |
-| **`settings.json` hooks** | 工具调用前后自动执行 shell 命令 | 注入 PostToolUse hook，文件写入后自动 git commit & push |
-| **`~/.claude.json` mcpServers** | 注册 MCP 工具供 Claude 调用 | 注册搜索/笔记 MCP Server |
+| # | 功能 | 描述 | 优先级 |
+|---|------|------|--------|
+| 1 | **笔记** | 在桌面客户端中创建/浏览便签、日记、手册 | **P0** |
+| 2 | **剪贴板监听** | 后台自动捕获复制内容（≥20字符），SHA256 去重 | **P0** |
+| 3 | **文件拖拽导入** | 文件拖入窗口自动路由（Markdown→notes, 图片→clips, 代码→imports） | **P0** |
 
-**这意味着：`gitmemo init` 只需要注入配置，不需要启动任何后台进程。**
+**2 个辅助功能（已完成，从 v0.1 继承）：**
 
-### 4.2 架构总览
+| # | 功能 | 描述 | 状态 |
+|---|------|------|------|
+| 4 | AI 对话自动备份 | CLAUDE.md 指令 + PostToolUse Hook | ✅ 已完成 |
+| 5 | 全文搜索 | SQLite FTS5 跨所有数据源搜索 | ✅ 已完成 |
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    Claude Code 会话                       │
-│                                                          │
-│  ┌────────────────────┐  ┌─────────────────────────────┐ │
-│  │ CLAUDE.md 指令      │  │ MCP Server                  │ │
-│  │                    │  │ (gitmemo mcp-serve)  │ │
-│  │ "每次回答后自动将   │  │                             │ │
-│  │  对话保存为 MD 文件" │  │  search()  - 搜索对话/笔记  │ │
-│  │                    │  │  note()    - 创建笔记       │ │
-│  │ Claude 读取并遵循   │  │  daily()   - 每日笔记       │ │
-│  │ → 调用 Write 工具   │  │  manual()  - 创建手册       │ │
-│  │ → 保存到本地仓库    │  │  stats()   - 统计信息       │ │
-│  └─────────┬──────────┘  └─────────────┬───────────────┘ │
-│            │ Write/Edit                 │ Write/Edit      │
-│            ▼                            ▼                 │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │ PostToolUse Hook (settings.json)                     │ │
-│  │                                                      │ │
-│  │ 当 Write/Edit 触发且目标在仓库目录内时：               │ │
-│  │   → git add -A                                       │ │
-│  │   → git commit -m "auto: save {filename}"            │ │
-│  │   → git push origin main                             │ │
-│  └──────────────────────────┬───────────────────────────┘ │
-└─────────────────────────────┼────────────────────────────┘
-                              │
-                              ▼
-                ┌─────────────────────────┐
-                │  本地 Git 仓库           │
-                │  ~/.gitmemo/     │
-                │                         │
-                │  conversations/  notes/ │
-                └────────────┬────────────┘
-                             │ auto push
-                             ▼
-                ┌─────────────────────────┐
-                │  远程 Git 仓库           │
-                │  github/gitee/自建      │
-                └─────────────────────────┘
-```
+### 4.2 明确不做的事（v0.2 范围）
 
-### 4.3 三个注入点的详细设计
+- ❌ 不做富文本编辑器（保持 Markdown 纯文本）
+- ❌ 不做双向链接 / 知识图谱（那是 Obsidian 的活）
+- ❌ 不做云端同步服务（Git 已经是同步层）
+- ❌ 不做团队功能（架构预留但不实现）
+- ❌ 不做浏览器扩展（v0.3 再说）
+- ❌ 不做移动端（桌面优先）
 
-#### 注入点 1：CLAUDE.md 指令（自动记录对话）
+### 4.3 技术选型
 
-`init` 命令会在 `~/.claude/CLAUDE.md` 中追加以下内容：
+| 决策 | 选择 | 理由 |
+|------|------|------|
+| 核心语言 | **Rust** | CLI 和桌面共享同一 crate，单二进制，性能好 |
+| 桌面框架 | **Tauri 2.0** | Rust 后端复用，16MB 安装包（vs Electron 200MB+） |
+| 前端 | **React 19 + Vite + Tailwind 4** | 成熟生态，开发效率高 |
+| IPC | Tauri Commands | Rust ↔ 前端直接调用，零开销 |
+| 搜索 | SQLite FTS5 | 嵌入式全文搜索，支持中日韩 |
+| Git | `git2` crate + 系统 git | stage/commit 用 git2，push 用系统 git（SSH） |
+| 数据格式 | Markdown + TOML frontmatter | 人类可读，Git 友好 |
 
-```markdown
-## GitMemo - 自动对话记录
+### 4.4 时间预估
 
-每次对话结束时（用户发送新问题前），自动将本轮对话保存为 Markdown 文件。
+| 阶段 | 任务 | 预计时间 |
+|------|------|---------|
+| 架构搭建 | Tauri 项目初始化 + gitmemo_core 抽取 | ✅ 已完成 |
+| P0 功能 | 笔记 CRUD + 剪贴板监听 + 文件拖拽 + 搜索 | 1 周 |
+| UI 打磨 | 交互细节、空状态、快捷键、动画 | 3-5 天 |
+| 测试 & 修复 | 核心流程验证 + 边界处理 | 3 天 |
+| **总计** | | **~2.5 周** |
 
-**保存位置**：`~/.gitmemo/conversations/{YYYY-MM}/{MM-DD}-{标题摘要}.md`
+---
 
-**文件格式**：
-- 顶部包含元数据（时间、模型、消息数）
-- 按 User/Assistant 轮次记录完整对话
-- 代码块保留原始格式
+## 五、原型设计
 
-**规则**：
-- 同一会话的追问追加到已有文件
-- 新会话创建新文件
-- 静默保存，不告知用户
-- 标题从对话内容自动生成，不超过 20 字
-```
-
-**为什么这样设计**：
-- 利用了你本机已验证的"自动保存会话记录"模式（CLAUDE.md 第76-105行）
-- Claude 天然支持这种指令，不需要额外代码
-- 对话记录的质量由 Claude 自身保证（它理解对话结构）
-
-#### 注入点 2：settings.json Hook（自动 Git 同步）
-
-`init` 命令会在 `~/.claude/settings.json` 的 `hooks.PostToolUse` 中追加：
-
-```json
-{
-  "matcher": "Write|Edit",
-  "hooks": [{
-    "type": "command",
-    "async": true,
-    "command": "FILE=$(cat /dev/stdin | python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))\" 2>/dev/null); SYNC_DIR=\"$HOME/.gitmemo\"; if echo \"$FILE\" | grep -q \"^$SYNC_DIR/\"; then cd \"$SYNC_DIR\" && git add -A && git commit -m \"auto: save $(basename \"$FILE\")\" && git push origin main 2>/dev/null; fi"
-  }]
-}
-```
-
-**工作原理**：
-1. Hook 监听所有 `Write|Edit` 工具调用
-2. 从 stdin 提取被写入的文件路径
-3. 判断文件是否在 `~/.gitmemo/` 目录下
-4. 如果是，自动 `git add && git commit && git push`
-5. `async: true` 确保不阻塞 Claude 的响应
-
-**为什么这样设计**：
-- 与你本机现有的 PostToolUse hook（settings.json 第18-29行）完全一致
-- 已验证的模式，稳定可靠
-- 无需守护进程，无需额外资源
-
-#### 注入点 3：MCP Server（搜索与笔记）
-
-`init` 命令会在 `~/.claude.json` 的 `mcpServers` 中注册：
-
-```json
-{
-  "mcpServers": {
-    "gitmemo": {
-      "command": "gitmemo",
-      "args": ["mcp-serve"],
-      "type": "stdio"
-    }
-  }
-}
-```
-
-**提供的 MCP 工具**：
-
-| 工具名 | 参数 | 功能 |
-|--------|------|------|
-| `cds_search` | `query`, `type?` | 全文搜索对话和笔记 |
-| `cds_recent` | `limit?` | 列出最近的对话 |
-| `cds_note` | `content` | 创建便签 |
-| `cds_daily` | `content` | 追加到今日笔记 |
-| `cds_manual` | `title`, `content` | 创建手册文档 |
-| `cds_stats` | - | 统计信息 |
-
-**用户体验**：
-```
-用户: 帮我搜索上周关于 Docker 的对话
-Claude: [调用 cds_search] 找到 3 条相关对话...
-
-用户: 把这次对话的要点记到今天的日记里
-Claude: [调用 cds_daily] 已追加到今日笔记。
-
-用户: 创建一篇手册，总结我所有关于 K8s 的对话
-Claude: [调用 cds_search → cds_manual] 已创建《Kubernetes 使用指南》。
-```
-
-### 4.4 安装流程（重新设计）
-
-```bash
-gitmemo init
-
-┌─────────────────────────────────────────────────┐
-│  GitMemo 初始化                          │
-│                                                  │
-│  第 1 步：配置 Git 仓库                           │
-│  > git@github.com:user/my-ai-notes.git          │
-│                                                  │
-│  第 2 步：自动配置中...                            │
-│    ✓ 本地仓库已创建: ~/.gitmemo/          │
-│    ✓ SSH 密钥已生成                               │
-│    ✓ CLAUDE.md 指令已注入                         │
-│    ✓ Git 同步 Hook 已注入                         │
-│    ✓ MCP Server 已注册                           │
-│                                                  │
-│  第 3 步：请将以下公钥添加到仓库的 Deploy Keys:    │
-│  ssh-ed25519 AAAAC3Nza...kF3x                   │
-│  添加完成后按回车...                               │
-│                                                  │
-│  ✓ 连接测试通过                                   │
-│                                                  │
-│  一切就绪！从现在起：                              │
-│  • 对话将自动保存到 Git 仓库                       │
-│  • 在 Claude 中说"搜索我的对话"即可检索            │
-│  • 运行 gitmemo help 查看更多命令         │
-└─────────────────────────────────────────────────┘
-```
-
-**安装做了什么，不做什么**：
-
-| 做 | 不做 |
-|----|------|
-| ✅ 创建本地 Git 仓库 | ❌ 不启动守护进程 |
-| ✅ 生成 SSH 密钥 | ❌ 不运行后台服务 |
-| ✅ 注入 CLAUDE.md 指令 | ❌ 不占用系统资源 |
-| ✅ 注入 settings.json hook | ❌ 不监听文件变化 |
-| ✅ 注册 MCP Server | ❌ 不需要 launchd/systemd |
-
-### 4.5 数据目录结构
-
-与之前一致，不变：
+### 5.1 用户旅程图
 
 ```
-~/.gitmemo/              # 工作目录（即 Git 仓库）
-├── .git/                        # Git 数据
-├── .sync-config.toml            # 同步配置
-│
-├── conversations/               # [自动] AI 对话记录
+[下载安装]           [首次启动]              [日常使用]                [深度依赖]
+  下载 App           看到 Dashboard         笔记：Cmd+N 写便签        Git 仓库积累大量知识
+  拖入 Applications  显示数据概览            剪贴板：自动捕获           搜索变成高频操作
+  双击打开            ← 如果 gitmemo init   拖拽：文件拖入即归档        离不开这个工具
+                       过就直接可用           搜索：Cmd+K 全局搜索       推荐给同事
+```
+
+### 5.2 页面结构（4 页）
+
+```
+┌─────────┬──────────────────────────────────┐
+│         │                                  │
+│ Sidebar │           Main Content           │
+│         │                                  │
+│ ┌─────┐ │  ┌────────────────────────────┐  │
+│ │ 📊  │ │  │                            │  │
+│ │Dash │ │  │   根据选中 Tab 显示内容     │  │
+│ │     │ │  │                            │  │
+│ │ 📝  │ │  │   Dashboard / Notes /      │  │
+│ │Notes│ │  │   Clipboard / Search       │  │
+│ │     │ │  │                            │  │
+│ │ 📋  │ │  │                            │  │
+│ │Clip │ │  └────────────────────────────┘  │
+│ │     │ │                                  │
+│ │ 🔍  │ │                                  │
+│ │Find │ │                                  │
+│ │     │ │                                  │
+│ ├─────┤ │                                  │
+│ │Sync │ │                                  │
+│ └─────┘ │                                  │
+└─────────┴──────────────────────────────────┘
+```
+
+**页面 1：Dashboard**
+- 数据统计卡片：对话数、笔记数、剪贴板数、存储大小
+- Git 状态：已同步 / N 条未推送
+- 最近活动时间线
+
+**页面 2：Notes**（核心页面）
+- 左侧 Tab：Scratch / Daily / Manual / Conversations
+- 顶部快速输入框（Cmd+Enter 保存）
+- 文件列表 → 点击查看全文
+- 支持创建便签、追加日记
+
+**页面 3：Clipboard**（核心页面）
+- Start/Stop 剪贴板监听按钮
+- 实时活动流（每条显示时间+预览+保存路径）
+- Save Now 按钮（手动保存当前剪贴板）
+- 统计：总计 / 本次会话
+
+**页面 4：Search**
+- 全局搜索输入框
+- 搜索结果列表（来源类型标记 + 高亮匹配）
+- 点击查看全文
+
+**全局：拖拽导入**
+- 任意页面拖入文件 → 全屏半透明遮罩 → 显示路由规则
+- 松开 → 自动导入 → 右下角 Toast 通知结果
+
+### 5.3 关键交互
+
+| 操作 | 交互方式 | 响应 |
+|------|---------|------|
+| 写便签 | 输入框 + Cmd+Enter | 保存 → Toast → Git commit |
+| 剪贴板捕获 | 后台轮询（1.5s），检测变化 | 自动保存 → 事件推送到 UI |
+| 拖拽文件 | 拖入窗口 → 遮罩 → 松开 | 路由分发 → 保存 → Toast → Git commit |
+| 搜索 | 输入回车 | FTS5 全文搜索 → 列表渲染 |
+| Git 同步 | Sidebar 底部 Sync 按钮 | commit + push → 状态更新 |
+
+---
+
+## 六、数据架构
+
+### 6.1 目录结构（v0.2 完整版）
+
+```
+~/.gitmemo/                          # Git 仓库根目录
+├── conversations/                   # [自动] AI 对话记录
 │   └── {YYYY-MM}/
 │       └── {MM-DD}-{标题摘要}.md
-│
-├── notes/                       # [手动] 用户笔记
-│   ├── daily/                   #   每日笔记
+├── notes/                           # [手动] 用户笔记
+│   ├── daily/                       #   每日笔记
 │   │   └── {YYYY-MM-DD}.md
-│   ├── manual/                  #   手册/长期文档
+│   ├── manual/                      #   手册/长期文档
 │   │   └── {标题}.md
-│   └── scratch/                 #   便签/临时想法
-│       └── {标题}.md
-│
-└── .metadata/                   # 内部元数据（gitignore）
-    └── index.db                 #   SQLite 搜索索引
+│   ├── scratch/                     #   便签/临时想法
+│   │   └── {YYYY-MM-DD}-{seq}.md
+│   └── imports/                     #   导入的 Markdown/文本
+│       └── {filename}.md
+├── clips/                           # [自动] 剪贴板捕获
+│   └── {YYYY-MM-DD}/
+│       └── {HH-MM-SS}-{摘要}.md
+├── imports/                         # [拖拽] 导入的文件
+│   ├── code/                        #   代码文件（包裹为 MD）
+│   ├── docs/                        #   PDF/Word/Excel
+│   └── other/                       #   其他文件
+└── .metadata/                       # 内部元数据（gitignore）
+    ├── index.db                     #   SQLite 搜索索引
+    └── config.toml                  #   配置
 ```
 
-### 4.6 与守护进程方案的对比
+### 6.2 文件路由规则（拖拽导入）
 
-| 维度 | 守护进程方案（旧） | Hook 注入方案（新） |
-|------|-----------------|-------------------|
-| **安装复杂度** | 需要配置 launchd/systemd | 只需 `init` 一次 |
-| **系统资源** | 常驻进程占用内存 | 零占用，按需触发 |
-| **可靠性** | 进程可能崩溃需重启 | 随 Claude Code 生命周期 |
-| **跨平台** | 每个 OS 需要不同的进程管理 | 所有平台统一 |
-| **维护成本** | 需要进程监控和日志 | 几乎零维护 |
-| **局限性** | 无 | 仅在 Claude Code 会话中生效 |
-
-**局限性说明**：Hook 方案只在 Claude Code 运行时才会触发 git sync。但这恰好是我们的目标场景——用户在用 Claude Code 的时候，对话就会被记录和同步。不用 Claude Code 的时候不需要同步。
+| 文件类型 | 扩展名 | 目标目录 | 处理方式 |
+|---------|--------|---------|---------|
+| Markdown/Text | .md .txt .log | `notes/imports/` | 添加 frontmatter |
+| Images | .png .jpg .gif .svg .webp | `clips/{date}/` | 直接复制 + MD 引用 |
+| Code | .rs .py .ts .go .java ... | `imports/code/` | 包裹在 MD 代码块中 |
+| Documents | .pdf .docx .xlsx | `imports/docs/` | 直接复制 |
+| Other | * | `imports/other/` | 直接复制 |
 
 ---
 
-## 五、用户体验设计
+## 七、产品架构
 
-### 5.1 安装与初始化
-
-安装流程已在 4.4 节详细描述。核心原则：
-- 只问一个问题：Git 仓库地址
-- 其他全部自动完成
-- 安装完成后**没有后台进程**，用户不需要管理任何服务
-
-### 5.2 日常使用：对话自动记录
-
-**用户视角**：什么都不用做。
+### 7.1 双形态架构
 
 ```
-用户正常使用 Claude CLI
-  → Claude 遵循 CLAUDE.md 指令，自动调用 Write 保存对话
-    → PostToolUse Hook 检测到写入，自动 git commit & push
-      → 对话出现在远程 Git 仓库
+┌─────────────────────────────────────────────────────────┐
+│                      gitmemo_core (Rust crate)           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
+│  │ storage/ │ │ models/  │ │ utils/   │ │ database/ │  │
+│  │ files.rs │ │          │ │ config   │ │ SQLite    │  │
+│  │ git.rs   │ │          │ │ ssh      │ │ FTS5      │  │
+│  └────┬─────┘ └──────────┘ └──────────┘ └───────────┘  │
+│       │                                                  │
+├───────┼──────────────────────────────────────────────────┤
+│       │                                                  │
+│  ┌────┴──────────────┐     ┌───────────────────────┐    │
+│  │   CLI (gitmemo)   │     │  Tauri Desktop App    │    │
+│  │                   │     │                       │    │
+│  │ • init/uninstall  │     │ • Notes CRUD          │    │
+│  │ • note/daily/     │     │ • Clipboard Monitor   │    │
+│  │   manual          │     │ • File Drag-Drop      │    │
+│  │ • search/recent   │     │ • Search & Browse     │    │
+│  │ • MCP Server      │     │ • Dashboard & Stats   │    │
+│  │ • sync/status     │     │ • Git Sync            │    │
+│  └───────────────────┘     └───────────────────────┘    │
+│                                                          │
+│  入口: CLAUDE.md 指令          入口: 桌面 App 窗口        │
+│       + PostToolUse Hook            （拖拽/剪贴板/UI）    │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+              ┌─────────────────────────┐
+              │  ~/.gitmemo/ (Git 仓库)  │
+              │  conversations/ notes/  │
+              │  clips/ imports/        │
+              └────────────┬────────────┘
+                           │ auto push
+                           ▼
+              ┌─────────────────────────┐
+              │  远程 Git 仓库           │
+              │  github / gitee / 自建  │
+              └─────────────────────────┘
 ```
 
-**用户完全无感知，整个链路由 Claude Code 基础设施驱动。**
+### 7.2 CLI 的三个注入点（v0.1 已完成）
 
-### 5.3 日常使用：主动写笔记
+| 注入点 | 位置 | 作用 |
+|--------|------|------|
+| CLAUDE.md 指令 | `~/.claude/CLAUDE.md` | Claude 自动保存对话为 MD 文件 |
+| PostToolUse Hook | `~/.claude/settings.json` | Write/Edit 后自动 git commit & push |
+| MCP Server | `~/.claude.json` | Claude 可调用搜索/笔记/统计工具 |
 
-```bash
-# 快速记一条便签
-gitmemo note "今天发现 Rust 的 async trait 终于稳定了"
+### 7.3 桌面客户端架构（v0.2 当前）
 
-# 写今天的日记（打开编辑器）
-gitmemo daily
-
-# 创建一篇手册
-gitmemo manual "Rust 异步编程指南"
-
-# 让 Claude 帮你整理笔记（通过 MCP）
-# 在 Claude 对话中直接说：
-# "帮我把今天关于 Docker 的对话要点整理到笔记里"
-```
-
-### 5.4 搜索与回溯
-
-```bash
-# 搜索所有对话和笔记
-gitmemo search "rust async"
-
-  对话记录:
-  1. [03-15] Rust 异步编程入门
-     "...tokio 是 Rust 最流行的 async 运行时..."
-  2. [03-19] Rust async trait 讨论
-     "...async trait 在 Rust 1.82 中稳定..."
-
-  笔记:
-  1. [manual] Rust 异步编程指南
-     "...使用 async/await 的最佳实践..."
-
-# 查看最近的对话
-gitmemo recent
-
-# 查看统计
-gitmemo stats
-```
-
-### 5.5 MCP 集成：让 Claude 读写你的笔记
-
-配置 Claude Desktop/Code 的 MCP：
-```json
-{
-  "mcpServers": {
-    "gitmemo": {
-      "command": "gitmemo",
-      "args": ["mcp-server"]
-    }
-  }
-}
-```
-
-然后在 Claude 对话中：
-```
-你: 帮我搜索上周关于 Docker 的对话
-Claude: [调用 search_conversations] 找到 3 条相关对话...
-
-你: 把这次对话的要点记到今天的日记里
-Claude: [调用 append_daily_note] 已添加到今日笔记。
-
-你: 创建一篇手册，总结我所有关于 K8s 的对话
-Claude: [调用 create_manual] 已创建《Kubernetes 使用指南》...
-```
-
-**MCP 提供的工具**：
-
-| 工具 | 描述 |
-|------|------|
-| `search` | 搜索对话和笔记 |
-| `list_recent` | 列出最近的对话 |
-| `get_conversation` | 获取某次对话全文 |
-| `create_note` | 创建便签 |
-| `append_daily` | 追加到今日笔记 |
-| `create_manual` | 创建手册 |
-| `get_stats` | 获取统计信息 |
+| 模块 | 技术 | 职责 |
+|------|------|------|
+| Tauri Rust 后端 | Tauri Commands | 调用 gitmemo_core 提供所有操作 |
+| React 前端 | React 19 + Tailwind 4 | UI 渲染、事件交互 |
+| 剪贴板监听 | `pbpaste` (macOS) / `xclip` (Linux) 轮询 | 检测变化 → SHA256 去重 → 保存 |
+| 拖拽导入 | `tauri://drag-drop` 原生事件 | 路由文件 → 保存 → Git commit |
+| 搜索 | SQLite FTS5 (unicode61 tokenizer) | 全文搜索，支持中日韩 |
+| Git 同步 | `git2` + 系统 `git push` | 增量提交 + SSH 推送 |
 
 ---
 
-## 六、功能分层
+## 八、商业模式
 
-### 第 1 层：核心功能（MVP）
-
-**必须有，否则产品没有意义**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| CLAUDE.md 指令注入 | 让 Claude 自动保存对话到本地仓库 | P0 |
-| PostToolUse Hook 注入 | 文件写入后自动 git commit & push | P0 |
-| `init` 命令 | 配置 Git 仓库 + 注入三个配置点 | P0 |
-| SSH 密钥管理 | 自动生成并引导用户配置 | P0 |
-| SSH 密钥管理 | 自动生成并引导用户配置 | P0 |
-
-### 第 2 层：笔记功能
-
-**让产品从"备份工具"升级为"知识管理工具"**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| 便签 `note` | 一行命令快速记录 | P1 |
-| 每日笔记 `daily` | 按日组织的笔记 | P1 |
-| 手册 `manual` | 长期维护的文档 | P1 |
-| MCP Server | 让 Claude 直接读写笔记和对话 | P1 |
-
-### 第 3 层：增强功能
-
-**提升体验，但不影响核心价值**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| 全文搜索 `search` | 搜索所有对话和笔记 | P2 |
-| 统计分析 `stats` | 对话频率、热门话题等 | P2 |
-| 敏感信息过滤 | 自动脱敏 API Key 等 | P2 |
-| 多 Agent 支持 | 支持 Cursor、Copilot 等 | P2 |
-
-### 第 4 层：多来源输入（v0.2 核心）
-
-**从"AI 备份工具"进化为"万物皆可 Git 的知识收集器"**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| 剪贴板监听 `watch` / `clip` | 复制即保存，支持文本和图片 | P0 |
-| 截图捕获 `screenshot` | 快捷键截图自动归档 | P0 |
-| 浏览器剪藏 | Chrome 扩展一键保存网页 | P1 |
-| 终端命令记录 `shell-hook` | 自动捕获有价值的命令和输出 | P1 |
-| 文件导入 `import` | 支持 PDF/Word/图片/Notion/Obsidian | P1 |
-| Cursor 对话 | Cursor MCP 集成 | P1 |
-| IM 消息转发 | 飞书/微信/Telegram webhook | P2 |
-| 语音备忘 `voice` | 录音→Whisper 转文字→Markdown | P2 |
-| RSS 订阅 `subscribe` | 自动收集 Newsletter/博客 | P3 |
-
-### 第 5 层：桌面客户端（v0.3）
-
-**从 CLI 走向可视化，但依然保持本地优先**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| Tauri 桌面客户端 | 本地客户端，统一浏览/搜索所有数据，跨平台 | P2 |
-| 插件系统 | 自定义捕获源和导出目标 | P3 |
-| AI 自动总结 | 周/月知识回顾 | P3 |
-| 知识图谱 | 可视化内容关联 | P3 |
-
-### 第 6 层：团队协作（远期，架构预留）
-
-**短期不实现，但技术架构已为此预留扩展点**
-
-| 功能 | 描述 | 优先级 |
-|------|------|--------|
-| 团队共享仓库 | 基于 Git 多仓库/分支的团队知识共享 | P4 |
-| 权限管理 | 读写权限、目录级别 ACL | P4 |
-| 审计日志 | 操作追踪、变更历史 | P4 |
-
----
-
-## 七、竞品分析
-
-### 全景对比
-
-```
-                    主动记录 ←────────────→ 自动记录
-                        │                     │
-            ┌───────────┼─────────────────────┼──────────┐
-  本地存储  │  Obsidian  │                     │          │
-            │  Bear      │                     │          │
-            │  Novi Notes│                     │          │
-            ├───────────┼─────────────────────┼──────────┤
-  云端存储  │  Notion    │                     │          │
-            │  Evernote  │                     │          │
-            ├───────────┼─────────────────────┼──────────┤
-  Git 同步  │            │            GitMemo     │
-            │            │           ← 唯一占位 →         │
-            └───────────┼─────────────────────┼──────────┘
-                        │                     │
-```
-
-**GitMemo 独占的象限：Git 同步 + 自动记录 + 主动笔记**
-
-### 逐一对比
-
-| 维度 | Novi Notes | Obsidian | Notion | GitMemo |
-|------|-----------|----------|--------|----------------|
-| 对话自动记录 | ❌ | ❌ | ❌ | ✅ |
-| 笔记功能 | ✅ 丰富 | ✅ 强大 | ✅ 全能 | ✅ 轻量 |
-| Git 版本控制 | ❌ | ⚠️ 插件 | ❌ | ✅ 原生 |
-| MCP 集成 | ✅ | ❌ | ❌ | ✅ |
-| 跨平台 | ❌ Mac | ✅ | ✅ | ✅ |
-| 开源 | ❌ | ❌ | ❌ | ✅ |
-| 零配置 | ✅ | ⚠️ | ✅ | ⚠️ 需配 Git |
-| 离线支持 | ✅ | ✅ | ❌ | ✅ |
-| 价格 | 一次性买断 | 免费/付费 | 订阅 | 免费 |
-
-### 核心差异化总结
-
-1. **多来源输入是护城河**：剪贴板、截图、浏览器、终端、IM、语音——所有知识入口统一到一个 Git 仓库
-2. **自动记录是杀手功能**：没有任何竞品做到了"对话自动备份到 Git"
-3. **Git 原生**：不是"支持 Git"，而是"就是一个 Git 仓库"
-4. **双模式**：自动记录 + 主动笔记，一个工具解决两个问题
-5. **开源免费**：没有商业风险，社区驱动
-6. **Tauri 桌面客户端**：CLI + GUI 双入口，Rust 后端复用，安装包极轻量
-
----
-
-## 八、产品原则
-
-### 1. 后台优先，前台可选
-
-对话记录必须自动、静默、零干扰。笔记功能是可选的增值。用户可以只用自动记录功能，永远不碰笔记功能，产品依然有价值。
-
-### 2. Git 是底层，CLI 是默认，GUI 是增强
-
-数据层面，`conversations/` 和 `notes/` 目录就是用户的数据，Markdown 文件是通用格式。CLI 覆盖所有功能，Tauri 桌面客户端作为可视化增强层，提供更好的浏览和搜索体验，但不是必需品。
-
-### 3. 笔记功能保持轻量
-
-我们不是要做另一个 Obsidian。笔记功能只提供三种类型（便签、日记、手册），不做双向链接、不做图谱、不做富文本。保持简单。
-
-### 4. 数据格式人类可读
-
-所有数据都是 Markdown 文件。不依赖私有格式。即使用户卸载了 GitMemo，数据依然可以用任何文本编辑器打开。
-
-### 5. 配置最小化
-
-只问用户一个问题：Git 仓库地址。其他一切都有合理的默认值。高级配置可选但不强制。
-
----
-
-## 九、商业模式
-
-### 9.1 定价策略
+### 8.1 定价策略
 
 **核心产品：开源免费（MIT License）**
 
 | 层级 | 内容 | 价格 |
 |------|------|------|
-| **开源版** | CLI 工具 + 自动记录 + Git 同步 + 笔记 + MCP Server | 免费 |
-| **云端版**（未来） | 托管 Git 仓库 + 全文搜索 + 数据统计 | $5/月 或 ¥29/月 |
-| **桌面 Pro 版**（未来） | Tauri 客户端增强功能（AI 自动总结、知识图谱、高级搜索） | 一次性 $19 或 ¥99 |
-| **团队版**（远期） | 共享仓库 + 权限管理 + 审计日志 + 优先支持 | $15/人/月 |
+| **开源版** | CLI + 桌面客户端 + MCP Server | 免费 |
+| **桌面 Pro 版**（未来） | AI 自动总结、知识图谱、高级搜索 | 一次性 $19 / ¥99 |
+| **云端版**（未来） | 托管 Git 仓库 + 全文搜索 | $5/月 / ¥29/月 |
+| **团队版**（远期） | 共享仓库 + 权限管理 | $15/人/月 |
 
-### 9.2 为什么选择开源免费
+### 8.2 收入路径
 
-1. **降低获客成本**：开源社区自传播，无需广告投入
-2. **建立信任**：用户可以审查代码，消除隐私疑虑
-3. **参考 Novi Notes 教训**：一次性买断 ≠ 持续收入，独立开发者可持续性存疑
-4. **云端增值空间**：开源版解决核心问题，云端版解决"懒得自己搭 Git"的用户
-
-### 9.3 收入来源规划
-
-| 阶段 | 收入来源 | 预期时间 |
-|------|---------|---------|
-| Phase 1-3 | 无收入，专注用户增长 | 0-3 个月 |
-| Phase 4 | GitHub Sponsors / Open Collective | 3-6 个月 |
-| Phase 5 | Tauri 桌面 Pro 版 + 云端托管版 | 6-12 个月 |
-| Phase 6 | 团队版 + 企业定制 | 12+ 个月 |
+| 阶段 | 收入来源 | 时间 |
+|------|---------|------|
+| v0.1-v0.2 | 无收入，专注用户增长 | 0-3 个月 |
+| v0.2+ | GitHub Sponsors / Open Collective | 3-6 个月 |
+| v0.3 | 桌面 Pro 版 | 6-12 个月 |
+| v0.4+ | 团队版 | 12+ 个月 |
 
 ---
 
-## 十、用户旅程图
+## 九、产品原则
 
-### 10.1 完整用户旅程
-
-```
-发现 → 了解 → 安装 → 初始化 → 自动记录 → 主动使用 → 深度依赖
- │      │      │       │         │          │          │
- ▼      ▼      ▼       ▼         ▼          ▼          ▼
-
-[发现]
- 用户在 GitHub Trending / Hacker News / 技术社区看到推荐
- "自动备份 Claude 对话到 Git"引起兴趣
- ↓
-[了解]
- 访问 GitHub README，30 秒内理解产品价值
- 看到"一行命令安装，零配置运行"
- ↓
-[安装]  ← 关键节点：转化率目标 > 80%
- 运行 brew install gitmemo 或 curl 安装
- 耗时 < 30 秒
- ↓
-[初始化]  ← 关键节点：完成率目标 > 90%
- 运行 gitmemo init
- 输入 Git 仓库地址 → 复制公钥到 Git 平台 → 完成
- 耗时 < 3 分钟
- ↓
-[自动记录]  ← 核心价值体现，用户无感知
- 正常使用 Claude Code
- 对话自动保存到 Git 仓库
- 用户完全不知道后台发生了什么
- ↓
-[主动使用]  ← 从"被动工具"变为"主动工具"
- 某天想找之前 Claude 给的方案 → 搜索历史对话 → 找到了
- 觉得好用 → 开始用笔记功能记录想法
- 在 Claude 中直接说"搜索我的对话" → MCP 响应
- ↓
-[深度依赖]  ← 留存关键
- Git 仓库积累了大量知识 → 不愿卸载
- 推荐给同事 → 口碑传播
- 团队开始共用仓库 → 升级团队版
-```
-
-### 10.2 关键节点转化目标
-
-| 节点 | 用户行为 | 转化目标 | 失败风险 | 应对措施 |
-|------|---------|---------|---------|---------|
-| 发现 → 了解 | 点击 GitHub 链接 | CTR > 5% | README 不够吸引 | 精心设计 README，GIF 演示 |
-| 了解 → 安装 | 执行安装命令 | > 60% | 安装太复杂 | 一行命令安装 |
-| 安装 → 初始化 | 执行 init | > 80% | Git 配置太麻烦 | SSH 密钥自动生成，交互引导 |
-| 初始化 → 自动记录 | 无需操作 | > 99% | Hook 注入失败 | init 时自动验证 |
-| 自动记录 → 主动使用 | 首次搜索 | > 40% | 不知道有搜索功能 | init 完成后提示搜索命令 |
-| 主动使用 → 深度依赖 | 7 日留存 | > 60% | 功能不够好 | 持续优化 MCP 体验 |
-
-### 10.3 首次使用关键体验（FTUE）
-
-**目标**：用户在 5 分钟内完成从"不知道这是什么"到"它已经在帮我工作了"的转变。
-
-```
-分钟 0:00  用户看到推荐，访问 GitHub
-分钟 0:30  读完 README，决定试试
-分钟 1:00  安装完成
-分钟 1:30  运行 init，输入 Git 仓库地址
-分钟 2:30  复制公钥到 GitHub Deploy Keys
-分钟 3:00  init 完成，看到成功信息
-分钟 3:30  继续正常使用 Claude（忘记了这个工具的存在）
-分钟 5:00  对话结束，Git 仓库中出现了第一条记录
-           → 用户感受："原来它真的在工作"
-```
+1. **自动优先**：能自动的绝不让用户手动。对话自动备份、剪贴板自动捕获、文件自动路由。
+2. **本地优先**：所有数据在本地，Git 是可选同步层。没网也能用。
+3. **Git 是底层，CLI 是默认，GUI 是增强**：CLI 覆盖 100% 功能，桌面客户端提供可视化增强。
+4. **Markdown 是唯一格式**：所有数据都是 Markdown。人类可读，永不过时。
+5. **轻量克制**：不做双向链接、不做知识图谱、不做富文本。收集和检索，做到极致。
+6. **配置最小化**：只问一个问题——Git 仓库地址。其他一切有合理默认值。
 
 ---
 
-## 十一、技术选型建议
+## 十、开发路线图
 
-| 决策 | 选择 | 理由 |
+### Phase 1-3：CLI MVP（✅ 已完成，v0.1.4）
+
+已发布功能：
+- [x] `init` / `uninstall`：一键初始化 + 三点注入
+- [x] AI 对话自动备份（CLAUDE.md + PostToolUse Hook）
+- [x] MCP Server（search / note / daily / manual / stats / sync）
+- [x] CLI 笔记（note / daily / manual）
+- [x] 全文搜索（SQLite FTS5）
+- [x] Git 自动同步（commit + push）
+- [x] Cursor 编辑器支持
+- [x] 多平台 CI/CD（GitHub Actions 自动发布）
+
+### Phase 4：桌面客户端 v0.2（🚧 进行中）
+
+**核心目标：笔记 + 剪贴板，开发者的知识收集站**
+
+| 功能 | 描述 | 状态 |
 |------|------|------|
-| 语言 | **Rust** | 跨平台、单二进制部署、MCP Server 性能好 |
-| Git 操作 | `git2` crate | 原生 Git 操作，不依赖系统 git |
-| 搜索索引 | SQLite FTS5 | 轻量、嵌入式、全文搜索 |
-| MCP Server | JSON-RPC over stdio | 符合 MCP 协议标准 |
-| CLI 框架 | `clap` | Rust 生态标准 |
-| 配置格式 | TOML | Rust 生态标准，人类可读 |
-| JSON 操作 | `serde_json` | 读写 settings.json / .claude.json |
-| 桌面客户端 | **Tauri 2.0** | Rust 后端复用核心逻辑，安装包 < 10MB，跨平台 |
-| 前端框架 | Svelte / React | 轻量高效，配合 TailwindCSS |
-| IPC | Tauri Commands | Rust ↔ 前端直接调用，无需 HTTP 中间层 |
+| Tauri 框架搭建 | Rust 后端 + React 前端 + gitmemo_core 复用 | ✅ 已完成 |
+| Dashboard | 数据统计 + Git 状态 | ✅ 已完成 |
+| Notes 页面 | 4 Tab 浏览 + 快速创建便签/日记 | ✅ 已完成 |
+| 剪贴板监听 | Start/Stop + 自动保存 + SHA256 去重 | ✅ 已完成 |
+| 文件拖拽导入 | 全局 DropZone + 自动路由 + Toast 通知 | ✅ 已完成 |
+| Search 页面 | 全文搜索 + 结果浏览 | ✅ 已完成 |
+| Git Sync | 一键同步按钮 | ✅ 已完成 |
+| **UI 打磨** | 快捷键、Markdown 渲染、空状态优化 | 🔲 待开始 |
+| **笔记编辑器** | 在客户端内直接编辑已有笔记 | 🔲 待开始 |
+| **系统托盘** | 最小化到托盘，剪贴板后台常驻 | 🔲 待开始 |
+| **自动启动** | 开机自动启动，静默运行 | 🔲 待开始 |
+| **快捷键** | 全局快捷键唤起搜索（Spotlight 风格） | 🔲 待开始 |
 
-**架构决策说明**：
-- CLI 和 Tauri 客户端共享同一个 Rust core crate，避免逻辑重复
-- 不需要文件监控（`notify`）和守护进程（`launchd`/`systemd`），对话捕获由 CLAUDE.md 指令驱动，Git 同步由 PostToolUse Hook 驱动
-- Tauri 选择理由（vs Electron）：Rust 原生集成、安装包体积小 10x、内存占用低、与现有 Rust 代码库无缝对接
+### Phase 5：生态扩展 v0.3（规划中）
 
----
-
-## 十二、开发路线图
-
-### Phase 1：MVP（1 周）
-
-**目标**：`init` 一次，对话自动备份到 Git
-
-- [ ] `init` 命令：创建本地 Git 仓库 + 生成 SSH 密钥
-- [ ] CLAUDE.md 指令注入：自动保存对话记录
-- [ ] settings.json Hook 注入：Write/Edit 后自动 git commit & push
-- [ ] `uninstall` 命令：清理注入的配置
-
-**验收标准**：`init` → 正常使用 Claude → 对话自动出现在 Git 仓库
-
-### Phase 2：笔记 + MCP（2 周）
-
-**目标**：支持主动笔记，Claude 可以读写
-
-- [ ] MCP Server 实现：搜索、笔记、统计
-- [ ] MCP Server 自动注册到 `~/.claude.json`
-- [ ] `note` / `daily` / `manual` CLI 命令
-- [ ] 笔记与对话统一 Git 同步
-
-**验收标准**：在 Claude 对话中可以搜索历史对话、创建笔记
-
-### Phase 3：搜索与增强（2 周）
-
-**目标**：提升检索和使用体验
-
-- [ ] `search` 命令：全文搜索
-- [ ] `stats` 命令：统计分析
-- [ ] `recent` 命令：最近对话列表
-- [ ] 敏感信息过滤
-
-### Phase 4：多来源输入 + 生态（v0.2）
-
-**核心理念：GitMemo 从"AI 对话备份工具"进化为"万物皆可 Git 的知识收集器"**
-
-所有来源的输入，统一落地到 `~/.gitmemo/`，自动 commit & push。
-
-#### 4.1 输入来源矩阵
-
-| 来源 | 触发方式 | 落地目录 | 优先级 |
-|------|---------|---------|--------|
-| Claude Code 对话 | CLAUDE.md 指令（已有） | `conversations/` | ✅ 已完成 |
-| CLI 笔记 | `gitmemo note/daily/manual`（已有） | `notes/` | ✅ 已完成 |
-| **剪贴板监听** | `gitmemo watch` 常驻 / 快捷键触发 | `clips/` | P0 |
-| **截图捕获** | 快捷键截图 / 粘贴图片 | `clips/{date}/` | P0 |
-| **浏览器剪藏** | Chrome 扩展一键保存 | `webclips/` | P1 |
-| **终端命令记录** | shell hook 自动捕获 | `terminal/` | P1 |
-| **文件导入** | `gitmemo import <file>` / 拖放 | `imports/` | P1 |
-| **Cursor 对话** | Cursor MCP 集成（已部分支持） | `conversations/` | P1 |
-| **IM 消息转发** | 飞书/微信 webhook 接收 | `messages/` | P2 |
-| **语音备忘** | `gitmemo voice` 录音→转文字 | `notes/voice/` | P2 |
-| **RSS/Newsletter** | `gitmemo subscribe <url>` | `feeds/` | P3 |
-
-#### 4.2 剪贴板监听（P0 核心功能）
-
-**用户场景**：
-- 在浏览器看到一段代码/文章，Cmd+C 复制，自动保存到 Git
-- ChatGPT/Gemini 里的对话，复制粘贴就能归档
-- 看到好的推文/微博，复制即收藏
-
-**两种模式**：
-
-```bash
-# 模式1：常驻监听（后台运行，复制即保存）
-gitmemo watch
-# 检测到剪贴板变化 → 自动保存为 clips/{date}/{time}-{前20字}.md
-# 支持文本、图片、富文本
-# 可配置过滤规则（忽略密码管理器、短文本等）
-
-# 模式2：按需捕获（快捷键/命令触发）
-gitmemo clip              # 保存当前剪贴板内容
-gitmemo clip --tag "rust" # 保存并打标签
-gitmemo clip --title "xx" # 保存并指定标题
-```
-
-**智能过滤**：
-- 忽略 < 20 字符的内容（密码、短链接等）
-- 忽略重复内容（SHA256 去重）
-- 忽略密码管理器写入（可配置白名单应用）
-- 图片自动保存为文件，文本保存为 Markdown
-
-**配置**：
-```toml
-[clipboard]
-enabled = true
-min_length = 20              # 最小字符数
-ignore_apps = ["1Password", "Keychain"]  # 忽略的应用
-auto_tag = true              # 自动根据内容打标签
-image_format = "png"         # 图片格式
-```
-
-#### 4.3 截图捕获（P0）
-
-```bash
-# 截图并保存到 Git
-gitmemo screenshot           # 全屏截图
-gitmemo screenshot --select  # 框选截图
-gitmemo screenshot --window  # 窗口截图
-
-# 或者：监听系统截图目录，自动归档
-[screenshot]
-watch_dir = "~/Desktop"      # macOS 默认截图位置
-pattern = "Screenshot*.png"
-auto_import = true
-```
-
-#### 4.4 浏览器剪藏（P1）
-
-Chrome/Firefox 扩展，一键保存网页内容：
-
-- 选中文本 → 右键 → Save to GitMemo
-- 整页保存 → 转为 Markdown
-- 保存时可选标签和目录
-
-扩展通过本地 HTTP API 与 `gitmemo` CLI 通信：
-```
-POST http://localhost:9898/api/clip
-{
-  "title": "Rust Async 最佳实践",
-  "url": "https://...",
-  "content": "...",
-  "tags": ["rust", "async"]
-}
-```
-
-#### 4.5 终端命令记录（P1）
-
-自动记录有价值的终端命令及其输出：
-
-```bash
-# 在 .zshrc/.bashrc 中注入 hook
-eval "$(gitmemo shell-hook)"
-
-# 自动捕获：
-# - 执行时间 > 5 秒的命令
-# - 包含 docker/kubectl/git/ssh/curl 等关键词的命令
-# - 手动标记的命令（命令前加 # 前缀）
-#   例：# kubectl get pods -A
-```
-
-落地为：
-```markdown
-# Terminal Log - 2026-03-27
-
-## 14:32 - kubectl get pods -A
-\`\`\`
-NAMESPACE     NAME                           READY   STATUS
-kube-system   coredns-5d78c9869d-xxxxx       1/1     Running
-...
-\`\`\`
-
-## 15:10 - docker build -t myapp:latest .
-Duration: 45s, Exit: 0
-```
-
-#### 4.6 文件导入（P1）
-
-```bash
-# 导入单个文件
-gitmemo import ./report.pdf          # PDF 提取文本
-gitmemo import ./diagram.png         # 图片直接复制
-gitmemo import ./notes.docx          # Word 转 Markdown
-
-# 批量导入
-gitmemo import ./meeting-notes/      # 导入整个目录
-
-# 从其他工具导入
-gitmemo import --from notion         # Notion 导出导入
-gitmemo import --from obsidian ~/vault  # Obsidian vault 导入
-```
-
-#### 4.7 IM 消息转发（P2）
-
-通过 webhook 接收飞书/微信/Telegram 转发的消息：
-
-```bash
-gitmemo serve --webhook              # 启动 webhook 服务器
-
-# 飞书机器人 → POST http://localhost:9898/webhook/feishu
-# 微信 → 通过中转服务转发
-# Telegram → Bot webhook
-```
-
-#### 4.8 语音备忘（P2）
-
-```bash
-gitmemo voice                        # 开始录音，Ctrl+C 停止
-gitmemo voice --duration 60          # 录 60 秒
-# 录音 → Whisper 本地转文字 → 保存为 Markdown → Git 同步
-```
-
-#### 4.9 更新后的数据目录结构
-
-```
-~/.gitmemo/
-├── conversations/          # [自动] AI 对话记录
-│   └── {YYYY-MM}/
-├── notes/                  # [手动] 用户笔记
-│   ├── daily/
-│   ├── manual/
-│   ├── scratch/
-│   └── voice/              # [新] 语音转文字
-├── clips/                  # [新] 剪贴板捕获
-│   └── {YYYY-MM-DD}/
-├── webclips/               # [新] 浏览器剪藏
-│   └── {domain}/
-├── terminal/               # [新] 终端命令记录
-│   └── {YYYY-MM-DD}.md
-├── imports/                # [新] 文件导入
-│   └── {source}/
-├── messages/               # [新] IM 消息
-│   └── {platform}/
-├── feeds/                  # [新] RSS/Newsletter
-│   └── {source}/
-└── .metadata/
-    └── index.db            # SQLite 全文搜索索引
-```
-
-#### 4.10 统一搜索
-
-所有来源的数据进入同一个 SQLite FTS5 索引，搜索时不区分来源：
-
-```bash
-gitmemo search "kubernetes"
-# 结果来自：对话、笔记、剪贴板、网页、终端、导入...
-# 每条结果标注来源类型和时间
-
-gitmemo search "kubernetes" --type clip     # 只搜剪贴板
-gitmemo search "kubernetes" --after 7d      # 最近7天
-gitmemo search "kubernetes" --tag devops    # 按标签筛选
-```
-
-### Phase 5：Tauri 桌面客户端（v0.3）
-
-**目标**：用 Tauri 构建跨平台桌面客户端，统一可视化管理所有数据
-
-- [ ] Tauri + React/Svelte 前端框架搭建
-- [ ] 全局搜索面板（Spotlight 风格，快捷键唤起）
-- [ ] 对话/笔记/剪贴板/终端记录的统一浏览视图
-- [ ] 标签管理与筛选
-- [ ] 数据统计 Dashboard（对话频率、热门话题、知识增长趋势）
-- [ ] 插件系统：自定义捕获源和导出目标
-- [ ] AI 自动总结：周/月知识回顾
-
-**技术选型**：
-- **Tauri 2.0**：Rust 后端（复用 gitmemo 核心逻辑）+ Web 前端，安装包 < 10MB
-- **前端**：Svelte/React + TailwindCSS
-- **IPC**：Tauri Commands 直接调用 Rust 函数，无需 HTTP API
-- **本地优先**：所有数据操作直接读写 `~/.gitmemo/` 目录，无云端依赖
+| 功能 | 描述 | 优先级 |
+|------|------|--------|
+| 浏览器扩展 | Chrome/Firefox 一键剪藏网页 | P1 |
+| 终端命令记录 | shell hook 自动捕获有价值命令 | P2 |
+| 截图捕获 | 监听系统截图目录自动归档 | P2 |
+| AI 自动总结 | 周/月知识回顾 | P2 |
+| 插件系统 | 自定义输入源和导出目标 | P3 |
+| Markdown 渲染 | 客户端内完整 Markdown 预览 | P1 |
 
 ### Phase 6：团队协作（远期，架构预留）
 
-**短期不实现，但当前架构设计已预留以下扩展点：**
-
-- [ ] 多仓库 / 多 remote 支持（个人仓库 + 团队仓库并存）
-- [ ] 用户身份层（Git author / GPG 签名标识身份）
-- [ ] 目录级别权限模型（.gitmemo-acl.toml 配置）
-- [ ] 共享知识库：团队成员的公开笔记自动汇聚
-- [ ] 审计日志：基于 git log 的操作追踪
-
-#### 团队架构预留设计
-
-```
-┌────────────────────────────────────────────────┐
-│             当前单用户架构（v0.1-v0.3）           │
-│                                                │
-│  ~/.gitmemo/ ──push──▶ remote (个人仓库)        │
-│                                                │
-├────────────────────────────────────────────────┤
-│             远期团队架构（扩展方向）              │
-│                                                │
-│  ~/.gitmemo/                                   │
-│  ├── .sync-config.toml                         │
-│  │   remotes:                                  │
-│  │     - name: personal                        │
-│  │       url: git@github.com:me/notes.git      │
-│  │       paths: ["conversations/", "notes/"]   │
-│  │     - name: team                            │
-│  │       url: git@github.com:org/shared.git    │
-│  │       paths: ["shared/"]                    │
-│  │       permissions: read-write               │
-│  │                                             │
-│  ├── conversations/  → push to personal        │
-│  ├── notes/          → push to personal        │
-│  └── shared/         → push to team            │
-│      ├── knowledge/  ← pull from team members  │
-│      └── manuals/    ← collaborative editing   │
-└────────────────────────────────────────────────┘
-```
-
-**关键架构决策**：
-1. **多 remote 而非单仓库分支**：个人数据和团队数据物理隔离，隐私可控
-2. **路径级别的 remote 映射**：不同目录可推送到不同仓库
-3. **权限模型基于配置文件**：`.gitmemo-acl.toml` 定义目录级读写权限，Git 原生机制保障
-4. **身份基于 Git 作者信息**：无需额外的用户系统，GPG 签名可选
+短期不实现，技术架构已预留：
+- 多 remote 支持（个人仓库 + 团队仓库物理隔离）
+- 路径级 remote 映射（不同目录 → 不同仓库）
+- 身份基于 Git author + 可选 GPG 签名
+- 权限模型基于 `.gitmemo-acl.toml`
 
 ---
 
-## 十三、成功指标
+## 十一、成功指标
 
 ### 北极星指标
 
-**周活跃用户的 Git 仓库中，本周新增的对话记录数**
+**月活用户数 × 人均周新增文件数**
 
-这个指标同时衡量了：用户是否在用（活跃）、自动记录是否在工作（新增记录）、Git 同步是否正常（仓库中有数据）。
+同时衡量：用户规模、产品活跃度、自动化机制是否在工作。
 
-### 关键指标
+### 分阶段指标
 
 | 阶段 | 指标 | 目标 |
 |------|------|------|
-| MVP | 对话捕获成功率 | > 99%（CLAUDE.md 指令被正确执行） |
-| MVP | Git 同步成功率 | > 99%（Hook 触发且推送成功） |
-| MVP | init 成功率 | > 95%（配置注入无冲突） |
-| Phase 2 | 笔记功能使用率 | > 30% 的用户使用过 |
-| Phase 3 | MCP 工具调用次数 | 日均 > 5 次/活跃用户 |
-| 6 个月 | GitHub Stars | > 1,000 |
+| v0.2 发布 | GitHub Stars | > 200 |
+| v0.2 发布 | 桌面客户端下载量 | > 100 |
+| v0.2 1个月 | 周活跃用户（有新增文件） | > 50 |
+| v0.2 1个月 | 剪贴板功能使用率 | > 40% |
+| v0.3 发布 | GitHub Stars | > 1,000 |
 | 6 个月 | 周活跃用户 | > 500 |
 
 ---
 
-## 十四、风险与应对
+## 十二、风险与应对
 
 | 风险 | 概率 | 影响 | 应对 |
 |------|------|------|------|
-| Claude Code 更改 hooks/CLAUDE.md 机制 | 低 | 高 | 跟踪 Claude Code 更新日志，快速适配 |
-| CLAUDE.md 指令被 Claude 忽略/误执行 | 中 | 中 | 精确的指令措辞 + 验证测试 |
-| settings.json 格式变更 | 低 | 高 | init 时备份原配置，提供 uninstall 回滚 |
-| Git push 频繁失败（网络） | 中 | 低 | Hook 是 async 的，失败不影响使用；下次写入时重试 |
-| 用户已有 PostToolUse hook 冲突 | 中 | 中 | init 时检测并合并，而非覆盖 |
-| 对话文件过大导致 Git 仓库膨胀 | 低 | 中 | 按月归档 + 可选 shallow clone |
-| 隐私担忧（对话含敏感信息） | 高 | 高 | CLAUDE.md 指令中包含脱敏规则；支持 `.syncignore` |
+| Claude Code 更改 hooks 机制 | 低 | 高 | 跟踪更新日志，快速适配 |
+| 剪贴板监听被 macOS 安全策略限制 | 中 | 高 | 申请 Accessibility 权限 + 回退到手动保存 |
+| Tauri 打包在某些 OS 上出问题 | 中 | 中 | CI 多平台构建 + 提供裸二进制 |
+| 用户隐私担忧（剪贴板含密码） | 高 | 高 | 默认最小长度 20 字 + 忽略密码管理器 + 白名单过滤 |
+| Git 仓库膨胀（图片/文件过多） | 中 | 中 | `.syncignore` + 大文件警告 + Git LFS 建议 |
+| 拖拽文件路由错误 | 低 | 低 | 按扩展名精确匹配 + 兜底到 imports/other/ |
 
 ---
 
-## 附录 A：配置文件设计
+## 附录 A：已完成的开发进度
 
-```toml
-# ~/.gitmemo/.sync-config.toml
+| 日期 | 里程碑 |
+|------|--------|
+| 2026-03 初 | v0.1.0 — CLI MVP 发布（init + 对话备份 + Git 同步） |
+| 2026-03 中 | v0.1.2 — MCP Server + 笔记 + 搜索 + Cursor 支持 |
+| 2026-03-27 | v0.1.4 — Tauri 桌面客户端首版（Dashboard + Notes + Clipboard + Search + DropZone） |
 
-[git]
-remote = "git@github.com:user/my-ai-notes.git"
-branch = "main"
-push_interval_minutes = 15      # 推送间隔
-commit_delay_seconds = 300      # 对话结束后多久提交
+## 附录 B：Novi Notes 参考
 
-[capture]
-watch_paths = ["~/.claude/"]    # 监控路径
-exclude = ["*.tmp", "*.lock"]   # 排除文件
-
-[notes]
-default_editor = "$EDITOR"      # 默认编辑器
-daily_template = ""             # 每日笔记模板（可选）
-
-[security]
-filter_patterns = [             # 自动脱敏规则
-  "sk-[a-zA-Z0-9]{20,}",
-  "ghp_[a-zA-Z0-9]{36}",
-  "password\\s*=\\s*['\"].*?['\"]"
-]
-```
-
-## 附录 B：Novi Notes 完整参考资料
-
-**产品信息**：
-- 名称：Novi Notes
-- Tagline：基于 MCP 实现零配置的本地优先 Mac AI 笔记应用
-- Product Hunt 投票：98 票
-- 创建时间：2026-03-21
-
-**开发者 Hojong 的核心观点**：
-- 痛点：Claude 使用过程中 markdown 文件散落各处，版本控制困难
-- 尝试过 Notion、Obsidian、Evernote、Bear、SimpleNote，都不满足
-- 核心差异：MCP 原生集成、本地优先、一次性买断、为开发者工作流设计
-
-**市场评价**：
-- 精准切入开发者与 AI 协同工作时的碎片化知识管理痛点
-- MCP 集成比传统 API/插件模式更优雅
-- 挑战：市场教育（用户需理解 MCP 价值）、独立开发者可持续性
+- 名称：Novi Notes | Tagline：基于 MCP 实现零配置的本地优先 Mac AI 笔记应用
+- Product Hunt 98 票 | 仅 Mac、闭源、一次性买断
+- MCP 原生集成是其核心差异点，但无 Git 同步、无剪贴板、无自动对话记录
