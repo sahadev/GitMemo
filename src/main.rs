@@ -175,7 +175,16 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool) -> Resu
         println!("  {} MCP Server 已注册", style("✓").green());
     }
 
-    // 8. Save config
+    // 8. Install /save skill
+    let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
+    std::fs::create_dir_all(&skill_dir)?;
+    std::fs::write(
+        skill_dir.join("SKILL.md"),
+        include_str!("../skills/save/SKILL.md"),
+    )?;
+    println!("  {} /save 快捷命令已安装", style("✓").green());
+
+    // 9. Save config
     let config = utils::config::Config {
         git: utils::config::GitConfig {
             remote: url,
@@ -238,6 +247,13 @@ fn cmd_uninstall(remove_data: bool) -> Result<()> {
     let claude_json_path = dirs::home_dir().unwrap().join(".claude.json");
     inject::mcp_register::unregister(&claude_json_path)?;
     println!("  {} MCP Server 已移除", style("✓").green());
+
+    // Remove /save skill
+    let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
+    if skill_dir.exists() {
+        std::fs::remove_dir_all(&skill_dir)?;
+        println!("  {} /save 快捷命令已移除", style("✓").green());
+    }
 
     if remove_data {
         let sync_dir = storage::files::sync_dir();
