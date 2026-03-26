@@ -183,6 +183,16 @@ fn get_tool_definitions() -> Vec<Value> {
                 "properties": {}
             }
         }),
+        json!({
+            "name": "cds_sync",
+            "description": "将 GitMemo 数据目录的变更同步到 Git（git add + commit + push）。在 Cursor 等没有自动 Hook 的编辑器中，保存对话文件后必须调用此工具完成同步。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "message": { "type": "string", "description": "commit message（可选，默认自动生成）" }
+                }
+            }
+        }),
     ]
 }
 
@@ -304,6 +314,14 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                     "scratch": stats.note_scratch_count
                 }
             }))?)
+        }
+
+        "cds_sync" => {
+            let message = args["message"]
+                .as_str()
+                .unwrap_or("auto: sync conversations");
+            crate::storage::git::commit_and_push(&sync_dir, message)?;
+            Ok("Git 同步完成".to_string())
         }
 
         _ => anyhow::bail!("Unknown tool: {}", name),

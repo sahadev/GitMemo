@@ -13,7 +13,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Initialize: create Git repo, inject Claude Code configs
+    /// Initialize: create Git repo, inject editor configs
     Init {
         /// Git remote URL (interactive if omitted)
         #[arg(long)]
@@ -26,6 +26,10 @@ pub enum Commands {
         /// Skip MCP server registration
         #[arg(long)]
         no_mcp: bool,
+
+        /// Target editor: claude, cursor, or all (interactive if omitted)
+        #[arg(long)]
+        editor: Option<String>,
     },
 
     /// Remove injected configs (keeps data by default)

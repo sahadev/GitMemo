@@ -13,8 +13,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Init { git_url, path, no_mcp } => {
-            cmd_init(git_url, path, no_mcp)?;
+        Commands::Init { git_url, path, no_mcp, editor } => {
+            cmd_init(git_url, path, no_mcp, editor)?;
         }
         Commands::Uninstall { remove_data } => {
             cmd_uninstall(remove_data)?;
@@ -59,14 +59,45 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool) -> Result<()> {
+#[derive(Debug, Clone, Copy)]
+enum EditorChoice {
+    Claude,
+    Cursor,
+    All,
+}
+
+fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor: Option<String>) -> Result<()> {
     use console::style;
-    use dialoguer::Input;
+    use dialoguer::{Input, Select};
 
     let default_sync_dir = storage::files::sync_dir();
 
     println!("\n{}", style("GitMemo 初始化").bold().cyan());
     println!();
+
+    // 0. Determine target editor(s)
+    let editor_choice = match editor.as_deref() {
+        Some("claude") => EditorChoice::Claude,
+        Some("cursor") => EditorChoice::Cursor,
+        Some("all") => EditorChoice::All,
+        Some(other) => anyhow::bail!("不支持的编辑器: {}。可选: claude, cursor, all", other),
+        None => {
+            let options = vec!["Claude Code", "Cursor", "两者都安装"];
+            let selection = Select::new()
+                .with_prompt("选择要配置的编辑器")
+                .items(&options)
+                .default(0)
+                .interact()?;
+            match selection {
+                0 => EditorChoice::Claude,
+                1 => EditorChoice::Cursor,
+                _ => EditorChoice::All,
+            }
+        }
+    };
+
+    let install_claude = matches!(editor_choice, EditorChoice::Claude | EditorChoice::All);
+    let install_cursor = matches!(editor_choice, EditorChoice::Cursor | EditorChoice::All);
 
     // 1. Handle --path: symlink existing repo
     let sync_dir = if let Some(ref repo_path) = path {
@@ -148,11 +179,22 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool) -> Resu
         .join(".claude")
         .join("settings.json");
     let claude_json_path = dirs::home_dir().unwrap().join(".claude.json");
+    let cursor_rules_path = dirs::home_dir()
+        .unwrap()
+        .join(".cursor")
+        .join("rules")
+        .join("gitmemo.mdc");
+    let cursor_mcp_path = dirs::home_dir()
+        .unwrap()
+        .join(".cursor")
+        .join("mcp.json");
 
+    // Backup relevant configs
     for (src, name) in [
         (&claude_md_path, "CLAUDE.md.backup"),
         (&settings_path, "settings.json.backup"),
         (&claude_json_path, "claude.json.backup"),
+        (&cursor_mcp_path, "cursor-mcp.json.backup"),
     ] {
         if src.exists() {
             std::fs::copy(src, backup_dir.join(name))?;
@@ -160,29 +202,40 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool) -> Resu
     }
     println!("  {} 原始配置已备份", style("✓").green());
 
-    // 6. Inject CLAUDE.md
-    inject::claude_md::inject(&claude_md_path, &sync_dir_str)?;
-    println!("  {} CLAUDE.md 指令已注入", style("✓").green());
+    // 6. Inject editor-specific configs
+    if install_claude {
+        inject::claude_md::inject(&claude_md_path, &sync_dir_str)?;
+        println!("  {} CLAUDE.md 指令已注入", style("✓").green());
 
-    // 7. Inject settings.json hook
-    inject::settings_hook::inject(&settings_path, &sync_dir_str)?;
-    println!("  {} Git 同步 Hook 已注入", style("✓").green());
+        inject::settings_hook::inject(&settings_path, &sync_dir_str)?;
+        println!("  {} Git 同步 Hook 已注入", style("✓").green());
 
-    // 8. Register MCP server
-    if !no_mcp {
-        let binary = std::env::current_exe()?.to_string_lossy().to_string();
-        inject::mcp_register::register(&claude_json_path, &binary)?;
-        println!("  {} MCP Server 已注册", style("✓").green());
+        if !no_mcp {
+            let binary = std::env::current_exe()?.to_string_lossy().to_string();
+            inject::mcp_register::register(&claude_json_path, &binary)?;
+            println!("  {} Claude MCP Server 已注册", style("✓").green());
+        }
+
+        // Install /save skill
+        let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
+        std::fs::create_dir_all(&skill_dir)?;
+        std::fs::write(
+            skill_dir.join("SKILL.md"),
+            include_str!("../skills/save/SKILL.md"),
+        )?;
+        println!("  {} /save 快捷命令已安装", style("✓").green());
     }
 
-    // 8. Install /save skill
-    let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
-    std::fs::create_dir_all(&skill_dir)?;
-    std::fs::write(
-        skill_dir.join("SKILL.md"),
-        include_str!("../skills/save/SKILL.md"),
-    )?;
-    println!("  {} /save 快捷命令已安装", style("✓").green());
+    if install_cursor {
+        inject::cursor_rules::inject(&cursor_rules_path, &sync_dir_str)?;
+        println!("  {} Cursor Rules 已注入", style("✓").green());
+
+        if !no_mcp {
+            let binary = std::env::current_exe()?.to_string_lossy().to_string();
+            inject::cursor_mcp::register(&cursor_mcp_path, &binary)?;
+            println!("  {} Cursor MCP Server 已注册", style("✓").green());
+        }
+    }
 
     // 9. Save config
     let config = utils::config::Config {
@@ -213,8 +266,14 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool) -> Resu
     );
     println!();
     println!("  下一步：");
-    println!("    1. {} 重启 Claude 会话（使配置生效）", style("必须").bold());
-    println!("    2. 在 Claude 中输入 {} 保存当前会话", style("/save").cyan());
+    if install_claude {
+        println!("    1. {} 重启 Claude 会话（使配置生效）", style("必须").bold());
+        println!("    2. 在 Claude 中输入 {} 保存当前会话", style("/save").cyan());
+    }
+    if install_cursor {
+        println!("    1. {} 重启 Cursor（使配置生效）", style("必须").bold());
+        println!("    2. 对话保存后会自动通过 MCP 同步到 Git", );
+    }
     println!();
     println!("  验证是否生效：");
     println!("    {} 手动测试", style("gitmemo note \"hello world\"").cyan());
@@ -229,12 +288,11 @@ fn cmd_uninstall(remove_data: bool) -> Result<()> {
 
     println!("\n{}", style("GitMemo 卸载").bold().cyan());
 
-    // Remove CLAUDE.md injection
+    // Remove Claude Code configs
     let claude_md_path = dirs::home_dir().unwrap().join(".claude").join("CLAUDE.md");
     inject::claude_md::remove(&claude_md_path)?;
     println!("  {} CLAUDE.md 指令已移除", style("✓").green());
 
-    // Remove settings.json hook
     let settings_path = dirs::home_dir()
         .unwrap()
         .join(".claude")
@@ -242,17 +300,31 @@ fn cmd_uninstall(remove_data: bool) -> Result<()> {
     inject::settings_hook::remove(&settings_path)?;
     println!("  {} Git 同步 Hook 已移除", style("✓").green());
 
-    // Remove MCP registration
     let claude_json_path = dirs::home_dir().unwrap().join(".claude.json");
     inject::mcp_register::unregister(&claude_json_path)?;
-    println!("  {} MCP Server 已移除", style("✓").green());
+    println!("  {} Claude MCP Server 已移除", style("✓").green());
 
-    // Remove /save skill
     let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
     if skill_dir.exists() {
         std::fs::remove_dir_all(&skill_dir)?;
         println!("  {} /save 快捷命令已移除", style("✓").green());
     }
+
+    // Remove Cursor configs
+    let cursor_rules_path = dirs::home_dir()
+        .unwrap()
+        .join(".cursor")
+        .join("rules")
+        .join("gitmemo.mdc");
+    inject::cursor_rules::remove(&cursor_rules_path)?;
+    println!("  {} Cursor Rules 已移除", style("✓").green());
+
+    let cursor_mcp_path = dirs::home_dir()
+        .unwrap()
+        .join(".cursor")
+        .join("mcp.json");
+    inject::cursor_mcp::unregister(&cursor_mcp_path)?;
+    println!("  {} Cursor MCP Server 已移除", style("✓").green());
 
     if remove_data {
         let sync_dir = storage::files::sync_dir();
