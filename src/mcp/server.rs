@@ -320,8 +320,25 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             let message = args["message"]
                 .as_str()
                 .unwrap_or("auto: sync conversations");
-            crate::storage::git::commit_and_push(&sync_dir, message)?;
-            Ok("Git 同步完成".to_string())
+            let result = crate::storage::git::commit_and_push(&sync_dir, message)?;
+            if result.committed && result.pushed {
+                Ok("Git 同步完成（已提交并推送）".to_string())
+            } else if result.committed {
+                Ok(format!("已提交，但推送失败: {}", result.push_error.unwrap_or_default()))
+            } else {
+                // No new commit, try push unpushed
+                let unpushed = crate::storage::git::unpushed_count(&sync_dir)?;
+                if unpushed > 0 {
+                    let push_result = crate::storage::git::push(&sync_dir)?;
+                    if push_result.pushed {
+                        Ok(format!("已推送 {} 条提交", unpushed))
+                    } else {
+                        Ok(format!("推送失败: {}", push_result.push_error.unwrap_or_default()))
+                    }
+                } else {
+                    Ok("一切已同步，无需操作".to_string())
+                }
+            }
         }
 
         _ => anyhow::bail!("Unknown tool: {}", name),

@@ -101,4 +101,10 @@ pub enum Commands {
 
     /// Show config and sync status
     Status,
+
+    /// Sync local changes to Git (commit + push)
+    Sync,
+
+    /// Show unpushed commits
+    Unpushed,
 }

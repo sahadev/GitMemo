@@ -54,6 +54,12 @@ fn main() -> Result<()> {
         Commands::Status => {
             cmd_status()?;
         }
+        Commands::Sync => {
+            cmd_sync()?;
+        }
+        Commands::Unpushed => {
+            cmd_unpushed()?;
+        }
     }
 
     Ok(())
@@ -388,6 +394,18 @@ fn cmd_status() -> Result<()> {
 
     println!("  对话记录: {} 条", conv_count);
     println!("  笔记: {} 条", note_count);
+
+    // Show unpushed count
+    let unpushed = storage::git::unpushed_count(&sync_dir).unwrap_or(0);
+    if unpushed > 0 {
+        println!(
+            "  未推送: {} 条提交（运行 {} 推送）",
+            style(unpushed).yellow(),
+            style("gitmemo sync").cyan()
+        );
+    } else {
+        println!("  同步状态: {} 已同步", style("✓").green());
+    }
     println!();
 
     Ok(())
@@ -403,12 +421,82 @@ fn ensure_init() -> Result<std::path::PathBuf> {
     Ok(sync_dir)
 }
 
+fn cmd_sync() -> Result<()> {
+    use console::style;
+    let sync_dir = ensure_init()?;
+
+    // First try commit + push
+    let result = storage::git::commit_and_push(&sync_dir, "auto: sync")?;
+    if result.committed {
+        print_sync_status(&result);
+        return Ok(());
+    }
+
+    // No new changes to commit, but maybe there are unpushed commits
+    let unpushed = storage::git::unpushed_count(&sync_dir)?;
+    if unpushed > 0 {
+        println!("  {} {} 条未推送的提交，正在推送...", style("ℹ").blue(), unpushed);
+        let push_result = storage::git::push(&sync_dir)?;
+        if push_result.pushed {
+            println!("  {} 已推送 {} 条提交", style("✓").green(), unpushed);
+        } else if let Some(ref err) = push_result.push_error {
+            println!("  {} 推送失败: {}", style("✗").red(), err);
+        }
+    } else {
+        println!("  {} 一切已同步，无需操作", style("✓").green());
+    }
+
+    Ok(())
+}
+
+fn cmd_unpushed() -> Result<()> {
+    use console::style;
+    let sync_dir = ensure_init()?;
+
+    let logs = storage::git::unpushed_log(&sync_dir)?;
+    if logs.is_empty() {
+        println!("  {} 没有未推送的提交", style("✓").green());
+        return Ok(());
+    }
+
+    println!(
+        "\n  {} {} 条未推送的提交：\n",
+        style("⚠").yellow(),
+        logs.len()
+    );
+    for log in &logs {
+        println!("  {}", log);
+    }
+    println!();
+    println!("  运行 {} 推送到远程", style("gitmemo sync").cyan());
+    println!();
+
+    Ok(())
+}
+
+fn print_sync_status(result: &storage::git::SyncResult) {
+    use console::style;
+    if !result.committed {
+        println!("  {} 无变更需要提交", style("ℹ").blue());
+        return;
+    }
+    if result.pushed {
+        println!("  {} 已同步到 Git", style("✓").green());
+    } else if let Some(ref err) = result.push_error {
+        println!("  {} 已提交，但推送失败: {}", style("⚠").yellow(), style(err).dim());
+        println!("    运行 {} 重试推送", style("gitmemo sync").cyan());
+    } else {
+        println!("  {} 已提交，推送中...", style("ℹ").blue());
+    }
+}
+
 fn cmd_note(content: &str) -> Result<()> {
     use console::style;
     let sync_dir = ensure_init()?;
     let rel_path = storage::files::create_scratch(&sync_dir, content)?;
-    storage::git::commit_and_push(&sync_dir, &format!("note: {}", &content[..content.len().min(50)]))?;
+    let result = storage::git::commit_and_push(&sync_dir, &format!("note: {}", &content[..content.len().min(50)]))?;
     println!("  {} 便签已创建: {}", style("✓").green(), rel_path);
+    print_sync_status(&result);
     Ok(())
 }
 
@@ -443,8 +531,9 @@ fn cmd_daily(content: Option<String>) -> Result<()> {
     };
 
     let rel_path = storage::files::append_daily(&sync_dir, &text)?;
-    storage::git::commit_and_push(&sync_dir, &format!("daily: {}", &text[..text.len().min(50)]))?;
+    let result = storage::git::commit_and_push(&sync_dir, &format!("daily: {}", &text[..text.len().min(50)]))?;
     println!("  {} 已追加到今日笔记: {}", style("✓").green(), rel_path);
+    print_sync_status(&result);
     Ok(())
 }
 
@@ -472,8 +561,9 @@ fn cmd_manual(title: &str, content: Option<String>, append: bool) -> Result<()> 
 
     let rel_path = storage::files::write_manual(&sync_dir, title, &text, append)?;
     let action = if append { "update" } else { "create" };
-    storage::git::commit_and_push(&sync_dir, &format!("manual: {} {}", action, title))?;
+    let result = storage::git::commit_and_push(&sync_dir, &format!("manual: {} {}", action, title))?;
     println!("  {} 手册已保存: {}", style("✓").green(), rel_path);
+    print_sync_status(&result);
     Ok(())
 }
 
