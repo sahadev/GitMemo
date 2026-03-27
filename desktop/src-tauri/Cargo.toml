@@ -14,11 +14,13 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # Tauri
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
 
 # Core library (reuse gitmemo logic)
 gitmemo_core = { path = "../..", package = "gitmemo" }
@@ -45,6 +47,9 @@ walkdir = "2"
 
 # Hash
 sha2 = "0.10"
+
+# Config
+toml = "0.8"
 
 # File watching (for clipboard & file change events)
 notify = { version = "7", features = ["macos_kqueue"] }

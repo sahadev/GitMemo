@@ -168,6 +168,46 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
 }
 
 #[tauri::command]
+pub fn update_note(file_path: String, content: String) -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    let full_path = dir.join(&file_path);
+    if !full_path.exists() {
+        return Err(format!("File not found: {}", file_path));
+    }
+
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
+
+    let msg = format!("edit: {}", file_path);
+    let _ = git::commit_and_push(&dir, &msg);
+
+    Ok(NoteResult {
+        success: true,
+        path: file_path,
+        message: "Note saved".into(),
+    })
+}
+
+#[tauri::command]
+pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    let full_path = dir.join(&file_path);
+    if !full_path.exists() {
+        return Err(format!("File not found: {}", file_path));
+    }
+
+    std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
+
+    let msg = format!("delete: {}", file_path);
+    let _ = git::commit_and_push(&dir, &msg);
+
+    Ok(NoteResult {
+        success: true,
+        path: file_path,
+        message: "Note deleted".into(),
+    })
+}
+
+#[tauri::command]
 pub fn sync_to_git() -> Result<String, String> {
     let dir = sync_dir();
     if !dir.exists() {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft } from "lucide-react";
+import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X } from "lucide-react";
+import MarkdownView from "../components/MarkdownView";
 
 interface FileEntry {
   name: string;
@@ -26,7 +27,7 @@ const tabs: { id: NoteTab; label: string; icon: typeof FileText; folder: string 
   { id: "conversations", label: "Conversations", icon: FileText, folder: "conversations" },
 ];
 
-export default function NotesPage() {
+export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
   const [activeTab, setActiveTab] = useState<NoteTab>("scratch");
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -34,13 +35,23 @@ export default function NotesPage() {
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadFiles();
     setSelectedFile(null);
     setFileContent("");
+    setEditing(false);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (focusTrigger && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [focusTrigger]);
 
   const loadFiles = async () => {
     setLoading(true);
@@ -60,6 +71,7 @@ export default function NotesPage() {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
+      setEditing(false);
     } catch (e) {
       console.error(e);
     }
@@ -67,7 +79,6 @@ export default function NotesPage() {
 
   const handleCreateNote = async () => {
     if (!newNote.trim()) return;
-
     try {
       let result: NoteResult;
       if (activeTab === "daily") {
@@ -85,19 +96,66 @@ export default function NotesPage() {
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!selectedFile) return;
+    try {
+      const result = await invoke<NoteResult>("update_note", {
+        filePath: selectedFile,
+        content: editContent,
+      });
+      setFileContent(editContent);
+      setEditing(false);
+      setToast(result.message);
+      loadFiles();
+      setTimeout(() => setToast(""), 2500);
+    } catch (e) {
+      setToast(`Error: ${e}`);
+      setTimeout(() => setToast(""), 3000);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedFile) return;
+    try {
+      await invoke<NoteResult>("delete_note", { filePath: selectedFile });
+      setSelectedFile(null);
+      setFileContent("");
+      setEditing(false);
+      setToast("Note deleted");
+      loadFiles();
+      setTimeout(() => setToast(""), 2500);
+    } catch (e) {
+      setToast(`Error: ${e}`);
+      setTimeout(() => setToast(""), 3000);
+    }
+  };
+
+  const startEdit = () => {
+    setEditContent(fileContent);
+    setEditing(true);
+    setTimeout(() => editRef.current?.focus(), 50);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       handleCreateNote();
     }
   };
 
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+    if (e.key === "Escape") {
+      setEditing(false);
+    }
+  };
+
   return (
     <div className="flex h-full">
       {/* File List */}
-      <div
-        className="w-[280px] border-r flex flex-col h-full"
-        style={{ borderColor: "var(--border)" }}
-      >
+      <div className="w-[280px] border-r flex flex-col h-full" style={{ borderColor: "var(--border)" }}>
         {/* Tabs */}
         <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
           {tabs.map((tab) => {
@@ -120,7 +178,7 @@ export default function NotesPage() {
           })}
         </div>
 
-        {/* Quick note input (only for scratch/daily) */}
+        {/* Quick note input */}
         {(activeTab === "scratch" || activeTab === "daily") && (
           <div className="p-3 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="relative">
@@ -159,13 +217,21 @@ export default function NotesPage() {
         {/* File list */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="p-4 text-[12px]" style={{ color: "var(--text-secondary)" }}>
-              Loading...
-            </p>
+            <p className="p-4 text-[12px]" style={{ color: "var(--text-secondary)" }}>Loading...</p>
           ) : files.length === 0 ? (
-            <p className="p-4 text-[12px]" style={{ color: "var(--text-secondary)" }}>
-              No files yet
-            </p>
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <FileText size={32} style={{ color: "var(--border)" }} className="mb-3" />
+              <p className="text-[13px] mb-1" style={{ color: "var(--text-secondary)" }}>
+                No {activeTab} notes yet
+              </p>
+              <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                {activeTab === "scratch" || activeTab === "daily"
+                  ? "Use the input above to create one"
+                  : activeTab === "manual"
+                  ? "Create manuals via CLI: gitmemo manual"
+                  : "Conversations are saved automatically"}
+              </p>
+            </div>
           ) : (
             files.map((file) => (
               <button
@@ -212,25 +278,68 @@ export default function NotesPage() {
               style={{ borderColor: "var(--border)" }}
             >
               <button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setFileContent("");
-                }}
+                onClick={() => { setSelectedFile(null); setFileContent(""); setEditing(false); }}
                 className="p-1 rounded hover:bg-[var(--bg-hover)]"
               >
                 <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
               </button>
-              <span className="text-[13px] truncate" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-[13px] truncate flex-1" style={{ color: "var(--text-secondary)" }}>
                 {selectedFile}
               </span>
+              {editing ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px]"
+                    style={{ background: "#0f2d0f", color: "var(--green)" }}
+                  >
+                    <Save size={12} /> Save
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="p-1 rounded hover:bg-[var(--bg-hover)]"
+                  >
+                    <X size={14} style={{ color: "var(--text-secondary)" }} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={startEdit}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] hover:bg-[var(--bg-hover)]"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="p-1 rounded hover:bg-[var(--bg-hover)]"
+                    style={{ color: "var(--red)" }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-5">
-              <pre
-                className="text-[13px] leading-6 whitespace-pre-wrap break-words"
-                style={{ color: "var(--text)", fontFamily: "inherit" }}
-              >
-                {fileContent}
-              </pre>
+              {editing ? (
+                <textarea
+                  ref={editRef}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  onKeyDown={handleEditKeyDown}
+                  className="w-full h-full resize-none text-[13px] leading-6 p-0"
+                  style={{
+                    background: "transparent",
+                    color: "var(--text)",
+                    border: "none",
+                    outline: "none",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                />
+              ) : (
+                <MarkdownView content={fileContent} />
+              )}
             </div>
           </>
         ) : (
@@ -239,6 +348,9 @@ export default function NotesPage() {
               <Plus size={32} style={{ color: "var(--border)" }} className="mx-auto mb-3" />
               <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
                 Select a file or create a new note
+              </p>
+              <p className="text-[11px] mt-1" style={{ color: "var(--text-secondary)" }}>
+                Cmd+N to quick create
               </p>
             </div>
           </div>

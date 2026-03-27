@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Search, MessageSquare, StickyNote, ChevronLeft } from "lucide-react";
+import MarkdownView from "../components/MarkdownView";
 
 interface SearchResultItem {
   source_type: string;
@@ -10,13 +11,20 @@ interface SearchResultItem {
   date: string;
 }
 
-export default function SearchPage() {
+export default function SearchPage({ focusTrigger }: { focusTrigger?: number }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (focusTrigger && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [focusTrigger]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -56,15 +64,9 @@ export default function SearchPage() {
   if (selectedFile) {
     return (
       <div className="flex flex-col h-full">
-        <div
-          className="flex items-center gap-2 px-4 py-3 border-b"
-          style={{ borderColor: "var(--border)" }}
-        >
+        <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
           <button
-            onClick={() => {
-              setSelectedFile(null);
-              setFileContent("");
-            }}
+            onClick={() => { setSelectedFile(null); setFileContent(""); }}
             className="p-1 rounded hover:bg-[var(--bg-hover)]"
           >
             <ChevronLeft size={16} style={{ color: "var(--text-secondary)" }} />
@@ -74,12 +76,7 @@ export default function SearchPage() {
           </span>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
-          <pre
-            className="text-[13px] leading-6 whitespace-pre-wrap break-words"
-            style={{ color: "var(--text)", fontFamily: "inherit" }}
-          >
-            {fileContent}
-          </pre>
+          <MarkdownView content={fileContent} />
         </div>
       </div>
     );
@@ -96,11 +93,12 @@ export default function SearchPage() {
             style={{ color: "var(--text-secondary)" }}
           />
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search conversations, notes, clips..."
+            placeholder="Search conversations, notes, clips... (Cmd+K)"
             className="w-full pl-10 pr-4 py-2.5 rounded-lg text-[14px]"
             style={{
               background: "var(--bg-card)",
@@ -115,14 +113,15 @@ export default function SearchPage() {
       {/* Results */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {loading ? (
-          <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-            Searching...
-          </p>
+          <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>Searching...</p>
         ) : !searched ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Search size={40} style={{ color: "var(--border)" }} className="mb-3" />
             <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
               Full-text search across all your data
+            </p>
+            <p className="text-[11px] mt-1" style={{ color: "var(--text-secondary)" }}>
+              Cmd+Shift+G to search from anywhere
             </p>
           </div>
         ) : results.length === 0 ? (
@@ -139,10 +138,7 @@ export default function SearchPage() {
                 key={i}
                 onClick={() => openFile(r.file_path)}
                 className="w-full text-left p-3 rounded-lg border transition-colors hover:bg-[var(--bg-hover)]"
-                style={{
-                  background: "var(--bg-card)",
-                  borderColor: "var(--border)",
-                }}
+                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
               >
                 <div className="flex items-center gap-2 mb-1">
                   {r.source_type === "conversation" ? (

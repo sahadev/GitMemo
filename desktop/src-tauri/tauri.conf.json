@@ -11,6 +11,10 @@
   },
   "app": {
     "withGlobalTauri": false,
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "tooltip": "GitMemo"
+    },
     "windows": [
       {
         "title": "GitMemo",
