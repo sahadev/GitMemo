@@ -29,17 +29,22 @@ echo "  Platform: ${OS} ${ARCH}"
 echo "  Binary:   ${BINARY}"
 echo ""
 
-# Get latest version
-VERSION=$(curl -fsSL -o /dev/null -w "%{redirect_url}" "https://github.com/sahadev/GitMemo/releases/latest" 2>/dev/null | grep -oE '[^/]+$' || echo "unknown")
+# Get latest version via redirect
+VERSION=$(curl -sI "https://github.com/sahadev/GitMemo/releases/latest" 2>/dev/null | grep -i "^location:" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9._-]*' || echo "")
+if [ -z "${VERSION}" ]; then
+    echo "  ✗ Failed to detect latest version."
+    echo "    Try: https://github.com/sahadev/GitMemo/releases"
+    exit 1
+fi
 echo "  Version:  ${VERSION}"
 echo ""
 
-# Download
+# Download specific version (avoid CDN cache issues with /latest/)
 TMPFILE=$(mktemp)
-URL="https://github.com/sahadev/GitMemo/releases/latest/download/${BINARY}"
+URL="https://github.com/sahadev/GitMemo/releases/download/${VERSION}/${BINARY}"
 
 echo "  Downloading..."
-HTTP_CODE=$(curl -fsSL -w "%{http_code}" "${URL}" -o "${TMPFILE}" 2>/dev/null) || true
+curl -fsSL "${URL}" -o "${TMPFILE}" 2>/dev/null || true
 
 # Verify download
 if [ ! -s "${TMPFILE}" ]; then
