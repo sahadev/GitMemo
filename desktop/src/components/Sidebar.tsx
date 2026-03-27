@@ -8,8 +8,6 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
 import type { Page } from "../App";
 
 interface SidebarProps {
@@ -17,6 +15,9 @@ interface SidebarProps {
   onNavigate: (page: Page) => void;
   theme: "dark" | "light";
   onToggleTheme: () => void;
+  syncing: boolean;
+  syncMsg: string;
+  onSync: () => void;
 }
 
 const navItems: { id: Page; icon: typeof LayoutDashboard; label: string }[] = [
@@ -26,24 +27,7 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; label: string }[] = [
   { id: "search", icon: Search, label: "Search" },
 ];
 
-export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme }: SidebarProps) {
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState("");
-
-  const handleSync = async () => {
-    setSyncing(true);
-    setSyncMsg("");
-    try {
-      const result = await invoke<string>("sync_to_git");
-      setSyncMsg(result);
-    } catch (e) {
-      setSyncMsg(`Error: ${e}`);
-    } finally {
-      setSyncing(false);
-      setTimeout(() => setSyncMsg(""), 3000);
-    }
-  };
-
+export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme, syncing, syncMsg, onSync }: SidebarProps) {
   return (
     <div
       style={{
@@ -122,7 +106,7 @@ export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme 
       {/* Sync button + version */}
       <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
         <button
-          onClick={handleSync}
+          onClick={onSync}
           disabled={syncing}
           style={{
             display: "flex",

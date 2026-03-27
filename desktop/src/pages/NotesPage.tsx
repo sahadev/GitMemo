@@ -27,7 +27,7 @@ const tabs: { id: NoteTab; label: string; icon: typeof FileText; folder: string 
   { id: "conversations", label: "Chats", icon: FileText, folder: "conversations" },
 ];
 
-export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
+export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: number; onSync?: () => void }) {
   const [activeTab, setActiveTab] = useState<NoteTab>("scratch");
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -82,6 +82,7 @@ export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
       showToast(result.message);
       setNewNote("");
       loadFiles();
+      onSync?.();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
 
@@ -93,6 +94,7 @@ export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
       setEditing(false);
       showToast(result.message);
       loadFiles();
+      onSync?.();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
 
