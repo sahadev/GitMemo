@@ -5,6 +5,13 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub git: GitConfig,
+    /// Language: "en" or "zh", defaults to "en"
+    #[serde(default = "default_lang")]
+    pub lang: String,
+}
+
+fn default_lang() -> String {
+    "en".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]

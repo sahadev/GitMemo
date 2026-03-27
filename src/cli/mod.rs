@@ -30,6 +30,10 @@ pub enum Commands {
         /// Target editor: claude, cursor, or all (interactive if omitted)
         #[arg(long)]
         editor: Option<String>,
+
+        /// Language: en or zh (interactive if omitted)
+        #[arg(long)]
+        lang: Option<String>,
     },
 
     /// Remove injected configs (keeps data by default)

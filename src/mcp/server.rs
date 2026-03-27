@@ -3,9 +3,13 @@ use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
 use crate::storage::{database, files};
+use crate::utils::i18n;
 
 /// Run the MCP server (stdio JSON-RPC)
 pub fn run() -> Result<()> {
+    // Initialize i18n from config for MCP server
+    i18n::init_from_config();
+
     let stdin = io::stdin();
     let mut stdout = io::stdout();
 
@@ -104,80 +108,81 @@ fn json_rpc_error(id: Value, code: i32, message: &str) -> Value {
 }
 
 fn get_tool_definitions() -> Vec<Value> {
+    let t = i18n::get();
     vec![
         json!({
             "name": "cds_search",
-            "description": "搜索用户的历史 AI 对话和笔记。当用户说'搜索我的对话'、'找一下之前关于 X 的讨论'时使用。",
+            "description": t.mcp_search_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "query": { "type": "string", "description": "搜索关键词" },
-                    "type": { "type": "string", "enum": ["all", "conversation", "note"], "description": "搜索范围，默认 all" },
-                    "limit": { "type": "number", "description": "返回结果数量，默认 10" }
+                    "query": { "type": "string", "description": t.mcp_search_query_desc() },
+                    "type": { "type": "string", "enum": ["all", "conversation", "note"], "description": t.mcp_search_type_desc() },
+                    "limit": { "type": "number", "description": t.mcp_search_limit_desc() }
                 },
                 "required": ["query"]
             }
         }),
         json!({
             "name": "cds_recent",
-            "description": "列出最近的 AI 对话记录。当用户说'最近的对话'、'看看历史'时使用。",
+            "description": t.mcp_recent_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "limit": { "type": "number", "description": "返回数量，默认 10" },
-                    "days": { "type": "number", "description": "最近几天，默认 7" }
+                    "limit": { "type": "number", "description": t.mcp_recent_limit_desc() },
+                    "days": { "type": "number", "description": t.mcp_recent_days_desc() }
                 }
             }
         }),
         json!({
             "name": "cds_read",
-            "description": "读取某条对话或笔记的完整内容。",
+            "description": t.mcp_read_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "file_path": { "type": "string", "description": "文件相对路径" }
+                    "file_path": { "type": "string", "description": t.mcp_read_path_desc() }
                 },
                 "required": ["file_path"]
             }
         }),
         json!({
             "name": "cds_note",
-            "description": "创建一条便签笔记。当用户说'记一下'、'保存这个想法'时使用。",
+            "description": t.mcp_note_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "content": { "type": "string", "description": "笔记内容" }
+                    "content": { "type": "string", "description": t.mcp_note_content_desc() }
                 },
                 "required": ["content"]
             }
         }),
         json!({
             "name": "cds_daily",
-            "description": "追加内容到今天的日记。当用户说'记到今天的日记里'时使用。",
+            "description": t.mcp_daily_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "content": { "type": "string", "description": "要追加的内容" }
+                    "content": { "type": "string", "description": t.mcp_daily_content_desc() }
                 },
                 "required": ["content"]
             }
         }),
         json!({
             "name": "cds_manual",
-            "description": "创建或追加到手册文档。当用户说'创建一篇手册'、'整理成文档'时使用。",
+            "description": t.mcp_manual_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "title": { "type": "string", "description": "手册标题" },
-                    "content": { "type": "string", "description": "手册内容" },
-                    "append": { "type": "boolean", "description": "是否追加到已有手册" }
+                    "title": { "type": "string", "description": t.mcp_manual_title_desc() },
+                    "content": { "type": "string", "description": t.mcp_manual_content_desc() },
+                    "append": { "type": "boolean", "description": t.mcp_manual_append_desc() }
                 },
                 "required": ["title", "content"]
             }
         }),
         json!({
             "name": "cds_stats",
-            "description": "获取对话和笔记的统计信息。",
+            "description": t.mcp_stats_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {}
@@ -185,11 +190,11 @@ fn get_tool_definitions() -> Vec<Value> {
         }),
         json!({
             "name": "cds_sync",
-            "description": "将 GitMemo 数据目录的变更同步到 Git（git add + commit + push）。在 Cursor 等没有自动 Hook 的编辑器中，保存对话文件后必须调用此工具完成同步。",
+            "description": t.mcp_sync_desc(),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "message": { "type": "string", "description": "commit message（可选，默认自动生成）" }
+                    "message": { "type": "string", "description": t.mcp_sync_message_desc() }
                 }
             }
         }),
@@ -197,9 +202,10 @@ fn get_tool_definitions() -> Vec<Value> {
 }
 
 fn call_tool(name: &str, args: &Value) -> Result<String> {
+    let t = i18n::get();
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
-        anyhow::bail!("GitMemo 未初始化。请先运行 gitmemo init");
+        anyhow::bail!(t.not_init_error_mcp());
     }
 
     let db_path = sync_dir.join(".metadata").join("index.db");
@@ -272,7 +278,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                 &sync_dir,
                 &format!("note: {}", &content[..content.len().min(50)]),
             )?;
-            Ok(format!("便签已创建: {}", rel_path))
+            Ok(t.mcp_note_created(&rel_path))
         }
 
         "cds_daily" => {
@@ -284,7 +290,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                 &sync_dir,
                 &format!("daily: {}", &content[..content.len().min(50)]),
             )?;
-            Ok(format!("已追加到今日笔记: {}", rel_path))
+            Ok(t.mcp_daily_appended(&rel_path))
         }
 
         "cds_manual" => {
@@ -301,7 +307,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                 &sync_dir,
                 &format!("manual: {} {}", action, title),
             )?;
-            Ok(format!("手册已保存: {}", rel_path))
+            Ok(t.mcp_manual_saved(&rel_path))
         }
 
         "cds_stats" => {
@@ -322,21 +328,21 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                 .unwrap_or("auto: sync conversations");
             let result = crate::storage::git::commit_and_push(&sync_dir, message)?;
             if result.committed && result.pushed {
-                Ok("Git 同步完成（已提交并推送）".to_string())
+                Ok(t.mcp_sync_done().to_string())
             } else if result.committed {
-                Ok(format!("已提交，但推送失败: {}", result.push_error.unwrap_or_default()))
+                Ok(t.mcp_committed_push_failed(&result.push_error.unwrap_or_default()))
             } else {
                 // No new commit, try push unpushed
                 let unpushed = crate::storage::git::unpushed_count(&sync_dir)?;
                 if unpushed > 0 {
                     let push_result = crate::storage::git::push(&sync_dir)?;
                     if push_result.pushed {
-                        Ok(format!("已推送 {} 条提交", unpushed))
+                        Ok(t.mcp_pushed_commits(unpushed))
                     } else {
-                        Ok(format!("推送失败: {}", push_result.push_error.unwrap_or_default()))
+                        Ok(t.mcp_push_failed(&push_result.push_error.unwrap_or_default()))
                     }
                 } else {
-                    Ok("一切已同步，无需操作".to_string())
+                    Ok(t.mcp_all_synced().to_string())
                 }
             }
         }

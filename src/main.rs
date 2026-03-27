@@ -12,9 +12,14 @@ use cli::{Cli, Commands};
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // Init i18n from config (except during init itself, where we ask the user)
+    if !matches!(cli.command, Commands::Init { .. }) {
+        utils::i18n::init_from_config();
+    }
+
     match cli.command {
-        Commands::Init { git_url, path, no_mcp, editor } => {
-            cmd_init(git_url, path, no_mcp, editor)?;
+        Commands::Init { git_url, path, no_mcp, editor, lang } => {
+            cmd_init(git_url, path, no_mcp, editor, lang)?;
         }
         Commands::Uninstall { remove_data } => {
             cmd_uninstall(remove_data)?;
@@ -72,25 +77,45 @@ enum EditorChoice {
     All,
 }
 
-fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor: Option<String>) -> Result<()> {
+fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor: Option<String>, lang_arg: Option<String>) -> Result<()> {
     use console::style;
     use dialoguer::{Input, Select};
+    use utils::i18n::{self, Lang};
 
     let default_sync_dir = storage::files::sync_dir();
 
-    println!("\n{}", style("GitMemo 初始化").bold().cyan());
+    // 0a. Determine language (ask first, before anything else)
+    let lang = match lang_arg.as_deref() {
+        Some(l) => Lang::from_str(l),
+        None => {
+            let lang_options = vec!["English", "中文"];
+            let selection = Select::new()
+                .with_prompt("Select language / 选择语言")
+                .items(&lang_options)
+                .default(0)
+                .interact()?;
+            match selection {
+                1 => Lang::Zh,
+                _ => Lang::En,
+            }
+        }
+    };
+    i18n::init(lang);
+    let t = i18n::get();
+
+    println!("\n{}", style(t.init_title()).bold().cyan());
     println!();
 
-    // 0. Determine target editor(s)
+    // 0b. Determine target editor(s)
     let editor_choice = match editor.as_deref() {
         Some("claude") => EditorChoice::Claude,
         Some("cursor") => EditorChoice::Cursor,
         Some("all") => EditorChoice::All,
-        Some(other) => anyhow::bail!("不支持的编辑器: {}。可选: claude, cursor, all", other),
+        Some(other) => anyhow::bail!(t.unsupported_editor(other)),
         None => {
-            let options = vec!["Claude Code", "Cursor", "两者都安装"];
+            let options = t.editor_options();
             let selection = Select::new()
-                .with_prompt("选择要配置的编辑器")
+                .with_prompt(t.select_editor_prompt())
                 .items(&options)
                 .default(0)
                 .interact()?;
@@ -109,7 +134,7 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
     let sync_dir = if let Some(ref repo_path) = path {
         let real_path = std::path::Path::new(repo_path).canonicalize()?;
         if !real_path.join(".git").exists() {
-            anyhow::bail!("{} 不是一个 Git 仓库", real_path.display());
+            anyhow::bail!(t.not_a_git_repo(&real_path.display().to_string()));
         }
 
         // Create symlink if needed
@@ -119,8 +144,9 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
         }
         std::os::unix::fs::symlink(&real_path, &default_sync_dir)?;
         println!(
-            "  {} 链接到已有仓库: {} → {}",
+            "  {} {}: {} → {}",
             style("✓").green(),
+            t.linked_repo(),
             default_sync_dir.display(),
             real_path.display()
         );
@@ -140,42 +166,43 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
                 if let Ok(remote) = repo.find_remote("origin") {
                     if let Some(existing_url) = remote.url() {
                         println!(
-                            "  {} 检测到已有远程: {}",
+                            "  {} {}: {}",
                             style("ℹ").blue(),
+                            t.detected_remote(),
                             existing_url
                         );
                         existing_url.to_string()
                     } else {
-                        Input::new().with_prompt("Git 仓库地址").interact_text()?
+                        Input::new().with_prompt(t.git_url_prompt()).interact_text()?
                     }
                 } else {
-                    Input::new().with_prompt("Git 仓库地址").interact_text()?
+                    Input::new().with_prompt(t.git_url_prompt()).interact_text()?
                 }
             } else {
-                Input::new().with_prompt("Git 仓库地址").interact_text()?
+                Input::new().with_prompt(t.git_url_prompt()).interact_text()?
             }
         }
     };
 
     // 3. Create directory structure (safe for existing dirs)
     storage::files::create_directory_structure(&sync_dir)?;
-    println!("  {} 目录结构就绪", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.dir_structure_ready());
 
     // 4. Init or open git repo
     storage::git::init_repo(&sync_dir, &url)?;
-    println!("  {} Git 仓库就绪", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.git_repo_ready());
 
-    // 4. Generate SSH key (skip if exists)
+    // 5. Generate SSH key (skip if exists)
     let ssh_dir = sync_dir.join(".ssh");
     let (key_path, is_new_key) = utils::ssh::generate_key(&ssh_dir)?;
     let pub_key = utils::ssh::read_public_key(&key_path)?;
     if is_new_key {
-        println!("  {} SSH 密钥已生成", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.ssh_key_generated());
     } else {
-        println!("  {} SSH 密钥已存在，跳过生成", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.ssh_key_exists());
     }
 
-    // 5. Backup existing configs before injection
+    // 6. Backup existing configs before injection
     let backup_dir = sync_dir.join(".backups");
     std::fs::create_dir_all(&backup_dir)?;
 
@@ -206,20 +233,20 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
             std::fs::copy(src, backup_dir.join(name))?;
         }
     }
-    println!("  {} 原始配置已备份", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.configs_backed_up());
 
-    // 6. Inject editor-specific configs
+    // 7. Inject editor-specific configs
     if install_claude {
-        inject::claude_md::inject(&claude_md_path, &sync_dir_str)?;
-        println!("  {} CLAUDE.md 指令已注入", style("✓").green());
+        inject::claude_md::inject(&claude_md_path, &sync_dir_str, lang)?;
+        println!("  {} {}", style("✓").green(), t.claude_md_injected());
 
         inject::settings_hook::inject(&settings_path, &sync_dir_str)?;
-        println!("  {} Git 同步 Hook 已注入", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.git_hook_injected());
 
         if !no_mcp {
             let binary = std::env::current_exe()?.to_string_lossy().to_string();
             inject::mcp_register::register(&claude_json_path, &binary)?;
-            println!("  {} Claude MCP Server 已注册", style("✓").green());
+            println!("  {} {}", style("✓").green(), t.claude_mcp_registered());
         }
 
         // Install /save skill
@@ -229,26 +256,27 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
             skill_dir.join("SKILL.md"),
             include_str!("../skills/save/SKILL.md"),
         )?;
-        println!("  {} /save 快捷命令已安装", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.save_skill_installed());
     }
 
     if install_cursor {
         inject::cursor_rules::inject(&cursor_rules_path, &sync_dir_str)?;
-        println!("  {} Cursor Rules 已注入", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.cursor_rules_injected());
 
         if !no_mcp {
             let binary = std::env::current_exe()?.to_string_lossy().to_string();
             inject::cursor_mcp::register(&cursor_mcp_path, &binary)?;
-            println!("  {} Cursor MCP Server 已注册", style("✓").green());
+            println!("  {} {}", style("✓").green(), t.cursor_mcp_registered());
         }
     }
 
-    // 9. Save config
+    // 8. Save config (with language)
     let config = utils::config::Config {
         git: utils::config::GitConfig {
             remote: url,
             branch: "main".to_string(),
         },
+        lang: lang.as_str().to_string(),
     };
     config.save(&utils::config::Config::config_path())?;
 
@@ -259,8 +287,9 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
     println!();
     if is_new_key {
         println!(
-            "  {} 请将以下公钥添加到仓库的 Deploy Keys（允许写入）：",
-            style("→").yellow()
+            "  {} {}",
+            style("→").yellow(),
+            t.deploy_key_hint()
         );
         println!();
         println!("  {}", style(&pub_key).dim());
@@ -268,22 +297,24 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
     }
     println!(
         "  {}",
-        style("一切就绪！").green().bold()
+        style(t.all_set()).green().bold()
     );
     println!();
-    println!("  下一步：");
+    println!("  {}", t.next_steps());
     if install_claude {
-        println!("    1. 在 Claude 中输入 {} 试试保存当前会话（无需重启）", style("/save").cyan());
-        println!("    2. 如果 /save 未生效，重启 Claude 会话即可");
+        let step1 = t.claude_next_step_1().replace("{}", &style("/save").cyan().to_string());
+        println!("    1. {}", step1);
+        println!("    2. {}", t.claude_next_step_2());
     }
     if install_cursor {
-        println!("    1. {} 重启 Cursor（使配置生效）", style("建议").bold());
-        println!("    2. 对话保存后会自动通过 MCP 同步到 Git", );
+        let step1 = t.cursor_next_step_1().replace("{}", &style(t.recommend()).bold().to_string());
+        println!("    1. {}", step1);
+        println!("    2. {}", t.cursor_next_step_2());
     }
     println!();
-    println!("  验证是否生效：");
-    println!("    {} 手动测试", style("gitmemo note \"hello world\"").cyan());
-    println!("    {} 查看状态", style("gitmemo status").cyan());
+    println!("  {}", t.verify_heading());
+    println!("    {} {}", style("gitmemo note \"hello world\"").cyan(), t.verify_test());
+    println!("    {} {}", style("gitmemo status").cyan(), t.verify_status());
     println!();
 
     Ok(())
@@ -291,29 +322,30 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
 
 fn cmd_uninstall(remove_data: bool) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
 
-    println!("\n{}", style("GitMemo 卸载").bold().cyan());
+    println!("\n{}", style(t.uninstall_title()).bold().cyan());
 
     // Remove Claude Code configs
     let claude_md_path = dirs::home_dir().unwrap().join(".claude").join("CLAUDE.md");
     inject::claude_md::remove(&claude_md_path)?;
-    println!("  {} CLAUDE.md 指令已移除", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.claude_md_removed());
 
     let settings_path = dirs::home_dir()
         .unwrap()
         .join(".claude")
         .join("settings.json");
     inject::settings_hook::remove(&settings_path)?;
-    println!("  {} Git 同步 Hook 已移除", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.git_hook_removed());
 
     let claude_json_path = dirs::home_dir().unwrap().join(".claude.json");
     inject::mcp_register::unregister(&claude_json_path)?;
-    println!("  {} Claude MCP Server 已移除", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.claude_mcp_removed());
 
     let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
     if skill_dir.exists() {
         std::fs::remove_dir_all(&skill_dir)?;
-        println!("  {} /save 快捷命令已移除", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.save_skill_removed());
     }
 
     // Remove Cursor configs
@@ -323,30 +355,30 @@ fn cmd_uninstall(remove_data: bool) -> Result<()> {
         .join("rules")
         .join("gitmemo.mdc");
     inject::cursor_rules::remove(&cursor_rules_path)?;
-    println!("  {} Cursor Rules 已移除", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.cursor_rules_removed());
 
     let cursor_mcp_path = dirs::home_dir()
         .unwrap()
         .join(".cursor")
         .join("mcp.json");
     inject::cursor_mcp::unregister(&cursor_mcp_path)?;
-    println!("  {} Cursor MCP Server 已移除", style("✓").green());
+    println!("  {} {}", style("✓").green(), t.cursor_mcp_removed());
 
     if remove_data {
         let sync_dir = storage::files::sync_dir();
         if sync_dir.exists() {
             std::fs::remove_dir_all(&sync_dir)?;
             println!(
-                "  {} 数据目录已删除: {}",
+                "  {} {}",
                 style("✓").green(),
-                sync_dir.display()
+                t.data_deleted(&sync_dir.display().to_string())
             );
         }
     } else {
         println!(
-            "  {} 数据已保留在 {}",
+            "  {} {}",
             style("ℹ").blue(),
-            storage::files::sync_dir().display()
+            t.data_preserved(&storage::files::sync_dir().display().to_string())
         );
     }
 
@@ -356,28 +388,27 @@ fn cmd_uninstall(remove_data: bool) -> Result<()> {
 
 fn cmd_status() -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
 
     let sync_dir = storage::files::sync_dir();
 
-    println!("\n{}", style("GitMemo 状态").bold().cyan());
+    println!("\n{}", style(t.status_title()).bold().cyan());
     println!();
 
     if !sync_dir.exists() {
-        println!(
-            "  未初始化。运行 {} 开始。",
-            style("gitmemo init").bold()
-        );
+        let msg = t.not_initialized().replace("{}", &style("gitmemo init").bold().to_string());
+        println!("  {}", msg);
         return Ok(());
     }
 
-    println!("  数据目录: {} {}", sync_dir.display(), style("✓").green());
+    println!("  {}: {} {}", t.data_dir(), sync_dir.display(), style("✓").green());
 
     // Check config
     let config_path = utils::config::Config::config_path();
     if config_path.exists() {
         let config = utils::config::Config::load(&config_path)?;
-        println!("  Git 远程: {}", config.git.remote);
-        println!("  Git 分支: {}", config.git.branch);
+        println!("  {}: {}", t.git_remote(), config.git.remote);
+        println!("  {}: {}", t.git_branch(), config.git.branch);
     }
 
     // Count files
@@ -392,19 +423,19 @@ fn cmd_status() -> Result<()> {
         .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
         .count();
 
-    println!("  对话记录: {} 条", conv_count);
-    println!("  笔记: {} 条", note_count);
+    println!("  {}: {}", t.conversations_count(), conv_count);
+    println!("  {}: {}", t.notes_count(), note_count);
 
     // Show unpushed count
     let unpushed = storage::git::unpushed_count(&sync_dir).unwrap_or(0);
     if unpushed > 0 {
         println!(
-            "  未推送: {} 条提交（运行 {} 推送）",
-            style(unpushed).yellow(),
-            style("gitmemo sync").cyan()
+            "  {}",
+            t.unpushed_commits(unpushed)
+                .replace("gitmemo sync", &style("gitmemo sync").cyan().to_string())
         );
     } else {
-        println!("  同步状态: {} 已同步", style("✓").green());
+        println!("  {}", t.sync_ok());
     }
     println!();
 
@@ -414,15 +445,15 @@ fn cmd_status() -> Result<()> {
 fn ensure_init() -> Result<std::path::PathBuf> {
     let sync_dir = storage::files::sync_dir();
     if !sync_dir.exists() {
-        anyhow::bail!(
-            "未初始化。请先运行 gitmemo init"
-        );
+        let t = utils::i18n::get();
+        anyhow::bail!(t.not_init_error());
     }
     Ok(sync_dir)
 }
 
 fn cmd_sync() -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
 
     // First try commit + push
@@ -435,15 +466,15 @@ fn cmd_sync() -> Result<()> {
     // No new changes to commit, but maybe there are unpushed commits
     let unpushed = storage::git::unpushed_count(&sync_dir)?;
     if unpushed > 0 {
-        println!("  {} {} 条未推送的提交，正在推送...", style("ℹ").blue(), unpushed);
+        println!("  {} {}", style("ℹ").blue(), t.pushing_commits(unpushed));
         let push_result = storage::git::push(&sync_dir)?;
         if push_result.pushed {
-            println!("  {} 已推送 {} 条提交", style("✓").green(), unpushed);
+            println!("  {} {}", style("✓").green(), t.pushed_commits(unpushed));
         } else if let Some(ref err) = push_result.push_error {
-            println!("  {} 推送失败: {}", style("✗").red(), err);
+            println!("  {} {}", style("✗").red(), t.push_failed(err));
         }
     } else {
-        println!("  {} 一切已同步，无需操作", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.all_synced());
     }
 
     Ok(())
@@ -451,24 +482,25 @@ fn cmd_sync() -> Result<()> {
 
 fn cmd_unpushed() -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
 
     let logs = storage::git::unpushed_log(&sync_dir)?;
     if logs.is_empty() {
-        println!("  {} 没有未推送的提交", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.no_unpushed());
         return Ok(());
     }
 
     println!(
-        "\n  {} {} 条未推送的提交：\n",
-        style("⚠").yellow(),
-        logs.len()
+        "\n  {}\n",
+        t.unpushed_heading(logs.len())
     );
     for log in &logs {
         println!("  {}", log);
     }
     println!();
-    println!("  运行 {} 推送到远程", style("gitmemo sync").cyan());
+    let hint = t.push_hint().replace("{}", &style("gitmemo sync").cyan().to_string());
+    println!("  {}", hint);
     println!();
 
     Ok(())
@@ -476,32 +508,37 @@ fn cmd_unpushed() -> Result<()> {
 
 fn print_sync_status(result: &storage::git::SyncResult) {
     use console::style;
+    let t = utils::i18n::get();
+
     if !result.committed {
-        println!("  {} 无变更需要提交", style("ℹ").blue());
+        println!("  {} {}", style("ℹ").blue(), t.no_changes());
         return;
     }
     if result.pushed {
-        println!("  {} 已同步到 Git", style("✓").green());
+        println!("  {} {}", style("✓").green(), t.synced_to_git());
     } else if let Some(ref err) = result.push_error {
-        println!("  {} 已提交，但推送失败: {}", style("⚠").yellow(), style(err).dim());
-        println!("    运行 {} 重试推送", style("gitmemo sync").cyan());
+        println!("  {} {}", style("⚠").yellow(), t.committed_push_failed(err));
+        let hint = t.retry_push_hint().replace("{}", &style("gitmemo sync").cyan().to_string());
+        println!("    {}", hint);
     } else {
-        println!("  {} 已提交，推送中...", style("ℹ").blue());
+        println!("  {} {}", style("ℹ").blue(), t.committing());
     }
 }
 
 fn cmd_note(content: &str) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
     let rel_path = storage::files::create_scratch(&sync_dir, content)?;
     let result = storage::git::commit_and_push(&sync_dir, &format!("note: {}", &content[..content.len().min(50)]))?;
-    println!("  {} 便签已创建: {}", style("✓").green(), rel_path);
+    println!("  {} {}", style("✓").green(), t.scratch_created(&rel_path));
     print_sync_status(&result);
     Ok(())
 }
 
 fn cmd_daily(content: Option<String>) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
 
     let text = match content {
@@ -525,20 +562,21 @@ fn cmd_daily(content: Option<String>) -> Result<()> {
                 .arg(&daily_path)
                 .status()?;
             storage::git::commit_and_push(&sync_dir, "daily: update")?;
-            println!("  {} 今日笔记已保存", style("✓").green());
+            println!("  {} {}", style("✓").green(), t.daily_saved());
             return Ok(());
         }
     };
 
     let rel_path = storage::files::append_daily(&sync_dir, &text)?;
     let result = storage::git::commit_and_push(&sync_dir, &format!("daily: {}", &text[..text.len().min(50)]))?;
-    println!("  {} 已追加到今日笔记: {}", style("✓").green(), rel_path);
+    println!("  {} {}", style("✓").green(), t.daily_appended(&rel_path));
     print_sync_status(&result);
     Ok(())
 }
 
 fn cmd_manual(title: &str, content: Option<String>, append: bool) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
 
     let text = match content {
@@ -555,14 +593,14 @@ fn cmd_manual(title: &str, content: Option<String>, append: bool) -> Result<()> 
     };
 
     if text.trim().is_empty() {
-        println!("  内容为空，跳过。");
+        println!("  {}", t.content_empty());
         return Ok(());
     }
 
     let rel_path = storage::files::write_manual(&sync_dir, title, &text, append)?;
     let action = if append { "update" } else { "create" };
     let result = storage::git::commit_and_push(&sync_dir, &format!("manual: {} {}", action, title))?;
-    println!("  {} 手册已保存: {}", style("✓").green(), rel_path);
+    println!("  {} {}", style("✓").green(), t.manual_saved(&rel_path));
     print_sync_status(&result);
     Ok(())
 }
@@ -584,26 +622,26 @@ fn ensure_indexed() -> Result<(std::path::PathBuf, rusqlite::Connection)> {
 
 fn cmd_search(query: &str, type_filter: &str, limit: usize) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let (_sync_dir, conn) = ensure_indexed()?;
 
     let results = storage::database::search(&conn, query, type_filter, limit)?;
 
     if results.is_empty() {
-        println!("  未找到匹配 \"{}\" 的结果。", query);
+        println!("  {}", t.no_results(query));
         return Ok(());
     }
 
     println!(
-        "\n  {} 找到 {} 条结果：\n",
-        style("🔍").bold(),
-        results.len()
+        "\n  {}\n",
+        style(t.found_results(results.len())).bold()
     );
 
     for (i, r) in results.iter().enumerate() {
         let type_badge = if r.source_type == "conversation" {
-            style("对话").cyan()
+            style(t.badge_conversation()).cyan()
         } else {
-            style("笔记").yellow()
+            style(t.badge_note()).yellow()
         };
         println!(
             "  {}. [{}] {} ({})",
@@ -624,16 +662,17 @@ fn cmd_search(query: &str, type_filter: &str, limit: usize) -> Result<()> {
 
 fn cmd_recent(limit: usize, days: u32) -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let (_sync_dir, conn) = ensure_indexed()?;
 
     let results = storage::database::recent(&conn, limit, days)?;
 
     if results.is_empty() {
-        println!("  最近 {} 天没有对话记录。", days);
+        println!("  {}", t.no_recent(days));
         return Ok(());
     }
 
-    println!("\n  {} 最近 {} 天的对话：\n", style("📋").bold(), days);
+    println!("\n  {}\n", style(t.recent_heading(days)).bold());
 
     for (i, r) in results.iter().enumerate() {
         println!(
@@ -651,6 +690,7 @@ fn cmd_recent(limit: usize, days: u32) -> Result<()> {
 
 fn cmd_stats() -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let (sync_dir, conn) = ensure_indexed()?;
 
     let stats = storage::database::get_stats(&conn)?;
@@ -664,14 +704,15 @@ fn cmd_stats() -> Result<()> {
         .map(|m| m.len())
         .sum();
 
-    println!("\n{}", style("GitMemo 统计").bold().cyan());
+    println!("\n{}", style(t.stats_title()).bold().cyan());
     println!();
-    println!("  对话记录:  {} 条", stats.conversation_count);
-    println!("  每日笔记:  {} 条", stats.note_daily_count);
-    println!("  手册:      {} 条", stats.note_manual_count);
-    println!("  便签:      {} 条", stats.note_scratch_count);
+    println!("  {}:  {}", t.stats_conversations(), stats.conversation_count);
+    println!("  {}:  {}", t.stats_daily(), stats.note_daily_count);
+    println!("  {}:      {}", t.stats_manual(), stats.note_manual_count);
+    println!("  {}:      {}", t.stats_scratch(), stats.note_scratch_count);
     println!(
-        "  存储大小:  {:.1} KB",
+        "  {}:  {:.1} KB",
+        t.stats_storage(),
         total_size as f64 / 1024.0
     );
     println!();
@@ -681,6 +722,7 @@ fn cmd_stats() -> Result<()> {
 
 fn cmd_reindex() -> Result<()> {
     use console::style;
+    let t = utils::i18n::get();
     let sync_dir = ensure_init()?;
     let db_path = sync_dir.join(".metadata").join("index.db");
 
@@ -692,9 +734,9 @@ fn cmd_reindex() -> Result<()> {
     let conn = storage::database::open_or_create(&db_path)?;
     let count = storage::database::build_index(&conn, &sync_dir)?;
     println!(
-        "  {} 索引已重建，共 {} 个文件",
+        "  {} {}",
         style("✓").green(),
-        count
+        t.index_rebuilt(count as usize)
     );
 
     Ok(())
