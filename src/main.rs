@@ -434,6 +434,13 @@ fn cmd_status() -> Result<()> {
             t.unpushed_commits(unpushed)
                 .replace("gitmemo sync", &style("gitmemo sync").cyan().to_string())
         );
+    } else if storage::git::has_unpushed(&sync_dir) {
+        // Count returned 0 but has_unpushed thinks there might be — show uncertain state
+        println!(
+            "  {}",
+            t.unpushed_commits(0)
+                .replace("gitmemo sync", &style("gitmemo sync").cyan().to_string())
+        );
     } else {
         println!("  {}", t.sync_ok());
     }
@@ -460,18 +467,40 @@ fn cmd_sync() -> Result<()> {
     let result = storage::git::commit_and_push(&sync_dir, "auto: sync")?;
     if result.committed {
         print_sync_status(&result);
+        // If committed but push failed, don't return early — report the error
+        if !result.pushed {
+            if let Some(ref err) = result.push_error {
+                println!("  {} {}", style("✗").red(), t.push_failed(err));
+            }
+        }
         return Ok(());
     }
 
     // No new changes to commit, but maybe there are unpushed commits
-    let unpushed = storage::git::unpushed_count(&sync_dir)?;
-    if unpushed > 0 {
-        println!("  {} {}", style("ℹ").blue(), t.pushing_commits(unpushed));
+    // Use has_unpushed which defaults to true when uncertain (safer)
+    if storage::git::has_unpushed(&sync_dir) {
+        let unpushed = storage::git::unpushed_count(&sync_dir).unwrap_or(0);
+        let count_label = if unpushed > 0 {
+            t.pushing_commits(unpushed)
+        } else {
+            t.pushing_commits(0) // count unknown but there might be unpushed
+        };
+        println!("  {} {}", style("ℹ").blue(), count_label);
+
         let push_result = storage::git::push(&sync_dir)?;
         if push_result.pushed {
-            println!("  {} {}", style("✓").green(), t.pushed_commits(unpushed));
+            if unpushed > 0 {
+                println!("  {} {}", style("✓").green(), t.pushed_commits(unpushed));
+            } else {
+                println!("  {} {}", style("✓").green(), t.synced_to_git());
+            }
         } else if let Some(ref err) = push_result.push_error {
-            println!("  {} {}", style("✗").red(), t.push_failed(err));
+            // Check if "Everything up-to-date" — means actually synced
+            if err.contains("Everything up-to-date") || err.contains("up to date") {
+                println!("  {} {}", style("✓").green(), t.all_synced());
+            } else {
+                println!("  {} {}", style("✗").red(), t.push_failed(err));
+            }
         }
     } else {
         println!("  {} {}", style("✓").green(), t.all_synced());
