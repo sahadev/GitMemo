@@ -29,6 +29,11 @@ echo "  Platform: ${OS} ${ARCH}"
 echo "  Binary:   ${BINARY}"
 echo ""
 
+# Get latest version
+VERSION=$(curl -fsSL -o /dev/null -w "%{redirect_url}" "https://github.com/sahadev/GitMemo/releases/latest" 2>/dev/null | grep -oE '[^/]+$' || echo "unknown")
+echo "  Version:  ${VERSION}"
+echo ""
+
 # Download
 TMPFILE=$(mktemp)
 URL="https://github.com/sahadev/GitMemo/releases/latest/download/${BINARY}"
@@ -80,7 +85,7 @@ else
 fi
 
 echo ""
-echo "  ✓ GitMemo installed successfully!"
+echo "  ✓ GitMemo ${VERSION} installed successfully!"
 echo ""
 echo "  Get started:"
 echo "    gitmemo init"
