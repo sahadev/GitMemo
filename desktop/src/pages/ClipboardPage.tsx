@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Clock } from "lucide-react";
+import { Clipboard, Play, Square, Save, Clock, Copy, Check } from "lucide-react";
 
 interface ClipboardStatus {
   watching: boolean;
@@ -31,6 +31,7 @@ export default function ClipboardPage() {
   const [recentClips, setRecentClips] = useState<ClipboardEvent[]>([]);
   const [savedClips, setSavedClips] = useState<FileEntry[]>([]);
   const [toast, setToast] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadStatus();
@@ -81,6 +82,19 @@ export default function ClipboardPage() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
+  };
+
+  const copyClip = async (path: string, id: string) => {
+    try {
+      const content = await invoke<string>("read_file", { filePath: path });
+      // Strip frontmatter
+      const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
+      await navigator.clipboard.writeText(body);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch (e) {
+      showToast(`Copy failed: ${e}`);
+    }
   };
 
   const cardStyle = {
@@ -165,13 +179,26 @@ export default function ClipboardPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {recentClips.map((clip, i) => (
               <div key={i} style={cardStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Clock size={11} style={{ color: "var(--text-secondary)" }} />
-                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{clip.timestamp}</span>
-                  <span style={{
-                    fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                    background: "var(--bg-hover)", color: "var(--green)",
-                  }}>saved</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Clock size={11} style={{ color: "var(--text-secondary)" }} />
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{clip.timestamp}</span>
+                    <span style={{
+                      fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                      background: "var(--bg-hover)", color: "var(--green)",
+                    }}>saved</span>
+                  </div>
+                  <button
+                    onClick={() => copyClip(clip.path, `recent-${i}`)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4, padding: "4px 10px",
+                      borderRadius: 5, fontSize: 11, cursor: "pointer",
+                      background: "var(--bg)", border: "1px solid var(--border)",
+                      color: copiedId === `recent-${i}` ? "var(--green)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {copiedId === `recent-${i}` ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+                  </button>
                 </div>
                 <p style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {clip.preview}
@@ -182,13 +209,25 @@ export default function ClipboardPage() {
 
             {savedClips.map((file) => (
               <div key={file.path} style={cardStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <Clock size={11} style={{ color: "var(--text-secondary)" }} />
-                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{file.modified}</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Clock size={11} style={{ color: "var(--text-secondary)" }} />
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{file.modified}</span>
+                  </div>
+                  <button
+                    onClick={() => copyClip(file.path, `saved-${file.path}`)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4, padding: "4px 10px",
+                      borderRadius: 5, fontSize: 11, cursor: "pointer",
+                      background: "var(--bg)", border: "1px solid var(--border)",
+                      color: copiedId === `saved-${file.path}` ? "var(--green)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {copiedId === `saved-${file.path}` ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+                  </button>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{file.name}</p>
-                <p style={{ fontSize: 11, marginTop: 4, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {file.preview}
+                <p style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {file.preview || file.name}
                 </p>
               </div>
             ))}

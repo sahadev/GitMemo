@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
@@ -18,13 +18,12 @@ interface NoteResult {
   message: string;
 }
 
-type NoteTab = "scratch" | "daily" | "manual" | "conversations";
+type NoteTab = "scratch" | "daily" | "manual";
 
 const tabs: { id: NoteTab; label: string; icon: typeof FileText; folder: string }[] = [
   { id: "scratch", label: "Scratch", icon: FileText, folder: "notes/scratch" },
   { id: "daily", label: "Daily", icon: Calendar, folder: "notes/daily" },
   { id: "manual", label: "Manual", icon: BookOpen, folder: "notes/manual" },
-  { id: "conversations", label: "Chats", icon: FileText, folder: "conversations" },
 ];
 
 export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: number; onSync?: () => void }) {
@@ -35,10 +34,36 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const [toastError, setToastError] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  // Keyboard nav for file list
+  const navPrev = useCallback(() => {
+    if (!selectedFile || files.length === 0) return;
+    const idx = files.findIndex((f) => f.path === selectedFile);
+    if (idx > 0) openFile(files[idx - 1].path);
+  }, [selectedFile, files]);
+
+  const navNext = useCallback(() => {
+    if (!selectedFile || files.length === 0) return;
+    const idx = files.findIndex((f) => f.path === selectedFile);
+    if (idx < files.length - 1) openFile(files[idx + 1].path);
+  }, [selectedFile, files]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
+      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navPrev, navNext]);
 
   useEffect(() => {
     loadFiles();
@@ -67,11 +92,16 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
       setSelectedFile(path);
       setFileContent(content);
       setEditing(false);
+      setTimeout(() => {
+        itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }, 50);
     } catch (e) { console.error(e); }
   };
 
   const handleCreateNote = async () => {
     if (!newNote.trim()) return;
+    setSaving(true);
+    showToast("Saving...");
     try {
       let result: NoteResult;
       if (activeTab === "daily") {
@@ -82,8 +112,8 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
       showToast(result.message);
       setNewNote("");
       loadFiles();
-      onSync?.();
     } catch (e) { showToast(`Error: ${e}`, true); }
+    finally { setSaving(false); }
   };
 
   const handleSaveEdit = async () => {
@@ -94,7 +124,6 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
       setEditing(false);
       showToast(result.message);
       loadFiles();
-      onSync?.();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
 
@@ -169,11 +198,11 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCreateNote(); }
                 }}
                 placeholder={activeTab === "daily" ? "Add to today's note... (Shift+Enter for newline)" : "Quick note... (Shift+Enter for newline)"}
-                rows={2}
+                rows={3}
                 style={{
                   width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 13,
-                  resize: "none", background: "var(--bg)", color: "var(--text)",
-                  border: "1px solid var(--border)", fontFamily: "inherit",
+                  resize: "vertical", background: "var(--bg)", color: "var(--text)",
+                  border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
                 }}
               />
               <button
@@ -214,29 +243,33 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
               </p>
             </div>
           ) : (
-            files.map((file) => (
+            files.map((file) => {
+              // For scratch notes with date-like names, show preview as title
+              const isDateName = /^\d{4}-\d{2}-\d{2}/.test(file.name);
+              const title = isDateName && file.preview ? file.preview : file.name;
+              const selected = selectedFile === file.path;
+              return (
               <button
                 key={file.path}
+                ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                 onClick={() => openFile(file.path)}
                 style={{
                   width: "100%", textAlign: "left", padding: "12px 16px",
-                  borderBottom: "1px solid var(--border)", cursor: "pointer",
-                  background: selectedFile === file.path ? "var(--bg-hover)" : "transparent",
-                  border: "none", color: "var(--text)",
-                  borderBottomStyle: "solid", borderBottomWidth: 1, borderBottomColor: "var(--border)",
+                  cursor: "pointer", transition: "background 0.15s",
+                  background: selected ? "var(--accent)" : "transparent",
+                  border: "none", color: selected ? "#fff" : "var(--text)",
+                  borderBottom: "1px solid var(--border)",
                 }}
               >
                 <p style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {file.name}
+                  {title}
                 </p>
-                <p style={{ fontSize: 11, marginTop: 4, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {file.preview}
-                </p>
-                <p style={{ fontSize: 10, marginTop: 4, color: "var(--text-secondary)" }}>
+                <p style={{ fontSize: 10, marginTop: 4, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
                   {file.modified}
                 </p>
               </button>
-            ))
+              );
+            })
           )}
         </div>
 

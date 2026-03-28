@@ -7,13 +7,18 @@ import NotesPage from "./pages/NotesPage";
 import ClipboardPage from "./pages/ClipboardPage";
 import SearchPage from "./pages/SearchPage";
 import DashboardPage from "./pages/DashboardPage";
+import SettingsPage from "./pages/SettingsPage";
+import ConversationsPage from "./pages/ConversationsPage";
 
-export type Page = "dashboard" | "notes" | "clipboard" | "search";
+export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "settings";
 export type Theme = "dark" | "light";
+
+const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "settings"];
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [sidebarFocused, setSidebarFocused] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
   const syncTimer = useRef<number | null>(null);
@@ -64,6 +69,21 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  // Intercept link clicks to open in external browser
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest("a");
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
+        e.preventDefault();
+        window.open(href);
+      }
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
   useEffect(() => {
     const unlistenSearch = listen("global-shortcut-search", () => navigateAndFocus("search"));
     const unlistenClip = listen("tray-toggle-clipboard", () => setCurrentPage("clipboard"));
@@ -72,13 +92,16 @@ function App() {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
-          case "1": e.preventDefault(); setCurrentPage("dashboard"); break;
-          case "2": e.preventDefault(); setCurrentPage("notes"); break;
-          case "3": e.preventDefault(); setCurrentPage("clipboard"); break;
-          case "4": e.preventDefault(); setCurrentPage("search"); break;
-          case "n": e.preventDefault(); navigateAndFocus("notes"); break;
-          case "k": e.preventDefault(); navigateAndFocus("search"); break;
+          case "1": e.preventDefault(); setCurrentPage("dashboard"); setSidebarFocused(false); break;
+          case "2": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
+          case "3": e.preventDefault(); setCurrentPage("conversations"); setSidebarFocused(false); break;
+          case "4": e.preventDefault(); setCurrentPage("notes"); setSidebarFocused(false); break;
+          case "5": e.preventDefault(); setCurrentPage("clipboard"); setSidebarFocused(false); break;
+          case "6": e.preventDefault(); setCurrentPage("settings"); setSidebarFocused(false); break;
+          case "n": e.preventDefault(); navigateAndFocus("notes"); setSidebarFocused(false); break;
+          case "k": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
         }
+        return;
       }
     };
 
@@ -89,24 +112,25 @@ function App() {
       unlistenClip.then((fn) => fn());
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
-  }, [navigateAndFocus]);
+  }, [navigateAndFocus, sidebarFocused]);
 
   return (
-    <div className="flex h-screen w-screen">
+    <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
       <Sidebar
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        theme={theme}
-        onToggleTheme={toggleTheme}
+        onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
+        focused={sidebarFocused}
         syncing={syncing}
         syncMsg={syncMsg}
         onSync={triggerSync}
       />
-      <main className="flex-1 overflow-hidden">
+      <main style={{ flex: 1, overflow: "hidden" }}>
         {currentPage === "dashboard" && <DashboardPage />}
+        {currentPage === "conversations" && <ConversationsPage sidebarFocused={sidebarFocused} onFocusSidebar={() => setSidebarFocused(true)} />}
         {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onSync={triggerSync} />}
         {currentPage === "clipboard" && <ClipboardPage />}
         {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} />}
+        {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
       </main>
       <DropZone />
     </div>

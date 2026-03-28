@@ -1,20 +1,18 @@
 import {
   LayoutDashboard,
+  MessageSquare,
   StickyNote,
   Clipboard,
   Search,
-  GitBranch,
+  Settings,
   RefreshCw,
-  Sun,
-  Moon,
 } from "lucide-react";
 import type { Page } from "../App";
 
 interface SidebarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
-  theme: "dark" | "light";
-  onToggleTheme: () => void;
+  focused: boolean;
   syncing: boolean;
   syncMsg: string;
   onSync: () => void;
@@ -22,12 +20,14 @@ interface SidebarProps {
 
 const navItems: { id: Page; icon: typeof LayoutDashboard; label: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { id: "search", icon: Search, label: "Search" },
+  { id: "conversations", icon: MessageSquare, label: "Conversations" },
   { id: "notes", icon: StickyNote, label: "Notes" },
   { id: "clipboard", icon: Clipboard, label: "Clipboard" },
-  { id: "search", icon: Search, label: "Search" },
+  { id: "settings", icon: Settings, label: "Settings" },
 ];
 
-export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme, syncing, syncMsg, onSync }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, onSync }: SidebarProps) {
   return (
     <div
       style={{
@@ -45,30 +45,14 @@ export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px 16px",
+          padding: "12px 16px",
           borderBottom: "1px solid var(--border)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <GitBranch size={18} style={{ color: "var(--accent)" }} />
+          <img src="/logo.png" alt="GitMemo" style={{ width: 22, height: 22, borderRadius: 5 }} />
           <span style={{ fontWeight: 700, fontSize: 15 }}>GitMemo</span>
         </div>
-        <button
-          onClick={onToggleTheme}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 4,
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            color: "var(--text-secondary)",
-          }}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
       </div>
 
       {/* Nav */}
@@ -91,9 +75,10 @@ export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme,
                 color: active ? "var(--accent)" : "var(--text-secondary)",
                 fontWeight: active ? 600 : 400,
                 border: "none",
+                borderLeft: active && focused ? "3px solid var(--accent)" : "3px solid transparent",
                 cursor: "pointer",
                 textAlign: "left",
-                transition: "background 0.15s",
+                transition: "all 0.15s",
               }}
             >
               <Icon size={16} />
@@ -117,8 +102,12 @@ export default function Sidebar({ currentPage, onNavigate, theme, onToggleTheme,
             padding: "8px 0",
             borderRadius: 6,
             fontSize: 12,
-            background: syncing ? "var(--bg-hover)" : "var(--bg)",
-            color: "var(--text-secondary)",
+            background: syncing
+              ? "linear-gradient(90deg, var(--bg-hover) 0%, var(--accent) 50%, var(--bg-hover) 100%)"
+              : "var(--bg)",
+            backgroundSize: syncing ? "200% 100%" : undefined,
+            animation: syncing ? "shimmer 1.5s linear infinite" : undefined,
+            color: syncing ? "#fff" : "var(--text-secondary)",
             border: "1px solid var(--border)",
             cursor: syncing ? "default" : "pointer",
           }}

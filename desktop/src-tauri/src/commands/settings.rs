@@ -1,13 +1,25 @@
-use gitmemo_core::storage::files;
+use gitmemo_core::storage::{files, git};
 use serde::{Deserialize, Serialize};
 use tauri_plugin_autostart::ManagerExt;
 
 const SETTINGS_FILE: &str = "desktop_settings.toml";
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesktopSettings {
     pub autostart: bool,
+    #[serde(default = "default_true")]
     pub clipboard_autostart: bool,
+}
+
+fn default_true() -> bool { true }
+
+impl Default for DesktopSettings {
+    fn default() -> Self {
+        Self {
+            autostart: false,
+            clipboard_autostart: true,
+        }
+    }
 }
 
 fn settings_path() -> std::path::PathBuf {
@@ -81,4 +93,29 @@ pub fn set_clipboard_autostart(enabled: bool) -> Result<String, String> {
     } else {
         "Clipboard auto-start disabled".into()
     })
+}
+
+#[tauri::command]
+pub fn get_branch() -> Result<String, String> {
+    let config_path = gitmemo_core::utils::config::Config::config_path();
+    if config_path.exists() {
+        let config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+        Ok(config.git.branch)
+    } else {
+        Ok("main".into())
+    }
+}
+
+#[tauri::command]
+pub fn set_branch(name: String) -> Result<String, String> {
+    let config_path = gitmemo_core::utils::config::Config::config_path();
+    let mut config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+    let old = config.git.branch.clone();
+    config.git.branch = name.clone();
+    config.save(&config_path).map_err(|e| e.to_string())?;
+
+    let sync_dir = files::sync_dir();
+    git::setup_tracking(&sync_dir, &name);
+
+    Ok(format!("{} → {}", old, name))
 }

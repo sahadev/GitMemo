@@ -151,6 +151,9 @@ pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
         true
     };
 
+    // Rebase on remote before pushing to avoid conflicts
+    let _ = pull(repo_path);
+
     // Push using system git with configured branch
     let (pushed, push_error) = do_push(repo_path);
 
@@ -448,6 +451,24 @@ fn build_refspec_candidates(repo_path: &Path) -> Vec<String> {
 pub fn push(repo_path: &Path) -> Result<SyncResult> {
     let (pushed, push_error) = do_push(repo_path);
     Ok(SyncResult { committed: false, pushed, push_error })
+}
+
+/// Pull latest changes from remote (rebase mode).
+/// Fails silently — returns Ok(false) if pull fails or remote is unreachable.
+pub fn pull(repo_path: &Path) -> Result<bool> {
+    let branch = configured_branch(repo_path);
+
+    let output = std::process::Command::new("git")
+        .args(["pull", "--rebase", "origin", &branch])
+        .current_dir(repo_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => Ok(true),
+        _ => Ok(false),
+    }
 }
 
 /// Test if remote is reachable

@@ -34,6 +34,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -76,7 +78,11 @@ textarea:focus, input:focus {
   border-color: var(--accent) !important;
 }
 
-/* Markdown rendering */
+/* Markdown content and code blocks should be selectable */
+.markdown-body, .markdown-body * {
+  -webkit-user-select: text;
+  user-select: text;
+}
 .markdown-body {
   font-size: 13px;
   line-height: 1.7;
@@ -188,4 +194,10 @@ textarea:focus, input:focus {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Shimmer animation for sync button */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

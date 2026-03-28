@@ -10,6 +10,12 @@ pub fn run() -> Result<()> {
     // Initialize i18n from config for MCP server
     i18n::init_from_config();
 
+    // Pull latest from remote on startup
+    let sync_dir = files::sync_dir();
+    if sync_dir.exists() {
+        let _ = crate::storage::git::pull(&sync_dir);
+    }
+
     let stdin = io::stdin();
     let mut stdout = io::stdout();
 

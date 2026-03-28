@@ -50,8 +50,18 @@ pub fn run() {
             settings::get_settings,
             settings::set_autostart,
             settings::set_clipboard_autostart,
+            settings::get_branch,
+            settings::set_branch,
         ])
         .setup(|app| {
+            // --- Pull latest from remote on startup ---
+            std::thread::spawn(|| {
+                let sync_dir = gitmemo_core::storage::files::sync_dir();
+                if sync_dir.exists() {
+                    let _ = gitmemo_core::storage::git::pull(&sync_dir);
+                }
+            });
+
             // --- System Tray ---
             let open_i = MenuItem::with_id(app, "open", "Open GitMemo", true, None::<&str>)?;
             let sync_i = MenuItem::with_id(app, "sync", "Sync to Git", true, None::<&str>)?;

@@ -17,6 +17,14 @@ fn main() -> Result<()> {
         utils::i18n::init_from_config();
     }
 
+    // Pull latest from remote on startup (skip for init/uninstall/mcp-serve)
+    if !matches!(cli.command, Commands::Init { .. } | Commands::Uninstall { .. } | Commands::McpServe) {
+        let sync_dir = storage::files::sync_dir();
+        if sync_dir.exists() {
+            let _ = storage::git::pull(&sync_dir);
+        }
+    }
+
     match cli.command {
         Commands::Init { git_url, path, no_mcp, editor, lang } => {
             cmd_init(git_url, path, no_mcp, editor, lang)?;

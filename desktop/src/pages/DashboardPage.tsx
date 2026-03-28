@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  MessageSquare, StickyNote, BookOpen, FileText, HardDrive, GitBranch, Settings, Power, Clipboard,
+  MessageSquare, StickyNote, BookOpen, FileText, Clipboard,
+  HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal,
 } from "lucide-react";
 
 interface AppStats {
@@ -9,6 +10,7 @@ interface AppStats {
   daily_notes: number;
   manuals: number;
   scratch_notes: number;
+  clips: number;
   total_size_kb: number;
   unpushed: number;
 }
@@ -19,82 +21,34 @@ interface AppStatus {
   git_remote: string;
   git_branch: string;
   unpushed: number;
+  last_commit_id: string;
+  last_commit_msg: string;
+  last_commit_time: string;
 }
 
-interface DesktopSettings {
-  autostart: boolean;
-  clipboard_autostart: boolean;
-}
-
-function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      style={{
-        width: 44,
-        height: 24,
-        borderRadius: 12,
-        background: enabled ? "var(--accent)" : "#333",
-        position: "relative",
-        border: "none",
-        cursor: "pointer",
-        transition: "background 0.2s",
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: 9,
-          background: "#fff",
-          position: "absolute",
-          top: 3,
-          left: enabled ? 23 : 3,
-          transition: "left 0.2s",
-        }}
-      />
-    </button>
-  );
-}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<AppStats | null>(null);
   const [status, setStatus] = useState<AppStatus | null>(null);
-  const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+    const timer = setInterval(loadData, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = async () => {
     try {
-      const [s, st, se] = await Promise.all([
+      const [s, st] = await Promise.all([
         invoke<AppStats>("get_stats"),
         invoke<AppStatus>("get_status"),
-        invoke<DesktopSettings>("get_settings"),
       ]);
       setStats(s);
       setStatus(st);
-      setSettings(se);
     } catch (e) {
       setError(`${e}`);
     }
-  };
-
-  const toggleAutostart = async () => {
-    if (!settings) return;
-    try {
-      await invoke<string>("set_autostart", { enabled: !settings.autostart });
-      setSettings({ ...settings, autostart: !settings.autostart });
-    } catch (e) { console.error(e); }
-  };
-
-  const toggleClipboardAutostart = async () => {
-    if (!settings) return;
-    try {
-      await invoke<string>("set_clipboard_autostart", { enabled: !settings.clipboard_autostart });
-      setSettings({ ...settings, clipboard_autostart: !settings.clipboard_autostart });
-    } catch (e) { console.error(e); }
   };
 
   if (error) {
@@ -119,119 +73,132 @@ export default function DashboardPage() {
     );
   }
 
-  const cards = [
+  const statCards = [
     { icon: MessageSquare, label: "Conversations", value: stats.conversations, color: "var(--accent)" },
     { icon: StickyNote, label: "Daily Notes", value: stats.daily_notes, color: "var(--green)" },
     { icon: BookOpen, label: "Manuals", value: stats.manuals, color: "var(--yellow)" },
     { icon: FileText, label: "Scratch Notes", value: stats.scratch_notes, color: "#c084fc" },
+    { icon: Clipboard, label: "Clips", value: stats.clips, color: "#f472b6" },
+    { icon: HardDrive, label: "Storage", value: stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`, color: "var(--text-secondary)" },
   ];
 
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
     borderRadius: 10,
-    padding: "20px 24px",
+    padding: "16px 20px",
   };
 
   return (
-    <div style={{ padding: "20px 32px 32px", overflowY: "auto", height: "100%" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Dashboard</h1>
+    <div style={{ padding: "20px 28px 28px", overflowY: "auto", height: "100%" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Dashboard</h1>
 
-      {/* Stat Cards - 2x2 grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        {cards.map((card) => {
+      {/* Stat Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+        {statCards.map((card) => {
           const Icon = card.icon;
           return (
             <div key={card.label} style={cardStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{
-                  width: 32, height: 32, borderRadius: 8,
+                  width: 26, height: 26, borderRadius: 6,
                   background: `${card.color}15`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Icon size={16} style={{ color: card.color }} />
+                  <Icon size={13} style={{ color: card.color }} />
                 </div>
-                <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
+                <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
               </div>
-              <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{card.value}</p>
+              <p style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{card.value}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Info Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+      {/* Git Info — 3 cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        {/* Branch */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <HardDrive size={14} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Storage</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <GitBranch size={13} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Branch</span>
           </div>
-          <p style={{ fontSize: 18, fontWeight: 600 }}>
-            {stats.total_size_kb >= 1024
-              ? `${(stats.total_size_kb / 1024).toFixed(1)} MB`
-              : `${stats.total_size_kb.toFixed(1)} KB`}
-          </p>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {status.sync_dir}
+          <p style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)" }}>
+            {status.git_branch || "main"}
           </p>
         </div>
 
+        {/* Sync Status */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <GitBranch size={14} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Git Status</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sync Status</span>
           </div>
-          <p style={{ fontSize: 18, fontWeight: 600 }}>
+          <p style={{ fontSize: 18, fontWeight: 700 }}>
             {status.unpushed > 0 ? (
               <span style={{ color: "var(--yellow)" }}>{status.unpushed} unpushed</span>
             ) : (
               <span style={{ color: "var(--green)" }}>Synced</span>
             )}
           </p>
-          <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={status.git_remote}>
-            {status.git_remote || "No remote configured"}
+          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+            {new Date().toLocaleString()}
           </p>
+        </div>
+
+        {/* Last Commit */}
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <GitCommit size={13} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Last Commit</span>
+          </div>
+          <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
+            {status.last_commit_id || "—"}
+          </p>
+          {status.last_commit_time && (
+            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+              {status.last_commit_time}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Settings */}
-      {settings && (
-        <>
-          <div style={{ borderTop: "1px solid var(--border)", marginBottom: 24 }} />
-          <div style={cardStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <Settings size={16} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: 15, fontWeight: 600 }}>Settings</span>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Power size={15} style={{ color: "var(--text-secondary)" }} />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>Launch at login</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Start GitMemo when you log in</p>
-                  </div>
-                </div>
-                <Toggle enabled={settings.autostart} onToggle={toggleAutostart} />
-              </div>
-
-              <div style={{ borderTop: "1px solid var(--border)" }} />
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>Auto-start clipboard monitor</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Begin capturing clipboard on launch</p>
-                  </div>
-                </div>
-                <Toggle enabled={settings.clipboard_autostart} onToggle={toggleClipboardAutostart} />
-              </div>
-            </div>
+      {/* Quick Info */}
+      <div style={{
+        marginTop: 20, padding: "16px 20px", borderRadius: 10,
+        border: "1px dashed var(--border)", background: "transparent",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Zap size={13} style={{ color: "var(--text-secondary)" }} />
+          <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>Quick Info</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {status.sync_dir}
+            </span>
           </div>
-        </>
-      )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={status.git_remote}>
+              {status.git_remote || "No remote"}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              CLI: gitmemo --help
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              Total: {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips} files
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
