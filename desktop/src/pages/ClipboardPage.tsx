@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft } from "lucide-react";
+import MarkdownView from "../components/MarkdownView";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -295,13 +296,7 @@ export default function ClipboardPage() {
               flex: 1, overflowY: "auto", padding: "20px 24px",
               userSelect: "text",
             }}>
-              <pre style={{
-                fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-all",
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                margin: 0, color: "var(--text)",
-              }}>
-                {fileContent}
-              </pre>
+              <MarkdownView content={fileContent} />
             </div>
           </>
         )}

@@ -303,7 +303,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             </div>
             <span style={{
               fontSize: 11, color: "var(--text-secondary)", fontFamily: "ui-monospace, monospace",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300,
             }} title={gitRemote}>
               {gitRemote || t("settings.noRemote")}
             </span>

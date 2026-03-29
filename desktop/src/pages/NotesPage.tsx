@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X } from "lucide-react";
+import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, Lightbulb } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { relativeTime } from "../utils/time";
@@ -23,12 +23,13 @@ interface NoteResult {
   message: string;
 }
 
-type NoteTab = "scratch" | "daily" | "manual";
+type NoteTab = "scratch" | "daily" | "manual" | "plans";
 
 const tabs: { id: NoteTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
   { id: "daily", labelKey: "notes.daily", icon: Calendar, folder: "notes/daily" },
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
+  { id: "plans", labelKey: "notes.plans", icon: Lightbulb, folder: "plans" },
 ];
 
 export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
@@ -109,7 +110,6 @@ export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
     if (!newNote.trim()) return;
     if (activeTab === "manual" && !manualTitle.trim()) return;
     setSaving(true);
-    showToast(t("notes.saving"));
     try {
       let result: NoteResult;
       if (activeTab === "daily") {
@@ -195,6 +195,7 @@ export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
         </div>
 
         {/* Quick note input */}
+        {activeTab !== "plans" && (
         <div style={{ padding: 14, borderBottom: "1px solid var(--border)" }}>
           {activeTab === "manual" && (
             <input
@@ -242,6 +243,7 @@ export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
             {saving ? t("notes.saving") : t("notes.enterToSave")}
           </p>
         </div>
+        )}
 
         {/* File list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
