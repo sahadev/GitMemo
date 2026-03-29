@@ -261,7 +261,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 11, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
-                      {relativeTime(meta?.date || f.modified, t)}
+                      {relativeTime(f.modified, t)}
                     </span>
                     {meta?.model && (
                       <span style={{
@@ -370,7 +370,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                     </span>
                     {msg.timestamp && (
                       <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>
-                        {msg.timestamp}
+                        {currentMeta?.date ? currentMeta.date.slice(0, 10) + " " : ""}{msg.timestamp}
                       </span>
                     )}
                   </div>
