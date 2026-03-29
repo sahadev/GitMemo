@@ -84,8 +84,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
     { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes" },
     { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc", page: "notes" },
     { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#fbbf24", page: "notes" },
-    { icon: HardDrive, label: t("dashboard.storage"), value: stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`, color: "var(--text-secondary)" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#fbbf24", page: "plans" },
   ];
 
   const cardStyle = {
@@ -198,6 +197,12 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
               {t("dashboard.totalFiles", String(stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips))}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <HardDrive size={12} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              {stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`}
             </span>
           </div>
         </div>
