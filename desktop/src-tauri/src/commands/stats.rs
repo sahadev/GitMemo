@@ -8,6 +8,7 @@ pub struct AppStats {
     pub manuals: u32,
     pub scratch_notes: u32,
     pub clips: usize,
+    pub plans: usize,
     pub total_size_kb: f64,
     pub unpushed: usize,
 }
@@ -59,12 +60,26 @@ pub fn get_stats() -> Result<AppStats, String> {
         }
     };
 
+    let plans = {
+        let plans_dir = sync_dir.join("plans");
+        if plans_dir.exists() {
+            walkdir::WalkDir::new(&plans_dir)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+                .count()
+        } else {
+            0
+        }
+    };
+
     Ok(AppStats {
         conversations: stats.conversation_count,
         daily_notes: stats.note_daily_count,
         manuals: stats.note_manual_count,
         scratch_notes: stats.note_scratch_count,
         clips,
+        plans,
         total_size_kb: total_size as f64 / 1024.0,
         unpushed,
     })

@@ -94,7 +94,7 @@ function App() {
         onSync={sync.triggerSync}
       />
       <main style={{ flex: 1, overflow: "hidden" }}>
-        {currentPage === "dashboard" && <DashboardPage />}
+        {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
         {currentPage === "conversations" && <ConversationsPage sidebarFocused={sidebarFocused} onFocusSidebar={() => setSidebarFocused(true)} />}
         {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} />}
         {currentPage === "clipboard" && <ClipboardPage />}

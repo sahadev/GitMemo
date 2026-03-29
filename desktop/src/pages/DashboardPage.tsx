@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../hooks/useI18n";
 import {
   MessageSquare, StickyNote, BookOpen, FileText, Clipboard,
-  HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal,
+  HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
 } from "lucide-react";
 
 interface AppStats {
@@ -12,6 +12,7 @@ interface AppStats {
   manuals: number;
   scratch_notes: number;
   clips: number;
+  plans: number;
   total_size_kb: number;
   unpushed: number;
 }
@@ -28,7 +29,9 @@ interface AppStatus {
 }
 
 
-export default function DashboardPage() {
+import type { Page } from "../App";
+
+export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const { t } = useI18n();
   const [stats, setStats] = useState<AppStats | null>(null);
   const [status, setStatus] = useState<AppStatus | null>(null);
@@ -75,12 +78,13 @@ export default function DashboardPage() {
     );
   }
 
-  const statCards = [
-    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)" },
-    { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)" },
-    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)" },
-    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc" },
-    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6" },
+  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page }[] = [
+    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" },
+    { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)", page: "notes" },
+    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes" },
+    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc", page: "notes" },
+    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6", page: "clipboard" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#fbbf24", page: "notes" },
     { icon: HardDrive, label: t("dashboard.storage"), value: stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`, color: "var(--text-secondary)" },
   ];
 
@@ -100,7 +104,15 @@ export default function DashboardPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} style={cardStyle}>
+            <div
+              key={card.label}
+              onClick={() => card.page && onNavigate?.(card.page)}
+              style={{
+                ...cardStyle,
+                cursor: card.page ? "pointer" : "default",
+                transition: "background 0.15s",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: 6,
