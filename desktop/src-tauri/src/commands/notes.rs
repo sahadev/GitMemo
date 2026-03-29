@@ -56,7 +56,7 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::create_scratch(&dir, &content).map_err(|e| e.to_string())?;
-    bg_commit_and_push(format!("note: {}", &content[..content.len().min(50)]));
+    bg_commit_and_push(format!("note: {}", content.chars().take(50).collect::<String>()));
 
     Ok(NoteResult {
         success: true,
@@ -73,7 +73,7 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
-    bg_commit_and_push(format!("daily: {}", &content[..content.len().min(50)]));
+    bg_commit_and_push(format!("daily: {}", content.chars().take(50).collect::<String>()));
 
     Ok(NoteResult {
         success: true,
