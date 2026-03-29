@@ -14,10 +14,14 @@ import { useSync } from "./hooks/useSync";
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "settings";
 export type Theme = "dark" | "light";
 
+const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "settings"];
+
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [sidebarFocused, setSidebarFocused] = useState(false);
+  // Incremented when user presses Right from sidebar → tells content page to select first item
+  const [enterContentTrigger, setEnterContentTrigger] = useState(0);
   const sync = useSync();
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem("gitmemo-theme") as Theme) || "dark";
@@ -35,6 +39,8 @@ function App() {
       return next;
     });
   }, []);
+
+  const focusSidebar = useCallback(() => setSidebarFocused(true), []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -61,24 +67,25 @@ function App() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      // Sidebar navigation with arrow keys
+
+      // Sidebar focused: Up/Down switch pages, Right enters content
       if (sidebarFocused) {
-        const pages: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "settings"];
-        const idx = pages.indexOf(currentPage);
+        const idx = pageOrder.indexOf(currentPage);
         if (e.key === "ArrowUp" && idx > 0) {
           e.preventDefault();
-          setCurrentPage(pages[idx - 1]);
-        }
-        if (e.key === "ArrowDown" && idx < pages.length - 1) {
+          setCurrentPage(pageOrder[idx - 1]);
+        } else if (e.key === "ArrowDown" && idx < pageOrder.length - 1) {
           e.preventDefault();
-          setCurrentPage(pages[idx + 1]);
-        }
-        if (e.key === "ArrowRight") {
+          setCurrentPage(pageOrder[idx + 1]);
+        } else if (e.key === "ArrowRight") {
           e.preventDefault();
           setSidebarFocused(false);
+          setEnterContentTrigger((n) => n + 1);
         }
         return;
       }
+
+      // Cmd shortcuts
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
           case "1": e.preventDefault(); setCurrentPage("dashboard"); setSidebarFocused(false); break;
@@ -91,7 +98,6 @@ function App() {
           case "n": e.preventDefault(); navigateAndFocus("notes"); setSidebarFocused(false); break;
           case "k": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
         }
-        return;
       }
     };
 
@@ -115,10 +121,10 @@ function App() {
       />
       <main style={{ flex: 1, overflow: "hidden" }} onClick={() => setSidebarFocused(false)}>
         {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
-        {currentPage === "conversations" && <ConversationsPage sidebarFocused={sidebarFocused} onFocusSidebar={() => setSidebarFocused(true)} />}
-        {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} />}
-        {currentPage === "clipboard" && <ClipboardPage />}
-        {currentPage === "plans" && <PlansPage />}
+        {currentPage === "conversations" && <ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+        {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+        {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+        {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} />}
         {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
       </main>

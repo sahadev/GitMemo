@@ -81,7 +81,7 @@ function parseMessages(body: string): ChatMessage[] {
   return msgs;
 }
 
-export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { sidebarFocused?: boolean; onFocusSidebar?: () => void }) {
+export default function ConversationsPage({ onFocusSidebar, enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number }) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const panel = useResizablePanel("conversations", 300);
