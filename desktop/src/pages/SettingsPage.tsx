@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe } from "lucide-react";
 import type { Theme } from "../App";
 import { useI18n, type Locale } from "../hooks/useI18n";
+import { useToast } from "../hooks/useToast";
 
 interface DesktopSettings {
   autostart: boolean;
@@ -48,11 +49,11 @@ interface SettingsPageProps {
 
 export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps) {
   const { t, locale, setLocale } = useI18n();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
   const [editingBranch, setEditingBranch] = useState(false);
-  const [toast, setToast] = useState("");
 
   useEffect(() => {
     invoke<DesktopSettings>("get_settings").then(setSettings).catch(console.error);
@@ -86,11 +87,9 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
       const msg = await invoke<string>("set_branch", { name: trimmed });
       setBranch(trimmed);
       setEditingBranch(false);
-      setToast(msg);
-      setTimeout(() => setToast(""), 2500);
+      showToast(msg);
     } catch (e) {
-      setToast(`Error: ${e}`);
-      setTimeout(() => setToast(""), 2500);
+      showToast(`Error: ${e}`, true);
     }
   };
 
@@ -253,19 +252,6 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
           github.com/sahadev/gitmemo
         </button>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 16, right: 16, padding: "10px 16px",
-          borderRadius: 8, fontSize: 12, zIndex: 50,
-          background: toast.startsWith("Error") ? "#2d1515" : "var(--bg-card)",
-          color: toast.startsWith("Error") ? "var(--red)" : "var(--green)",
-          border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        }}>
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
