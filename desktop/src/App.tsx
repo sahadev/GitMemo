@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import Sidebar from "./components/Sidebar";
 import DropZone from "./components/DropZone";
 import NotesPage from "./pages/NotesPage";
@@ -9,19 +8,16 @@ import SearchPage from "./pages/SearchPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 import ConversationsPage from "./pages/ConversationsPage";
+import { useSync } from "./hooks/useSync";
 
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "settings";
 export type Theme = "dark" | "light";
-
-const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "settings"];
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [sidebarFocused, setSidebarFocused] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState("");
-  const syncTimer = useRef<number | null>(null);
+  const sync = useSync();
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem("gitmemo-theme") as Theme) || "dark";
   });
@@ -38,32 +34,6 @@ function App() {
       return next;
     });
   }, []);
-
-  // Shared sync function — min 1s spinner
-  const triggerSync = useCallback(async () => {
-    if (syncing) return;
-    setSyncing(true);
-    setSyncMsg("");
-    const start = Date.now();
-    try {
-      const result = await invoke<string>("sync_to_git");
-      const elapsed = Date.now() - start;
-      const remaining = Math.max(1000 - elapsed, 0);
-      syncTimer.current = window.setTimeout(() => {
-        setSyncing(false);
-        setSyncMsg(result);
-        setTimeout(() => setSyncMsg(""), 3000);
-      }, remaining);
-    } catch (e) {
-      const elapsed = Date.now() - start;
-      const remaining = Math.max(1000 - elapsed, 0);
-      syncTimer.current = window.setTimeout(() => {
-        setSyncing(false);
-        setSyncMsg(`Error: ${e}`);
-        setTimeout(() => setSyncMsg(""), 3000);
-      }, remaining);
-    }
-  }, [syncing]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -110,7 +80,6 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
       unlistenSearch.then((fn) => fn());
       unlistenClip.then((fn) => fn());
-      if (syncTimer.current) clearTimeout(syncTimer.current);
     };
   }, [navigateAndFocus, sidebarFocused]);
 
@@ -120,14 +89,14 @@ function App() {
         currentPage={currentPage}
         onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
         focused={sidebarFocused}
-        syncing={syncing}
-        syncMsg={syncMsg}
-        onSync={triggerSync}
+        syncing={sync.isSyncing}
+        syncMsg={sync.message}
+        onSync={sync.triggerSync}
       />
       <main style={{ flex: 1, overflow: "hidden" }}>
         {currentPage === "dashboard" && <DashboardPage />}
         {currentPage === "conversations" && <ConversationsPage sidebarFocused={sidebarFocused} onFocusSidebar={() => setSidebarFocused(true)} />}
-        {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onSync={triggerSync} />}
+        {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} />}
         {currentPage === "clipboard" && <ClipboardPage />}
         {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} />}
         {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}

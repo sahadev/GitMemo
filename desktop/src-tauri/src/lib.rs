@@ -54,6 +54,9 @@ pub fn run() {
             settings::set_branch,
         ])
         .setup(|app| {
+            // Store app handle for background git sync events
+            notes::set_app_handle(app.handle().clone());
+
             // --- Pull latest from remote on startup ---
             std::thread::spawn(|| {
                 let sync_dir = gitmemo_core::storage::files::sync_dir();

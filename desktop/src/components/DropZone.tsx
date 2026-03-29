@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { Download, FileText, Image, Code2, File, FolderOpen, Check, X } from "lucide-react";
+import { useI18n } from "../hooks/useI18n";
 
 interface ImportedFile {
   original_name: string;
@@ -43,6 +44,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function DropZone() {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
@@ -99,10 +101,10 @@ export default function DropZone() {
         >
           <Download size={48} style={{ color: "var(--accent)" }} className="animate-bounce" />
           <p className="text-[18px] font-semibold" style={{ color: "var(--accent)" }}>
-            松开以导入文件
+            {t("dropzone.dropToImport")}
           </p>
           <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-            文件将自动路由到正确的目录并同步到 Git
+            {t("dropzone.routeHint")}
           </p>
           <div className="flex gap-4 mt-2">
             {[
@@ -137,7 +139,7 @@ export default function DropZone() {
         style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
       >
         <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
-        <span className="text-[13px]">Importing files...</span>
+        <span className="text-[13px]">{t("dropzone.importing")}</span>
       </div>
     );
   }
@@ -162,8 +164,8 @@ export default function DropZone() {
           )}
           <span className="text-[13px] font-medium">
             {result.imported.length > 0
-              ? `Imported ${result.imported.length} file${result.imported.length > 1 ? "s" : ""}`
-              : "Import failed"}
+              ? t("dropzone.imported", String(result.imported.length))
+              : t("dropzone.importFailed")}
           </span>
           <button
             onClick={() => setResult(null)}

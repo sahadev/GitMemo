@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "dashboard": "仪表盘",
+    "search": "搜索",
+    "conversations": "对话",
+    "notes": "笔记",
+    "clipboard": "剪贴板",
+    "settings": "设置"
+  },
+  "sidebar": {
+    "syncing": "同步中...",
+    "syncToGit": "同步到 Git"
+  },
+  "dashboard": {
+    "title": "仪表盘",
+    "conversations": "对话",
+    "dailyNotes": "日记",
+    "manuals": "手册",
+    "scratchNotes": "便签",
+    "clips": "剪贴板",
+    "storage": "存储",
+    "branch": "分支",
+    "syncStatus": "同步状态",
+    "lastCommit": "最近提交",
+    "synced": "已同步",
+    "unpushed": "未推送",
+    "quickInfo": "基本信息",
+    "totalFiles": "共 {0} 个文件",
+    "loading": "加载中...",
+    "noRemote": "无远程仓库",
+    "initHint": "运行 `gitmemo init` 开始使用"
+  },
+  "conversations": {
+    "title": "对话",
+    "loading": "加载中...",
+    "empty": "暂无对话记录",
+    "selectToView": "选择一个对话查看",
+    "deleteConfirm": "确定删除此对话？",
+    "confirm": "确认",
+    "deleted": "已删除",
+    "copied": "已复制",
+    "clickToCopy": "点击复制",
+    "deleteConversation": "删除对话",
+    "msgs": "条消息",
+    "user": "用户",
+    "assistant": "助手"
+  },
+  "notes": {
+    "scratch": "便签",
+    "daily": "日记",
+    "manual": "手册",
+    "placeholderDaily": "添加到今天的日记...",
+    "placeholderScratch": "快速记录...",
+    "placeholderManual": "内容...",
+    "placeholderTitle": "标题",
+    "saving": "保存中...",
+    "enterToSave": "回车保存，Shift+回车换行",
+    "loading": "加载中...",
+    "noNotes": "暂无{0}",
+    "useInputAbove": "使用上方输入框创建",
+    "createViaCli": "通过 CLI 创建: gitmemo manual",
+    "selectOrCreate": "选择文件或创建新笔记",
+    "cmdN": "Cmd+N 快速创建",
+    "edit": "编辑",
+    "save": "保存",
+    "noteDeleted": "笔记已删除",
+    "deleteConfirm": "确定删除此笔记？"
+  },
+  "clipboard": {
+    "title": "剪贴板",
+    "watching": "监控中",
+    "stopped": "已停止",
+    "saveCurrentClipboard": "保存当前剪贴板",
+    "noClips": "暂无记录",
+    "autoCapture": "复制文本（20字以上）自动捕获",
+    "selectToView": "选择一条记录查看完整内容",
+    "tooShort": "内容太短（最少20字）",
+    "saved": "已保存！",
+    "copied": "已复制",
+    "copy": "复制",
+    "clipsTotal": "共 {0} 条"
+  },
+  "search": {
+    "placeholder": "搜索对话、笔记、剪贴板... (Cmd+K)",
+    "searching": "搜索中...",
+    "emptyTitle": "全文搜索所有数据",
+    "emptyHint": "Cmd+Shift+G 随时搜索",
+    "noResults": "未找到 \"{0}\" 的结果",
+    "results": "{0} 条结果"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "appearanceDesc": "当前使用{0}模式",
+    "language": "语言",
+    "languageDesc": "界面语言",
+    "launchAtLogin": "开机启动",
+    "launchAtLoginDesc": "登录时自动启动 GitMemo",
+    "clipboardAutostart": "自动启动剪贴板监控",
+    "clipboardAutostartDesc": "启动时开始捕获剪贴板",
+    "syncBranch": "同步分支",
+    "syncBranchDesc": "用于同步的 Git 分支",
+    "dark": "深色",
+    "light": "浅色"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minAgo": "{0} 分钟前",
+    "hrAgo": "{0} 小时前",
+    "dayAgo": "{0} 天前"
+  },
+  "dropzone": {
+    "dropToImport": "松开以导入文件",
+    "routeHint": "文件将自动路由到正确的目录并同步到 Git",
+    "importing": "导入中...",
+    "imported": "已导入 {0} 个文件",
+    "importFailed": "导入失败"
+  },
+  "common": {
+    "error": "错误",
+    "start": "开始",
+    "stop": "停止",
+    "delete": "删除",
+    "cancel": "取消",
+    "confirm": "确认"
+  }
+}

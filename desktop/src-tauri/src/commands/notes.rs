@@ -1,6 +1,14 @@
 use gitmemo_core::storage::{files, git};
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::OnceLock;
+use tauri::{AppHandle, Emitter};
+
+static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
+
+pub fn set_app_handle(handle: AppHandle) {
+    let _ = APP_HANDLE.set(handle);
+}
 
 fn sync_dir() -> PathBuf {
     files::sync_dir()
@@ -21,6 +29,23 @@ pub struct FileEntry {
     pub modified: String,
     pub size: u64,
     pub preview: String,
+    #[serde(rename = "modifiedTs")]
+    pub modified_ts: i64,
+}
+
+/// Spawn git commit+push in background so the UI isn't blocked.
+/// Emits "git-sync-start" and "git-sync-end" events for the frontend.
+fn bg_commit_and_push(msg: String) {
+    if let Some(handle) = APP_HANDLE.get() {
+        let _ = handle.emit("git-sync-start", ());
+    }
+    std::thread::spawn(move || {
+        let dir = sync_dir();
+        let _ = git::commit_and_push(&dir, &msg);
+        if let Some(handle) = APP_HANDLE.get() {
+            let _ = handle.emit("git-sync-end", ());
+        }
+    });
 }
 
 #[tauri::command]
@@ -31,9 +56,7 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::create_scratch(&dir, &content).map_err(|e| e.to_string())?;
-
-    let msg = format!("note: {}", &content[..content.len().min(50)]);
-    let _ = git::commit_and_push(&dir, &msg);
+    bg_commit_and_push(format!("note: {}", &content[..content.len().min(50)]));
 
     Ok(NoteResult {
         success: true,
@@ -50,9 +73,7 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
-
-    let msg = format!("daily: {}", &content[..content.len().min(50)]);
-    let _ = git::commit_and_push(&dir, &msg);
+    bg_commit_and_push(format!("daily: {}", &content[..content.len().min(50)]));
 
     Ok(NoteResult {
         success: true,
@@ -72,8 +93,7 @@ pub fn create_manual(title: String, content: String, append: bool) -> Result<Not
         files::write_manual(&dir, &title, &content, append).map_err(|e| e.to_string())?;
 
     let action = if append { "update" } else { "create" };
-    let msg = format!("manual: {} {}", action, title);
-    let _ = git::commit_and_push(&dir, &msg);
+    bg_commit_and_push(format!("manual: {} {}", action, title));
 
     Ok(NoteResult {
         success: true,
@@ -113,14 +133,24 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
             .to_string();
 
         let content = std::fs::read_to_string(path).unwrap_or_default();
-        let preview = content
+        // Strip frontmatter block then take first meaningful lines as preview
+        let body = if content.starts_with("---") {
+            if let Some(end) = content[3..].find("---") {
+                content[3 + end + 3..].trim_start()
+            } else {
+                content.as_str()
+            }
+        } else {
+            content.as_str()
+        };
+        let preview = body
             .lines()
-            .filter(|l| !l.starts_with("---") && !l.starts_with("date:") && !l.starts_with("title:") && !l.is_empty())
+            .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
             .take(3)
             .collect::<Vec<_>>()
-            .join(" ")
+            .join("\n")
             .chars()
-            .take(120)
+            .take(200)
             .collect::<String>();
 
         let name = content
@@ -135,14 +165,18 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
             });
 
         let meta = path.metadata().ok();
-        let modified = meta
+        let modified_time = meta
             .as_ref()
-            .and_then(|m| m.modified().ok())
+            .and_then(|m| m.modified().ok());
+        let modified = modified_time
             .map(|t| {
                 let dt: chrono::DateTime<chrono::Local> = t.into();
-                dt.format("%Y-%m-%d %H:%M").to_string()
+                dt.format("%Y-%m-%d %H:%M:%S").to_string()
             })
             .unwrap_or_default();
+        let modified_ts = modified_time
+            .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64)
+            .unwrap_or(0);
         let size = meta.map(|m| m.len()).unwrap_or(0);
 
         let source_type = if rel_path.starts_with("conversations") {
@@ -158,11 +192,12 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
             modified,
             size,
             preview,
+            modified_ts,
         });
     }
 
-    // Sort by modified desc
-    entries.sort_by(|a, b| b.modified.cmp(&a.modified));
+    // Sort by timestamp desc (millisecond precision)
+    entries.sort_by(|a, b| b.modified_ts.cmp(&a.modified_ts));
 
     Ok(entries)
 }
@@ -176,9 +211,7 @@ pub fn update_note(file_path: String, content: String) -> Result<NoteResult, Str
     }
 
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
-
-    let msg = format!("edit: {}", file_path);
-    let _ = git::commit_and_push(&dir, &msg);
+    bg_commit_and_push(format!("edit: {}", file_path));
 
     Ok(NoteResult {
         success: true,
@@ -196,9 +229,7 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-
-    let msg = format!("delete: {}", file_path);
-    let _ = git::commit_and_push(&dir, &msg);
+    bg_commit_and_push(format!("delete: {}", file_path));
 
     Ok(NoteResult {
         success: true,
@@ -214,6 +245,9 @@ pub fn sync_to_git() -> Result<String, String> {
         return Err("GitMemo 未初始化".into());
     }
 
+    // Copy plans from ~/.claude/plans/ to plans/
+    copy_plans_to_gitmemo(&dir);
+
     let result = git::commit_and_push(&dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
     if result.committed && result.pushed {
         Ok("已同步到 Git".into())
@@ -224,5 +258,29 @@ pub fn sync_to_git() -> Result<String, String> {
         ))
     } else {
         Ok("无新变更".into())
+    }
+}
+
+/// Copy .md files from ~/.claude/plans/ to <gitmemo>/plans/
+fn copy_plans_to_gitmemo(dir: &std::path::Path) {
+    let home = match std::env::var("HOME").ok() {
+        Some(h) => std::path::PathBuf::from(h),
+        None => return,
+    };
+    let plans_src = home.join(".claude").join("plans");
+    if !plans_src.is_dir() {
+        return;
+    }
+    let plans_dst = dir.join("plans");
+    let _ = std::fs::create_dir_all(&plans_dst);
+
+    if let Ok(entries) = std::fs::read_dir(&plans_src) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map(|e| e == "md").unwrap_or(false) {
+                let dest = plans_dst.join(path.file_name().unwrap());
+                let _ = std::fs::copy(&path, &dest);
+            }
+        }
     }
 }

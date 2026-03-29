@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "../hooks/useI18n";
 import {
   MessageSquare, StickyNote, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal,
@@ -28,6 +29,7 @@ interface AppStatus {
 
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [stats, setStats] = useState<AppStats | null>(null);
   const [status, setStatus] = useState<AppStatus | null>(null);
   const [error, setError] = useState("");
@@ -58,7 +60,7 @@ export default function DashboardPage() {
           <GitBranch size={48} style={{ color: "#555", margin: "0 auto 16px" }} />
           <p style={{ fontSize: 16, color: "var(--red)", marginBottom: 8 }}>{error}</p>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-            Run <code style={{ background: "var(--bg-hover)", padding: "2px 8px", borderRadius: 4 }}>gitmemo init</code> to get started
+            {t("dashboard.initHint")}
           </p>
         </div>
       </div>
@@ -68,18 +70,18 @@ export default function DashboardPage() {
   if (!stats || !status) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-        <p style={{ color: "var(--text-secondary)" }}>Loading...</p>
+        <p style={{ color: "var(--text-secondary)" }}>{t("dashboard.loading")}</p>
       </div>
     );
   }
 
   const statCards = [
-    { icon: MessageSquare, label: "Conversations", value: stats.conversations, color: "var(--accent)" },
-    { icon: StickyNote, label: "Daily Notes", value: stats.daily_notes, color: "var(--green)" },
-    { icon: BookOpen, label: "Manuals", value: stats.manuals, color: "var(--yellow)" },
-    { icon: FileText, label: "Scratch Notes", value: stats.scratch_notes, color: "#c084fc" },
-    { icon: Clipboard, label: "Clips", value: stats.clips, color: "#f472b6" },
-    { icon: HardDrive, label: "Storage", value: stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`, color: "var(--text-secondary)" },
+    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)" },
+    { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)" },
+    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)" },
+    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc" },
+    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6" },
+    { icon: HardDrive, label: t("dashboard.storage"), value: stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`, color: "var(--text-secondary)" },
   ];
 
   const cardStyle = {
@@ -91,7 +93,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ padding: "20px 28px 28px", overflowY: "auto", height: "100%" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Dashboard</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t("dashboard.title")}</h1>
 
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
@@ -121,7 +123,7 @@ export default function DashboardPage() {
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <GitBranch size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Branch</span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.branch")}</span>
           </div>
           <p style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)" }}>
             {status.git_branch || "main"}
@@ -132,13 +134,13 @@ export default function DashboardPage() {
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Sync Status</span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
           </div>
           <p style={{ fontSize: 18, fontWeight: 700 }}>
             {status.unpushed > 0 ? (
-              <span style={{ color: "var(--yellow)" }}>{status.unpushed} unpushed</span>
+              <span style={{ color: "var(--yellow)" }}>{status.unpushed} {t("dashboard.unpushed")}</span>
             ) : (
-              <span style={{ color: "var(--green)" }}>Synced</span>
+              <span style={{ color: "var(--green)" }}>{t("dashboard.synced")}</span>
             )}
           </p>
           <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
@@ -150,7 +152,7 @@ export default function DashboardPage() {
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <GitCommit size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Last Commit</span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
           </div>
           <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
             {status.last_commit_id || "—"}
@@ -170,7 +172,7 @@ export default function DashboardPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <Zap size={13} style={{ color: "var(--text-secondary)" }} />
-          <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>Quick Info</span>
+          <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.quickInfo")}</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -182,7 +184,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={status.git_remote}>
-              {status.git_remote || "No remote"}
+              {status.git_remote || t("dashboard.noRemote")}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -194,7 +196,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-              Total: {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips} files
+              {t("dashboard.totalFiles", String(stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips))}
             </span>
           </div>
         </div>

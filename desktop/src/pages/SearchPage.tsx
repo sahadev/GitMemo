@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Search, MessageSquare, StickyNote, ChevronLeft } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { useI18n } from "../hooks/useI18n";
 
 interface SearchResultItem {
   source_type: string;
@@ -12,6 +13,7 @@ interface SearchResultItem {
 }
 
 export default function SearchPage({ focusTrigger }: { focusTrigger?: number }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [searched, setSearched] = useState(false);

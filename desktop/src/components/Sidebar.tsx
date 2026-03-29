@@ -8,6 +8,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Page } from "../App";
+import { useI18n } from "../hooks/useI18n";
 
 interface SidebarProps {
   currentPage: Page;
@@ -18,16 +19,18 @@ interface SidebarProps {
   onSync: () => void;
 }
 
-const navItems: { id: Page; icon: typeof LayoutDashboard; label: string }[] = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { id: "search", icon: Search, label: "Search" },
-  { id: "conversations", icon: MessageSquare, label: "Conversations" },
-  { id: "notes", icon: StickyNote, label: "Notes" },
-  { id: "clipboard", icon: Clipboard, label: "Clipboard" },
-  { id: "settings", icon: Settings, label: "Settings" },
+const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] = [
+  { id: "dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+  { id: "search", icon: Search, labelKey: "nav.search" },
+  { id: "conversations", icon: MessageSquare, labelKey: "nav.conversations" },
+  { id: "notes", icon: StickyNote, labelKey: "nav.notes" },
+  { id: "clipboard", icon: Clipboard, labelKey: "nav.clipboard" },
+  { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, onSync }: SidebarProps) {
+  const { t } = useI18n();
+
   return (
     <div
       style={{
@@ -82,7 +85,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
               }}
             >
               <Icon size={16} />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           );
         })}
@@ -104,22 +107,20 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             fontSize: 12,
             background: syncing
               ? "linear-gradient(90deg, var(--bg-hover) 0%, var(--accent) 50%, var(--bg-hover) 100%)"
+              : syncMsg
+              ? "#0f2d0f"
               : "var(--bg)",
             backgroundSize: syncing ? "200% 100%" : undefined,
             animation: syncing ? "shimmer 1.5s linear infinite" : undefined,
-            color: syncing ? "#fff" : "var(--text-secondary)",
-            border: "1px solid var(--border)",
+            color: syncing ? "#fff" : syncMsg ? "var(--green)" : "var(--text-secondary)",
+            border: `1px solid ${syncing ? "transparent" : syncMsg ? "#205a20" : "var(--border)"}`,
             cursor: syncing ? "default" : "pointer",
+            transition: "all 0.3s",
           }}
         >
           <RefreshCw size={13} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
-          {syncing ? "Syncing..." : "Sync to Git"}
+          {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
-        {syncMsg && (
-          <p style={{ fontSize: 11, marginTop: 6, textAlign: "center", color: "var(--text-secondary)" }}>
-            {syncMsg}
-          </p>
-        )}
         <p style={{ fontSize: 10, textAlign: "center", marginTop: 8, color: "var(--text-secondary)", opacity: 0.6 }}>
           GitMemo Desktop v0.2.0
         </p>

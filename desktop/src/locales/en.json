@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "search": "Search",
+    "conversations": "Conversations",
+    "notes": "Notes",
+    "clipboard": "Clipboard",
+    "settings": "Settings"
+  },
+  "sidebar": {
+    "syncing": "Syncing...",
+    "syncToGit": "Sync to Git"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "conversations": "Conversations",
+    "dailyNotes": "Daily Notes",
+    "manuals": "Manuals",
+    "scratchNotes": "Scratch Notes",
+    "clips": "Clips",
+    "storage": "Storage",
+    "branch": "Branch",
+    "syncStatus": "Sync Status",
+    "lastCommit": "Last Commit",
+    "synced": "Synced",
+    "unpushed": "unpushed",
+    "quickInfo": "Quick Info",
+    "totalFiles": "Total: {0} files",
+    "loading": "Loading...",
+    "noRemote": "No remote",
+    "initHint": "Run `gitmemo init` to get started"
+  },
+  "conversations": {
+    "title": "Conversations",
+    "loading": "Loading...",
+    "empty": "No conversations yet",
+    "selectToView": "Select a conversation to view",
+    "deleteConfirm": "Delete this conversation?",
+    "confirm": "Confirm",
+    "deleted": "Deleted",
+    "copied": "Copied",
+    "clickToCopy": "Click to copy",
+    "deleteConversation": "Delete conversation",
+    "msgs": "msgs",
+    "user": "User",
+    "assistant": "Assistant"
+  },
+  "notes": {
+    "scratch": "Scratch",
+    "daily": "Daily",
+    "manual": "Manual",
+    "placeholderDaily": "Add to today's note...",
+    "placeholderScratch": "Quick note...",
+    "placeholderManual": "Content...",
+    "placeholderTitle": "Title",
+    "saving": "Saving...",
+    "enterToSave": "Enter to save, Shift+Enter for newline",
+    "loading": "Loading...",
+    "noNotes": "No {0} notes yet",
+    "useInputAbove": "Use the input above to create one",
+    "createViaCli": "Create via CLI: gitmemo manual",
+    "selectOrCreate": "Select a file or create a new note",
+    "cmdN": "Cmd+N to quick create",
+    "edit": "Edit",
+    "save": "Save",
+    "noteDeleted": "Note deleted",
+    "deleteConfirm": "Delete this note?"
+  },
+  "clipboard": {
+    "title": "Clipboard",
+    "watching": "Watching",
+    "stopped": "Stopped",
+    "saveCurrentClipboard": "Save current clipboard",
+    "noClips": "No clips yet",
+    "autoCapture": "Copy text (20+ chars) to auto-capture",
+    "selectToView": "Select a clip to view full content",
+    "tooShort": "Clipboard too short (min 20 chars)",
+    "saved": "Saved!",
+    "copied": "Copied",
+    "copy": "Copy",
+    "clipsTotal": "{0} clips total"
+  },
+  "search": {
+    "placeholder": "Search conversations, notes, clips... (Cmd+K)",
+    "searching": "Searching...",
+    "emptyTitle": "Full-text search across all your data",
+    "emptyHint": "Cmd+Shift+G to search from anywhere",
+    "noResults": "No results for \"{0}\"",
+    "results": "{0} results"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "appearanceDesc": "Currently using {0} mode",
+    "language": "Language",
+    "languageDesc": "Interface language",
+    "launchAtLogin": "Launch at login",
+    "launchAtLoginDesc": "Start GitMemo when you log in",
+    "clipboardAutostart": "Auto-start clipboard monitor",
+    "clipboardAutostartDesc": "Begin capturing clipboard on launch",
+    "syncBranch": "Sync branch",
+    "syncBranchDesc": "Git branch used for syncing",
+    "dark": "dark",
+    "light": "light"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minAgo": "{0} min ago",
+    "hrAgo": "{0} hr ago",
+    "dayAgo": "{0} day ago"
+  },
+  "dropzone": {
+    "dropToImport": "Drop to import files",
+    "routeHint": "Files will be auto-routed to the correct directory and synced to Git",
+    "importing": "Importing files...",
+    "imported": "Imported {0} file(s)",
+    "importFailed": "Import failed"
+  },
+  "common": {
+    "error": "Error",
+    "start": "Start",
+    "stop": "Stop",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  }
+}

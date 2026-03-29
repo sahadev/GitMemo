@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink } from "lucide-react";
+import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe } from "lucide-react";
 import type { Theme } from "../App";
+import { useI18n, type Locale } from "../hooks/useI18n";
 
 interface DesktopSettings {
   autostart: boolean;
@@ -46,6 +47,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps) {
+  const { t, locale, setLocale } = useI18n();
   const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
@@ -105,11 +107,16 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
     justifyContent: "space-between" as const,
   };
 
+  const languages: { id: Locale; label: string }[] = [
+    { id: "en", label: "English" },
+    { id: "zh", label: "中文" },
+  ];
+
   return (
     <div style={{ padding: "20px 32px 32px", overflowY: "auto", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <Settings size={20} style={{ color: "var(--text-secondary)" }} />
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Settings</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700 }}>{t("settings.title")}</h1>
       </div>
 
       <div style={cardStyle}>
@@ -123,13 +130,42 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
                 <Sun size={15} style={{ color: "var(--text-secondary)" }} />
               )}
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>Appearance</p>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.appearance")}</p>
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
-                  Currently using {theme} mode
+                  {t("settings.appearanceDesc", t(`settings.${theme}`))}
                 </p>
               </div>
             </div>
             <Toggle enabled={theme === "dark"} onToggle={onToggleTheme} />
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)" }} />
+
+          {/* Language */}
+          <div style={rowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Globe size={15} style={{ color: "var(--text-secondary)" }} />
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.language")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.languageDesc")}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {languages.map((lang) => (
+                <button
+                  key={lang.id}
+                  onClick={() => setLocale(lang.id)}
+                  style={{
+                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
+                    background: locale === lang.id ? "var(--accent)" : "var(--bg-hover)",
+                    color: locale === lang.id ? "#fff" : "var(--text-secondary)",
+                    border: locale === lang.id ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  }}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
@@ -139,8 +175,8 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Power size={15} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>Launch at login</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Start GitMemo when you log in</p>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
               </div>
             </div>
             <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
@@ -153,8 +189,8 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>Auto-start clipboard monitor</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Begin capturing clipboard on launch</p>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
               </div>
             </div>
             <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
@@ -167,8 +203,8 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <GitBranch size={15} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>Sync branch</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>Git branch used for syncing</p>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.syncBranch")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncBranchDesc")}</p>
               </div>
             </div>
             {editingBranch ? (

@@ -3,6 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { MessageSquare, Trash2, ChevronLeft } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { useResizablePanel } from "../hooks/useResizablePanel";
+import { relativeTime } from "../utils/time";
+import { useI18n } from "../hooks/useI18n";
+import { useToast } from "../hooks/useToast";
 
 interface FileEntry {
   name: string;
@@ -78,6 +82,9 @@ function parseMessages(body: string): ChatMessage[] {
 }
 
 export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { sidebarFocused?: boolean; onFocusSidebar?: () => void }) {
+  const { t } = useI18n();
+  const { showToast } = useToast();
+  const panel = useResizablePanel("conversations", 300);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [metaCache, setMetaCache] = useState<Map<string, ConversationMeta>>(new Map());
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -85,7 +92,6 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
   const [rawBody, setRawBody] = useState("");
   const [currentMeta, setCurrentMeta] = useState<ConversationMeta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState("");
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => { loadFiles(); }, []);
@@ -133,7 +139,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
 
   const handleDelete = async () => {
     if (!selectedFile) return;
-    const confirmed = await ask("Delete this conversation?", { title: "Confirm", kind: "warning" });
+    const confirmed = await ask(t("conversations.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
     try {
       const idx = files.findIndex((f) => f.path === selectedFile);
@@ -148,16 +154,11 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
         setMessages([]);
         setCurrentMeta(null);
       }
-      showToast("Deleted");
+      showToast(t("conversations.deleted"));
       loadFiles();
     } catch (e) {
       showToast(`Error: ${e}`);
     }
-  };
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 2500);
   };
 
   const navigatePrev = useCallback(() => {
@@ -211,7 +212,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
     <div style={{ display: "flex", height: "100%" }}>
       {/* Left panel — conversation list */}
       <div style={{
-        width: 300, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column",
+        width: panel.width, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column",
         flexShrink: 0, background: "var(--bg)",
       }}>
         {/* Header */}
@@ -220,7 +221,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
           borderBottom: "1px solid var(--border)",
         }}>
           <MessageSquare size={18} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>Conversations</span>
+          <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
           <span style={{
             fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
             padding: "2px 8px", borderRadius: 10,
@@ -232,11 +233,11 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
         {/* List */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {loading ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--text-secondary)" }}>Loading...</p>
+            <p style={{ padding: 20, fontSize: 13, color: "var(--text-secondary)" }}>{t("conversations.loading")}</p>
           ) : files.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <MessageSquare size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>No conversations yet</p>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("conversations.empty")}</p>
             </div>
           ) : (
             files.map((f) => {
@@ -260,7 +261,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 11, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
-                      {meta?.date ? meta.date.slice(0, 16) : f.modified}
+                      {relativeTime(meta?.date || f.modified, t)}
                     </span>
                     {meta?.model && (
                       <span style={{
@@ -273,7 +274,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                     )}
                     {meta?.messages && (
                       <span style={{ fontSize: 10, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
-                        {meta.messages} msgs
+                        {meta.messages} {t("conversations.msgs")}
                       </span>
                     )}
                   </div>
@@ -284,13 +285,18 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
         </div>
       </div>
 
+      {/* Drag handle */}
+      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
+        <div style={panel.handleHoverStyle} />
+      </div>
+
       {/* Right panel — chat viewer */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
               <MessageSquare size={48} style={{ color: "var(--border)", margin: "0 auto 16px" }} />
-              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>Select a conversation to view</p>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("conversations.selectToView")}</p>
             </div>
           </div>
         ) : (
@@ -310,10 +316,10 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                 onClick={() => {
                   const text = currentMeta?.title || selectedFile || "";
                   navigator.clipboard.writeText(text);
-                  showToast("Copied");
+                  showToast(t("conversations.copied"));
                 }}
                 style={{ fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
-                title="Click to copy"
+                title={t("conversations.clickToCopy")}
               >
                 {currentMeta?.title || selectedFile}
               </span>
@@ -327,7 +333,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
               )}
               {currentMeta?.messages && (
                 <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                  {currentMeta.messages} msgs
+                  {currentMeta.messages} {t("conversations.msgs")}
                 </span>
               )}
               <button
@@ -336,7 +342,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                   padding: 6, borderRadius: 4, background: "none", border: "none",
                   cursor: "pointer", color: "var(--text-secondary)",
                 }}
-                title="Delete conversation"
+                title={t("conversations.deleteConversation")}
               >
                 <Trash2 size={14} />
               </button>
@@ -360,7 +366,7 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
                     marginBottom: 10, fontSize: 11, fontWeight: 600,
                   }}>
                     <span style={{ color: msg.role === "user" ? "var(--accent)" : "var(--green)" }}>
-                      {msg.role === "user" ? "User" : "Assistant"}
+                      {msg.role === "user" ? t("conversations.user") : t("conversations.assistant")}
                     </span>
                     {msg.timestamp && (
                       <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>
@@ -377,18 +383,6 @@ export default function ConversationsPage({ sidebarFocused, onFocusSidebar }: { 
           </>
         )}
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-          padding: "12px 28px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 999,
-          background: toast.startsWith("Error") ? "var(--red)" : "var(--accent)",
-          color: "#fff", boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
-        }}>
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

@@ -196,8 +196,8 @@ textarea:focus, input:focus {
   to { transform: rotate(360deg); }
 }
 
-/* Shimmer animation for sync button */
+/* Shimmer animation for sync button — left to right sweep */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

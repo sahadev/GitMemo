@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { useResizablePanel } from "../hooks/useResizablePanel";
+import { relativeTime } from "../utils/time";
+import { useI18n } from "../hooks/useI18n";
+import { useToast } from "../hooks/useToast";
 
 interface FileEntry {
   name: string;
@@ -20,21 +25,23 @@ interface NoteResult {
 
 type NoteTab = "scratch" | "daily" | "manual";
 
-const tabs: { id: NoteTab; label: string; icon: typeof FileText; folder: string }[] = [
-  { id: "scratch", label: "Scratch", icon: FileText, folder: "notes/scratch" },
-  { id: "daily", label: "Daily", icon: Calendar, folder: "notes/daily" },
-  { id: "manual", label: "Manual", icon: BookOpen, folder: "notes/manual" },
+const tabs: { id: NoteTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
+  { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
+  { id: "daily", labelKey: "notes.daily", icon: Calendar, folder: "notes/daily" },
+  { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
 
-export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: number; onSync?: () => void }) {
+export default function NotesPage({ focusTrigger }: { focusTrigger?: number }) {
+  const { t } = useI18n();
+  const { showToast } = useToast();
+  const panel = useResizablePanel("notes", 300);
   const [activeTab, setActiveTab] = useState<NoteTab>("scratch");
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [newNote, setNewNote] = useState("");
+  const [manualTitle, setManualTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState("");
-  const [toastError, setToastError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -79,7 +86,7 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
   const loadFiles = async () => {
     setLoading(true);
     try {
-      const folder = tabs.find((t) => t.id === activeTab)!.folder;
+      const folder = tabs.find((tb) => tb.id === activeTab)!.folder;
       const result = await invoke<FileEntry[]>("list_files", { folder });
       setFiles(result);
     } catch (e) { console.error(e); }
@@ -100,17 +107,21 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
 
   const handleCreateNote = async () => {
     if (!newNote.trim()) return;
+    if (activeTab === "manual" && !manualTitle.trim()) return;
     setSaving(true);
-    showToast("Saving...");
+    showToast(t("notes.saving"));
     try {
       let result: NoteResult;
       if (activeTab === "daily") {
         result = await invoke<NoteResult>("append_daily", { content: newNote });
+      } else if (activeTab === "manual") {
+        result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: newNote, append: false });
       } else {
         result = await invoke<NoteResult>("create_note", { content: newNote });
       }
       showToast(result.message);
       setNewNote("");
+      setManualTitle("");
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
     finally { setSaving(false); }
@@ -129,12 +140,14 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
 
   const handleDelete = async () => {
     if (!selectedFile) return;
+    const confirmed = await ask(t("notes.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
+    if (!confirmed) return;
     try {
       await invoke<NoteResult>("delete_note", { filePath: selectedFile });
       setSelectedFile(null);
       setFileContent("");
       setEditing(false);
-      showToast("Note deleted");
+      showToast(t("notes.noteDeleted"));
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
@@ -145,16 +158,11 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
     setTimeout(() => editRef.current?.focus(), 50);
   };
 
-  const showToast = (msg: string, isError = false) => {
-    setToast(isError ? `Error: ${msg}` : msg);
-    setTimeout(() => setToast(""), 2500);
-  };
-
   return (
     <div style={{ display: "flex", height: "100%" }}>
       {/* Left Panel - File List */}
       <div style={{
-        width: 300, borderRight: "1px solid var(--border)",
+        width: panel.width, borderRight: "1px solid var(--border)",
         display: "flex", flexDirection: "column", height: "100%",
       }}>
         {/* Tabs */}
@@ -180,65 +188,76 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
                 }}
               >
                 <Icon size={12} />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}
         </div>
 
         {/* Quick note input */}
-        {(activeTab === "scratch" || activeTab === "daily") && (
-          <div style={{ padding: 14, borderBottom: "1px solid var(--border)" }}>
-            <div style={{ position: "relative" }}>
-              <textarea
-                ref={textareaRef}
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCreateNote(); }
-                }}
-                placeholder={activeTab === "daily" ? "Add to today's note... (Shift+Enter for newline)" : "Quick note... (Shift+Enter for newline)"}
-                rows={3}
-                style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 13,
-                  resize: "vertical", background: "var(--bg)", color: "var(--text)",
-                  border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
-                }}
-              />
-              <button
-                onClick={handleCreateNote}
-                disabled={!newNote.trim()}
-                style={{
-                  position: "absolute", bottom: 8, right: 8, padding: 4,
-                  borderRadius: 4, background: "none", border: "none", cursor: "pointer",
-                  color: newNote.trim() ? "var(--accent)" : "var(--text-secondary)",
-                  opacity: newNote.trim() ? 1 : 0.4,
-                }}
-              >
-                <Send size={14} />
-              </button>
-            </div>
-            <p style={{ fontSize: 10, marginTop: 6, color: "var(--text-secondary)" }}>
-              Enter to save, Shift+Enter for newline
-            </p>
+        <div style={{ padding: 14, borderBottom: "1px solid var(--border)" }}>
+          {activeTab === "manual" && (
+            <input
+              value={manualTitle}
+              onChange={(e) => setManualTitle(e.target.value)}
+              placeholder={t("notes.placeholderTitle")}
+              style={{
+                width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                marginBottom: 8, background: "var(--bg)", color: "var(--text)",
+                border: "1px solid var(--border)", fontFamily: "inherit",
+              }}
+            />
+          )}
+          <div style={{ position: "relative" }}>
+            <textarea
+              ref={textareaRef}
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCreateNote(); }
+              }}
+              placeholder={activeTab === "daily" ? t("notes.placeholderDaily") : activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
+              rows={3}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 13,
+                resize: "vertical", background: "var(--bg)", color: "var(--text)",
+                border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
+              }}
+            />
+            <button
+              onClick={handleCreateNote}
+              disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
+              style={{
+                position: "absolute", bottom: 8, right: 8, padding: 4,
+                borderRadius: 4, background: "none", border: "none", cursor: "pointer",
+                color: saving ? "var(--green)" : newNote.trim() ? "var(--accent)" : "var(--text-secondary)",
+                opacity: newNote.trim() ? 1 : 0.4,
+                animation: saving ? "spin 1s linear infinite" : undefined,
+              }}
+            >
+              <Send size={14} />
+            </button>
           </div>
-        )}
+          <p style={{ fontSize: 10, marginTop: 6, color: saving ? "var(--green)" : "var(--text-secondary)" }}>
+            {saving ? t("notes.saving") : t("notes.enterToSave")}
+          </p>
+        </div>
 
         {/* File list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {loading ? (
-            <p style={{ padding: 20, fontSize: 12, color: "var(--text-secondary)" }}>Loading...</p>
+            <p style={{ padding: 20, fontSize: 12, color: "var(--text-secondary)" }}>{t("notes.loading")}</p>
           ) : files.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 20px", textAlign: "center" }}>
               <FileText size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
               <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>
-                No {activeTab} notes yet
+                {t("notes.noNotes", t(`notes.${activeTab}`))}
               </p>
               <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                 {activeTab === "scratch" || activeTab === "daily"
-                  ? "Use the input above to create one"
+                  ? t("notes.useInputAbove")
                   : activeTab === "manual"
-                  ? "Create via CLI: gitmemo manual"
+                  ? t("notes.createViaCli")
                   : "Saved automatically from AI chats"}
               </p>
             </div>
@@ -265,24 +284,18 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
                   {title}
                 </p>
                 <p style={{ fontSize: 10, marginTop: 4, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
-                  {file.modified}
+                  {relativeTime(file.modified, t)}
                 </p>
               </button>
               );
             })
           )}
         </div>
+      </div>
 
-        {/* Toast */}
-        {toast && (
-          <div style={{
-            margin: "0 12px 12px", padding: "8px 12px", borderRadius: 6, fontSize: 12,
-            background: toast.startsWith("Error") ? "#2d1515" : "#152d15",
-            color: toast.startsWith("Error") ? "var(--red)" : "var(--green)",
-          }}>
-            {toast}
-          </div>
-        )}
+      {/* Drag handle */}
+      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
+        <div style={panel.handleHoverStyle} />
       </div>
 
       {/* Right Panel - Content */}
@@ -305,7 +318,7 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "#0f2d0f", color: "var(--green)", border: "none", cursor: "pointer" }}>
-                    <Save size={12} /> Save
+                    <Save size={12} /> {t("notes.save")}
                   </button>
                   <button onClick={() => setEditing(false)} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
                     <X size={14} />
@@ -314,7 +327,7 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
               ) : (
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={startEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
-                    <Pencil size={12} /> Edit
+                    <Pencil size={12} /> {t("notes.edit")}
                   </button>
                   <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
                     <Trash2 size={13} />
@@ -349,10 +362,10 @@ export default function NotesPage({ focusTrigger, onSync }: { focusTrigger?: num
             <div style={{ textAlign: "center" }}>
               <Plus size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
               <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-                Select a file or create a new note
+                {t("notes.selectOrCreate")}
               </p>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
-                Cmd+N to quick create
+                {t("notes.cmdN")}
               </p>
             </div>
           </div>
