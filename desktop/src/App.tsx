@@ -107,13 +107,13 @@ function App() {
     <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
       <Sidebar
         currentPage={currentPage}
-        onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
+        onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}
         focused={sidebarFocused}
         syncing={sync.isSyncing}
         syncMsg={sync.message}
         onSync={sync.triggerSync}
       />
-      <main style={{ flex: 1, overflow: "hidden" }}>
+      <main style={{ flex: 1, overflow: "hidden" }} onClick={() => setSidebarFocused(false)}>
         {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
         {currentPage === "conversations" && <ConversationsPage sidebarFocused={sidebarFocused} onFocusSidebar={() => setSidebarFocused(true)} />}
         {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} />}

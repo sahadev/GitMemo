@@ -85,7 +85,6 @@ export default function SearchPage({ focusTrigger }: { focusTrigger?: number }) 
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
             placeholder="Search conversations, notes, clips... (Cmd+K)"
-            autoFocus
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
               borderRadius: 10, fontSize: 14, fontFamily: "inherit",
