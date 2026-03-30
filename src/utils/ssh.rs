@@ -20,28 +20,34 @@ pub fn find_existing_key() -> Option<PathBuf> {
     None
 }
 
-/// Find or generate an SSH key.
+/// Find or generate an SSH key in ~/.ssh/ (the standard location).
 ///
 /// Strategy:
 /// 1. Check ~/.ssh/ for existing keys — reuse if found
-/// 2. Check gitmemo's own key dir (~/.gitmemo/.ssh/) — reuse if found
-/// 3. Generate a new key in the gitmemo key dir
+/// 2. Generate a new ED25519 key in ~/.ssh/
 ///
-/// Returns (key_path, is_new_key, is_system_key)
-pub fn find_or_generate_key(gitmemo_ssh_dir: &Path) -> Result<(PathBuf, bool, bool)> {
-    // 1. Check system ~/.ssh/
+/// Returns (key_path, is_new_key)
+pub fn find_or_generate_key() -> Result<(PathBuf, bool)> {
+    // 1. Check for existing keys
     if let Some(existing) = find_existing_key() {
-        return Ok((existing, false, true));
+        return Ok((existing, false));
     }
 
-    // 2. Check gitmemo's own .ssh dir
-    std::fs::create_dir_all(gitmemo_ssh_dir)?;
-    let key_path = gitmemo_ssh_dir.join("id_ed25519");
-    if key_path.exists() {
-        return Ok((key_path, false, false));
+    // 2. Generate new key in ~/.ssh/
+    let ssh_dir = dirs::home_dir()
+        .ok_or_else(|| anyhow::anyhow!("cannot determine home directory"))?
+        .join(".ssh");
+    std::fs::create_dir_all(&ssh_dir)?;
+
+    // Set correct permissions on ~/.ssh/ (700)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&ssh_dir, std::fs::Permissions::from_mode(0o700))?;
     }
 
-    // 3. Generate new key in gitmemo dir
+    let key_path = ssh_dir.join("id_ed25519");
+
     let status = Command::new("ssh-keygen")
         .args([
             "-t", "ed25519",
@@ -55,28 +61,13 @@ pub fn find_or_generate_key(gitmemo_ssh_dir: &Path) -> Result<(PathBuf, bool, bo
         anyhow::bail!("ssh-keygen failed");
     }
 
-    Ok((key_path, true, false))
+    Ok((key_path, true))
 }
 
 /// Read the public key content
 pub fn read_public_key(key_path: &Path) -> Result<String> {
     let pub_path = key_path.with_extension("pub");
     Ok(std::fs::read_to_string(pub_path)?.trim().to_string())
-}
-
-/// Build GIT_SSH_COMMAND value that uses the given private key.
-/// Returns None if the key is in ~/.ssh/ (system default, no override needed).
-pub fn git_ssh_command(key_path: &Path) -> Option<String> {
-    let home_ssh = dirs::home_dir().map(|h| h.join(".ssh"));
-    if let Some(ref ssh_dir) = home_ssh {
-        if key_path.starts_with(ssh_dir) {
-            return None; // system default, git will find it automatically
-        }
-    }
-    Some(format!(
-        "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
-        key_path.display()
-    ))
 }
 
 /// Extract the SSH host from a git URL (e.g. "git@github.com:user/repo.git" -> "github.com")
@@ -90,10 +81,9 @@ fn extract_ssh_host(url: &str) -> Option<String> {
     }
     // ssh://git@github.com/user/repo.git
     if url.starts_with("ssh://") {
-        let after_scheme = &url[6..]; // skip "ssh://"
+        let after_scheme = &url[6..];
         if let Some(at_pos) = after_scheme.find('@') {
             let after_at = &after_scheme[at_pos + 1..];
-            // host is until first '/' or ':'
             let host_end = after_at.find('/').or_else(|| after_at.find(':'));
             if let Some(end) = host_end {
                 return Some(after_at[..end].to_string());
@@ -104,7 +94,6 @@ fn extract_ssh_host(url: &str) -> Option<String> {
 }
 
 /// Test SSH connection to a git host.
-/// Returns Ok(true) on success, Ok(false) on auth failure, Err on other errors.
 pub fn test_ssh_connection(key_path: &Path, git_url: &str) -> Result<SshTestResult> {
     let host = match extract_ssh_host(git_url) {
         Some(h) => h,
@@ -113,16 +102,9 @@ pub fn test_ssh_connection(key_path: &Path, git_url: &str) -> Result<SshTestResu
 
     let mut cmd = Command::new("ssh");
     cmd.args(["-T", &format!("git@{}", host)])
+        .args(["-i", key_path.to_str().unwrap()])
         .args(["-o", "StrictHostKeyChecking=accept-new"])
         .args(["-o", "ConnectTimeout=10"]);
-
-    // Use specific key if not in system ~/.ssh/
-    if let Some(ssh_cmd) = git_ssh_command(key_path) {
-        // Parse the -i argument from the ssh command
-        cmd.args(["-i", key_path.to_str().unwrap()])
-            .args(["-o", "IdentitiesOnly=yes"]);
-        let _ = ssh_cmd; // used for the logic above
-    }
 
     let output = cmd
         .stdout(std::process::Stdio::piped())
@@ -153,9 +135,8 @@ pub fn test_ssh_connection(key_path: &Path, git_url: &str) -> Result<SshTestResu
         return Ok(SshTestResult::ConnectionFailed(stderr.trim().to_string()));
     }
 
-    // Unknown result — could be success on some platforms
+    // Many git hosts return exit code 1 on ssh -T but it means success
     if output.status.code() == Some(1) {
-        // Many git hosts return 1 on ssh -T but it means success
         return Ok(SshTestResult::Success(stderr.trim().to_string()));
     }
 
@@ -165,15 +146,10 @@ pub fn test_ssh_connection(key_path: &Path, git_url: &str) -> Result<SshTestResu
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum SshTestResult {
-    /// SSH connection authenticated successfully
     Success(String),
-    /// Not an SSH URL (HTTPS etc.)
     NotSsh,
-    /// Authentication failed (key not recognized)
     AuthFailed(String),
-    /// Network-level connection failure
     ConnectionFailed(String),
-    /// Unknown result
     Unknown(String),
 }
 
@@ -184,8 +160,6 @@ pub fn is_ssh_url(url: &str) -> bool {
 
 /// Convert HTTPS GitHub/GitLab URL to SSH format
 pub fn https_to_ssh(url: &str) -> Option<String> {
-    // https://github.com/user/repo.git -> git@github.com:user/repo.git
-    // https://gitlab.com/user/repo.git -> git@gitlab.com:user/repo.git
     if !url.starts_with("https://") && !url.starts_with("http://") {
         return None;
     }

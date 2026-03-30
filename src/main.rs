@@ -223,21 +223,18 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
     storage::git::init_repo(&sync_dir, &url)?;
     println!("  {} {}", style("✓").green(), t.git_repo_ready());
 
-    // 5. Generate SSH key (detect existing or create new)
-    let ssh_dir = sync_dir.join(".ssh");
-    let (key_path, is_new_key, is_system_key) = utils::ssh::find_or_generate_key(&ssh_dir)?;
+    // 5. Find or generate SSH key in ~/.ssh/
+    let (key_path, is_new_key) = utils::ssh::find_or_generate_key()?;
     let pub_key = utils::ssh::read_public_key(&key_path)?;
     if is_new_key {
-        println!("  {} {}", style("✓").green(), t.ssh_key_generated());
-    } else if is_system_key {
+        println!("  {} {} ({})", style("✓").green(), t.ssh_key_generated(), style(key_path.display()).dim());
+    } else {
         println!(
             "  {} {} ({})",
             style("✓").green(),
-            t.ssh_key_found_system(),
+            t.ssh_key_exists(),
             style(key_path.display()).dim()
         );
-    } else {
-        println!("  {} {}", style("✓").green(), t.ssh_key_exists());
     }
 
     // 6. Backup existing configs before injection
@@ -335,19 +332,15 @@ fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor:
             }
             Ok(utils::ssh::SshTestResult::AuthFailed(_)) => {
                 println!("\r  {} {}  ", style("✗").red(), t.ssh_test_auth_failed());
-                if !is_system_key {
-                    println!();
-                    println!(
-                        "  {} {}",
-                        style("→").yellow(),
-                        t.deploy_key_hint()
-                    );
-                    println!();
-                    println!("  {}", style(&pub_key).dim());
-                    println!();
-                } else {
-                    println!("    {}", t.ssh_test_check_key());
-                }
+                println!();
+                println!(
+                    "  {} {}",
+                    style("→").yellow(),
+                    t.deploy_key_hint()
+                );
+                println!();
+                println!("  {}", style(&pub_key).dim());
+                println!();
             }
             Ok(utils::ssh::SshTestResult::ConnectionFailed(msg)) => {
                 println!("\r  {} {}  ", style("✗").red(), t.ssh_test_connection_failed());

@@ -153,13 +153,6 @@ impl I18n {
         }
     }
 
-    pub fn ssh_key_found_system(&self) -> &str {
-        match self.lang {
-            Lang::En => "Using existing SSH key",
-            Lang::Zh => "使用已有的 SSH 密钥",
-        }
-    }
-
     pub fn ssh_url_recommended(&self) -> &str {
         match self.lang {
             Lang::En => "SSH URL is recommended for automatic sync (no password needed):",
@@ -206,13 +199,6 @@ impl I18n {
         match self.lang {
             Lang::En => "SSH authentication failed — public key not recognized",
             Lang::Zh => "SSH 认证失败 — 公钥未被识别",
-        }
-    }
-
-    pub fn ssh_test_check_key(&self) -> &str {
-        match self.lang {
-            Lang::En => "Please ensure your SSH key is added to the Git hosting service",
-            Lang::Zh => "请确认 SSH 密钥已添加到 Git 托管平台",
         }
     }
 
