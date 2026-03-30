@@ -248,6 +248,9 @@ pub fn sync_to_git() -> Result<String, String> {
     // Copy plans from ~/.claude/plans/ to plans/
     copy_plans_to_gitmemo(&dir);
 
+    // Sync Claude config (memory, skills, CLAUDE.md) to claude-config/
+    sync_claude_config(&dir);
+
     let result = git::commit_and_push(&dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
     if result.committed && result.pushed {
         Ok("已同步到 Git".into())
@@ -279,6 +282,86 @@ fn copy_plans_to_gitmemo(dir: &std::path::Path) {
             let path = entry.path();
             if path.extension().map(|e| e == "md").unwrap_or(false) {
                 let dest = plans_dst.join(path.file_name().unwrap());
+                let _ = std::fs::copy(&path, &dest);
+            }
+        }
+    }
+}
+
+/// Sync valuable Claude config files to <gitmemo>/claude-config/
+/// Syncs: memory/ (global), projects/*/memory/ (per-project), skills/, CLAUDE.md
+fn sync_claude_config(dir: &std::path::Path) {
+    let home = match std::env::var("HOME").ok() {
+        Some(h) => std::path::PathBuf::from(h),
+        None => return,
+    };
+    let claude_dir = home.join(".claude");
+    if !claude_dir.is_dir() {
+        return;
+    }
+
+    let dst_root = dir.join("claude-config");
+    let _ = std::fs::create_dir_all(&dst_root);
+
+    // 1. Global CLAUDE.md
+    let claude_md = claude_dir.join("CLAUDE.md");
+    if claude_md.exists() {
+        let _ = std::fs::copy(&claude_md, dst_root.join("CLAUDE.md"));
+    }
+
+    // 2. Global memory/
+    copy_dir_md(&claude_dir.join("memory"), &dst_root.join("memory"));
+
+    // 3. Skills/
+    copy_dir_recursive(&claude_dir.join("skills"), &dst_root.join("skills"));
+
+    // 4. Per-project memory/ (projects/*/memory/)
+    let projects_dir = claude_dir.join("projects");
+    if projects_dir.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(&projects_dir) {
+            for entry in entries.flatten() {
+                let proj_path = entry.path();
+                let proj_memory = proj_path.join("memory");
+                if proj_memory.is_dir() {
+                    let proj_name = proj_path.file_name().unwrap().to_string_lossy().to_string();
+                    let dst = dst_root.join("projects").join(&proj_name).join("memory");
+                    copy_dir_md(&proj_memory, &dst);
+                }
+            }
+        }
+    }
+}
+
+/// Copy all .md files from src to dst (non-recursive)
+fn copy_dir_md(src: &std::path::Path, dst: &std::path::Path) {
+    if !src.is_dir() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(dst);
+    if let Ok(entries) = std::fs::read_dir(src) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map(|e| e == "md").unwrap_or(false) {
+                let dest = dst.join(path.file_name().unwrap());
+                let _ = std::fs::copy(&path, &dest);
+            }
+        }
+    }
+}
+
+/// Copy directory recursively (for skills which may have subdirectories)
+fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) {
+    if !src.is_dir() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(dst);
+    if let Ok(entries) = std::fs::read_dir(src) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let dest = dst.join(path.file_name().unwrap());
+            if path.is_dir() {
+                copy_dir_recursive(&path, &dest);
+            } else {
                 let _ = std::fs::copy(&path, &dest);
             }
         }

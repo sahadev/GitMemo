@@ -59,6 +59,14 @@ GitMemo 不是后台服务，而是注入编辑器的原生基础设施：
 bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh)
 ```
 
+> **macOS 用户**：如果提示"文件已损坏"或"无法打开"，请在终端执行：
+> ```bash
+> xattr -cr /Applications/GitMemo.app
+> # 或 CLI 二进制：
+> xattr -cr /usr/local/bin/gitmemo
+> ```
+> 这是未签名应用的正常现象，Apple 要求 $99/年的开发者证书才能签名。
+
 <details>
 <summary>手动下载 / 其他安装方式</summary>
 

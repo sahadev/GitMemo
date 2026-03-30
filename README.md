@@ -59,6 +59,14 @@ GitMemo doesn't run as a background service. It injects into your editor's nativ
 bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh)
 ```
 
+> **macOS users**: If you see "app is damaged" or "can't be opened", run:
+> ```bash
+> xattr -cr /Applications/GitMemo.app
+> # or for CLI binary:
+> xattr -cr /usr/local/bin/gitmemo
+> ```
+> This is normal for unsigned apps — Apple requires a $99/year developer certificate for signing.
+
 <details>
 <summary>Manual download / Other install methods</summary>
 
