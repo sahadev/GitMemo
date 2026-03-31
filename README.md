@@ -48,7 +48,7 @@ GitMemo doesn't run as a background service. It injects into your editor's nativ
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) and/or [Cursor](https://cursor.com)
 - Git
-- A Git remote repository (GitHub / GitLab / Gitee / self-hosted)
+- A Git remote repository (GitHub / GitLab / Gitee / self-hosted) — **optional**, local-only mode is supported
 
 ## Quick Start
 
@@ -98,7 +98,7 @@ gitmemo init --lang en          # English interface
 gitmemo init --path /path/to/your/repo
 ```
 
-Follow the prompts: choose your editor, enter your Git remote URL (auto-detected for existing repos), add the generated SSH public key to your repo's Deploy Keys. Done.
+Follow the prompts: choose your editor, enter your Git remote URL (or press Enter to skip for local-only mode). If using a remote repo, add the generated SSH public key to your repo's Deploy Keys. Done.
 
 ### That's It
 
@@ -126,6 +126,9 @@ If you see the note file and git commit, it's working.
 gitmemo init               # Initialize configuration
 gitmemo status             # Show config and sync status
 gitmemo sync               # Sync local changes to Git (commit + push)
+gitmemo remote             # Show current remote repository
+gitmemo remote <url>       # Set remote repository (enables sync)
+gitmemo remote --remove    # Remove remote (switch to local-only)
 gitmemo branch             # Show current sync branch
 gitmemo branch main        # Switch sync branch to "main"
 gitmemo note "quick note"  # Create a scratch note

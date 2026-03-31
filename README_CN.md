@@ -48,7 +48,7 @@ GitMemo 不是后台服务，而是注入编辑器的原生基础设施：
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)（CLI）和/或 [Cursor](https://cursor.com)
 - Git
-- 一个 Git 远程仓库（GitHub / GitLab / Gitee / 自建）
+- 一个 Git 远程仓库（GitHub / GitLab / Gitee / 自建）— **可选**，支持纯本地模式
 
 ## 快速开始
 
@@ -98,7 +98,7 @@ gitmemo init --lang en          # 英文界面
 gitmemo init --path /path/to/your/repo
 ```
 
-按提示选择编辑器、输入 Git 仓库地址（已有仓库会自动检测），将生成的 SSH 公钥添加到仓库的 Deploy Keys，完成。
+按提示选择编辑器、输入 Git 仓库地址（可直接回车跳过，使用纯本地模式）。如需远程同步，将生成的 SSH 公钥添加到仓库的 Deploy Keys 即可。
 
 ### 就这样
 
@@ -126,6 +126,9 @@ gitmemo status
 gitmemo init               # 初始化配置
 gitmemo status             # 查看配置与同步状态
 gitmemo sync               # 同步本地更改到 Git（commit + push）
+gitmemo remote             # 查看当前远程仓库
+gitmemo remote <url>       # 设置远程仓库（开启同步）
+gitmemo remote --remove    # 移除远程仓库（切换到纯本地模式）
 gitmemo branch             # 查看当前同步分支
 gitmemo branch main        # 切换同步分支为 "main"
 gitmemo note "记个笔记"     # 创建便签
