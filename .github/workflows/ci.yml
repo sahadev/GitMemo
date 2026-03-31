@@ -125,8 +125,75 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
 
+  build-desktop:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            args: --target aarch64-apple-darwin
+            artifact_suffix: macos-aarch64
+          - os: macos-latest
+            args: --target x86_64-apple-darwin
+            artifact_suffix: macos-x86_64
+          - os: ubuntu-latest
+            args: ""
+            artifact_suffix: linux-x86_64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-${{ matrix.artifact_suffix }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: pnpm install
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          args: ${{ matrix.args }}
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitmemo-desktop-${{ matrix.artifact_suffix }}
+          path: |
+            desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz
+            desktop/src-tauri/target/**/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/**/release/bundle/deb/*.deb
+
   release:
-    needs: [check-version, build]
+    needs: [check-version, build, build-desktop]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -139,6 +206,9 @@ jobs:
         with:
           path: artifacts
 
+      - name: List artifacts
+        run: find artifacts -type f | head -50
+
       - name: Create tag
         run: |
           git config user.name "github-actions[bot]"
@@ -146,13 +216,25 @@ jobs:
           git tag ${{ needs.check-version.outputs.version }}
           git push origin ${{ needs.check-version.outputs.version }}
 
+      - name: Collect desktop binaries
+        run: |
+          mkdir -p release-assets
+          # CLI binaries
+          cp artifacts/gitmemo-linux-x86_64/gitmemo-linux-x86_64 release-assets/ || true
+          cp artifacts/gitmemo-linux-aarch64/gitmemo-linux-aarch64 release-assets/ || true
+          cp artifacts/gitmemo-macos-aarch64/gitmemo-macos-aarch64 release-assets/ || true
+          cp artifacts/gitmemo-macos-x86_64/gitmemo-macos-x86_64 release-assets/ || true
+          # Desktop binaries (flatten nested paths)
+          find artifacts/gitmemo-desktop-* -name "*.dmg" -exec cp {} release-assets/ \; || true
+          find artifacts/gitmemo-desktop-* -name "*.app.tar.gz" -exec cp {} release-assets/ \; || true
+          find artifacts/gitmemo-desktop-* -name "*.AppImage" -exec cp {} release-assets/ \; || true
+          find artifacts/gitmemo-desktop-* -name "*.deb" -exec cp {} release-assets/ \; || true
+          ls -la release-assets/
+
       - name: Create Release
         run: |
           gh release create ${{ needs.check-version.outputs.version }} \
             --generate-notes \
-            artifacts/gitmemo-linux-x86_64/gitmemo-linux-x86_64 \
-            artifacts/gitmemo-linux-aarch64/gitmemo-linux-aarch64 \
-            artifacts/gitmemo-macos-aarch64/gitmemo-macos-aarch64 \
-            artifacts/gitmemo-macos-x86_64/gitmemo-macos-x86_64
+            release-assets/*
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
