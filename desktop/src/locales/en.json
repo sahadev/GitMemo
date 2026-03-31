@@ -6,6 +6,7 @@
     "notes": "Notes",
     "clipboard": "Clipboard",
     "plans": "Plans",
+    "claudeConfig": "AI Config",
     "settings": "Settings"
   },
   "sidebar": {
@@ -135,5 +136,13 @@
     "delete": "Delete",
     "cancel": "Cancel",
     "confirm": "Confirm"
+  },
+  "claudeConfig": {
+    "memory": "Memory",
+    "skills": "Skills",
+    "config": "Config",
+    "empty": "No files yet",
+    "emptyHint": "Click 'Sync to Git' to sync Claude config",
+    "selectToView": "Select a file to view"
   }
 }

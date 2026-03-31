@@ -156,12 +156,38 @@ gitmemo uninstall          # Remove configs (keeps data)
 │       └── 03-25-rust-async.md
 ├── notes/
 │   ├── daily/              # Daily journal
-│   ├── manual/             # Long-form manuals
+│   ├── manual/             # Long-form manuals & research docs
 │   └── scratch/            # Quick scratch notes
+├── clips/                  # Auto-captured clipboard content
+│   └── 2026-03-25/
+├── plans/                  # Implementation plans from Plan Mode
+├── imports/                # Drag-and-drop imported files
+├── claude-config/          # Synced AI configuration backup
+│   ├── CLAUDE.md           # Global Claude instructions
+��   ├── memory/             # Claude's auto-memory
+│   ├── skills/             # Custom skills
+│   └── projects/           # Per-project memory
 └── .metadata/              # Search index (not synced)
 ```
 
 All data is plain Markdown. Readable with any editor. Survives uninstall.
+
+## What Gets Auto-Captured
+
+GitMemo automatically captures **8 types** of knowledge from your AI workflow:
+
+| Type | What | Where |
+|------|------|-------|
+| **Conversations** | Every AI chat session | `conversations/` |
+| **Plans** | Implementation plans from Plan Mode | `plans/` |
+| **Research & Analysis** | Competitive analysis, tech research | `notes/manual/` |
+| **Design Docs** | Architecture designs, API specs | `notes/manual/` |
+| **Clipboard** | Text snippets, code, URLs (auto) | `clips/` |
+| **Imported Files** | Drag & drop — Markdown, code, PDFs | `imports/` |
+| **AI Memory** | Claude's auto-memory & project context | `claude-config/memory/` |
+| **Skills & Config** | Custom skills, CLAUDE.md instructions | `claude-config/skills/` |
+
+No manual copying. No export buttons. Everything flows into your Git repo automatically.
 
 ## Uninstall
 

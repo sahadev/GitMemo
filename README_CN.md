@@ -156,12 +156,38 @@ gitmemo uninstall          # 移除配置（保留数据）
 │       └── 03-25-rust-async.md
 ├── notes/
 │   ├── daily/              # 每日笔记
-│   ├── manual/             # 手册
+│   ├── manual/             # 手册 & 调研文档
 │   └── scratch/            # 便签
+├── clips/                  # 自动捕获的剪贴板内容
+│   └── 2026-03-25/
+├── plans/                  # Plan Mode 的实施方案
+├── imports/                # 拖拽导入的文件
+├── claude-config/          # AI 配置备份
+│   ├── CLAUDE.md           # 全局 Claude 指令
+│   ├── memory/             # Claude 的自动记忆
+│   ├── skills/             # 自定义技能
+│   └── projects/           # 项目级记忆
 └── .metadata/              # 搜索索引（不同步）
 ```
 
 所有数据都是纯 Markdown 文件，可以用任何编辑器打开。卸载后数据依然保留。
+
+## 自动捕获的内容
+
+GitMemo 自动捕获 AI 工作流中的 **8 类知识产物**：
+
+| 类型 | 内容 | 存储位置 |
+|------|------|---------|
+| **对话记录** | 每轮 AI 对话 | `conversations/` |
+| **计划文件** | Plan Mode 的实施方案 | `plans/` |
+| **调研报告** | 竞品分析、技术选型调研 | `notes/manual/` |
+| **设计文档** | 架构设计、API 设计 | `notes/manual/` |
+| **剪贴板** | 文本片段、代码、URL（自动） | `clips/` |
+| **导入文件** | 拖拽导入 — Markdown、代码、PDF | `imports/` |
+| **AI 记忆** | Claude 的自动记忆和项目上下文 | `claude-config/memory/` |
+| **技能与配置** | 自定义技能、CLAUDE.md 指令 | `claude-config/skills/` |
+
+无需手动复制，无需导出按钮，一切自动流入你的 Git 仓库。
 
 ## 卸载
 

@@ -9,12 +9,13 @@ import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 import ConversationsPage from "./pages/ConversationsPage";
 import PlansPage from "./pages/PlansPage";
+import ClaudeConfigPage from "./pages/ClaudeConfigPage";
 import { useSync } from "./hooks/useSync";
 
-export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "settings";
+export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "settings";
 export type Theme = "dark" | "light";
 
-const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "settings"];
+const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "settings"];
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
@@ -94,7 +95,8 @@ function App() {
           case "4": e.preventDefault(); setCurrentPage("notes"); setSidebarFocused(false); break;
           case "5": e.preventDefault(); setCurrentPage("clipboard"); setSidebarFocused(false); break;
           case "6": e.preventDefault(); setCurrentPage("plans"); setSidebarFocused(false); break;
-          case "7": e.preventDefault(); setCurrentPage("settings"); setSidebarFocused(false); break;
+          case "7": e.preventDefault(); setCurrentPage("claude-config"); setSidebarFocused(false); break;
+          case "8": e.preventDefault(); setCurrentPage("settings"); setSidebarFocused(false); break;
           case "n": e.preventDefault(); navigateAndFocus("notes"); setSidebarFocused(false); break;
           case "k": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
         }
@@ -125,6 +127,7 @@ function App() {
         {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+        {currentPage === "claude-config" && <ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} />}
         {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
       </main>

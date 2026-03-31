@@ -6,6 +6,7 @@
     "notes": "笔记",
     "clipboard": "剪贴板",
     "plans": "计划",
+    "claudeConfig": "AI 配置",
     "settings": "设置"
   },
   "sidebar": {
@@ -135,5 +136,13 @@
     "delete": "删除",
     "cancel": "取消",
     "confirm": "确认"
+  },
+  "claudeConfig": {
+    "memory": "记忆",
+    "skills": "技能",
+    "config": "配置",
+    "empty": "暂无文件",
+    "emptyHint": "点击「同步到 Git」同步 Claude 配置",
+    "selectToView": "选择文件查看"
   }
 }
