@@ -80,8 +80,7 @@ fn extract_ssh_host(url: &str) -> Option<String> {
         }
     }
     // ssh://git@github.com/user/repo.git
-    if url.starts_with("ssh://") {
-        let after_scheme = &url[6..];
+    if let Some(after_scheme) = url.strip_prefix("ssh://") {
         if let Some(at_pos) = after_scheme.find('@') {
             let after_at = &after_scheme[at_pos + 1..];
             let host_end = after_at.find('/').or_else(|| after_at.find(':'));
