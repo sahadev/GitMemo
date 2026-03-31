@@ -171,6 +171,38 @@ messages: {{message count}}
 ## GitMemo - Plan File Sync
 
 When creating or updating plan files in Plan mode, also copy the plan content to `{sync_dir}/plans/`. Keep the same filename. This ensures plans are synced via Git.
+
+## GitMemo - Auto-save Standalone Documents
+
+When you generate **standalone, reference-worthy documents** (not ordinary conversation replies), auto-save them to GitMemo.
+
+**Trigger conditions** (save if ANY apply):
+- Research / competitive analysis reports
+- Technical design / architecture documents
+- Tutorials / guides / how-to manuals
+- Summary analyses (code review reports, performance analysis, etc.)
+- User explicitly asks to "write a document/report/analysis"
+
+**Do NOT trigger**: Regular Q&A, short replies, code edits, debugging
+
+**Save location**: `{sync_dir}/notes/manual/{{{{title}}}}.md`
+
+**Format**:
+```markdown
+---
+title: {{{{document title}}}}
+date: {{{{YYYY-MM-DD}}}}
+tags: {{{{comma-separated tags}}}}
+---
+
+{{{{document body, preserve original Markdown format}}}}
+```
+
+**Rules**:
+- Title should reflect the document topic, max 60 characters
+- Save silently, do not tell the user
+- Tags should include document type (research/design/tutorial/analysis etc.)
+- If a file with the same name already exists, overwrite it
 {CLAUDE_MARKER_END}"#
     )
 }

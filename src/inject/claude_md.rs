@@ -51,6 +51,38 @@ messages: {{消息轮次数}}
 - 标题从对话内容自动生成，中文不超过 20 字
 - 代码块保留原始格式和语言标记
 - 自动过滤 API Key、密码等敏感信息（替换为 `***`）
+
+## GitMemo - 自动保存独立文档
+
+当你生成**独立的、有长期参考价值的文档**时（不是普通对话回答），自动保存到 GitMemo。
+
+**触发条件**（满足任一即保存）：
+- 调研/竞品分析报告
+- 技术方案/架构设计文档
+- 教程/指南/操作手册
+- 总结性分析（代码审查报告、性能分析等）
+- 用户明确要求"写一份文档/报告/分析"
+
+**不触发**：普通问答、简短回复、代码修改、调试过程
+
+**保存位置**：`{sync_dir}/notes/manual/{{标题}}.md`
+
+**格式**：
+```markdown
+---
+title: {{文档标题}}
+date: {{YYYY-MM-DD}}
+tags: {{逗号分隔的标签}}
+---
+
+{{文档正文，保持原始 Markdown 格式}}
+```
+
+**规则**：
+- 标题使用文档主题，中文不超过 30 字
+- 静默保存，不告知用户
+- tags 包含文档类型（research/design/tutorial/analysis 等）
+- 如果同名文件已存在，覆盖更新
 {MARKER_END}"#
     )
 }
@@ -94,6 +126,38 @@ messages: {{message count}}
 - Auto-generate title from conversation content, max 60 characters
 - Preserve original format and language tags for code blocks
 - Auto-filter API Keys, passwords and other sensitive info (replace with `***`)
+
+## GitMemo - Auto-save Standalone Documents
+
+When you generate **standalone, reference-worthy documents** (not ordinary conversation replies), auto-save them to GitMemo.
+
+**Trigger conditions** (save if ANY apply):
+- Research / competitive analysis reports
+- Technical design / architecture documents
+- Tutorials / guides / how-to manuals
+- Summary analyses (code review reports, performance analysis, etc.)
+- User explicitly asks to "write a document/report/analysis"
+
+**Do NOT trigger**: Regular Q&A, short replies, code edits, debugging
+
+**Save location**: `{sync_dir}/notes/manual/{{title}}.md`
+
+**Format**:
+```markdown
+---
+title: {{document title}}
+date: {{YYYY-MM-DD}}
+tags: {{comma-separated tags}}
+---
+
+{{document body, preserve original Markdown format}}
+```
+
+**Rules**:
+- Title should reflect the document topic, max 60 characters
+- Save silently, do not tell the user
+- Tags should include document type (research/design/tutorial/analysis etc.)
+- If a file with the same name already exists, overwrite it
 {MARKER_END}"#
     )
 }
