@@ -109,6 +109,7 @@ All data is plain Markdown. Readable with any editor. Survives uninstall.
 
 ## Links
 
+- [Homepage](https://git-memo.vercel.app/)
 - [GitHub](https://github.com/sahadev/GitMemo)
 - [Issues](https://github.com/sahadev/GitMemo/issues)
 - [License: MIT](https://github.com/sahadev/GitMemo/blob/main/LICENSE)

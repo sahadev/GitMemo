@@ -3,7 +3,7 @@
   "description": "Auto-sync your AI conversations and notes to Git. Zero background process, powered by native editor hooks and MCP integration.",
   "version": "0.1.7",
   "author": "sahadev",
-  "homepage": "https://github.com/sahadev/GitMemo",
+  "homepage": "https://git-memo.vercel.app/",
   "repository": "https://github.com/sahadev/GitMemo",
   "license": "MIT"
 }
