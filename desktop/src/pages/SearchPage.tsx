@@ -12,7 +12,7 @@ interface SearchResultItem {
   date: string;
 }
 
-export default function SearchPage({ focusTrigger }: { focusTrigger?: number }) {
+export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }: { focusTrigger?: number; openFilePath?: string | null; onFileOpened?: () => void }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
@@ -25,6 +25,13 @@ export default function SearchPage({ focusTrigger }: { focusTrigger?: number }) 
   useEffect(() => {
     if (focusTrigger && inputRef.current) inputRef.current.focus();
   }, [focusTrigger]);
+
+  useEffect(() => {
+    if (openFilePath) {
+      openFile(openFilePath);
+      onFileOpened?.();
+    }
+  }, [openFilePath]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;

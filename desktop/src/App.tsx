@@ -23,6 +23,7 @@ function App() {
   const [sidebarFocused, setSidebarFocused] = useState(false);
   // Incremented when user presses Right from sidebar → tells content page to select first item
   const [enterContentTrigger, setEnterContentTrigger] = useState(0);
+  const [openFilePath, setOpenFilePath] = useState<string | null>(null);
   const sync = useSync();
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem("gitmemo-theme") as Theme) || "dark";
@@ -65,6 +66,22 @@ function App() {
   useEffect(() => {
     const unlistenSearch = listen("global-shortcut-search", () => navigateAndFocus("search"));
     const unlistenClip = listen("tray-toggle-clipboard", () => setCurrentPage("clipboard"));
+    const unlistenQuickPastePage = listen<{ page: Page | "sync" }>("quick-paste-open-page", ({ payload }) => {
+      if (!payload) return;
+      if (payload.page === "sync") {
+        void sync.triggerSync();
+        return;
+      }
+      setCurrentPage(payload.page);
+      setFocusTrigger((n) => n + 1);
+      setSidebarFocused(false);
+    });
+    const unlistenQuickPasteFile = listen<{ filePath: string }>("quick-paste-open-file", ({ payload }) => {
+      if (!payload?.filePath) return;
+      setCurrentPage("search");
+      setOpenFilePath(payload.filePath);
+      setSidebarFocused(false);
+    });
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -108,8 +125,10 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
       unlistenSearch.then((fn) => fn());
       unlistenClip.then((fn) => fn());
+      unlistenQuickPastePage.then((fn) => fn());
+      unlistenQuickPasteFile.then((fn) => fn());
     };
-  }, [navigateAndFocus, sidebarFocused, currentPage]);
+  }, [navigateAndFocus, sidebarFocused, currentPage, sync]);
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
@@ -128,7 +147,7 @@ function App() {
         {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
         {currentPage === "claude-config" && <ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-        {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} />}
+        {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} />}
         {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
       </main>
       <DropZone />

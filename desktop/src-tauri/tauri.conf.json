@@ -26,6 +26,20 @@
         "center": true,
         "decorations": true,
         "transparent": false
+      },
+      {
+        "label": "quick-paste",
+        "title": "Quick Paste",
+        "url": "/quick-paste.html",
+        "width": 600,
+        "height": 500,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "center": true,
+        "resizable": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
