@@ -27,6 +27,7 @@ pub fn run() {
             notes::append_daily,
             notes::create_manual,
             notes::read_file,
+            notes::read_file_base64,
             notes::list_files,
             notes::update_note,
             notes::delete_note,

@@ -296,7 +296,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
               flex: 1, overflowY: "auto", padding: "20px 24px",
               userSelect: "text",
             }}>
-              <MarkdownView content={fileContent} />
+              <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>
           </>
         )}

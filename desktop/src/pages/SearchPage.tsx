@@ -70,7 +70,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
           </span>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
-          <MarkdownView content={fileContent} />
+          <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
         </div>
       </div>
     );

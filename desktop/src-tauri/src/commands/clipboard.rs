@@ -94,13 +94,31 @@ fn clipboard_poll_loop(app: AppHandle) {
         .map(|t| content_hash(&t))
         .unwrap_or_default();
 
+    let mut last_image_hash = String::new();
+
     while WATCHING.load(Ordering::SeqCst) {
+        // Check for text
         if let Ok(text) = clipboard.get_text() {
             if !text.is_empty() && text.len() >= MIN_LENGTH {
                 let hash = content_hash(&text);
                 if hash != last_hash {
                     last_hash = hash;
+                    last_image_hash.clear();
                     if let Ok(event) = save_clip_content(&text) {
+                        let _ = app.emit("clipboard-saved", &event);
+                    }
+                }
+            }
+        }
+
+        // Check for image
+        if let Ok(img) = clipboard.get_image() {
+            if img.width > 0 && img.height > 0 {
+                let hash = image_hash(&img);
+                if hash != last_image_hash {
+                    last_image_hash = hash;
+                    last_hash.clear();
+                    if let Ok(event) = save_clip_image(&img) {
                         let _ = app.emit("clipboard-saved", &event);
                     }
                 }
@@ -181,4 +199,73 @@ fn content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
     format!("{:x}", hasher.finalize())
+}
+
+fn image_hash(img: &arboard::ImageData) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(&(img.width as u32).to_le_bytes());
+    hasher.update(&(img.height as u32).to_le_bytes());
+    // Sample bytes for speed — hash first 8KB + last 8KB instead of full image
+    let bytes = img.bytes.as_ref();
+    let sample_len = 8192.min(bytes.len());
+    hasher.update(&bytes[..sample_len]);
+    if bytes.len() > sample_len {
+        hasher.update(&bytes[bytes.len() - sample_len..]);
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+fn save_clip_image(img: &arboard::ImageData) -> Result<ClipboardEvent, String> {
+    let sync_dir = files::sync_dir();
+    if !sync_dir.exists() {
+        return Err("GitMemo not initialized".into());
+    }
+
+    let now = chrono::Local::now();
+    let date_str = now.format("%Y-%m-%d").to_string();
+    let time_str = now.format("%H-%M-%S").to_string();
+
+    let clips_dir = sync_dir.join("clips").join(&date_str);
+    std::fs::create_dir_all(&clips_dir).map_err(|e| e.to_string())?;
+
+    // Save PNG image
+    let png_filename = format!("{}-screenshot.png", time_str);
+    let png_path = clips_dir.join(&png_filename);
+
+    let img_buf: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
+        image::ImageBuffer::from_raw(img.width as u32, img.height as u32, img.bytes.to_vec())
+            .ok_or("Failed to create image buffer")?;
+
+    img_buf
+        .save_with_format(&png_path, image::ImageFormat::Png)
+        .map_err(|e| format!("Failed to save PNG: {}", e))?;
+
+    // Save companion markdown referencing the image
+    let md_filename = format!("{}-screenshot.md", time_str);
+    let md_path = clips_dir.join(&md_filename);
+    let rel_path = format!("clips/{}/{}", date_str, md_filename);
+
+    let md = format!(
+        "---\ndate: {}\nsource: clipboard-image\nwidth: {}\nheight: {}\n---\n\n![screenshot]({})\n",
+        now.format("%Y-%m-%d %H:%M:%S"),
+        img.width,
+        img.height,
+        png_filename
+    );
+    std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
+
+    // Async git sync
+    let dir = sync_dir.clone();
+    std::thread::spawn(move || {
+        let _ = git::commit_and_push(&dir, "clip: screenshot");
+    });
+
+    let preview = format!("Screenshot {}x{}", img.width, img.height);
+
+    Ok(ClipboardEvent {
+        saved: true,
+        path: rel_path,
+        preview,
+        timestamp: now.format("%H:%M:%S").to_string(),
+    })
 }

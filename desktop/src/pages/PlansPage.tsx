@@ -157,7 +157,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
               </span>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
-              <MarkdownView content={fileContent} />
+              <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>
           </>
         )}

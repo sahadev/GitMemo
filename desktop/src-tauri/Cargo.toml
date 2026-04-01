@@ -25,6 +25,9 @@ tauri-plugin-global-shortcut = "2"
 # Clipboard reading (native, no subprocess)
 arboard = "3"
 
+# Image encoding for clipboard image capture
+image = { version = "0.25", default-features = false, features = ["png"] }
+
 # Core library (reuse gitmemo logic)
 gitmemo_core = { path = "../..", package = "gitmemo" }
 
@@ -50,6 +53,9 @@ walkdir = "2"
 
 # Hash
 sha2 = "0.10"
+
+# Base64 encoding for image file reading
+base64 = "0.22"
 
 # Config
 toml = "0.8"

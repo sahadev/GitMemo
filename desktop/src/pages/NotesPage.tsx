@@ -352,7 +352,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                   }}
                 />
               ) : (
-                <MarkdownView content={fileContent} />
+                <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
               )}
             </div>
           </>

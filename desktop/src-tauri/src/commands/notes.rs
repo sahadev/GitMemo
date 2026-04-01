@@ -110,6 +110,20 @@ pub fn read_file(file_path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn read_file_base64(file_path: String) -> Result<String, String> {
+    use std::io::Read;
+    let dir = sync_dir();
+    let full_path = dir.join(&file_path);
+    let mut buf = Vec::new();
+    std::fs::File::open(&full_path)
+        .and_then(|mut f| f.read_to_end(&mut buf))
+        .map_err(|e| e.to_string())?;
+
+    use base64::Engine;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&buf))
+}
+
+#[tauri::command]
 pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
     let dir = sync_dir();
     let target = dir.join(&folder);
