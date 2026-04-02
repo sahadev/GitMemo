@@ -284,20 +284,24 @@ pub fn search_like(conn: &Connection, query: &str, type_filter: &str, limit: usi
 
 /// Extract a short snippet around the first occurrence of `needle` in `haystack`.
 fn extract_snippet(haystack: &str, needle: &str, context_chars: usize) -> String {
-    // Flatten to single line for snippet display
     let flat: String = haystack.chars().map(|c| if c == '\n' || c == '\r' { ' ' } else { c }).collect();
-    if let Some(pos) = flat.find(needle) {
-        let start = pos.saturating_sub(context_chars);
-        let end = (pos + needle.len() + context_chars).min(flat.len());
+    let chars: Vec<char> = flat.chars().collect();
+    if let Some(char_pos) = flat.find(needle).and_then(|byte_pos| {
+        // Convert byte position to char position
+        flat[..byte_pos].chars().count().into()
+    }) {
+        let needle_char_len = needle.chars().count();
+        let start = char_pos.saturating_sub(context_chars);
+        let end = (char_pos + needle_char_len + context_chars).min(chars.len());
+        let snippet_chars: String = chars[start..end].iter().collect();
         let mut snippet = String::new();
         if start > 0 { snippet.push_str("..."); }
-        snippet.push_str(flat[start..end].trim());
-        if end < flat.len() { snippet.push_str("..."); }
+        snippet.push_str(snippet_chars.trim());
+        if end < chars.len() { snippet.push_str("..."); }
         snippet
     } else {
-        // No direct match found, return beginning of content
-        let preview: String = flat.chars().take(120).collect();
-        if flat.len() > 120 { format!("{}...", preview.trim()) } else { preview.trim().to_string() }
+        let preview: String = chars.iter().take(120).collect();
+        if chars.len() > 120 { format!("{}...", preview.trim()) } else { preview.trim().to_string() }
     }
 }
 
