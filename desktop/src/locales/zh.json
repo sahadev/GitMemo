@@ -126,6 +126,8 @@
     "noRemote": "未配置",
     "claudeIntegration": "Claude Code 集成",
     "claudeIntegrationDesc": "自动保存对话记录 & 同步计划文件",
+    "cursorIntegration": "Cursor IDE 集成",
+    "cursorIntegrationDesc": "自动保存对话记录 & 通过 ~/.cursor/ 注入规则",
     "shortcuts": "快捷键",
     "shortcutSearch": "Cmd/Ctrl+K：打开搜索",
     "shortcutGlobalSearch": "Cmd+Shift+G：唤起 GitMemo 并聚焦搜索",
@@ -172,8 +174,9 @@
     "memory": "记忆",
     "skills": "技能",
     "config": "配置",
+    "rules": "规则",
     "empty": "暂无文件",
-    "emptyHint": "点击「同步到 Git」同步 Claude 配置",
+    "emptyHint": "点击「同步到 Git」同步配置",
     "selectToView": "选择文件查看"
   }
 }

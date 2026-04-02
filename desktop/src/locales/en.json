@@ -126,6 +126,8 @@
     "noRemote": "Not configured",
     "claudeIntegration": "Claude Code integration",
     "claudeIntegrationDesc": "Auto-save conversations & sync plans via CLAUDE.md",
+    "cursorIntegration": "Cursor IDE integration",
+    "cursorIntegrationDesc": "Auto-save conversations & inject rules via ~/.cursor/",
     "shortcuts": "Keyboard shortcuts",
     "shortcutSearch": "Cmd/Ctrl+K: Open search",
     "shortcutGlobalSearch": "Cmd+Shift+G: Show GitMemo and focus search",
@@ -172,8 +174,9 @@
     "memory": "Memory",
     "skills": "Skills",
     "config": "Config",
+    "rules": "Rules",
     "empty": "No files yet",
-    "emptyHint": "Click 'Sync to Git' to sync Claude config",
+    "emptyHint": "Click 'Sync to Git' to sync config",
     "selectToView": "Select a file to view"
   }
 }

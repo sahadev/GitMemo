@@ -139,6 +139,9 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
     // Sync Claude config (memory, skills, CLAUDE.md) to claude-config/
     sync_claude_config(dir);
 
+    // Sync Cursor config (rules, skills, mcp) to cursor-config/
+    sync_cursor_config(dir);
+
     let result = git::commit_and_push(dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
     if result.committed && result.pushed {
         Ok("已同步到 Git".into())
@@ -265,7 +268,10 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
     for entry in walkdir::WalkDir::new(&target)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+        .filter(|e| {
+            let ext = e.path().extension().and_then(|x| x.to_str()).unwrap_or("");
+            ext == "md" || ((ext == "mdc" || ext == "json") && folder.starts_with("cursor-config"))
+        })
     {
         let path = entry.path();
         let rel_path = path
@@ -669,6 +675,47 @@ fn sync_claude_config(dir: &std::path::Path) {
                 }
             }
         }
+    }
+}
+
+/// Sync Cursor config files to <gitmemo>/cursor-config/
+/// Syncs: rules/*.mdc, skills/, mcp.json
+fn sync_cursor_config(dir: &std::path::Path) {
+    let home = match std::env::var("HOME").ok() {
+        Some(h) => std::path::PathBuf::from(h),
+        None => return,
+    };
+    let cursor_dir = home.join(".cursor");
+    if !cursor_dir.is_dir() {
+        return;
+    }
+
+    let dst_root = dir.join("cursor-config");
+    let _ = std::fs::create_dir_all(&dst_root);
+
+    // 1. Rules (*.mdc files)
+    let rules_src = cursor_dir.join("rules");
+    if rules_src.is_dir() {
+        let rules_dst = dst_root.join("rules");
+        let _ = std::fs::create_dir_all(&rules_dst);
+        if let Ok(entries) = std::fs::read_dir(&rules_src) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().map(|e| e == "mdc").unwrap_or(false) {
+                    let dest = rules_dst.join(path.file_name().unwrap());
+                    let _ = std::fs::copy(&path, &dest);
+                }
+            }
+        }
+    }
+
+    // 2. Skills/
+    copy_dir_recursive(&cursor_dir.join("skills"), &dst_root.join("skills"));
+
+    // 3. mcp.json
+    let mcp_json = cursor_dir.join("mcp.json");
+    if mcp_json.exists() {
+        let _ = std::fs::copy(&mcp_json, dst_root.join("mcp.json"));
     }
 }
 

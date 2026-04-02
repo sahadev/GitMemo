@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Copy, Check } from "lucide-react";
+import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check } from "lucide-react";
 import type { Theme } from "../App";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -66,6 +66,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
   const [syncDir, setSyncDir] = useState("");
   const [gitRemote, setGitRemote] = useState("");
   const [claudeEnabled, setClaudeEnabled] = useState(false);
+  const [cursorEnabled, setCursorEnabled] = useState(false);
   const [appMeta, setAppMeta] = useState<AppMeta | null>(null);
   const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
 
@@ -77,6 +78,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
       setGitRemote(s.git_remote);
     }).catch(console.error);
     invoke<boolean>("get_claude_integration_status").then(setClaudeEnabled).catch(console.error);
+    invoke<boolean>("get_cursor_integration_status").then(setCursorEnabled).catch(console.error);
     invoke<AppMeta>("get_app_meta").then(setAppMeta).catch(console.error);
   }, []);
 
@@ -106,6 +108,22 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
         await invoke<string>("setup_claude_integration");
         setClaudeEnabled(true);
         showToast("Claude integration enabled");
+      }
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const toggleCursorIntegration = async () => {
+    try {
+      if (cursorEnabled) {
+        await invoke<string>("remove_cursor_integration");
+        setCursorEnabled(false);
+        showToast("Cursor integration disabled");
+      } else {
+        await invoke<string>("setup_cursor_integration", { lang: locale });
+        setCursorEnabled(true);
+        showToast("Cursor integration enabled");
       }
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -255,6 +273,20 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
               </div>
             </div>
             <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)" }} />
+
+          {/* Cursor integration */}
+          <div style={rowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Code size={15} style={{ color: "var(--text-secondary)" }} />
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
+              </div>
+            </div>
+            <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />

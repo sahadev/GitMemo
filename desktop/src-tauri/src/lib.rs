@@ -62,6 +62,9 @@ pub fn run() {
             settings::get_claude_integration_status,
             settings::setup_claude_integration,
             settings::remove_claude_integration,
+            settings::get_cursor_integration_status,
+            settings::setup_cursor_integration,
+            settings::remove_cursor_integration,
         ])
         .setup(|app| {
             // Store app handle for background git sync events
