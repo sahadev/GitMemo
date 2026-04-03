@@ -209,43 +209,41 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
         })}
       </div>
 
-      {/* Git Info + Recent Activity — 2 columns */}
+      {/* Git Info — 2 columns */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        {/* Left: Git Status */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Sync Status */}
-          <div style={cardStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
-            </div>
-            <p style={{ fontSize: 18, fontWeight: 700 }}>
-              <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
-            </p>
-            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
-              {formatAbsoluteTime(status.checked_at || status.last_commit_time)}
-            </p>
+        {/* Sync Status */}
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
           </div>
-
-          {/* Last Commit */}
-          <div style={cardStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <GitCommit size={13} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
-            </div>
-            <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
-              {status.last_commit_id || "—"}
-            </p>
-            {status.last_commit_time && (
-              <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
-                {formatAbsoluteTime(status.last_commit_time)}
-              </p>
-            )}
-          </div>
+          <p style={{ fontSize: 18, fontWeight: 700 }}>
+            <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
+          </p>
+          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+            {formatAbsoluteTime(status.checked_at || status.last_commit_time)}
+          </p>
         </div>
 
-        {/* Right: Recent Activity */}
+        {/* Last Commit */}
         <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <GitCommit size={13} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
+          </div>
+          <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
+            {status.last_commit_id || "—"}
+          </p>
+          {status.last_commit_time && (
+            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+              {formatAbsoluteTime(status.last_commit_time)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Activity — full width */}
+      <div style={{ ...cardStyle, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <Activity size={13} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.recentActivity")}</span>
@@ -290,7 +288,6 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
               })}
             </div>
           )}
-        </div>
       </div>
 
       {/* Quick Info */}
