@@ -29,6 +29,7 @@ export default function Footer() {
             <a href="https://github.com/sahadev/GitMemo" className="hover:text-white transition-colors">GitHub</a>
             <a href="https://github.com/sahadev/GitMemo/releases" className="hover:text-white transition-colors">Releases</a>
             <a href="https://github.com/sahadev/GitMemo#readme" className="hover:text-white transition-colors">Docs</a>
+            <a href="https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+" className="hover:text-white transition-colors">Feedback</a>
           </div>
           <p className="text-xs text-text-secondary">Built with Rust &middot; Tauri &middot; React</p>
         </div>

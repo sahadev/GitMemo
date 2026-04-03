@@ -73,7 +73,7 @@ const en: Record<string, string> = {
   'feat.search.title': 'Full-text Search',
   'feat.search.desc': 'SQLite FTS5 indexes all your content. Search across conversations, notes, and clips instantly.',
   'feat.mcp.title': 'MCP Integration',
-  'feat.mcp.desc': 'Ask Claude to search your history or create notes directly — powered by Model Context Protocol.',
+  'feat.mcp.desc': 'Unlike Notion MCP (cloud CRUD), GitMemo MCP captures your AI knowledge locally — search history, create notes, sync to Git. Your data never leaves your machine.',
   'feat.zero.title': 'Zero Daemon',
   'feat.zero.desc': "No background process. GitMemo injects into your editor's native hooks — when the editor runs, GitMemo runs.",
 
@@ -122,6 +122,7 @@ const en: Record<string, string> = {
   'cmp.features.clipboard': 'Clipboard capture',
   'cmp.features.gitNative': 'Git-native sync',
   'cmp.features.mcp': 'MCP integration',
+  'cmp.features.localFirst': 'Local-first / data ownership',
   'cmp.features.openSource': 'Open source',
   'cmp.features.appSize': 'App size',
   'cmp.features.price': 'Price',
@@ -195,7 +196,7 @@ const zh: Record<string, string> = {
   'feat.search.title': '全文搜索',
   'feat.search.desc': 'SQLite FTS5 索引所有内容，跨对话、笔记、剪贴板即时搜索。',
   'feat.mcp.title': 'MCP 集成',
-  'feat.mcp.desc': '让 Claude 直接搜索你的历史对话或创建笔记——基于 Model Context Protocol。',
+  'feat.mcp.desc': '不同于 Notion MCP（云端 CRUD），GitMemo MCP 在本地捕获你的 AI 知识——搜索历史、创建笔记、同步到 Git。数据永远不离开你的设备。',
   'feat.zero.title': '零后台进程',
   'feat.zero.desc': '不启动后台服务。GitMemo 注入编辑器的原生 hooks——编辑器运行，GitMemo 就运行。',
 
@@ -244,6 +245,7 @@ const zh: Record<string, string> = {
   'cmp.features.clipboard': '剪贴板捕获',
   'cmp.features.gitNative': 'Git 原生同步',
   'cmp.features.mcp': 'MCP 集成',
+  'cmp.features.localFirst': '本地优先 / 数据所有权',
   'cmp.features.openSource': '开源',
   'cmp.features.appSize': '应用体积',
   'cmp.features.price': '价格',

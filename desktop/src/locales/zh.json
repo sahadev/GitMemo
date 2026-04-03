@@ -148,7 +148,8 @@
     "claudeEnabled": "已启用",
     "claudeEnable": "启用",
     "dark": "深色",
-    "light": "浅色"
+    "light": "浅色",
+    "sendFeedback": "发送反馈"
   },
   "time": {
     "justNow": "刚刚",

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check } from "lucide-react";
+import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle } from "lucide-react";
 import type { Theme } from "../App";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -463,6 +463,17 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
         >
           <ExternalLink size={11} />
           github.com/sahadev/gitmemo
+        </button>
+        <button
+          onClick={() => void openUrl("https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+")}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 11, color: "var(--text-secondary)", background: "none",
+            border: "none", cursor: "pointer", padding: 0, marginTop: 8,
+          }}
+        >
+          <MessageCircle size={11} />
+          {t("settings.sendFeedback")}
         </button>
       </div>
     </div>
