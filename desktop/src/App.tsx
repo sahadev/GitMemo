@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { notify } from "./utils/notify";
 import Sidebar from "./components/Sidebar";
+import BottomNav from "./components/BottomNav";
 import DropZone from "./components/DropZone";
 import NotesPage from "./pages/NotesPage";
 import ClipboardPage from "./pages/ClipboardPage";
@@ -15,6 +16,7 @@ import PlansPage from "./pages/PlansPage";
 import ClaudeConfigPage from "./pages/ClaudeConfigPage";
 import { NotInitialized } from "./components/NotInitialized";
 import { useSync } from "./hooks/useSync";
+import { usePlatform } from "./hooks/usePlatform";
 
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "settings";
 export type Theme = "dark" | "light";
@@ -22,6 +24,8 @@ export type Theme = "dark" | "light";
 const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "settings"];
 
 function App() {
+  const platform = usePlatform();
+  const isMobile = platform === "mobile";
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [sidebarFocused, setSidebarFocused] = useState(false);
@@ -75,6 +79,9 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Desktop-only event listeners
+    if (isMobile) return;
+
     const unlistenSearch = listen("global-shortcut-search", () => navigateAndFocus("search"));
     const unlistenClip = listen("tray-toggle-clipboard", () => setCurrentPage("clipboard"));
     const unlistenClipSaved = listen<{ preview: string }>("clipboard-saved", ({ payload }) => {
@@ -100,7 +107,6 @@ function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
 
-      // Sidebar focused: Up/Down switch pages, Right enters content
       if (sidebarFocused) {
         const idx = pageOrder.indexOf(currentPage);
         if (e.key === "ArrowUp" && idx > 0) {
@@ -117,7 +123,6 @@ function App() {
         return;
       }
 
-      // Cmd shortcuts
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
           case "1": e.preventDefault(); setCurrentPage("dashboard"); setSidebarFocused(false); break;
@@ -143,35 +148,47 @@ function App() {
       unlistenQuickPastePage.then((fn) => fn());
       unlistenQuickPasteFile.then((fn) => fn());
     };
-  }, [navigateAndFocus, sidebarFocused, currentPage, sync]);
+  }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync]);
+
+  const pageContent = initialized === false && currentPage !== "settings" ? (
+    <NotInitialized />
+  ) : (
+    <>
+      {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
+      {currentPage === "conversations" && <ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} />}
+      {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+      {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+      {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+      {currentPage === "claude-config" && <ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
+      {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} />}
+      {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
+    </>
+  );
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
-      <Sidebar
-        currentPage={currentPage}
-        onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}
-        focused={sidebarFocused}
-        syncing={sync.isSyncing}
-        syncMsg={sync.message}
-        onSync={sync.triggerSync}
-      />
+    <div style={{
+      display: "flex",
+      flexDirection: isMobile ? "column" : "row",
+      height: "100vh",
+      width: "100vw",
+    }}>
+      {!isMobile && (
+        <Sidebar
+          currentPage={currentPage}
+          onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}
+          focused={sidebarFocused}
+          syncing={sync.isSyncing}
+          syncMsg={sync.message}
+          onSync={sync.triggerSync}
+        />
+      )}
       <main style={{ flex: 1, overflow: "hidden" }} onClick={() => setSidebarFocused(false)}>
-        {initialized === false && currentPage !== "settings" ? (
-          <NotInitialized />
-        ) : (
-          <>
-            {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
-            {currentPage === "conversations" && <ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} />}
-            {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-            {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-            {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-            {currentPage === "claude-config" && <ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-            {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} />}
-            {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
-          </>
-        )}
+        {pageContent}
       </main>
-      <DropZone />
+      {isMobile && (
+        <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
+      )}
+      {!isMobile && <DropZone />}
     </div>
   );
 }
