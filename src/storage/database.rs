@@ -239,6 +239,7 @@ pub fn search(conn: &Connection, query: &str, type_filter: &str, limit: usize) -
 }
 
 /// LIKE-based search fallback for CJK and other languages where FTS5 unicode61 tokenizer fails.
+#[allow(dead_code)]
 pub fn search_like(conn: &Connection, query: &str, type_filter: &str, limit: usize) -> Result<Vec<SearchResult>> {
     let pattern = format!("%{}%", query);
 
@@ -283,6 +284,7 @@ pub fn search_like(conn: &Connection, query: &str, type_filter: &str, limit: usi
 }
 
 /// Extract a short snippet around the first occurrence of `needle` in `haystack`.
+#[allow(dead_code)]
 fn extract_snippet(haystack: &str, needle: &str, context_chars: usize) -> String {
     let flat: String = haystack.chars().map(|c| if c == '\n' || c == '\r' { ' ' } else { c }).collect();
     let chars: Vec<char> = flat.chars().collect();

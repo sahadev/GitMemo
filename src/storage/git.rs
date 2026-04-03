@@ -554,6 +554,7 @@ pub fn pull(repo_path: &Path) -> Result<bool> {
 }
 
 /// Fetch the remote tracking refs without rebasing the worktree.
+#[allow(dead_code)]
 pub fn fetch(repo_path: &Path) -> Result<bool> {
     if !has_remote(repo_path) {
         return Ok(false);
