@@ -1,5 +1,6 @@
 use gitmemo_core::storage::{files, git};
 use serde::{Deserialize, Serialize};
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
 
 const SETTINGS_FILE: &str = "desktop_settings.toml";
@@ -70,16 +71,23 @@ pub fn get_app_meta() -> Result<AppMeta, String> {
     })
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn get_settings(app: tauri::AppHandle) -> Result<DesktopSettings, String> {
     let mut settings = load_settings();
-    // Check actual autostart state from plugin
     if let Ok(autostart) = app.autolaunch().is_enabled() {
         settings.autostart = autostart;
     }
     Ok(settings)
 }
 
+#[cfg(not(desktop))]
+#[tauri::command]
+pub fn get_settings() -> Result<DesktopSettings, String> {
+    Ok(load_settings())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<String, String> {
     let autolaunch = app.autolaunch();
@@ -98,6 +106,12 @@ pub fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<String, Str
     } else {
         "Auto-start disabled".into()
     })
+}
+
+#[cfg(not(desktop))]
+#[tauri::command]
+pub fn set_autostart() -> Result<String, String> {
+    Err("Auto-start is not available on mobile".into())
 }
 
 #[tauri::command]

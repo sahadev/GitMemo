@@ -2,6 +2,7 @@
   "identifier": "default",
   "description": "Default capability for GitMemo desktop",
   "windows": ["main", "quick-paste"],
+  "platforms": ["linux", "macOS", "windows"],
   "permissions": [
     "core:default",
     "dialog:default",
