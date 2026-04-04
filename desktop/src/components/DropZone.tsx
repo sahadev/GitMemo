@@ -48,7 +48,9 @@ export default function DropZone() {
   const [isDragging, setIsDragging] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
+  const [droppedPaths, setDroppedPaths] = useState<string[] | null>(null);
 
+  // Event sources → state only
   useEffect(() => {
     const listeners: (() => void)[] = [];
 
@@ -60,26 +62,11 @@ export default function DropZone() {
       setIsDragging(false);
     }).then((fn) => listeners.push(fn));
 
-    listen<DragDropPayload>("tauri://drag-drop", async (event) => {
+    listen<DragDropPayload>("tauri://drag-drop", (event) => {
       setIsDragging(false);
       const paths = event.payload.paths;
-      if (!paths || paths.length === 0) return;
-
-      setImporting(true);
-      try {
-        const res = await invoke<ImportResult>("import_files", { paths });
-        setResult(res);
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => setResult(null), 5000);
-      } catch (e) {
-        setResult({
-          success: false,
-          imported: [],
-          errors: [`${e}`],
-        });
-        setTimeout(() => setResult(null), 5000);
-      } finally {
-        setImporting(false);
+      if (paths && paths.length > 0) {
+        setDroppedPaths(paths);
       }
     }).then((fn) => listeners.push(fn));
 
@@ -87,6 +74,33 @@ export default function DropZone() {
       listeners.forEach((fn) => fn());
     };
   }, []);
+
+  // State-driven import: react to droppedPaths change
+  useEffect(() => {
+    if (!droppedPaths || importing) return;
+    let cancelled = false;
+
+    setImporting(true);
+    invoke<ImportResult>("import_files", { paths: droppedPaths })
+      .then((res) => {
+        if (cancelled) return;
+        setResult(res);
+        setTimeout(() => setResult(null), 5000);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setResult({ success: false, imported: [], errors: [`${e}`] });
+        setTimeout(() => setResult(null), 5000);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setImporting(false);
+          setDroppedPaths(null);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [droppedPaths]);
 
   // Full-screen drag overlay
   if (isDragging) {

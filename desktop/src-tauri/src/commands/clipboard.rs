@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
+use tauri::Emitter;
 
 static WATCHING: AtomicBool = AtomicBool::new(false);
 
@@ -66,6 +67,7 @@ pub fn start_clipboard_watch(app: tauri::AppHandle) -> Result<String, String> {
         return Ok("Clipboard watch already running".into());
     }
     WATCHING.store(true, Ordering::SeqCst);
+    let _ = app.emit("tray-clipboard-update", ());
     std::thread::spawn(move || {
         desktop_poll::clipboard_poll_loop(app);
     });
@@ -74,8 +76,9 @@ pub fn start_clipboard_watch(app: tauri::AppHandle) -> Result<String, String> {
 
 #[cfg(desktop)]
 #[tauri::command]
-pub fn stop_clipboard_watch() -> Result<String, String> {
+pub fn stop_clipboard_watch(app: tauri::AppHandle) -> Result<String, String> {
     WATCHING.store(false, Ordering::SeqCst);
+    let _ = app.emit("tray-clipboard-update", ());
     Ok("Clipboard watch stopped".into())
 }
 
@@ -89,7 +92,7 @@ pub fn start_clipboard_watch(_app: tauri::AppHandle) -> Result<String, String> {
 
 #[cfg(not(desktop))]
 #[tauri::command]
-pub fn stop_clipboard_watch() -> Result<String, String> {
+pub fn stop_clipboard_watch(_app: tauri::AppHandle) -> Result<String, String> {
     Ok("Not running".into())
 }
 

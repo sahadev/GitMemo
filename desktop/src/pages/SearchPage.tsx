@@ -31,6 +31,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
   const [editContent, setEditContent] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const imeComposingRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -241,7 +242,15 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleSearch(); }}
+            onCompositionStart={() => { imeComposingRef.current = true; }}
+            onCompositionEnd={() => { imeComposingRef.current = false; }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const ev = e.nativeEvent;
+              if (imeComposingRef.current || ev.isComposing) return;
+              if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
+              handleSearch();
+            }}
             placeholder={t("search.placeholder")}
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,

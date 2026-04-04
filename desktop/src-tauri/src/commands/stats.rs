@@ -1,9 +1,5 @@
 use gitmemo_core::storage::{database, files, git};
 use serde::Serialize;
-use std::sync::atomic::{AtomicU64, Ordering};
-
-static LAST_REMOTE_REFRESH_AT: AtomicU64 = AtomicU64::new(0);
-const REMOTE_REFRESH_INTERVAL_SECS: u64 = 30;
 
 fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
@@ -18,7 +14,6 @@ pub struct AppStats {
     pub clips: usize,
     pub plans: usize,
     pub total_size_kb: f64,
-    pub unpushed: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -55,9 +50,6 @@ pub fn get_stats() -> Result<AppStats, String> {
         .map(|m| m.len())
         .sum();
 
-    maybe_refresh_remote(&sync_dir);
-    let unpushed = git::ahead_behind(&sync_dir).map(|(ahead, _)| ahead).unwrap_or(0);
-
     let clips = {
         let clips_dir = sync_dir.join("clips");
         if clips_dir.exists() {
@@ -92,7 +84,6 @@ pub fn get_stats() -> Result<AppStats, String> {
         clips,
         plans,
         total_size_kb: total_size as f64 / 1024.0,
-        unpushed,
     })
 }
 
@@ -126,7 +117,6 @@ pub fn get_status() -> Result<AppStatus, String> {
         (String::new(), String::new())
     };
 
-    maybe_refresh_remote(&sync_dir);
     let (unpushed, behind) = git::ahead_behind(&sync_dir).unwrap_or((0, 0));
 
     // Get last commit info
@@ -145,27 +135,6 @@ pub fn get_status() -> Result<AppStatus, String> {
         last_commit_time,
         checked_at,
     })
-}
-
-fn maybe_refresh_remote(sync_dir: &std::path::Path) {
-    if !git::has_remote(sync_dir) {
-        return;
-    }
-
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let last = LAST_REMOTE_REFRESH_AT.load(Ordering::SeqCst);
-    if now.saturating_sub(last) < REMOTE_REFRESH_INTERVAL_SECS {
-        return;
-    }
-    if LAST_REMOTE_REFRESH_AT
-        .compare_exchange(last, now, Ordering::SeqCst, Ordering::SeqCst)
-        .is_ok()
-    {
-        let _ = git::fetch(sync_dir);
-    }
 }
 
 #[derive(Debug, Serialize)]

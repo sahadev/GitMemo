@@ -61,18 +61,38 @@ function getQueryValue(query: string, mode: Mode) {
 function sourceIcon(sourceType: string) {
   switch (sourceType) {
     case "conversation":
-      return <MessageSquare size={14} style={{ color: "var(--accent)" }} />;
+      return <MessageSquare size={13} style={{ color: "#6eb0f7" }} />;
     case "clip":
-      return <Clipboard size={14} style={{ color: "var(--green)" }} />;
+      return <Clipboard size={13} style={{ color: "#4ade80" }} />;
     case "plan":
-      return <FileText size={14} style={{ color: "var(--yellow)" }} />;
+      return <FileText size={13} style={{ color: "#facc15" }} />;
     case "config":
-      return <Settings size={14} style={{ color: "var(--text-secondary)" }} />;
+      return <Settings size={13} style={{ color: "#9ca3af" }} />;
     case "import":
-      return <FolderInput size={14} style={{ color: "#14b8a6" }} />;
+      return <FolderInput size={13} style={{ color: "#14b8a6" }} />;
     default:
-      return <StickyNote size={14} style={{ color: "var(--green)" }} />;
+      return <StickyNote size={13} style={{ color: "#4ade80" }} />;
   }
+}
+
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd
+      style={{
+        display: "inline-block",
+        padding: "1px 5px",
+        fontSize: 10,
+        fontFamily: "inherit",
+        lineHeight: "16px",
+        borderRadius: 4,
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color: "#888",
+      }}
+    >
+      {children}
+    </kbd>
+  );
 }
 
 export default function QuickPaste() {
@@ -86,6 +106,7 @@ export default function QuickPaste() {
   const inputRef = useRef<HTMLInputElement>(null);
   const windowRef = useRef(getCurrentWindow());
   const mainWindowRef = useRef<Window | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const mode = useMemo(() => getMode(query), [query]);
   const modeQuery = useMemo(() => getQueryValue(query, mode), [query, mode]);
@@ -163,7 +184,7 @@ export default function QuickPaste() {
             setSelectedIndex(0);
           }
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           if (mode === "search") setSearchResults([]);
           if (mode === "file") setFileResults([]);
@@ -243,6 +264,13 @@ export default function QuickPaste() {
     return executeSearchResult(item as SearchResultItem);
   }, [executeCommand, executeFileResult, executeSearchResult, mode, selectedIndex, visibleItems]);
 
+  // Scroll selected item into view
+  useEffect(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.children[selectedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -273,33 +301,22 @@ export default function QuickPaste() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [executeSelected, hideWindow, visibleItems.length]);
 
+  const modeColors = { search: "#6eb0f7", command: "#facc15", file: "#4ade80" };
   const modeMeta = {
-    search: {
-      icon: <Search size={16} style={{ color: "var(--accent)" }} />,
-      label: "Search",
-      hint: "Search notes, conversations, clips",
-    },
-    command: {
-      icon: <TerminalSquare size={16} style={{ color: "var(--yellow)" }} />,
-      label: "Command",
-      hint: "Run sync or jump to a page",
-    },
-    file: {
-      icon: <FileSearch size={16} style={{ color: "var(--green)" }} />,
-      label: "Files",
-      hint: "Open a file in the main window",
-    },
+    search: { icon: <Search size={15} style={{ color: modeColors.search }} />, label: "Search" },
+    command: { icon: <TerminalSquare size={15} style={{ color: modeColors.command }} />, label: "Command" },
+    file: { icon: <FileSearch size={15} style={{ color: modeColors.file }} />, label: "Files" },
   }[mode];
 
   return (
     <div
+      data-tauri-drag-region
       style={{
         minHeight: "100vh",
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.12)",
-        padding: 20,
+        paddingTop: 80,
       }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) hideWindow();
@@ -308,80 +325,96 @@ export default function QuickPaste() {
       <div
         style={{
           width: "100%",
-          maxWidth: 600,
-          background: "rgba(10, 10, 10, 0.94)",
+          maxWidth: 560,
+          background: "rgba(30, 30, 30, 0.96)",
           border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 16,
-          boxShadow: "0 20px 70px rgba(0,0,0,0.45)",
-          backdropFilter: "blur(18px)",
+          borderRadius: 12,
+          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.06)",
+          backdropFilter: "blur(40px) saturate(1.4)",
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            {modeMeta.icon}
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#d4d4d4", letterSpacing: 0.4 }}>
-              {modeMeta.label}
-            </span>
-            <span style={{ fontSize: 11, color: "#7b7b7b" }}>{modeMeta.hint}</span>
-          </div>
+        {/* Input area */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
+          {modeMeta.icon}
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…  >command  @file"
+            placeholder="Search…"
             style={{
-              width: "100%",
+              flex: 1,
               background: "transparent",
               border: "none",
-              color: "#f3f3f3",
-              fontSize: 20,
-              lineHeight: 1.4,
-              padding: "4px 0",
-              userSelect: "text",
-              WebkitUserSelect: "text",
+              outline: "none",
+              color: "#f0f0f0",
+              fontSize: 16,
+              lineHeight: 1.5,
+              caretColor: modeColors[mode],
             }}
           />
+          {loading && (
+            <RefreshCw size={14} style={{ color: "#666", animation: "spin 1s linear infinite" }} />
+          )}
         </div>
 
-        <div style={{ maxHeight: 380, overflowY: "auto", padding: 8 }}>
-          {loading ? (
-            <div style={{ padding: "18px 14px", color: "#8a8a8a", fontSize: 13 }}>Loading…</div>
-          ) : visibleItems.length === 0 ? (
-            <div style={{ padding: "18px 14px", color: "#8a8a8a", fontSize: 13 }}>
-              {modeQuery ? "No results" : "Start typing to search"}
+        {/* Divider */}
+        <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+        {/* Results */}
+        <div ref={listRef} style={{ maxHeight: 340, overflowY: "auto", padding: "4px 6px" }}>
+          {!loading && visibleItems.length === 0 ? (
+            <div style={{ padding: "24px 10px", textAlign: "center", color: "#666", fontSize: 13 }}>
+              {modeQuery ? "No results" : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <span>Type to search</span>
+                  <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#555" }}>
+                    <span><Kbd>&gt;</Kbd> commands</span>
+                    <span><Kbd>@</Kbd> files</span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : mode === "command" ? (
             (visibleItems as CommandItem[]).map((item, index) => {
               const selected = index === selectedIndex;
               const icon =
-                item.id === "sync" ? <RefreshCw size={14} style={{ color: "var(--accent)" }} /> :
-                item.id === "settings" ? <Settings size={14} style={{ color: "var(--text-secondary)" }} /> :
-                <PanelLeft size={14} style={{ color: "var(--green)" }} />;
+                item.id === "sync" ? <RefreshCw size={14} style={{ color: "#6eb0f7" }} /> :
+                item.id === "settings" ? <Settings size={14} style={{ color: "#9ca3af" }} /> :
+                <PanelLeft size={14} style={{ color: "#4ade80" }} />;
 
               return (
                 <button
                   key={item.id}
                   onClick={() => executeCommand(item)}
+                  onMouseEnter={() => setSelectedIndex(index)}
                   style={{
                     width: "100%",
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
                     textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 10,
+                    padding: "10px 10px",
+                    borderRadius: 8,
                     border: "none",
                     cursor: "pointer",
-                    background: selected ? "rgba(79,156,247,0.18)" : "transparent",
-                    color: "#f0f0f0",
+                    background: selected ? "rgba(255,255,255,0.07)" : "transparent",
+                    color: "#eee",
+                    transition: "background 0.1s",
                   }}
                 >
-                  {icon}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a8a8a", marginTop: 2 }}>{item.subtitle}</div>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    background: "rgba(255,255,255,0.05)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    {icon}
                   </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{item.title}</div>
+                    <div style={{ fontSize: 11, color: "#777", marginTop: 1 }}>{item.subtitle}</div>
+                  </div>
+                  {selected && <span style={{ fontSize: 10, color: "#555" }}>Enter</span>}
                 </button>
               );
             })
@@ -392,46 +425,65 @@ export default function QuickPaste() {
                 <button
                   key={`${item.file_path}-${index}`}
                   onClick={() => (mode === "file" ? executeFileResult(item) : executeSearchResult(item))}
+                  onMouseEnter={() => setSelectedIndex(index)}
                   style={{
                     width: "100%",
-                    display: "block",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
                     textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 10,
+                    padding: "10px 10px",
+                    borderRadius: 8,
                     border: "none",
                     cursor: "pointer",
-                    background: selected ? "rgba(79,156,247,0.18)" : "transparent",
-                    color: "#f0f0f0",
+                    background: selected ? "rgba(255,255,255,0.07)" : "transparent",
+                    color: "#eee",
+                    transition: "background 0.1s",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    background: "rgba(255,255,255,0.05)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
                     {sourceIcon(item.source_type)}
-                    <span style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0 }}>{item.title}</span>
-                    <span style={{ fontSize: 10, color: "#8a8a8a" }}>{item.date}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "#8a8a8a", lineHeight: 1.45 }}>
-                    {mode === "file" ? item.file_path : item.snippet || item.file_path}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontSize: 13, fontWeight: 500,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>
+                      {item.title}
+                    </div>
+                    <div style={{
+                      fontSize: 11, color: "#777", marginTop: 1,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>
+                      {mode === "file" ? item.file_path : item.snippet || item.file_path}
+                    </div>
                   </div>
+                  <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{item.date}</span>
                 </button>
               );
             })
           )}
         </div>
 
+        {/* Footer */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-            padding: "10px 14px 12px",
+            alignItems: "center",
+            gap: 16,
+            padding: "8px 16px",
             borderTop: "1px solid rgba(255,255,255,0.06)",
-            color: "#777",
             fontSize: 11,
+            color: "#555",
           }}
         >
-          <span>↑↓ Select</span>
-          <span>Enter Execute</span>
-          <span>Esc Close</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↵</Kbd> {mode === "search" ? "copy" : mode === "file" ? "open" : "run"}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}><Kbd>esc</Kbd> close</span>
         </div>
       </div>
     </div>

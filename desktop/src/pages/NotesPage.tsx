@@ -52,7 +52,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   const [fileContent, setFileContent] = useState("");
   const [newNote, setNewNote] = useState("");
   const [manualTitle, setManualTitle] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");

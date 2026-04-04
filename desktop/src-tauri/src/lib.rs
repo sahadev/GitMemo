@@ -1,7 +1,7 @@
 mod commands;
 
 use commands::{clipboard, crash_log, import, notes, search, settings, stats};
-use tauri::Emitter;
+use tauri::{Emitter, Listener};
 
 #[cfg(desktop)]
 use tauri::{
@@ -98,10 +98,11 @@ pub fn run() {
             // Store app handle for background git sync events
             notes::set_app_handle(app.handle().clone());
 
-            // Pull latest from remote on startup
+            // Pull latest from remote on startup (with health check)
             std::thread::spawn(|| {
                 let sync_dir = gitmemo_core::storage::files::sync_dir();
                 if sync_dir.exists() {
+                    let _ = gitmemo_core::storage::git::ensure_repo_clean(&sync_dir);
                     let _ = gitmemo_core::storage::git::pull(&sync_dir);
                 }
             });
@@ -162,7 +163,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             }
             "clipboard" => {
                 if clipboard::is_watching() {
-                    let _ = clipboard::stop_clipboard_watch();
+                    let _ = clipboard::stop_clipboard_watch(app.clone());
                 } else {
                     let _ = clipboard::start_clipboard_watch(app.clone());
                 }
@@ -194,6 +195,13 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             }
         })
         .build(app)?;
+
+    // --- Keep tray clipboard label in sync with actual state ---
+    let clip_item_for_listen = clip_i.clone();
+    app.listen("tray-clipboard-update", move |_event| {
+        let label = if clipboard::is_watching() { "Clipboard: ON" } else { "Clipboard: OFF" };
+        let _ = clip_item_for_listen.set_text(label);
+    });
 
     // --- Close → Hide (keep tray alive) ---
     let app_handle = app.handle().clone();

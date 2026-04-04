@@ -143,6 +143,9 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
 
 /// Stage all changes, commit, and push. Returns sync result.
 pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
+    // Health check first: abort any stuck rebase/merge
+    let _ = ensure_repo_clean(repo_path);
+
     let repo = git2::Repository::open(repo_path)?;
 
     // Stage all
@@ -535,9 +538,64 @@ pub fn push(repo_path: &Path) -> Result<SyncResult> {
     Ok(SyncResult { committed: false, pushed, push_error })
 }
 
+/// Check if the repository is in a stuck state (rebase/merge in progress)
+/// and attempt to auto-recover by aborting the stuck operation.
+/// Returns Ok(true) if recovery was performed, Ok(false) if repo was clean.
+pub fn ensure_repo_clean(repo_path: &Path) -> Result<bool> {
+    let git_dir = repo_path.join(".git");
+
+    let rebase_merge = git_dir.join("rebase-merge").exists();
+    let rebase_apply = git_dir.join("rebase-apply").exists();
+    let merge_head = git_dir.join("MERGE_HEAD").exists();
+
+    if rebase_merge || rebase_apply {
+        eprintln!("[gitmemo] Detected stuck rebase in {}, aborting...", repo_path.display());
+        let output = std::process::Command::new("git")
+            .args(["rebase", "--abort"])
+            .current_dir(repo_path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output();
+        match output {
+            Ok(o) if o.status.success() => {
+                eprintln!("[gitmemo] Rebase aborted successfully");
+                return Ok(true);
+            }
+            _ => {
+                // rebase --abort failed, try --quit as last resort
+                let _ = std::process::Command::new("git")
+                    .args(["rebase", "--quit"])
+                    .current_dir(repo_path)
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .output();
+                eprintln!("[gitmemo] Rebase --abort failed, used --quit as fallback");
+                return Ok(true);
+            }
+        }
+    }
+
+    if merge_head {
+        eprintln!("[gitmemo] Detected stuck merge in {}, aborting...", repo_path.display());
+        let _ = std::process::Command::new("git")
+            .args(["merge", "--abort"])
+            .current_dir(repo_path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output();
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
 /// Pull latest changes from remote (rebase mode).
-/// Fails silently — returns Ok(false) if pull fails or remote is unreachable.
+/// Auto-recovers from stuck rebase before attempting pull.
+/// Returns Ok(true) on success, Err with message on failure.
 pub fn pull(repo_path: &Path) -> Result<bool> {
+    // Health check: abort any stuck rebase/merge first
+    let _ = ensure_repo_clean(repo_path);
+
     let branch = configured_branch(repo_path);
 
     let output = std::process::Command::new("git")
@@ -549,7 +607,22 @@ pub fn pull(repo_path: &Path) -> Result<bool> {
 
     match output {
         Ok(o) if o.status.success() => Ok(true),
-        _ => Ok(false),
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            // If pull caused a new stuck rebase, abort it immediately
+            let _ = ensure_repo_clean(repo_path);
+
+            if stderr.contains("Could not resolve host") || stderr.contains("unable to access") {
+                eprintln!("[gitmemo] Pull skipped: network unreachable");
+            } else {
+                eprintln!("[gitmemo] Pull failed: {}", stderr.trim());
+            }
+            Ok(false)
+        }
+        Err(e) => {
+            eprintln!("[gitmemo] Pull command error: {}", e);
+            Ok(false)
+        }
     }
 }
 

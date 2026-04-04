@@ -87,20 +87,25 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const panel = useResizablePanel("clipboard", 340);
   const [status, setStatus] = useState<ClipboardStatus | null>(null);
   const [savedClips, setSavedClips] = useState<FileEntry[]>([]);
+  const [clipsLoading, setClipsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
+  // State-driven data loading
   useEffect(() => {
     loadStatus();
     loadSavedClips();
+  }, [refreshTrigger]);
+
+  // Event sources that trigger refresh via state
+  useEffect(() => {
     const unlisten = listen<ClipboardEvent>("clipboard-saved", () => {
-      loadSavedClips();
-      loadStatus();
+      setRefreshTrigger(t => t + 1);
     });
-    // Also refresh when window regains focus (catches clips saved while on other tabs)
-    const onFocus = () => { loadStatus(); loadSavedClips(); };
+    const onFocus = () => setRefreshTrigger(t => t + 1);
     window.addEventListener("focus", onFocus);
     return () => { unlisten.then((fn) => fn()); window.removeEventListener("focus", onFocus); };
   }, []);
@@ -113,6 +118,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const loadSavedClips = async () => {
     try { setSavedClips(await invoke<FileEntry[]>("list_files", { folder: "clips" })); }
     catch (e) { console.error(e); }
+    finally { setClipsLoading(false); }
   };
 
   const toggleWatch = async () => {
@@ -255,7 +261,9 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
 
         {/* Clip list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {savedClips.length === 0 ? (
+          {clipsLoading ? (
+            <p style={{ padding: 20, fontSize: 12, color: "var(--text-secondary)" }}>{t("clipboard.loading") || "Loading..."}</p>
+          ) : savedClips.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 20px", textAlign: "center" }}>
               <Clipboard size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
               <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("clipboard.noClips")}</p>

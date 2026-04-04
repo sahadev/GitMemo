@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../hooks/useI18n";
+import { useSync } from "../hooks/useSync";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import {
@@ -17,20 +18,6 @@ interface AppStats {
   clips: number;
   plans: number;
   total_size_kb: number;
-  unpushed: number;
-}
-
-interface AppStatus {
-  initialized: boolean;
-  sync_dir: string;
-  git_remote: string;
-  git_branch: string;
-  unpushed: number;
-  behind: number;
-  last_commit_id: string;
-  last_commit_msg: string;
-  last_commit_time: string;
-  checked_at: string;
 }
 
 interface ClipboardStatus {
@@ -58,37 +45,64 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
   plan: { icon: Lightbulb, color: "#fbbf24", page: "plans" },
 };
 
+const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
+
+interface DashboardCache {
+  stats: AppStats | null;
+  clipStatus: ClipboardStatus | null;
+  recent: RecentItem[];
+}
+
+function loadCache(): DashboardCache | null {
+  try {
+    const raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as DashboardCache;
+  } catch { return null; }
+}
+
+function saveCache(c: DashboardCache) {
+  try { sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
 export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const { t } = useI18n();
+  const { isSuccess, isFailed, gitStatus } = useSync();
   useRelativeTimeTick();
-  const [stats, setStats] = useState<AppStats | null>(null);
-  const [status, setStatus] = useState<AppStatus | null>(null);
-  const [clipStatus, setClipStatus] = useState<ClipboardStatus | null>(null);
-  const [recent, setRecent] = useState<RecentItem[]>([]);
+
+  const cached = loadCache();
+  const [stats, setStats] = useState<AppStats | null>(cached?.stats ?? null);
+  const [clipStatus, setClipStatus] = useState<ClipboardStatus | null>(cached?.clipStatus ?? null);
+  const [recent, setRecent] = useState<RecentItem[]>(cached?.recent ?? []);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const loadData = async () => {
+  // Load content stats only (no git status — that comes from global useSync)
+  const loadData = useCallback(async () => {
     try {
-      const [s, st, cs, r] = await Promise.all([
+      const [s, cs, r] = await Promise.all([
         invoke<AppStats>("get_stats"),
-        invoke<AppStatus>("get_status"),
         invoke<ClipboardStatus>("get_clipboard_status").catch(() => null),
         invoke<RecentItem[]>("get_recent_activity").catch(() => []),
       ]);
       setStats(s);
-      setStatus(st);
       setClipStatus(cs);
       setRecent(r);
+      saveCache({ stats: s, clipStatus: cs, recent: r });
     } catch (e) {
       setError(`${e}`);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Refresh content stats when sync completes (state-driven)
+  useEffect(() => {
+    if (isSuccess || isFailed) {
+      loadData();
+    }
+  }, [isSuccess, isFailed, loadData]);
 
   if (error) {
     return (
@@ -104,7 +118,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
     );
   }
 
-  if (!stats || !status) {
+  if (!stats) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
         <p style={{ color: "var(--text-secondary)" }}>{t("dashboard.loading")}</p>
@@ -129,21 +143,22 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
   };
 
   const syncStatus = (() => {
-    if (status.behind > 0 && status.unpushed > 0) {
+    if (!gitStatus) return { text: t("dashboard.loading"), color: "var(--text-secondary)" };
+    if (gitStatus.behind > 0 && gitStatus.unpushed > 0) {
       return {
-        text: t("dashboard.diverged", String(status.unpushed), String(status.behind)),
+        text: t("dashboard.diverged", String(gitStatus.unpushed), String(gitStatus.behind)),
         color: "var(--yellow)",
       };
     }
-    if (status.behind > 0) {
+    if (gitStatus.behind > 0) {
       return {
-        text: t("dashboard.behind", String(status.behind)),
+        text: t("dashboard.behind", String(gitStatus.behind)),
         color: "var(--red)",
       };
     }
-    if (status.unpushed > 0) {
+    if (gitStatus.unpushed > 0) {
       return {
-        text: `${status.unpushed} ${t("dashboard.unpushed")}`,
+        text: `${gitStatus.unpushed} ${t("dashboard.unpushed")}`,
         color: "var(--yellow)",
       };
     }
@@ -221,7 +236,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
             <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
           </p>
           <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
-            {formatAbsoluteTime(status.checked_at || status.last_commit_time)}
+            {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
           </p>
         </div>
 
@@ -232,11 +247,11 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
           </div>
           <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
-            {status.last_commit_id || "—"}
+            {gitStatus?.last_commit_id || "—"}
           </p>
-          {status.last_commit_time && (
+          {gitStatus?.last_commit_time && (
             <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
-              {formatAbsoluteTime(status.last_commit_time)}
+              {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
             </p>
           )}
         </div>
@@ -303,13 +318,13 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {status.sync_dir}
+              {gitStatus?.sync_dir}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={status.git_remote}>
-              {status.git_remote || t("dashboard.noRemote")}
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={gitStatus?.git_remote}>
+              {gitStatus?.git_remote || t("dashboard.noRemote")}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

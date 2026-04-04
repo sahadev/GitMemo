@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle } from "lucide-react";
+import { useSync } from "../hooks/useSync";
 import type { Theme } from "../App";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -59,24 +60,21 @@ interface SettingsPageProps {
 export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
+  const { gitStatus } = useSync();
   const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
   const [editingBranch, setEditingBranch] = useState(false);
-  const [syncDir, setSyncDir] = useState("");
-  const [gitRemote, setGitRemote] = useState("");
   const [claudeEnabled, setClaudeEnabled] = useState(false);
   const [cursorEnabled, setCursorEnabled] = useState(false);
   const [appMeta, setAppMeta] = useState<AppMeta | null>(null);
+  const syncDir = gitStatus?.sync_dir ?? "";
+  const gitRemote = gitStatus?.git_remote ?? "";
   const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
 
   useEffect(() => {
     invoke<DesktopSettings>("get_settings").then(setSettings).catch(console.error);
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
-    invoke<{ sync_dir: string; git_remote: string }>("get_status").then((s) => {
-      setSyncDir(s.sync_dir);
-      setGitRemote(s.git_remote);
-    }).catch(console.error);
     invoke<boolean>("get_claude_integration_status").then(setClaudeEnabled).catch(console.error);
     invoke<boolean>("get_cursor_integration_status").then(setCursorEnabled).catch(console.error);
     invoke<AppMeta>("get_app_meta").then(setAppMeta).catch(console.error);

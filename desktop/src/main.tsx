@@ -4,9 +4,7 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { I18nProvider } from "./hooks/useI18n";
-import { SyncProvider } from "./hooks/useSync";
-import { ToastProvider } from "./hooks/useToast";
+import { initSyncListeners } from "./hooks/useSync";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "./index.css";
@@ -19,6 +17,9 @@ window.addEventListener("unhandledrejection", (e) => {
   console.error("[UnhandledRejection]", e.reason);
 });
 
+// Initialize zustand store side effects (event listeners, initial data load)
+initSyncListeners();
+
 const theme = createTheme({
   primaryColor: "blue",
   fontFamily: "inherit",
@@ -29,13 +30,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <ErrorBoundary>
       <MantineProvider theme={theme} defaultColorScheme="auto">
         <Notifications position="bottom-center" autoClose={2500} />
-        <I18nProvider>
-          <SyncProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
-          </SyncProvider>
-        </I18nProvider>
+        <App />
       </MantineProvider>
     </ErrorBoundary>
   </React.StrictMode>

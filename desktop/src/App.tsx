@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { notify } from "./utils/notify";
 import Sidebar from "./components/Sidebar";
@@ -27,27 +26,37 @@ function App() {
   const platform = usePlatform();
   const isMobile = platform === "mobile";
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+  const [visitedPages, setVisitedPages] = useState<Set<Page>>(() => new Set<Page>(["dashboard"]));
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [sidebarFocused, setSidebarFocused] = useState(false);
   const [enterContentTrigger, setEnterContentTrigger] = useState(0);
   const [openFilePath, setOpenFilePath] = useState<string | null>(null);
   const [initialized, setInitialized] = useState<boolean | null>(null);
   const sync = useSync();
+  const { gitStatus } = sync;
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem("gitmemo-theme") as Theme) || "dark";
   });
+
+  // Lazy-mount: track visited pages so they stay mounted once opened
+  useEffect(() => {
+    setVisitedPages(prev => {
+      if (prev.has(currentPage)) return prev;
+      return new Set([...prev, currentPage]);
+    });
+  }, [currentPage]);
 
   const navigateAndFocus = useCallback((page: Page) => {
     setCurrentPage(page);
     setFocusTrigger((n) => n + 1);
   }, []);
 
-  // Check initialization on mount
+  // Derive initialization state from global gitStatus
   useEffect(() => {
-    invoke<{ initialized: boolean }>("get_status")
-      .then((st) => setInitialized(st.initialized))
-      .catch(() => setInitialized(false));
-  }, []);
+    if (gitStatus) {
+      setInitialized(gitStatus.initialized);
+    }
+  }, [gitStatus]);
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => {
@@ -154,14 +163,14 @@ function App() {
     <NotInitialized />
   ) : (
     <>
-      {currentPage === "dashboard" && <DashboardPage onNavigate={setCurrentPage} />}
-      {currentPage === "conversations" && <ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} />}
-      {currentPage === "notes" && <NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-      {currentPage === "clipboard" && <ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-      {currentPage === "plans" && <PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-      {currentPage === "claude-config" && <ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} />}
-      {currentPage === "search" && <SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} />}
-      {currentPage === "settings" && <SettingsPage theme={theme} onToggleTheme={toggleTheme} />}
+      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "contents" : "none" }}><DashboardPage onNavigate={setCurrentPage} /></div>}
+      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "contents" : "none" }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} /></div>}
+      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "contents" : "none" }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "contents" : "none" }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "contents" : "none" }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "contents" : "none" }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "contents" : "none" }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
+      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "contents" : "none" }}><SettingsPage theme={theme} onToggleTheme={toggleTheme} /></div>}
     </>
   );
 
