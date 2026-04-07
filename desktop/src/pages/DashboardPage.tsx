@@ -80,18 +80,22 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
   const [error, setError] = useState("");
   const [reviewItem, setReviewItem] = useState<RecentItem | null>(null);
   const [reviewPreview, setReviewPreview] = useState("");
+  const [editorConfigured, setEditorConfigured] = useState(false);
 
   // Load content stats only (no git status — that comes from global useSync)
   const loadData = useCallback(async () => {
     try {
-      const [s, cs, r] = await Promise.all([
+      const [s, cs, r, claude, cursor] = await Promise.all([
         invoke<AppStats>("get_stats"),
         invoke<ClipboardStatus>("get_clipboard_status").catch(() => null),
         invoke<RecentItem[]>("get_recent_activity").catch(() => []),
+        invoke<boolean>("get_claude_integration_status").catch(() => false),
+        invoke<boolean>("get_cursor_integration_status").catch(() => false),
       ]);
       setStats(s);
       setClipStatus(cs);
       setRecent(r);
+      setEditorConfigured(claude || cursor);
       saveCache({ stats: s, clipStatus: cs, recent: r });
       // Load review item
       invoke<RecentItem | null>("get_review_item").then(item => {
@@ -214,6 +218,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
         onWriteNote={() => onNavigate?.("notes")}
         hasNotes={(stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes) > 0}
         clipboardActive={clipStatus?.watching ?? false}
+        editorConfigured={editorConfigured}
       />
 
       {/* Stat Cards */}

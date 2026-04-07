@@ -41,11 +41,13 @@ export function OnboardingChecklist({
   onWriteNote,
   hasNotes,
   clipboardActive,
+  editorConfigured,
 }: {
   onNavigate: (page: Page) => void;
   onWriteNote: () => void;
   hasNotes: boolean;
   clipboardActive: boolean;
+  editorConfigured: boolean;
 }) {
   const { t } = useI18n();
   const { gitStatus } = useSync();
@@ -72,13 +74,17 @@ export function OnboardingChecklist({
       completed.add("remote");
       changed = true;
     }
+    if (editorConfigured && !completed.has("editor")) {
+      completed.add("editor");
+      changed = true;
+    }
 
     if (changed) {
       const newState = { ...state, completed: Array.from(completed) };
       setState(newState);
       saveState(newState);
     }
-  }, [hasNotes, clipboardActive, gitStatus]);
+  }, [hasNotes, clipboardActive, gitStatus, editorConfigured]);
 
   const markCompleted = useCallback((id: string) => {
     setState(prev => {
