@@ -40,7 +40,9 @@
     "noActivity": "暂无动态",
     "viewAll": "查看全部",
     "todayReview": "知识回顾",
-    "shuffle": "换一条"
+    "shuffle": "换一条",
+    "emptyGuideTitle": "开始积累你的知识库",
+    "emptyGuideDesc": "写一条笔记、或在 Claude Code / Cursor 中对话，内容会自动出现在这里。"
   },
   "conversations": {
     "title": "对话",
@@ -132,6 +134,7 @@
     "remoteRepo": "远程仓库",
     "remoteRepoDesc": "用于同步的 Git 远程地址",
     "noRemote": "未配置",
+    "addRemote": "添加",
     "claudeIntegration": "Claude Code 集成",
     "claudeIntegrationDesc": "自动保存对话记录 & 同步计划文件",
     "cursorIntegration": "Cursor IDE 集成",
@@ -203,6 +206,7 @@
   "onboarding": {
     "title": "开始使用 GitMemo",
     "dismiss": "跳过",
+    "allDone": "全部完成！",
     "installDone": "安装完成",
     "installDoneDesc": "GitMemo 已设置就绪",
     "writeNote": "写下第一条笔记",
@@ -245,7 +249,9 @@
     "complete": "设置完成！",
     "completeDesc": "GitMemo 已就绪，开始收集你的知识吧。",
     "sshKeyTitle": "SSH 公钥",
-    "sshKeyHint": "请将此公钥添加到 Git 托管平台的 Deploy Keys（需要写权限）。",
+    "sshKeyHint": "请将此公钥添加到 Git 托管平台的 Deploy Keys。",
+    "sshWriteAccess": "请确保勾选「Allow write access」，否则无法推送。",
+    "openDeployKeys": "打开 GitHub Deploy Keys 页面",
     "copy": "复制",
     "copied": "已复制！",
     "enterApp": "进入 GitMemo"

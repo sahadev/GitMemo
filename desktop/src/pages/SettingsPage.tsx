@@ -60,7 +60,7 @@ interface SettingsPageProps {
 export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
-  const { gitStatus } = useSync();
+  const { gitStatus, refreshGitStatus } = useSync();
   const [settings, setSettings] = useState<DesktopSettings | null>(null);
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
@@ -71,6 +71,8 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
   const syncDir = gitStatus?.sync_dir ?? "";
   const gitRemote = gitStatus?.git_remote ?? "";
   const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
+  const [editingRemote, setEditingRemote] = useState(false);
+  const [remoteInput, setRemoteInput] = useState("");
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
 
@@ -150,6 +152,22 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
       setBranch(trimmed);
       setEditingBranch(false);
       showToast(msg);
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const saveRemote = async () => {
+    const trimmed = remoteInput.trim();
+    if (trimmed === gitRemote) {
+      setEditingRemote(false);
+      return;
+    }
+    try {
+      await invoke<string>("set_remote", { url: trimmed });
+      setEditingRemote(false);
+      showToast("Saved");
+      refreshGitStatus();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -396,42 +414,66 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.remoteRepoDesc")}</p>
               </div>
             </div>
-            {gitRemote ? (
+            {editingRemote ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  autoFocus
+                  value={remoteInput}
+                  onChange={(e) => setRemoteInput(e.target.value)}
+                  onBlur={saveRemote}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveRemote();
+                    if (e.key === "Escape") { setEditingRemote(false); setRemoteInput(gitRemote); }
+                  }}
+                  placeholder="git@github.com:user/repo.git"
+                  style={{
+                    width: 280, padding: "4px 8px", borderRadius: 4, fontSize: 11,
+                    background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
+                    fontFamily: "ui-monospace, monospace",
+                  }}
+                />
+              </div>
+            ) : gitRemote ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => void copyValue(gitRemote, "gitRemote")}
+                  title={t("common.clickToCopy")}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    maxWidth: 280, padding: "4px 8px", borderRadius: 6,
+                    border: "1px solid var(--border)", background: "var(--bg)",
+                    color: "var(--text-secondary)", cursor: "pointer",
+                  }}
+                >
+                  {copiedField === "gitRemote" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
+                  <span style={{
+                    fontSize: 11, fontFamily: "ui-monospace, monospace",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }} title={gitRemote}>
+                    {gitRemote}
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setRemoteInput(gitRemote); setEditingRemote(true); }}
+                  style={{
+                    padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                    background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                  }}
+                >
+                  {t("conversations.edit")}
+                </button>
+              </div>
+            ) : (
               <button
-                type="button"
-                onClick={() => void copyValue(gitRemote, "gitRemote")}
-                title={t("common.clickToCopy")}
+                onClick={() => { setRemoteInput(""); setEditingRemote(true); }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  maxWidth: 340,
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border)",
-                  background: "var(--bg)",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
+                  padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                  background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
                 }}
               >
-                {copiedField === "gitRemote" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
-                <span style={{
-                  fontSize: 11,
-                  fontFamily: "ui-monospace, monospace",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }} title={gitRemote}>
-                  {gitRemote}
-                </span>
+                {t("settings.addRemote")}
               </button>
-            ) : (
-              <span style={{
-                fontSize: 11, color: "var(--text-secondary)", fontFamily: "ui-monospace, monospace",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300,
-              }}>
-                {t("settings.noRemote")}
-              </span>
             )}
           </div>
         </div>

@@ -13,7 +13,6 @@ import SettingsPage from "./pages/SettingsPage";
 import ConversationsPage from "./pages/ConversationsPage";
 import PlansPage from "./pages/PlansPage";
 import ClaudeConfigPage from "./pages/ClaudeConfigPage";
-import { NotInitialized } from "./components/NotInitialized";
 import { SetupWizard } from "./components/SetupWizard";
 import { useSync } from "./hooks/useSync";
 import { usePlatform } from "./hooks/usePlatform";
@@ -191,7 +190,7 @@ function App() {
       height: "100vh",
       width: "100vw",
     }}>
-      {!isMobile && (
+      {!isMobile && initialized !== false && (
         <Sidebar
           currentPage={currentPage}
           onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}

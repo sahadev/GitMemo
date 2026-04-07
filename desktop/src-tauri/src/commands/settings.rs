@@ -152,6 +152,44 @@ pub fn set_branch(name: String) -> Result<String, String> {
     Ok(format!("{} → {}", old, name))
 }
 
+#[tauri::command]
+pub fn set_remote(url: String) -> Result<String, String> {
+    let config_path = gitmemo_core::utils::config::Config::config_path();
+    let mut config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+    config.git.remote = url.clone();
+    config.save(&config_path).map_err(|e| e.to_string())?;
+
+    let sync_dir = files::sync_dir();
+    // Update git remote
+    if url.is_empty() {
+        // Remove remote if URL is empty
+        let _ = std::process::Command::new("git")
+            .args(["remote", "remove", "origin"])
+            .current_dir(&sync_dir)
+            .output();
+    } else {
+        // Check if origin exists
+        let check = std::process::Command::new("git")
+            .args(["remote", "get-url", "origin"])
+            .current_dir(&sync_dir)
+            .output();
+        if check.map(|o| o.status.success()).unwrap_or(false) {
+            let _ = std::process::Command::new("git")
+                .args(["remote", "set-url", "origin", &url])
+                .current_dir(&sync_dir)
+                .output();
+        } else {
+            let _ = std::process::Command::new("git")
+                .args(["remote", "add", "origin", &url])
+                .current_dir(&sync_dir)
+                .output();
+        }
+        git::setup_tracking(&sync_dir, &config.git.branch);
+    }
+
+    Ok("ok".to_string())
+}
+
 const CLAUDE_MARKER_START: &str = "<!-- [gitmemo:start] -->";
 const CLAUDE_MARKER_END: &str = "<!-- [gitmemo:end] -->";
 

@@ -40,7 +40,9 @@
     "noActivity": "No activity yet",
     "viewAll": "View all",
     "todayReview": "Revisit",
-    "shuffle": "Shuffle"
+    "shuffle": "Shuffle",
+    "emptyGuideTitle": "Start building your knowledge base",
+    "emptyGuideDesc": "Write a note or chat with Claude Code / Cursor — content will appear here automatically."
   },
   "conversations": {
     "title": "Conversations",
@@ -132,6 +134,7 @@
     "remoteRepo": "Remote repository",
     "remoteRepoDesc": "Git remote for syncing",
     "noRemote": "Not configured",
+    "addRemote": "Add",
     "claudeIntegration": "Claude Code integration",
     "claudeIntegrationDesc": "Auto-save conversations & sync plans via CLAUDE.md",
     "cursorIntegration": "Cursor IDE integration",
@@ -203,6 +206,7 @@
   "onboarding": {
     "title": "Get Started with GitMemo",
     "dismiss": "Skip",
+    "allDone": "All done!",
     "installDone": "Installation complete",
     "installDoneDesc": "GitMemo is set up and ready to use",
     "writeNote": "Write your first note",
@@ -245,7 +249,9 @@
     "complete": "You're all set!",
     "completeDesc": "GitMemo is ready. Start capturing your knowledge.",
     "sshKeyTitle": "SSH Public Key",
-    "sshKeyHint": "Add this key to your Git hosting provider's Deploy Keys (with write access).",
+    "sshKeyHint": "Add this key to your Git hosting provider's Deploy Keys.",
+    "sshWriteAccess": "Make sure to check 'Allow write access' — push will fail without it.",
+    "openDeployKeys": "Open GitHub Deploy Keys",
     "copy": "Copy",
     "copied": "Copied!",
     "enterApp": "Enter GitMemo"

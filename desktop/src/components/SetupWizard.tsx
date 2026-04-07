@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n, Locale } from "../hooks/useI18n";
 import {
   Globe, HardDrive, Cloud, GitBranch, Code2, Check, ChevronRight,
-  Loader2, Copy, AlertCircle, Rocket,
+  Loader2, Copy, AlertCircle, Rocket, ExternalLink,
 } from "lucide-react";
 
 interface InitStep {
@@ -524,6 +525,29 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                     <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>
                       {t("setup.sshKeyHint")}
                     </p>
+                    <p style={{
+                      fontSize: 11, color: "var(--yellow, #fbbf24)", marginTop: 6, fontWeight: 600,
+                    }}>
+                      {t("setup.sshWriteAccess")}
+                    </p>
+                    {gitUrl.includes("github.com") && (() => {
+                      const match = gitUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+                      if (!match) return null;
+                      const deployUrl = `https://github.com/${match[1]}/${match[2]}/settings/keys/new`;
+                      return (
+                        <button
+                          onClick={() => void openUrl(deployUrl)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            marginTop: 8, padding: "6px 12px", borderRadius: 6,
+                            border: "1px solid var(--border)", background: "transparent",
+                            color: "var(--accent)", fontSize: 11, cursor: "pointer",
+                          }}
+                        >
+                          <ExternalLink size={12} /> {t("setup.openDeployKeys")}
+                        </button>
+                      );
+                    })()}
                   </div>
                 )}
 

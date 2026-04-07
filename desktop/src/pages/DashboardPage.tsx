@@ -109,6 +109,11 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
             .catch(() => {});
         }
       }).catch(() => {});
+      // Check editor integration status
+      Promise.all([
+        invoke<boolean>("get_claude_integration_status").catch(() => false),
+        invoke<boolean>("get_cursor_integration_status").catch(() => false),
+      ]).then(([claude, cursor]) => setEditorConfigured(claude || cursor)).catch(() => {});
     } catch (e) {
       setError(`${e}`);
     }
@@ -250,6 +255,18 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
           );
         })}
       </div>
+
+      {/* Empty state guide */}
+      {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips === 0 && recent.length === 0 && (
+        <div style={{
+          padding: "20px 24px", borderRadius: 10, marginBottom: 16,
+          border: "1px dashed var(--accent)40", background: "var(--accent)06",
+          textAlign: "center",
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t("dashboard.emptyGuideTitle")}</p>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>{t("dashboard.emptyGuideDesc")}</p>
+        </div>
+      )}
 
       {/* Git Info — 2 columns */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
