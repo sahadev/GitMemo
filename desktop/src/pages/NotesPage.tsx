@@ -5,7 +5,6 @@ import { Loading } from "../components/Loading";
 import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { TagEditor } from "../components/TagEditor";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -433,12 +432,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 </div>
               )}
             </div>
-            {/* Tags */}
-            {selectedFile && !editing && (
-              <div style={{ padding: "6px 28px", borderBottom: "1px solid var(--border)" }}>
-                <TagEditor filePath={selectedFile} compact />
-              </div>
-            )}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
               {editing ? (
                 <textarea

@@ -106,13 +106,7 @@
     "emptyTitle": "全文搜索所有数据",
     "emptyHint": "Cmd+Shift+G 随时搜索",
     "noResults": "未找到 \"{0}\" 的结果",
-    "results": "{0} 条结果",
-    "filterAll": "全部",
-    "filter_conversation": "对话",
-    "filter_note": "笔记",
-    "filter_clip": "剪贴板",
-    "filter_plan": "计划",
-    "recentSearches": "最近搜索"
+    "results": "{0} 条结果"
   },
   "plans": {
     "delete": "删除",

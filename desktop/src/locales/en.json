@@ -106,13 +106,7 @@
     "emptyTitle": "Full-text search across all your data",
     "emptyHint": "Cmd+Shift+G to search from anywhere",
     "noResults": "No results for \"{0}\"",
-    "results": "{0} results",
-    "filterAll": "All",
-    "filter_conversation": "Conversations",
-    "filter_note": "Notes",
-    "filter_clip": "Clips",
-    "filter_plan": "Plans",
-    "recentSearches": "Recent searches"
+    "results": "{0} results"
   },
   "plans": {
     "delete": "Delete",

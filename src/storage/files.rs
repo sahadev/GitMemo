@@ -30,7 +30,7 @@ pub fn create_directory_structure(base: &Path) -> Result<()> {
     // Create .gitignore
     std::fs::write(
         base.join(".gitignore"),
-        ".metadata/\n.ssh/\n.backups/\n.trash/\n",
+        ".metadata/\n.ssh/\n.backups/\n",
     )?;
 
     Ok(())

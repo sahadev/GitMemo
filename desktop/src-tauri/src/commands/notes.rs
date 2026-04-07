@@ -387,52 +387,6 @@ pub fn update_note(file_path: String, content: String) -> Result<NoteResult, Str
     })
 }
 
-/// Move a file to .trash/ instead of permanently deleting it.
-/// The .trash/ directory is gitignored, so trashed files won't be committed.
-/// Files are kept for 7 days, then cleaned up.
-fn move_to_trash(dir: &Path, rel_path: &str) -> Result<(), String> {
-    let full_path = dir.join(rel_path);
-    if !full_path.exists() {
-        return Ok(());
-    }
-
-    let trash_dir = dir.join(".trash");
-    let now = chrono::Local::now();
-    let date_prefix = now.format("%Y%m%d-%H%M%S").to_string();
-
-    // Preserve directory structure under .trash/
-    let trash_path = trash_dir.join(format!("{}-{}", date_prefix, rel_path.replace('/', "__")));
-    if let Some(parent) = trash_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    std::fs::rename(&full_path, &trash_path).map_err(|e| e.to_string())?;
-
-    // Auto-cleanup: remove files older than 7 days
-    cleanup_old_trash(&trash_dir);
-    Ok(())
-}
-
-/// Remove trash files older than 7 days
-fn cleanup_old_trash(trash_dir: &Path) {
-    if !trash_dir.exists() { return; }
-    let seven_days = std::time::Duration::from_secs(7 * 24 * 60 * 60);
-    let now = std::time::SystemTime::now();
-
-    if let Ok(entries) = std::fs::read_dir(trash_dir) {
-        for entry in entries.flatten() {
-            if let Ok(meta) = entry.metadata() {
-                if let Ok(modified) = meta.modified() {
-                    if let Ok(age) = now.duration_since(modified) {
-                        if age > seven_days {
-                            let _ = std::fs::remove_file(entry.path());
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 #[tauri::command]
 pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
     let dir = sync_dir();
@@ -441,7 +395,7 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
         return Err(format!("File not found: {}", file_path));
     }
 
-    move_to_trash(&dir, &file_path)?;
+    std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
     refresh_index(&dir);
     bg_commit_and_push(format!("delete: {}", file_path));
 
@@ -471,7 +425,6 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
         return Err(format!("File not found: {}", file_path));
     }
 
-    // Move associated image to trash too
     if let Ok(content) = std::fs::read_to_string(&full_path) {
         if frontmatter_value(&content, "source") == Some("clipboard-image") {
             let body = if content.starts_with("---") {
@@ -485,18 +438,16 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
             };
             if let Some(img_name) = extract_markdown_image_path(body) {
                 if !img_name.contains("..") && !img_name.contains('/') {
-                    let img_rel = if let Some(parent) = Path::new(&norm).parent() {
-                        format!("{}/{}", parent.display(), img_name)
-                    } else {
-                        img_name
-                    };
-                    let _ = move_to_trash(&dir, &img_rel);
+                    let png_path = full_path.parent().unwrap_or(&dir).join(&img_name);
+                    if png_path.is_file() {
+                        let _ = std::fs::remove_file(&png_path);
+                    }
                 }
             }
         }
     }
 
-    move_to_trash(&dir, &norm)?;
+    std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
     refresh_index(&dir);
     bg_commit_and_push(format!("delete clip: {}", norm));
 

@@ -64,9 +64,6 @@ pub fn run() {
             search::recent_conversations,
             search::reindex,
             search::fuzzy_search_files,
-            search::get_all_tags,
-            search::update_file_tags,
-            search::toggle_star,
             // Stats
             stats::get_stats,
             stats::get_status,

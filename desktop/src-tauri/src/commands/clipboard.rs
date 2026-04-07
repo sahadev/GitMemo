@@ -184,54 +184,6 @@ pub(crate) mod desktop_poll {
     const MIN_LENGTH: usize = 10;
     const POLL_INTERVAL_MS: u64 = 300;
 
-    /// Check if clipboard content looks like a sensitive secret that should not be saved
-    fn is_sensitive_content(text: &str) -> bool {
-        let trimmed = text.trim();
-        // API keys and tokens (common patterns)
-        let patterns: &[&str] = &[
-            "sk-",       // OpenAI / Anthropic
-            "sk-ant-",   // Anthropic
-            "ghp_",      // GitHub personal access token
-            "gho_",      // GitHub OAuth
-            "ghs_",      // GitHub server-to-server
-            "ghu_",      // GitHub user-to-server
-            "github_pat_", // GitHub fine-grained
-            "glpat-",    // GitLab personal access
-            "xoxb-",     // Slack bot token
-            "xoxp-",     // Slack user token
-            "xapp-",     // Slack app token
-            "AKIA",      // AWS access key
-            "eyJ",       // JWT token (base64 JSON)
-            "npm_",      // npm token
-            "pypi-",     // PyPI token
-        ];
-
-        for pat in patterns {
-            if trimmed.starts_with(pat) {
-                return true;
-            }
-        }
-
-        // Single-line content that looks like a password or token
-        // (no spaces, no newlines, 16-128 chars, high entropy)
-        if !trimmed.contains(' ') && !trimmed.contains('\n') {
-            let len = trimmed.len();
-            if len >= 16 && len <= 128 {
-                let has_upper = trimmed.chars().any(|c| c.is_ascii_uppercase());
-                let has_lower = trimmed.chars().any(|c| c.is_ascii_lowercase());
-                let has_digit = trimmed.chars().any(|c| c.is_ascii_digit());
-                let has_special = trimmed.chars().any(|c| !c.is_alphanumeric() && c != '-' && c != '_');
-                // If it has 3+ character classes and no spaces, likely a secret
-                let classes = [has_upper, has_lower, has_digit, has_special].iter().filter(|&&v| v).count();
-                if classes >= 3 {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
     fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
         now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
     }
@@ -291,7 +243,7 @@ pub(crate) mod desktop_poll {
                         if !file_paths.is_empty() {
                             *last_text_hash = hash;
                             pending.push(PendingClip::Files(file_paths));
-                        } else if text.len() >= MIN_LENGTH && !is_sensitive_content(&text) {
+                        } else if text.len() >= MIN_LENGTH {
                             *last_text_hash = hash;
                             pending.push(PendingClip::Text(text));
                         }

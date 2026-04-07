@@ -5,8 +5,6 @@ import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { TagEditor } from "../components/TagEditor";
-import { StarButton } from "../components/StarButton";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -405,7 +403,6 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                 </span>
               )}
               {selectedFile && !editing ? <CopyPathButton relPath={selectedFile} /> : null}
-              {selectedFile && !editing && <StarButton filePath={selectedFile} size={14} />}
               {editing ? (
                 <>
                   <button
@@ -457,13 +454,6 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                 <Trash2 size={14} />
               </button>
             </div>
-
-            {/* Tags */}
-            {selectedFile && !editing && (
-              <div style={{ padding: "6px 24px", borderBottom: "1px solid var(--border)" }}>
-                <TagEditor filePath={selectedFile} compact />
-              </div>
-            )}
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", userSelect: "text" }}>

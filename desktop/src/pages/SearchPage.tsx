@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2, Clock, Lightbulb } from "lucide-react";
+import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { TagEditor } from "../components/TagEditor";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
@@ -18,29 +17,6 @@ interface SearchResultItem {
 }
 
 const SEARCH_STATE_KEY = "gitmemo-search-state";
-const SEARCH_HISTORY_KEY = "gitmemo-search-history";
-const MAX_HISTORY = 10;
-
-type TypeFilter = "all" | "conversation" | "note" | "clip" | "plan";
-
-const TYPE_FILTERS: { key: TypeFilter; icon: typeof Search; color: string }[] = [
-  { key: "all", icon: Search, color: "var(--text-secondary)" },
-  { key: "conversation", icon: MessageSquare, color: "var(--accent)" },
-  { key: "note", icon: StickyNote, color: "var(--green)" },
-  { key: "clip", icon: Clipboard, color: "#f472b6" },
-  { key: "plan", icon: Lightbulb, color: "var(--yellow)" },
-];
-
-function loadSearchHistory(): string[] {
-  try {
-    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveSearchHistory(history: string[]) {
-  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
-}
 
 export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }: { focusTrigger?: number; openFilePath?: string | null; onFileOpened?: () => void }) {
   const { t } = useI18n();
@@ -53,8 +29,6 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
   const [fileContent, setFileContent] = useState("");
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [searchHistory, setSearchHistory] = useState<string[]>(loadSearchHistory);
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const imeComposingRef = useRef(false);
@@ -100,19 +74,13 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
     }));
   }, [query, results, searched, selectedFile]);
 
-  const handleSearch = async (overrideQuery?: string) => {
-    const q = (overrideQuery ?? query).trim();
-    if (!q) return;
+  const handleSearch = async () => {
+    if (!query.trim()) return;
     setLoading(true);
     setSearched(true);
     try {
-      const filterVal = typeFilter === "all" ? null : typeFilter;
-      const res = await invoke<SearchResultItem[]>("search_all", { query: q, typeFilter: filterVal, limit: 30 });
+      const res = await invoke<SearchResultItem[]>("search_all", { query: query.trim(), typeFilter: null, limit: 30 });
       setResults(res);
-      // Save to history
-      const newHistory = [q, ...searchHistory.filter(h => h !== q)].slice(0, MAX_HISTORY);
-      setSearchHistory(newHistory);
-      saveSearchHistory(newHistory);
     } catch (e) { console.error(e); setResults([]); }
     finally { setLoading(false); }
   };
@@ -233,12 +201,6 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
             </button>
           </div>
         </div>
-        {/* Tags */}
-        {selectedFile && !editing && (
-          <div style={{ padding: "6px 20px", borderBottom: "1px solid var(--border)" }}>
-            <TagEditor filePath={selectedFile} compact />
-          </div>
-        )}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
           {editing ? (
             <textarea
@@ -269,7 +231,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Search Bar */}
-      <div style={{ padding: "20px 28px 0" }}>
+      <div style={{ padding: "20px 28px 16px" }}>
         <div style={{ position: "relative" }}>
           <Search
             size={16}
@@ -297,57 +259,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
             }}
           />
         </div>
-
-        {/* Type filter chips */}
-        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-          {TYPE_FILTERS.map(f => {
-            const Icon = f.icon;
-            const active = typeFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                onClick={() => { setTypeFilter(f.key); if (searched) void handleSearch(); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 4,
-                  padding: "4px 10px", borderRadius: 14,
-                  border: `1px solid ${active ? f.color : "var(--border)"}`,
-                  background: active ? `${f.color}15` : "transparent",
-                  color: active ? f.color : "var(--text-secondary)",
-                  fontSize: 11, fontWeight: 500, cursor: "pointer",
-                }}
-              >
-                <Icon size={11} />
-                {f.key === "all" ? t("search.filterAll") : t(`search.filter_${f.key}`)}
-              </button>
-            );
-          })}
-        </div>
       </div>
-
-      {/* Search history (when not searched yet) */}
-      {!searched && searchHistory.length > 0 && (
-        <div style={{ padding: "12px 28px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Clock size={11} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("search.recentSearches")}</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {searchHistory.map(h => (
-              <button
-                key={h}
-                onClick={() => { setQuery(h); void handleSearch(h); }}
-                style={{
-                  padding: "4px 10px", borderRadius: 6,
-                  border: "1px solid var(--border)", background: "transparent",
-                  color: "var(--text)", fontSize: 12, cursor: "pointer",
-                }}
-              >
-                {h}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Results */}
       <div style={{ flex: 1, overflowY: "auto", padding: "0 28px 28px" }}>

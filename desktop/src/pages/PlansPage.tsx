@@ -5,8 +5,6 @@ import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { TagEditor } from "../components/TagEditor";
-import { StarButton } from "../components/StarButton";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -206,7 +204,6 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
                 {selectedFile}
               </span>
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-              {selectedFile && <StarButton filePath={selectedFile} size={14} />}
               <button
                 onClick={() => void handleDelete()}
                 style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}
@@ -215,12 +212,6 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
                 <Trash2 size={13} />
               </button>
             </div>
-            {/* Tags */}
-            {selectedFile && (
-              <div style={{ padding: "6px 20px", borderBottom: "1px solid var(--border)" }}>
-                <TagEditor filePath={selectedFile} compact />
-              </div>
-            )}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>

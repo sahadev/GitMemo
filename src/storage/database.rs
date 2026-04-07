@@ -37,8 +37,7 @@ fn init_schema(conn: &Connection) -> Result<()> {
             source_type TEXT NOT NULL,
             title       TEXT NOT NULL,
             created_at  TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            tags        TEXT NOT NULL DEFAULT ''
+            content_hash TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_docs_type ON documents(source_type);
         CREATE INDEX IF NOT EXISTS idx_docs_created ON documents(created_at);
@@ -51,8 +50,6 @@ fn init_schema(conn: &Connection) -> Result<()> {
         );
         ",
     )?;
-    // Add tags column if upgrading from older schema
-    let _ = conn.execute("ALTER TABLE documents ADD COLUMN tags TEXT NOT NULL DEFAULT ''", []);
     Ok(())
 }
 
@@ -103,7 +100,6 @@ fn frontmatter_tags(content: &str) -> String {
 pub fn index_file(conn: &Connection, file_path: &str, source_type: &str, title: &str, content: &str, date: &str) -> Result<()> {
     let hash = content_hash(content);
     let id = content_hash(file_path);
-    let tags = frontmatter_tags(content);
 
     // Check if already indexed with same hash
     let existing_hash: Option<String> = conn
@@ -120,8 +116,8 @@ pub fn index_file(conn: &Connection, file_path: &str, source_type: &str, title: 
 
     // Upsert document
     conn.execute(
-        "INSERT OR REPLACE INTO documents (id, file_path, source_type, title, created_at, content_hash, tags) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![id, file_path, source_type, title, date, hash, tags],
+        "INSERT OR REPLACE INTO documents (id, file_path, source_type, title, created_at, content_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![id, file_path, source_type, title, date, hash],
     )?;
 
     // Update FTS index
