@@ -19,12 +19,64 @@ interface InitResult {
 }
 
 type WizardStep = "language" | "storage" | "git_url" | "editors" | "running" | "done";
+type GitPlatform = "github" | "gitlab" | "gitee" | "bitbucket" | "other";
+
+const PLATFORM_META: Record<GitPlatform, {
+  label: string;
+  placeholder: string;
+  repoLimit: string;
+  fileLimit: string;
+  freeStorage: string;
+  color: string;
+}> = {
+  github: {
+    label: "GitHub",
+    placeholder: "git@github.com:user/gitmemo-data.git",
+    repoLimit: "< 5GB",
+    fileLimit: "100MB",
+    freeStorage: "unlimited",
+    color: "#24292e",
+  },
+  gitlab: {
+    label: "GitLab",
+    placeholder: "git@gitlab.com:user/gitmemo-data.git",
+    repoLimit: "10GB",
+    fileLimit: "—",
+    freeStorage: "5GB",
+    color: "#fc6d26",
+  },
+  gitee: {
+    label: "Gitee",
+    placeholder: "git@gitee.com:user/gitmemo-data.git",
+    repoLimit: "500MB",
+    fileLimit: "100MB",
+    freeStorage: "5GB",
+    color: "#c71d23",
+  },
+  bitbucket: {
+    label: "Bitbucket",
+    placeholder: "git@bitbucket.org:user/gitmemo-data.git",
+    repoLimit: "4GB",
+    fileLimit: "—",
+    freeStorage: "1GB",
+    color: "#0052cc",
+  },
+  other: {
+    label: "Other",
+    placeholder: "git@your-server.com:user/gitmemo-data.git",
+    repoLimit: "—",
+    fileLimit: "—",
+    freeStorage: "—",
+    color: "#6b7280",
+  },
+};
 
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const { t, locale, setLocale } = useI18n();
   const [step, setStep] = useState<WizardStep>("language");
   const [lang, setLang] = useState<Locale>(locale);
   const [storageMode, setStorageMode] = useState<"local" | "remote">("local");
+  const [platform, setPlatform] = useState<GitPlatform | null>(null);
   const [gitUrl, setGitUrl] = useState("");
   const [editors, setEditors] = useState<string[]>([]);
   const [result, setResult] = useState<InitResult | null>(null);
@@ -217,27 +269,82 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
             {storageMode === "remote" && (
               <div style={{ marginBottom: 16 }}>
-                <input
-                  type="text"
-                  value={gitUrl}
-                  onChange={e => setGitUrl(e.target.value)}
-                  placeholder="git@github.com:user/gitmemo-data.git"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    background: "var(--bg-input)",
-                    color: "var(--text)",
-                    fontSize: 13,
-                    fontFamily: "ui-monospace, monospace",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
-                  {t("setup.gitUrlHint")}
+                {/* Platform selector */}
+                <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
+                  {t("setup.platformTitle")}
                 </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {(Object.keys(PLATFORM_META) as GitPlatform[]).map(p => {
+                    const meta = PLATFORM_META[p];
+                    const selected = platform === p;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => { setPlatform(p); if (!gitUrl) setGitUrl(""); }}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                          background: selected ? "var(--accent)10" : "transparent",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                          textAlign: "left",
+                          ...(p === "other" ? { gridColumn: "1 / -1" } : {}),
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{
+                            width: 8, height: 8, borderRadius: 4,
+                            background: meta.color, flexShrink: 0,
+                          }} />
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>
+                            {p === "other" ? t("setup.platformOther") : meta.label}
+                          </span>
+                          {selected && <Check size={14} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
+                        </div>
+                        {p !== "other" && (
+                          <div style={{ fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.5, paddingLeft: 14 }}>
+                            {t("setup.repoLimit")}: {meta.repoLimit}
+                            {" · "}
+                            {t("setup.fileLimit")}: {meta.fileLimit}
+                            {" · "}
+                            {t("setup.freeStorage")}: {meta.freeStorage}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Git URL input */}
+                {platform && (
+                  <>
+                    <input
+                      type="text"
+                      value={gitUrl}
+                      onChange={e => setGitUrl(e.target.value)}
+                      placeholder={PLATFORM_META[platform].placeholder}
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        background: "var(--bg-input)",
+                        color: "var(--text)",
+                        fontSize: 13,
+                        fontFamily: "ui-monospace, monospace",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                      {t("setup.gitUrlHint")}
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -248,9 +355,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               <button
                 style={{
                   ...btnPrimary,
-                  opacity: storageMode === "remote" && !gitUrl.trim() ? 0.5 : 1,
+                  opacity: storageMode === "remote" && (!platform || !gitUrl.trim()) ? 0.5 : 1,
                 }}
-                disabled={storageMode === "remote" && !gitUrl.trim()}
+                disabled={storageMode === "remote" && (!platform || !gitUrl.trim())}
                 onClick={() => setStep("editors")}
               >
                 {t("setup.next")} <ChevronRight size={16} />
