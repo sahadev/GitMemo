@@ -43,9 +43,9 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
   conversation: { icon: MessageSquare, color: "var(--accent)", page: "conversations" },
   daily: { icon: StickyNote, color: "var(--green)", page: "notes" },
   manual: { icon: BookOpen, color: "var(--yellow)", page: "notes" },
-  scratch: { icon: FileText, color: "#c084fc", page: "notes" },
-  clip: { icon: Clipboard, color: "#f472b6", page: "clipboard" },
-  plan: { icon: Lightbulb, color: "#fbbf24", page: "plans" },
+  scratch: { icon: FileText, color: "var(--purple)", page: "notes" },
+  clip: { icon: Clipboard, color: "var(--pink)", page: "clipboard" },
+  plan: { icon: Lightbulb, color: "var(--yellow)", page: "plans" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
@@ -160,9 +160,9 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
     { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" },
     { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)", page: "notes" },
     { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes" },
-    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc", page: "notes" },
-    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#fbbf24", page: "plans" },
+    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "var(--purple)", page: "notes" },
+    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "var(--pink)", page: "clipboard" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "plans" },
   ];
 
   const cardStyle = {
@@ -206,7 +206,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
             padding: "4px 12px", borderRadius: 20,
-            background: clipStatus.watching ? "#0f2d0f" : "var(--bg-hover)",
+            background: clipStatus.watching ? "var(--bg-success)" : "var(--bg-hover)",
             cursor: "pointer",
           }} onClick={() => onNavigate?.("clipboard")}>
             <Circle

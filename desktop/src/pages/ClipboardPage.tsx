@@ -265,7 +265,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
             {status && (
               <span style={{
                 padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 500,
-                background: status.watching ? "#0f2d0f" : "var(--bg-hover)",
+                background: status.watching ? "var(--bg-success)" : "var(--bg-hover)",
                 color: status.watching ? "var(--green)" : "var(--text-secondary)",
               }}>
                 {status.watching ? t("clipboard.watching") : t("clipboard.stopped")}
@@ -440,7 +440,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
                 style={{
                   display: "flex", alignItems: "center", gap: 4, padding: "5px 12px",
                   borderRadius: 6, fontSize: 12, cursor: "pointer",
-                  background: copiedId === "detail" ? "#0f2d0f" : "var(--bg)",
+                  background: copiedId === "detail" ? "var(--bg-success)" : "var(--bg)",
                   border: "1px solid var(--border)",
                   color: copiedId === "detail" ? "var(--green)" : "var(--text-secondary)",
                 }}

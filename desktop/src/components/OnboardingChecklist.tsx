@@ -162,7 +162,7 @@ export function OnboardingChecklist({
     {
       id: "note",
       icon: StickyNote,
-      iconColor: "#c084fc",
+      iconColor: "var(--purple)",
       labelKey: "onboarding.writeNote",
       descKey: "onboarding.writeNoteDesc",
       action: onWriteNote,
@@ -171,7 +171,7 @@ export function OnboardingChecklist({
     {
       id: "clipboard",
       icon: Clipboard,
-      iconColor: "#f472b6",
+      iconColor: "var(--pink)",
       labelKey: "onboarding.enableClipboard",
       descKey: "onboarding.enableClipboardDesc",
       action: startClipboard,

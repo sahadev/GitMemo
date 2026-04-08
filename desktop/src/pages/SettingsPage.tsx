@@ -28,7 +28,7 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
         width: 44,
         height: 24,
         borderRadius: 12,
-        background: enabled ? "var(--accent)" : "#333",
+        background: enabled ? "var(--accent)" : "var(--bg-hover)",
         position: "relative",
         border: "none",
         cursor: "pointer",
@@ -625,7 +625,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             width: "90%", maxWidth: 520, maxHeight: "70vh",
             background: "var(--bg-card)", border: "1px solid var(--border)",
             borderRadius: 8, display: "flex", flexDirection: "column",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+            boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3)",
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",

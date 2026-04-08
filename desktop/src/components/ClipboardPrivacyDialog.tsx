@@ -44,7 +44,7 @@ export function ClipboardPrivacyDialog({
           borderRadius: 8,
           background: "var(--bg-card)",
           border: "1px solid var(--border)",
-          boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
+          boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3)",
         }}
       >
         {/* Header */}

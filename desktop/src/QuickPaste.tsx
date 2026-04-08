@@ -329,7 +329,7 @@ export default function QuickPaste() {
           background: "rgba(30, 30, 30, 0.96)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 8,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.06)",
+          boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3), 0 0 0 0.5px rgba(255,255,255,0.06)",
           backdropFilter: "blur(40px) saturate(1.4)",
           overflow: "hidden",
         }}

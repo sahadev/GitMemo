@@ -31,7 +31,7 @@ function categoryIcon(cat: string) {
     case "Code":
       return <Code2 size={14} style={{ color: "var(--yellow)" }} />;
     case "Document":
-      return <File size={14} style={{ color: "#c084fc" }} />;
+      return <File size={14} style={{ color: "var(--purple)" }} />;
     default:
       return <File size={14} style={{ color: "var(--text-secondary)" }} />;
   }
@@ -125,7 +125,7 @@ export default function DropZone() {
               { icon: FileText, label: "Markdown → notes/", color: "var(--accent)" },
               { icon: Image, label: "Images → clips/", color: "var(--green)" },
               { icon: Code2, label: "Code → imports/code/", color: "var(--yellow)" },
-              { icon: File, label: "Docs → imports/docs/", color: "#c084fc" },
+              { icon: File, label: "Docs → imports/docs/", color: "var(--purple)" },
             ].map((item) => {
               const Icon = item.icon;
               return (

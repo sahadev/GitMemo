@@ -414,7 +414,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "#0f2d0f", color: "var(--green)", border: "none", cursor: "pointer" }}>
+                  <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>
                     <Save size={12} /> {t("notes.save")}
                   </button>
                   <button onClick={() => setEditing(false)} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>

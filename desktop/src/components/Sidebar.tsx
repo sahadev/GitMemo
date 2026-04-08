@@ -125,12 +125,12 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             background: syncing
               ? "linear-gradient(90deg, var(--bg-hover) 0%, var(--accent) 50%, var(--bg-hover) 100%)"
               : syncMsg
-              ? syncFailed ? "#2d0f0f" : "#0f2d0f"
+              ? syncFailed ? "var(--bg-danger)" : "var(--bg-success)"
               : "var(--bg)",
             backgroundSize: syncing ? "200% 100%" : undefined,
             animation: syncing ? "shimmer 1.5s linear infinite" : undefined,
             color: syncing ? "#fff" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--text-secondary)",
-            border: `1px solid ${syncing ? "transparent" : syncMsg ? (syncFailed ? "#5a2020" : "#205a20") : "var(--border)"}`,
+            border: `1px solid ${syncing ? "transparent" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--border)"}`,
             cursor: syncing ? "default" : "pointer",
             transition: "all 0.3s",
           }}
