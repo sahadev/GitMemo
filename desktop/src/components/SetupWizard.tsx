@@ -75,7 +75,7 @@ const PLATFORM_META: Record<GitPlatform, {
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const { t, locale, setLocale } = useI18n();
   const [step, setStep] = useState<WizardStep>("language");
-  const [lang, setLang] = useState<Locale>(locale);
+  const [lang, setLang] = useState<Locale>("en");
   const [storageMode, setStorageMode] = useState<"local" | "remote">("local");
   const [platform, setPlatform] = useState<GitPlatform | null>(null);
   const [gitUrl, setGitUrl] = useState("");
