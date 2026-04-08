@@ -618,6 +618,7 @@ pub fn ensure_repo_clean(repo_path: &Path) -> Result<bool> {
 
 /// Pull latest changes from remote (rebase mode).
 /// Auto-recovers from stuck rebase before attempting pull.
+/// Falls back to merge if rebase fails, then merge -X theirs if merge also fails.
 /// Returns Ok(true) on success, Err with message on failure.
 pub fn pull(repo_path: &Path) -> Result<bool> {
     // Health check: abort any stuck rebase/merge first
@@ -625,6 +626,7 @@ pub fn pull(repo_path: &Path) -> Result<bool> {
 
     let branch = configured_branch(repo_path);
 
+    // Strategy 1: pull --rebase (fast, clean history)
     let output = std::process::Command::new("git")
         .args(["pull", "--rebase", "origin", &branch])
         .current_dir(repo_path)
@@ -633,21 +635,82 @@ pub fn pull(repo_path: &Path) -> Result<bool> {
         .output();
 
     match output {
-        Ok(o) if o.status.success() => Ok(true),
+        Ok(o) if o.status.success() => return Ok(true),
         Ok(o) => {
             let stderr = String::from_utf8_lossy(&o.stderr).to_string();
-            // If pull caused a new stuck rebase, abort it immediately
             let _ = ensure_repo_clean(repo_path);
 
             if stderr.contains("Could not resolve host") || stderr.contains("unable to access") {
                 eprintln!("[gitmemo] Pull skipped: network unreachable");
-            } else {
-                eprintln!("[gitmemo] Pull failed: {}", stderr.trim());
+                return Ok(false);
             }
-            Ok(false)
+            eprintln!("[gitmemo] Rebase failed, trying merge fallback: {}", stderr.trim());
         }
         Err(e) => {
             eprintln!("[gitmemo] Pull command error: {}", e);
+            return Ok(false);
+        }
+    }
+
+    // Strategy 2: pull --no-rebase (merge, preserves both sides)
+    let output = std::process::Command::new("git")
+        .args(["pull", "--no-rebase", "origin", &branch])
+        .current_dir(repo_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            eprintln!("[gitmemo] Merge pull succeeded");
+            return Ok(true);
+        }
+        Ok(_) => {
+            // Merge had conflicts — abort and try strategy 3
+            let _ = std::process::Command::new("git")
+                .args(["merge", "--abort"])
+                .current_dir(repo_path)
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .output();
+            eprintln!("[gitmemo] Merge had conflicts, trying -X theirs");
+        }
+        Err(e) => {
+            eprintln!("[gitmemo] Merge pull error: {}", e);
+            return Ok(false);
+        }
+    }
+
+    // Strategy 3: fetch + merge -X theirs (auto-resolve conflicts, remote wins)
+    // For a personal notes repo this is safe: remote is the canonical source,
+    // local non-conflicting files are preserved.
+    let _ = std::process::Command::new("git")
+        .args(["fetch", "origin", &branch])
+        .current_dir(repo_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    let output = std::process::Command::new("git")
+        .args(["merge", "-X", "theirs", &format!("origin/{}", branch), "-m", "auto: merge remote (theirs)"])
+        .current_dir(repo_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            eprintln!("[gitmemo] Merge -X theirs succeeded, sync recovered");
+            Ok(true)
+        }
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            let _ = ensure_repo_clean(repo_path);
+            eprintln!("[gitmemo] All pull strategies failed: {}", stderr.trim());
+            Ok(false)
+        }
+        Err(e) => {
+            eprintln!("[gitmemo] Merge -X theirs error: {}", e);
             Ok(false)
         }
     }
