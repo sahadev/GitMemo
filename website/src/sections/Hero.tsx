@@ -8,7 +8,7 @@ export default function Hero() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-16 hero-grid overflow-hidden">
+    <section className="relative min-h-screen flex flex-col items-center justify-center px-6 hero-grid overflow-hidden">
       {/* Gradient glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse,rgba(0,122,255,0.12),transparent_60%)]" />
