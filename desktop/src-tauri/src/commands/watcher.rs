@@ -2,9 +2,12 @@ use gitmemo_core::storage::files;
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
+
+static WATCHER_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FilesChangedEvent {
@@ -28,9 +31,15 @@ fn classify_path(path: &Path, sync_dir: &Path) -> Option<String> {
 
 /// Start watching the sync directory for file changes.
 /// Emits `files-changed` events to the frontend with debouncing.
+/// Safe to call multiple times — only the first successful call starts a watcher.
 pub fn start_file_watcher(app_handle: AppHandle) {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
+        return;
+    }
+
+    // Prevent duplicate watchers
+    if WATCHER_RUNNING.swap(true, Ordering::SeqCst) {
         return;
     }
 
@@ -48,12 +57,14 @@ pub fn start_file_watcher(app_handle: AppHandle) {
             Ok(w) => w,
             Err(e) => {
                 eprintln!("[gitmemo] Failed to create file watcher: {}", e);
+                WATCHER_RUNNING.store(false, Ordering::SeqCst);
                 return;
             }
         };
 
         if let Err(e) = watcher.watch(&sync_dir, RecursiveMode::Recursive) {
             eprintln!("[gitmemo] Failed to watch {}: {}", sync_dir.display(), e);
+            WATCHER_RUNNING.store(false, Ordering::SeqCst);
             return;
         }
 
@@ -103,5 +114,13 @@ pub fn start_file_watcher(app_handle: AppHandle) {
                 }
             }
         }
+
+        WATCHER_RUNNING.store(false, Ordering::SeqCst);
     });
+}
+
+/// Tauri command to (re)start the file watcher after initialization.
+#[tauri::command]
+pub fn restart_file_watcher(app_handle: AppHandle) {
+    start_file_watcher(app_handle);
 }

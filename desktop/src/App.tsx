@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { notify } from "./utils/notify";
@@ -168,6 +169,8 @@ function App() {
     localStorage.removeItem("gitmemo-onboarding-state");
     setInitialized(true);
     sync.refreshGitStatus();
+    // Start file watcher (it may not have started if ~/.gitmemo didn't exist at launch)
+    invoke("restart_file_watcher").catch(() => {});
   }, [sync]);
 
   const pageContent = initialized === false && currentPage !== "settings" ? (
