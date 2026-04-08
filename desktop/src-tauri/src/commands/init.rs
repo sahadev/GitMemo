@@ -144,8 +144,8 @@ pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
         }
     }
 
-    // 6. Initial commit
-    match git::commit_and_push(&sync_dir, "init: gitmemo") {
+    // 6. Initial commit (skip push — user hasn't configured SSH key on remote yet)
+    match git::commit_only(&sync_dir, "init: gitmemo") {
         Ok(_) => result.add_ok("commit", "Initial commit created"),
         Err(e) => result.add_err("commit", &format!("Commit failed: {e}")),
     }

@@ -142,6 +142,33 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
 }
 
 /// Stage all changes, commit, and push. Returns sync result.
+/// Commit staged changes without pushing. Used during init when remote
+/// SSH keys may not be configured yet.
+pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
+    let _ = ensure_repo_clean(repo_path);
+    let repo = git2::Repository::open(repo_path)?;
+
+    let mut index = repo.index()?;
+    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    index.write()?;
+
+    let tree_id = index.write_tree()?;
+    let tree = repo.find_tree(tree_id)?;
+    let sig = git2::Signature::now("GitMemo", "bot@gitmemo.dev")?;
+
+    if let Ok(head) = repo.head() {
+        let parent = head.peel_to_commit()?;
+        if parent.tree()?.id() == tree_id {
+            return Ok(SyncResult::nothing());
+        }
+        repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent])?;
+    } else {
+        repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
+    }
+
+    Ok(SyncResult { committed: true, pushed: false, push_error: None })
+}
+
 pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
     // Health check first: abort any stuck rebase/merge
     let _ = ensure_repo_clean(repo_path);
