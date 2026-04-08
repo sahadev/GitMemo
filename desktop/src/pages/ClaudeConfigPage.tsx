@@ -136,7 +136,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
           <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.claudeConfig")}</span>
           <span style={{
             fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: 10,
+            padding: "2px 8px", borderRadius: 4,
           }}>
             {files.length}
           </span>
@@ -152,7 +152,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
               key={e}
               onClick={() => setEditor(e)}
               style={{
-                padding: "4px 14px", borderRadius: 12, fontSize: 11, fontWeight: editor === e ? 600 : 400,
+                padding: "4px 14px", borderRadius: 4, fontSize: 11, fontWeight: editor === e ? 600 : 400,
                 background: editor === e ? "var(--accent)" : "var(--bg-hover)",
                 color: editor === e ? "#fff" : "var(--text-secondary)",
                 border: "none", cursor: "pointer", transition: "all 0.15s",

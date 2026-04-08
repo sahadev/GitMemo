@@ -61,17 +61,17 @@ function getQueryValue(query: string, mode: Mode) {
 function sourceIcon(sourceType: string) {
   switch (sourceType) {
     case "conversation":
-      return <MessageSquare size={13} style={{ color: "#6eb0f7" }} />;
+      return <MessageSquare size={13} style={{ color: "#007aff" }} />;
     case "clip":
-      return <Clipboard size={13} style={{ color: "#4ade80" }} />;
+      return <Clipboard size={13} style={{ color: "#30d158" }} />;
     case "plan":
-      return <FileText size={13} style={{ color: "#facc15" }} />;
+      return <FileText size={13} style={{ color: "#ff9f0a" }} />;
     case "config":
-      return <Settings size={13} style={{ color: "#9ca3af" }} />;
+      return <Settings size={13} style={{ color: "#9a9898" }} />;
     case "import":
-      return <FolderInput size={13} style={{ color: "#14b8a6" }} />;
+      return <FolderInput size={13} style={{ color: "#30d158" }} />;
     default:
-      return <StickyNote size={13} style={{ color: "#4ade80" }} />;
+      return <StickyNote size={13} style={{ color: "#30d158" }} />;
   }
 }
 
@@ -87,7 +87,7 @@ function Kbd({ children }: { children: string }) {
         borderRadius: 4,
         background: "rgba(255,255,255,0.06)",
         border: "1px solid rgba(255,255,255,0.1)",
-        color: "#888",
+        color: "var(--text-secondary)",
       }}
     >
       {children}
@@ -301,7 +301,7 @@ export default function QuickPaste() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [executeSelected, hideWindow, visibleItems.length]);
 
-  const modeColors = { search: "#6eb0f7", command: "#facc15", file: "#4ade80" };
+  const modeColors = { search: "#007aff", command: "#ff9f0a", file: "#30d158" };
   const modeMeta = {
     search: { icon: <Search size={15} style={{ color: modeColors.search }} />, label: "Search" },
     command: { icon: <TerminalSquare size={15} style={{ color: modeColors.command }} />, label: "Command" },
@@ -326,11 +326,9 @@ export default function QuickPaste() {
         style={{
           width: "100%",
           maxWidth: 560,
-          background: "rgba(30, 30, 30, 0.96)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 12,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.06)",
-          backdropFilter: "blur(40px) saturate(1.4)",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-outline)",
+          borderRadius: 4,
           overflow: "hidden",
         }}
       >
@@ -347,14 +345,14 @@ export default function QuickPaste() {
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "#f0f0f0",
+              color: "var(--text)",
               fontSize: 16,
               lineHeight: 1.5,
               caretColor: modeColors[mode],
             }}
           />
           {loading && (
-            <RefreshCw size={14} style={{ color: "#666", animation: "spin 1s linear infinite" }} />
+            <RefreshCw size={14} style={{ color: "var(--text-muted)", animation: "spin 1s linear infinite" }} />
           )}
         </div>
 
@@ -364,11 +362,11 @@ export default function QuickPaste() {
         {/* Results */}
         <div ref={listRef} style={{ maxHeight: 340, overflowY: "auto", padding: "4px 6px" }}>
           {!loading && visibleItems.length === 0 ? (
-            <div style={{ padding: "24px 10px", textAlign: "center", color: "#666", fontSize: 13 }}>
+            <div style={{ padding: "24px 10px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
               {modeQuery ? "No results" : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                   <span>Type to search</span>
-                  <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#555" }}>
+                  <div style={{ display: "flex", gap: 8, fontSize: 11, color: "var(--text-muted)" }}>
                     <span><Kbd>&gt;</Kbd> commands</span>
                     <span><Kbd>@</Kbd> files</span>
                   </div>
@@ -379,9 +377,9 @@ export default function QuickPaste() {
             (visibleItems as CommandItem[]).map((item, index) => {
               const selected = index === selectedIndex;
               const icon =
-                item.id === "sync" ? <RefreshCw size={14} style={{ color: "#6eb0f7" }} /> :
-                item.id === "settings" ? <Settings size={14} style={{ color: "#9ca3af" }} /> :
-                <PanelLeft size={14} style={{ color: "#4ade80" }} />;
+                item.id === "sync" ? <RefreshCw size={14} style={{ color: "#007aff" }} /> :
+                item.id === "settings" ? <Settings size={14} style={{ color: "#9a9898" }} /> :
+                <PanelLeft size={14} style={{ color: "#30d158" }} />;
 
               return (
                 <button
@@ -395,7 +393,7 @@ export default function QuickPaste() {
                     gap: 10,
                     textAlign: "left",
                     padding: "10px 10px",
-                    borderRadius: 8,
+                    borderRadius: 4,
                     border: "none",
                     cursor: "pointer",
                     background: selected ? "rgba(255,255,255,0.07)" : "transparent",
@@ -404,7 +402,7 @@ export default function QuickPaste() {
                   }}
                 >
                   <div style={{
-                    width: 28, height: 28, borderRadius: 6,
+                    width: 28, height: 28, borderRadius: 4,
                     background: "rgba(255,255,255,0.05)",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   }}>
@@ -414,7 +412,7 @@ export default function QuickPaste() {
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{item.title}</div>
                     <div style={{ fontSize: 11, color: "#777", marginTop: 1 }}>{item.subtitle}</div>
                   </div>
-                  {selected && <span style={{ fontSize: 10, color: "#555" }}>Enter</span>}
+                  {selected && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Enter</span>}
                 </button>
               );
             })
@@ -433,7 +431,7 @@ export default function QuickPaste() {
                     gap: 10,
                     textAlign: "left",
                     padding: "10px 10px",
-                    borderRadius: 8,
+                    borderRadius: 4,
                     border: "none",
                     cursor: "pointer",
                     background: selected ? "rgba(255,255,255,0.07)" : "transparent",
@@ -442,7 +440,7 @@ export default function QuickPaste() {
                   }}
                 >
                   <div style={{
-                    width: 28, height: 28, borderRadius: 6,
+                    width: 28, height: 28, borderRadius: 4,
                     background: "rgba(255,255,255,0.05)",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   }}>
@@ -462,7 +460,7 @@ export default function QuickPaste() {
                       {mode === "file" ? item.file_path : item.snippet || item.file_path}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{item.date}</span>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>{item.date}</span>
                 </button>
               );
             })
@@ -478,7 +476,7 @@ export default function QuickPaste() {
             padding: "8px 16px",
             borderTop: "1px solid rgba(255,255,255,0.06)",
             fontSize: 11,
-            color: "#555",
+            color: "var(--text-muted)",
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>

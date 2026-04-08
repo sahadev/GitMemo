@@ -134,7 +134,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     width: "100%",
     maxWidth: 480,
     padding: "36px 32px",
-    borderRadius: 16,
+    borderRadius: 4,
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
   };
@@ -146,10 +146,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     gap: 8,
     width: "100%",
     padding: "12px 20px",
-    borderRadius: 10,
+    borderRadius: 4,
     border: "none",
     background: "var(--accent)",
-    color: "#fff",
+    color: "var(--text)",
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
@@ -168,7 +168,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     alignItems: "center",
     gap: 14,
     padding: "14px 18px",
-    borderRadius: 10,
+    borderRadius: 4,
     border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
     background: selected ? "var(--accent)10" : "transparent",
     cursor: "pointer",
@@ -287,7 +287,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                           flexDirection: "column",
                           gap: 4,
                           padding: "10px 12px",
-                          borderRadius: 8,
+                          borderRadius: 4,
                           border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
                           background: selected ? "var(--accent)10" : "transparent",
                           cursor: "pointer",
@@ -331,7 +331,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                       style={{
                         width: "100%",
                         padding: "10px 14px",
-                        borderRadius: 8,
+                        borderRadius: 4,
                         border: "1px solid var(--border)",
                         background: "var(--bg-input)",
                         color: "var(--text)",
@@ -390,7 +390,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
-                  {editors.includes("claude") && <Check size={12} color="#fff" />}
+                  {editors.includes("claude") && <Check size={12} color="var(--text)" />}
                 </div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>Claude Code</div>
@@ -405,7 +405,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
-                  {editors.includes("cursor") && <Check size={12} color="#fff" />}
+                  {editors.includes("cursor") && <Check size={12} color="var(--text)" />}
                 </div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>Cursor</div>
@@ -480,7 +480,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 {result && result.steps.length > 0 && (
                   <div style={{
                     marginBottom: 16, padding: "12px 16px",
-                    borderRadius: 8, background: "var(--bg-hover)",
+                    borderRadius: 4, background: "var(--bg-hover)",
                     maxHeight: 160, overflowY: "auto",
                   }}>
                     {result.steps.map((s, i) => (
@@ -500,7 +500,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 {result?.ssh_public_key && (
                   <div style={{
                     marginBottom: 16, padding: "12px 16px",
-                    borderRadius: 8, border: "1px dashed var(--border)",
+                    borderRadius: 4, border: "1px dashed var(--border)",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <GitBranch size={14} style={{ color: "var(--accent)" }} />
@@ -509,7 +509,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                         onClick={copySshKey}
                         style={{
                           marginLeft: "auto", display: "flex", alignItems: "center", gap: 4,
-                          padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)",
+                          padding: "4px 10px", borderRadius: 4, border: "1px solid var(--border)",
                           background: "transparent", color: "var(--text-secondary)",
                           fontSize: 11, cursor: "pointer",
                         }}
@@ -540,7 +540,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                           onClick={() => void openUrl(deployUrl)}
                           style={{
                             display: "flex", alignItems: "center", gap: 6,
-                            marginTop: 8, padding: "6px 12px", borderRadius: 6,
+                            marginTop: 8, padding: "6px 12px", borderRadius: 4,
                             border: "1px solid var(--border)", background: "transparent",
                             color: "var(--accent)", fontSize: 11, cursor: "pointer",
                           }}

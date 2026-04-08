@@ -285,7 +285,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               onChange={(e) => setManualTitle(e.target.value)}
               placeholder={t("notes.placeholderTitle")}
               style={{
-                width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                width: "100%", padding: "8px 12px", borderRadius: 4, fontSize: 13,
                 marginBottom: 8, background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit",
               }}
@@ -311,7 +311,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               placeholder={activeTab === "daily" ? t("notes.placeholderDaily") : activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
               rows={3}
               style={{
-                width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 13,
+                width: "100%", padding: "10px 12px", borderRadius: 4, fontSize: 13,
                 resize: "vertical", background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
               }}
@@ -414,7 +414,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "#0f2d0f", color: "var(--green)", border: "none", cursor: "pointer" }}>
+                  <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4, fontSize: 11, background: "rgba(48, 209, 88, 0.15)", color: "var(--green)", border: "none", cursor: "pointer" }}>
                     <Save size={12} /> {t("notes.save")}
                   </button>
                   <button onClick={() => setEditing(false)} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
@@ -423,7 +423,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={startEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+                  <button onClick={startEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 4, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
                     <Pencil size={12} /> {t("notes.edit")}
                   </button>
                   <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>

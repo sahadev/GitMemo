@@ -138,7 +138,7 @@ export function OnboardingChecklist({
     {
       id: "note",
       icon: StickyNote,
-      iconColor: "#c084fc",
+      iconColor: "#007aff",
       labelKey: "onboarding.writeNote",
       descKey: "onboarding.writeNoteDesc",
       action: onWriteNote,
@@ -147,7 +147,7 @@ export function OnboardingChecklist({
     {
       id: "clipboard",
       icon: Clipboard,
-      iconColor: "#f472b6",
+      iconColor: "#ff3b30",
       labelKey: "onboarding.enableClipboard",
       descKey: "onboarding.enableClipboardDesc",
       action: startClipboard,
@@ -177,7 +177,7 @@ export function OnboardingChecklist({
     <>
     <div style={{
       padding: "20px",
-      borderRadius: 12,
+      borderRadius: 4,
       border: `1px solid ${allDone ? "var(--green)30" : "var(--accent)30"}`,
       background: allDone ? "var(--green)08" : "var(--accent)08",
       marginBottom: 16,
@@ -199,7 +199,7 @@ export function OnboardingChecklist({
           onClick={dismiss}
           style={{
             display: "flex", alignItems: "center", gap: 4,
-            padding: "4px 10px", borderRadius: 6,
+            padding: "4px 10px", borderRadius: 4,
             border: "1px solid var(--border)", background: "transparent",
             color: "var(--text-secondary)", fontSize: 11, cursor: "pointer",
           }}
@@ -237,7 +237,7 @@ export function OnboardingChecklist({
                   alignItems: "center",
                   gap: 12,
                   padding: "10px 14px",
-                  borderRadius: 8,
+                  borderRadius: 4,
                   background: done ? "transparent" : "var(--bg-card)",
                   border: done ? "none" : "1px solid var(--border)",
                   opacity: done ? 0.6 : 1,
@@ -246,7 +246,7 @@ export function OnboardingChecklist({
               >
                 {/* Checkbox */}
                 <div style={{
-                  width: 22, height: 22, borderRadius: 6,
+                  width: 22, height: 22, borderRadius: 4,
                   border: `2px solid ${done ? "var(--green)" : "var(--border)"}`,
                   background: done ? "var(--green)15" : "transparent",
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -276,9 +276,9 @@ export function OnboardingChecklist({
                     onClick={item.action}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "6px 12px", borderRadius: 6,
+                      padding: "6px 12px", borderRadius: 4,
                       border: "none", background: "var(--accent)",
-                      color: "#fff", fontSize: 11, fontWeight: 600,
+                      color: "var(--text)", fontSize: 11, fontWeight: 600,
                       cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap",
                     }}
                   >

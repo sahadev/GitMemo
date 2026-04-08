@@ -124,7 +124,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
           <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
           <span style={{
             fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: 10,
+            padding: "2px 8px", borderRadius: 4,
           }}>
             {files.length}
           </span>

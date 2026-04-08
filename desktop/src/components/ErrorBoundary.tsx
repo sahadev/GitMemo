@@ -33,15 +33,15 @@ export class ErrorBoundary extends Component<Props, State> {
           justifyContent: "center",
           height: "100vh",
           padding: 24,
-          fontFamily: "system-ui, sans-serif",
-          color: "#e0e0e0",
-          background: "#1a1a1a",
+          fontFamily: '"Berkeley Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+          color: "var(--text)",
+          background: "var(--bg)",
         }}>
-          <h2 style={{ marginBottom: 12, color: "#ff6b6b" }}>Something went wrong</h2>
+          <h2 style={{ marginBottom: 12, color: "var(--red)" }}>Something went wrong</h2>
           <pre style={{
-            background: "#2a2a2a",
+            background: "var(--bg-card)",
             padding: 16,
-            borderRadius: 8,
+            borderRadius: 4,
             maxWidth: "80vw",
             overflow: "auto",
             fontSize: 13,
@@ -56,11 +56,11 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
               marginTop: 16,
-              padding: "8px 24px",
-              borderRadius: 6,
-              border: "1px solid #555",
-              background: "#333",
-              color: "#fff",
+              padding: "4px 20px",
+              borderRadius: 4,
+              border: "1px solid var(--border-outline)",
+              background: "var(--bg-hover)",
+              color: "var(--text)",
               cursor: "pointer",
               fontSize: 14,
             }}

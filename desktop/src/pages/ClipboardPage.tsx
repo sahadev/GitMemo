@@ -262,8 +262,8 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
             <span style={{ fontSize: 14, fontWeight: 700 }}>{t("clipboard.title")}</span>
             {status && (
               <span style={{
-                padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 500,
-                background: status.watching ? "#0f2d0f" : "var(--bg-hover)",
+                padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 500,
+                background: status.watching ? "rgba(48, 209, 88, 0.15)" : "var(--bg-hover)",
                 color: status.watching ? "var(--green)" : "var(--text-secondary)",
               }}>
                 {status.watching ? t("clipboard.watching") : t("clipboard.stopped")}
@@ -425,7 +425,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
                 onClick={() => { if (selectedFile) void confirmDeleteClip(selectedFile); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                  borderRadius: 6, fontSize: 12, cursor: "pointer",
+                  borderRadius: 4, fontSize: 12, cursor: "pointer",
                   background: "var(--bg)", border: "1px solid var(--border)",
                   color: "var(--red)",
                 }}
@@ -437,8 +437,8 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
                 onClick={() => copyContent(fileContent)}
                 style={{
                   display: "flex", alignItems: "center", gap: 4, padding: "5px 12px",
-                  borderRadius: 6, fontSize: 12, cursor: "pointer",
-                  background: copiedId === "detail" ? "#0f2d0f" : "var(--bg)",
+                  borderRadius: 4, fontSize: 12, cursor: "pointer",
+                  background: copiedId === "detail" ? "rgba(48, 209, 88, 0.15)" : "var(--bg)",
                   border: "1px solid var(--border)",
                   color: copiedId === "detail" ? "var(--green)" : "var(--text-secondary)",
                 }}

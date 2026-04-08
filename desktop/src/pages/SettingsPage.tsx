@@ -27,8 +27,8 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
       style={{
         width: 44,
         height: 24,
-        borderRadius: 12,
-        background: enabled ? "var(--accent)" : "#333",
+        borderRadius: 4,
+        background: enabled ? "var(--accent)" : "var(--bg-hover)",
         position: "relative",
         border: "none",
         cursor: "pointer",
@@ -41,7 +41,7 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
           width: 18,
           height: 18,
           borderRadius: 9,
-          background: "#fff",
+          background: "var(--text)",
           position: "absolute",
           top: 3,
           left: enabled ? 23 : 3,
@@ -188,7 +188,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
-    borderRadius: 10,
+    borderRadius: 4,
     padding: "20px 24px",
   };
 
@@ -375,7 +375,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
                   gap: 6,
                   maxWidth: 240,
                   padding: "4px 8px",
-                  borderRadius: 6,
+                  borderRadius: 4,
                   border: "1px solid var(--border)",
                   background: "var(--bg)",
                   color: "var(--text-secondary)",
@@ -459,7 +459,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
                     title={t("common.clickToCopy")}
                     style={{
                       display: "flex", alignItems: "center", gap: 6,
-                      maxWidth: 280, padding: "4px 8px", borderRadius: 6,
+                      maxWidth: 280, padding: "4px 8px", borderRadius: 4,
                       border: "1px solid var(--border)", background: "var(--bg)",
                       color: "var(--text-secondary)", cursor: "pointer",
                     }}
@@ -510,7 +510,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
             {/* SSH guidance when editing */}
             {editingRemote && (
               <div style={{
-                padding: "12px 16px", borderRadius: 8,
+                padding: "12px 16px", borderRadius: 4,
                 background: "var(--bg-hover)", border: "1px solid var(--border)",
               }}>
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
@@ -567,7 +567,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
 
       {/* About */}
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-        <img src="/logo.png" alt="GitMemo" style={{ width: 48, height: 48, borderRadius: 10, marginBottom: 10 }} />
+        <img src="/logo.png" alt="GitMemo" style={{ width: 48, height: 48, borderRadius: 4, marginBottom: 10 }} />
         <p style={{ fontSize: 14, fontWeight: 600 }}>GitMemo Desktop</p>
         <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
@@ -623,9 +623,8 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
         >
           <div style={{
             width: "90%", maxWidth: 520, maxHeight: "70vh",
-            background: "var(--bg-card)", border: "1px solid var(--border)",
-            borderRadius: 12, display: "flex", flexDirection: "column",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+            background: "var(--bg-card)", border: "1px solid var(--border-outline)",
+            borderRadius: 4, display: "flex", flexDirection: "column",
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",

@@ -286,7 +286,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
           <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
           <span style={{
             fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: 10,
+            padding: "2px 8px", borderRadius: 4,
           }}>
             {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
           </span>
@@ -409,7 +409,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                     onClick={() => { setEditing(false); setEditContent(""); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: "pointer",
+                      borderRadius: 4, fontSize: 12, cursor: "pointer",
                       background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                     }}
                     title={t("common.cancel")}
@@ -420,7 +420,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                     onClick={() => void handleSaveEdit()}
                     style={{
                       display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: "pointer",
+                      borderRadius: 4, fontSize: 12, cursor: "pointer",
                       background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
                     }}
                     title={t("conversations.save")}
@@ -434,7 +434,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   onClick={startEdit}
                   style={{
                     display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                    borderRadius: 6, fontSize: 12, cursor: "pointer",
+                    borderRadius: 4, fontSize: 12, cursor: "pointer",
                     background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                   }}
                   title={t("conversations.edit")}
@@ -479,7 +479,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                     minHeight: "100%",
                     resize: "none",
                     padding: 16,
-                    borderRadius: 10,
+                    borderRadius: 4,
                     border: "1px solid var(--border)",
                     background: "var(--bg-card)",
                     color: "var(--text)",
@@ -502,7 +502,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                       style={{
                         marginBottom: 20,
                         padding: "14px 16px",
-                        borderRadius: 8,
+                        borderRadius: 4,
                         borderLeft: `3px solid ${msg.role === "user" ? "var(--accent)" : "var(--green)"}`,
                         background: msg.role === "user" ? "var(--bg-hover)" : "transparent",
                       }}

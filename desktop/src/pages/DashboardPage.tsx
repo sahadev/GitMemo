@@ -43,9 +43,9 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
   conversation: { icon: MessageSquare, color: "var(--accent)", page: "conversations" },
   daily: { icon: StickyNote, color: "var(--green)", page: "notes" },
   manual: { icon: BookOpen, color: "var(--yellow)", page: "notes" },
-  scratch: { icon: FileText, color: "#c084fc", page: "notes" },
-  clip: { icon: Clipboard, color: "#f472b6", page: "clipboard" },
-  plan: { icon: Lightbulb, color: "#fbbf24", page: "plans" },
+  scratch: { icon: FileText, color: "#007aff", page: "notes" },
+  clip: { icon: Clipboard, color: "#ff3b30", page: "clipboard" },
+  plan: { icon: Lightbulb, color: "#ff9f0a", page: "plans" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
@@ -135,7 +135,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
         <div style={{ textAlign: "center", padding: "0 32px" }}>
-          <GitBranch size={48} style={{ color: "#555", margin: "0 auto 16px" }} />
+          <GitBranch size={48} style={{ color: "var(--text-muted)", margin: "0 auto 16px" }} />
           <p style={{ fontSize: 16, color: "var(--red)", marginBottom: 8 }}>{error}</p>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
             {t("dashboard.initHint")}
@@ -153,15 +153,15 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
     { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" },
     { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)", page: "notes" },
     { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes" },
-    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#c084fc", page: "notes" },
-    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#f472b6", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#fbbf24", page: "plans" },
+    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "#007aff", page: "notes" },
+    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "#ff3b30", page: "clipboard" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "#ff9f0a", page: "plans" },
   ];
 
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
-    borderRadius: 10,
+    borderRadius: 4,
     padding: "16px 20px",
   };
 
@@ -199,7 +199,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
             padding: "4px 12px", borderRadius: 20,
-            background: clipStatus.watching ? "#0f2d0f" : "var(--bg-hover)",
+            background: clipStatus.watching ? "rgba(48, 209, 88, 0.15)" : "var(--bg-hover)",
             cursor: "pointer",
           }} onClick={() => onNavigate?.("clipboard")}>
             <Circle
@@ -242,7 +242,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{
-                  width: 26, height: 26, borderRadius: 6,
+                  width: 26, height: 26, borderRadius: 4,
                   background: `${card.color}15`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
@@ -259,7 +259,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
       {/* Empty state guide */}
       {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips === 0 && recent.length === 0 && (
         <div style={{
-          padding: "20px 24px", borderRadius: 10, marginBottom: 16,
+          padding: "20px 24px", borderRadius: 4, marginBottom: 16,
           border: "1px dashed var(--accent)40", background: "var(--accent)06",
           textAlign: "center",
         }}>
@@ -325,7 +325,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
                     onClick={() => onNavigate?.(cfg.page)}
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      padding: "6px 8px", borderRadius: 6,
+                      padding: "6px 8px", borderRadius: 4,
                       background: "transparent", border: "none",
                       cursor: "pointer", textAlign: "left",
                       color: "var(--text)", width: "100%",
@@ -404,7 +404,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
 
       {/* Quick Info */}
       <div style={{
-        padding: "16px 20px", borderRadius: 10,
+        padding: "16px 20px", borderRadius: 4,
         border: "1px dashed var(--border)", background: "transparent",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
