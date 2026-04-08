@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n, Locale } from "../hooks/useI18n";
@@ -83,6 +83,24 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [result, setResult] = useState<InitResult | null>(null);
   const [error, setError] = useState("");
   const [sshKeyCopied, setSshKeyCopied] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // Auto-enter app after countdown (only when no SSH key to copy)
+  useEffect(() => {
+    if (step !== "done" || error || result?.ssh_public_key) return;
+    setCountdown(5);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [step, error, result?.ssh_public_key, onComplete]);
 
   const handleLangSelect = useCallback((l: Locale) => {
     setLang(l);
@@ -554,7 +572,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 )}
 
                 <button style={btnPrimary} onClick={onComplete}>
-                  {t("setup.enterApp")} <ChevronRight size={16} />
+                  {t("setup.enterApp")}{countdown > 0 ? ` (${countdown}s)` : ""} <ChevronRight size={16} />
                 </button>
               </div>
             )}
