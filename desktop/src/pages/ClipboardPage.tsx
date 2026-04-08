@@ -131,6 +131,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
     try {
       await invoke<string>("start_clipboard_watch");
       loadStatus();
+      window.dispatchEvent(new Event("clipboard-status-changed"));
     } catch (e) { showToast(`Error: ${e}`); }
   };
 
@@ -139,6 +140,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
       if (status?.watching) {
         await invoke<string>("stop_clipboard_watch");
         loadStatus();
+        window.dispatchEvent(new Event("clipboard-status-changed"));
       } else {
         // Show privacy dialog on first enable
         if (!privacy.isConfirmed) {

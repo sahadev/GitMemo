@@ -131,6 +131,13 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
   }, [isSuccess, isFailed, loadData]);
   useFileWatcher(["conversations", "notes", "clips", "plans"], loadData);
 
+  // Refresh clipboard status when toggled from ClipboardPage
+  useEffect(() => {
+    const handler = () => loadData();
+    window.addEventListener("clipboard-status-changed", handler);
+    return () => window.removeEventListener("clipboard-status-changed", handler);
+  }, [loadData]);
+
   if (error) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
