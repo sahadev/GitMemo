@@ -16,10 +16,10 @@ export default function QuickStart() {
             <div className="terminal-dot" style={{ background: '#ff5f57' }} />
             <div className="terminal-dot" style={{ background: '#febc2e' }} />
             <div className="terminal-dot" style={{ background: '#28c840' }} />
-            <span className="ml-3 text-xs text-[#8b949e]">Install</span>
+            <span className="ml-3 text-xs text-[#9a9898]">Install</span>
           </div>
           <div className="p-5">
-            <p className="text-[#8b949e] text-xs mb-2 font-mono">{t('start.comment')}</p>
+            <p className="text-[#9a9898] text-xs mb-2 font-mono">{t('start.comment')}</p>
             <p className="text-green text-sm font-mono break-all">
               bash &lt;(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh)
             </p>

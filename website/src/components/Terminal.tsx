@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 
 const lines = [
-  { text: '$ gitmemo init', color: '#e2e8f0', delay: 0 },
+  { text: '$ gitmemo init', color: '#fdfcfc', delay: 0 },
   { text: '', color: '', delay: 600 },
-  { text: '  Setting up GitMemo...', color: '#6366f1', delay: 800 },
-  { text: '  Editor: Claude Code + Cursor', color: '#94a3b8', delay: 1200 },
-  { text: '  Language: English', color: '#94a3b8', delay: 1500 },
+  { text: '  Setting up GitMemo...', color: '#007aff', delay: 800 },
+  { text: '  Editor: Claude Code + Cursor', color: '#9a9898', delay: 1200 },
+  { text: '  Language: English', color: '#9a9898', delay: 1500 },
   { text: '', color: '', delay: 1700 },
-  { text: '  [1/3] Injecting CLAUDE.md instruction...    done', color: '#22c55e', delay: 1900 },
-  { text: '  [2/3] Registering PostToolUse hook...       done', color: '#22c55e', delay: 2400 },
-  { text: '  [3/3] Configuring MCP server...             done', color: '#22c55e', delay: 2900 },
+  { text: '  [1/3] Injecting CLAUDE.md instruction...    done', color: '#30d158', delay: 1900 },
+  { text: '  [2/3] Registering PostToolUse hook...       done', color: '#30d158', delay: 2400 },
+  { text: '  [3/3] Configuring MCP server...             done', color: '#30d158', delay: 2900 },
   { text: '', color: '', delay: 3100 },
-  { text: '  GitMemo is ready! Your AI conversations will auto-sync to Git.', color: '#6366f1', delay: 3300 },
+  { text: '  GitMemo is ready! Your AI conversations will auto-sync to Git.', color: '#007aff', delay: 3300 },
 ]
 
 export default function Terminal() {
@@ -34,7 +34,7 @@ export default function Terminal() {
         <div className="terminal-dot" style={{ background: '#ff5f57' }} />
         <div className="terminal-dot" style={{ background: '#febc2e' }} />
         <div className="terminal-dot" style={{ background: '#28c840' }} />
-        <span className="ml-3 text-xs text-[#8b949e]">Terminal</span>
+        <span className="ml-3 text-xs text-[#9a9898]">Terminal</span>
       </div>
       <div className="p-5 text-sm leading-6 min-h-[280px]">
         {lines.slice(0, visibleLines).map((line, i) => (
@@ -43,7 +43,7 @@ export default function Terminal() {
           </div>
         ))}
         {visibleLines < lines.length && (
-          <span className="cursor-blink text-[#e2e8f0]">_</span>
+          <span className="cursor-blink text-[#fdfcfc]">_</span>
         )}
       </div>
     </div>

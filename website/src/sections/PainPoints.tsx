@@ -22,7 +22,7 @@ export default function PainPoints() {
           {problems.map((p, i) => (
             <FadeIn key={p.titleKey} delay={i * 0.1}>
               <div className="glass-card p-8 h-full">
-                <div className="w-12 h-12 rounded-xl bg-[rgba(239,68,68,0.1)] flex items-center justify-center text-red-400 mb-5">
+                <div className="w-12 h-12 rounded-xl bg-[rgba(255,59,48,0.1)] flex items-center justify-center text-red-400 mb-5">
                   {p.icon}
                 </div>
                 <h3 className="text-white font-semibold text-lg mb-3">{t(p.titleKey)}</h3>

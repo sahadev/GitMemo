@@ -60,7 +60,7 @@ export default function Comparison() {
                 <tr key={feat} className="border-b border-border/50">
                   <td className="py-3 px-4 text-text-secondary">{t(feat)}</td>
                   {products.map((p) => (
-                    <td key={p.nameKey} className={`py-3 px-4 text-center ${p.highlight ? 'bg-[rgba(99,102,241,0.04)]' : ''}`}>
+                    <td key={p.nameKey} className={`py-3 px-4 text-center ${p.highlight ? 'bg-[rgba(0,122,255,0.04)]' : ''}`}>
                       <Cell value={p.values[i]} />
                     </td>
                   ))}

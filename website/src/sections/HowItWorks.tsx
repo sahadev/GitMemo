@@ -41,7 +41,7 @@ export default function HowItWorks() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-accent font-mono text-sm font-bold">{step.num}</span>
-                  <div className="w-10 h-10 rounded-lg bg-[rgba(99,102,241,0.1)] flex items-center justify-center text-accent">{step.icon}</div>
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(0,122,255,0.1)] flex items-center justify-center text-accent">{step.icon}</div>
                   <h3 className="text-white font-semibold text-lg">{t(step.titleKey)}</h3>
                 </div>
                 <p className="text-text-secondary text-sm leading-relaxed pl-[52px]">{t(step.descKey)}</p>
@@ -53,7 +53,7 @@ export default function HowItWorks() {
                     <div className="terminal-dot" style={{ background: '#febc2e' }} />
                     <div className="terminal-dot" style={{ background: '#28c840' }} />
                   </div>
-                  <pre className="p-4 text-[#8b949e] whitespace-pre-wrap leading-5">{step.code}</pre>
+                  <pre className="p-4 text-[#9a9898] whitespace-pre-wrap leading-5">{step.code}</pre>
                 </div>
               </div>
             </div>
@@ -61,7 +61,7 @@ export default function HowItWorks() {
         </div>
 
         <div className="flex justify-center mt-8">
-          <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.2)]">
+          <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-[rgba(48,209,88,0.1)] border border-[rgba(48,209,88,0.2)]">
             <div className="w-2 h-2 rounded-full bg-green" />
             <span className="text-green text-sm font-medium">{t('how.result')}</span>
           </div>

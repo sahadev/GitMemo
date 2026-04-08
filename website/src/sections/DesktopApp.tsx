@@ -34,15 +34,15 @@ export default function DesktopApp() {
         <div className="relative rounded-xl overflow-hidden border border-border bg-surface">
           <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-surface to-surface-2">
             <div className="text-center">
-              <div className="w-20 h-20 rounded-2xl bg-[rgba(99,102,241,0.1)] flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 rounded-2xl bg-[rgba(0,122,255,0.1)] flex items-center justify-center mx-auto mb-4">
                 <img src="/logo.png" alt="GitMemo" className="w-12 h-12 rounded-lg" />
               </div>
               <p className="text-white font-semibold text-lg mb-2">GitMemo Desktop v0.2</p>
               <p className="text-text-secondary text-sm">{t('app.screenshot')}</p>
               <div className="flex items-center justify-center gap-2 mt-4">
-                <span className="px-3 py-1 rounded text-xs bg-[rgba(99,102,241,0.1)] text-accent">Tauri 2</span>
-                <span className="px-3 py-1 rounded text-xs bg-[rgba(99,102,241,0.1)] text-accent">React 19</span>
-                <span className="px-3 py-1 rounded text-xs bg-[rgba(99,102,241,0.1)] text-accent">Rust</span>
+                <span className="px-3 py-1 rounded text-xs bg-[rgba(0,122,255,0.1)] text-accent">Tauri 2</span>
+                <span className="px-3 py-1 rounded text-xs bg-[rgba(0,122,255,0.1)] text-accent">React 19</span>
+                <span className="px-3 py-1 rounded text-xs bg-[rgba(0,122,255,0.1)] text-accent">Rust</span>
               </div>
             </div>
           </div>
