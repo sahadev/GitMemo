@@ -20,7 +20,7 @@ export default function WhatGetsCaptured() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-5xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('capture.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">{t('capture.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('capture.title')}</h2>
         <p className="text-text-secondary text-center max-w-2xl mx-auto mb-16">{t('capture.subtitle')}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -31,7 +31,7 @@ export default function WhatGetsCaptured() {
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${cat.color}15`, color: cat.color }}>
                     {cat.icon}
                   </div>
-                  <span className="text-white font-semibold text-sm">{t(cat.typeKey)}</span>
+                  <span className="text-text font-semibold text-sm">{t(cat.typeKey)}</span>
                 </div>
                 <p className="text-text-secondary text-xs leading-relaxed">{t(cat.descKey)}</p>
                 <code className="text-[10px] text-text-secondary/60 font-mono mt-auto">{cat.dir}</code>

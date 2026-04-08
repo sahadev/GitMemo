@@ -12,7 +12,7 @@ export default function FeatureCard({ icon, title, description }: Props) {
       <div className="w-10 h-10 rounded-lg bg-[rgba(0,122,255,0.1)] flex items-center justify-center text-accent mb-4">
         {icon}
       </div>
-      <h3 className="text-white font-semibold text-base mb-2">{title}</h3>
+      <h3 className="text-text font-semibold text-base mb-2">{title}</h3>
       <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
     </div>
   )

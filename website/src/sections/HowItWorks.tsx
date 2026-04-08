@@ -32,7 +32,7 @@ export default function HowItWorks() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-5xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('how.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">{t('how.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('how.title')}</h2>
         <p className="text-text-secondary text-center max-w-2xl mx-auto mb-16">{t('how.subtitle')}</p>
 
         <div className="space-y-8">
@@ -42,7 +42,7 @@ export default function HowItWorks() {
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-accent font-mono text-sm font-bold">{step.num}</span>
                   <div className="w-10 h-10 rounded-lg bg-[rgba(0,122,255,0.1)] flex items-center justify-center text-accent">{step.icon}</div>
-                  <h3 className="text-white font-semibold text-lg">{t(step.titleKey)}</h3>
+                  <h3 className="text-text font-semibold text-lg">{t(step.titleKey)}</h3>
                 </div>
                 <p className="text-text-secondary text-sm leading-relaxed pl-[52px]">{t(step.descKey)}</p>
               </div>

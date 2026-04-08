@@ -19,7 +19,7 @@ export default function Features() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-5xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('feat.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">{t('feat.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('feat.title')}</h2>
         <p className="text-text-secondary text-center max-w-2xl mx-auto mb-16">{t('feat.subtitle')}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

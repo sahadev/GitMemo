@@ -40,7 +40,7 @@ export default function Comparison() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-4xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('cmp.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">{t('cmp.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('cmp.title')}</h2>
         <p className="text-text-secondary text-center max-w-xl mx-auto mb-12">{t('cmp.subtitle')}</p>
 
         <div className="overflow-x-auto">
@@ -49,7 +49,7 @@ export default function Comparison() {
               <tr className="border-b border-border">
                 <th className="text-left py-4 px-4 text-text-secondary font-medium">{t('cmp.feature')}</th>
                 {products.map((p) => (
-                  <th key={p.nameKey} className={`py-4 px-4 font-semibold text-center ${p.highlight ? 'text-accent' : 'text-white'}`}>
+                  <th key={p.nameKey} className={`py-4 px-4 font-semibold text-center ${p.highlight ? 'text-accent' : 'text-text'}`}>
                     {t(p.nameKey)}
                   </th>
                 ))}
@@ -71,7 +71,7 @@ export default function Comparison() {
         </div>
 
         <p className="text-center text-text-secondary text-xs mt-6">
-          {t('cmp.note')} <span className="text-white">{t('cmp.note2')}</span>
+          {t('cmp.note')} <span className="text-text">{t('cmp.note2')}</span>
         </p>
       </div>
     </section>

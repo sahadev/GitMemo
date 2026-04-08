@@ -15,7 +15,7 @@ export default function DesktopApp() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-5xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('app.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-4">{t('app.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('app.title')}</h2>
         <p className="text-text-secondary text-center max-w-2xl mx-auto mb-8">
           {t('app.subtitle')}
           <br />
@@ -37,7 +37,7 @@ export default function DesktopApp() {
               <div className="w-20 h-20 rounded-2xl bg-[rgba(0,122,255,0.1)] flex items-center justify-center mx-auto mb-4">
                 <img src="/logo.png" alt="GitMemo" className="w-12 h-12 rounded-lg" />
               </div>
-              <p className="text-white font-semibold text-lg mb-2">GitMemo Desktop v0.2</p>
+              <p className="text-text font-semibold text-lg mb-2">GitMemo Desktop v0.2</p>
               <p className="text-text-secondary text-sm">{t('app.screenshot')}</p>
               <div className="flex items-center justify-center gap-2 mt-4">
                 <span className="px-3 py-1 rounded text-xs bg-[rgba(0,122,255,0.1)] text-accent">Tauri 2</span>

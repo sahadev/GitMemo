@@ -8,7 +8,7 @@ export default function QuickStart() {
     <section className="py-24 px-6 border-t border-border">
       <div className="max-w-3xl mx-auto text-center">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4">{t('start.label')}</p>
-        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t('start.title')}</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-text mb-4">{t('start.title')}</h2>
         <p className="text-text-secondary max-w-xl mx-auto mb-12">{t('start.subtitle')}</p>
 
         <div className="terminal text-left max-w-xl mx-auto mb-8">
@@ -48,7 +48,7 @@ function Step({ num, label }: { num: string; label: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white text-sm font-bold">{num}</span>
-      <span className="text-white text-sm font-medium">{label}</span>
+      <span className="text-text text-sm font-medium">{label}</span>
     </div>
   )
 }

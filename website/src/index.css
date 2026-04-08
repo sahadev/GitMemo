@@ -13,13 +13,23 @@
   --color-text-secondary: #9a9898;
 }
 
+/* Light theme overrides */
+[data-theme="light"] {
+  --color-surface: #f7f4f2;
+  --color-surface-2: #eeebe8;
+  --color-border: rgba(15, 0, 0, 0.10);
+  --color-green: #248a3d;
+  --color-text: #201d1d;
+  --color-text-secondary: #7a7574;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-sans);
-  background: #201d1d;
+  background: var(--color-surface);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
 }
@@ -40,6 +50,11 @@ body {
   backdrop-filter: blur(12px);
   border: 1px solid rgba(253, 252, 252, 0.06);
   border-radius: 4px;
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 0, 0, 0.08);
 }
 
 .terminal {
