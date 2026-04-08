@@ -214,6 +214,7 @@ jobs:
 
       - name: Create Release
         run: |
+          gh release delete ${{ needs.check-version.outputs.version }} --yes 2>/dev/null || true
           gh release create ${{ needs.check-version.outputs.version }} \
             --generate-notes \
             release-assets/*
