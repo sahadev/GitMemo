@@ -39,8 +39,18 @@ pub fn get_stats() -> Result<AppStats, String> {
 
     let db_path = sync_dir.join(".metadata").join("index.db");
     let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
-    // Use existing index; full rebuild happens on search or manual sync
+    // Auto-rebuild index if empty (e.g. first load after init)
     let stats = database::get_stats(&conn).map_err(|e| e.to_string())?;
+    let stats = if stats.conversation_count == 0
+        && stats.note_daily_count == 0
+        && stats.note_manual_count == 0
+        && stats.note_scratch_count == 0
+    {
+        database::build_index(&conn, &sync_dir).ok();
+        database::get_stats(&conn).map_err(|e| e.to_string())?
+    } else {
+        stats
+    };
 
     let total_size: u64 = walkdir::WalkDir::new(&sync_dir)
         .into_iter()
