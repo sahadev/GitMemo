@@ -207,7 +207,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         {step === "language" && (
           <div>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <Globe size={36} style={{ color: "var(--accent)", marginBottom: 12 }} />
+              <Globe size={36} style={{ color: "var(--accent)", marginBottom: 12, display: "block", margin: "0 auto 12px" }} />
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
                 Welcome to GitMemo
               </h2>
@@ -241,7 +241,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         {step === "storage" && (
           <div>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <HardDrive size={36} style={{ color: "var(--accent)", marginBottom: 12 }} />
+              <HardDrive size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
                 {t("setup.storageTitle")}
               </h2>
@@ -373,7 +373,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         {step === "editors" && (
           <div>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <Code2 size={36} style={{ color: "var(--accent)", marginBottom: 12 }} />
+              <Code2 size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
                 {t("setup.editorsTitle")}
               </h2>
