@@ -96,6 +96,7 @@ pub fn run() {
             settings::remove_cursor_integration,
             // Init (setup wizard)
             init::init_gitmemo,
+            init::sync_remote_init,
             // Watcher
             watcher::restart_file_watcher,
             // Capture

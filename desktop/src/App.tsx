@@ -164,13 +164,17 @@ function App() {
     };
   }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync]);
 
-  const handleSetupComplete = useCallback(() => {
+  const handleSetupComplete = useCallback((needsRemoteSync?: boolean) => {
     // Reset onboarding state so checklist shows for new setup
     localStorage.removeItem("gitmemo-onboarding-state");
     setInitialized(true);
     sync.refreshGitStatus();
     // Start file watcher (it may not have started if ~/.gitmemo didn't exist at launch)
     invoke("restart_file_watcher").catch(() => {});
+    // Trigger background remote sync if needed (fetch + rebase onto remote history)
+    if (needsRemoteSync) {
+      invoke("sync_remote_init").catch(() => {});
+    }
   }, [sync]);
 
   const pageContent = initialized === false && currentPage !== "settings" ? (

@@ -17,6 +17,7 @@ interface InitResult {
   success: boolean;
   steps: InitStep[];
   ssh_public_key: string | null;
+  needs_remote_sync: boolean;
 }
 
 type WizardStep = "language" | "storage" | "git_url" | "editors" | "running" | "done";
@@ -72,7 +73,7 @@ const PLATFORM_META: Record<GitPlatform, {
   },
 };
 
-export function SetupWizard({ onComplete }: { onComplete: () => void }) {
+export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boolean) => void }) {
   const { t, locale, setLocale } = useI18n();
   const [step, setStep] = useState<WizardStep>("language");
   const [lang, setLang] = useState<Locale>("en");
@@ -553,7 +554,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   </div>
                 )}
 
-                <button style={btnPrimary} onClick={onComplete}>
+                <button style={btnPrimary} onClick={() => onComplete(result?.needs_remote_sync)}>
                   {t("setup.enterApp")} <ChevronRight size={16} />
                 </button>
               </div>

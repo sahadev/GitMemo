@@ -2,6 +2,7 @@ use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::{Config, GitConfig};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tauri::{AppHandle, Emitter};
 
 fn home_dir() -> Result<PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
@@ -20,6 +21,7 @@ pub struct InitResult {
     pub success: bool,
     pub steps: Vec<InitStep>,
     pub ssh_public_key: Option<String>,
+    pub needs_remote_sync: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -35,6 +37,7 @@ impl InitResult {
             success: true,
             steps: Vec::new(),
             ssh_public_key: None,
+            needs_remote_sync: false,
         }
     }
 
@@ -154,6 +157,7 @@ pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
     if has_remote {
         git::setup_tracking(&sync_dir, &branch);
         result.add_ok("tracking", "Branch tracking configured");
+        result.needs_remote_sync = true;
     }
 
     Ok(result)
@@ -410,7 +414,130 @@ fn which_gitmemo() -> Option<String> {
     None
 }
 
-// ── Capture conversations ──────────────────────────────────────────────────
+// ── Post-init remote sync ─────────────────────────────────────────────────
+
+/// Background sync with remote after initial setup.
+/// Fetches remote history and rebases local init commit on top of it,
+/// so the local repo shares a common ancestor with the remote.
+#[tauri::command]
+pub fn sync_remote_init(app_handle: AppHandle) {
+    let _ = app_handle.emit("git-sync-start", ());
+
+    std::thread::spawn(move || {
+        let sync_dir = files::sync_dir();
+        let event = match do_remote_init_sync(&sync_dir) {
+            Ok(msg) => super::notes::GitSyncEvent { ok: true, message: msg },
+            Err(e) => super::notes::GitSyncEvent { ok: false, message: e },
+        };
+        let _ = app_handle.emit("git-sync-end", &event);
+    });
+}
+
+fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
+    let config_path = Config::config_path();
+    let branch = if config_path.exists() {
+        Config::load(&config_path).map(|c| c.git.branch).unwrap_or_else(|_| "main".to_string())
+    } else {
+        "main".to_string()
+    };
+
+    // Step 1: fetch remote
+    let fetch = std::process::Command::new("git")
+        .args(["fetch", "origin", &branch])
+        .current_dir(sync_dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .map_err(|e| format!("fetch failed: {e}"))?;
+
+    if !fetch.status.success() {
+        let stderr = String::from_utf8_lossy(&fetch.stderr).to_string();
+        // Network error or SSH not configured yet — not fatal, user can retry via sync
+        return Err(format!("Fetch failed (SSH key may not be configured yet): {}", stderr.trim()));
+    }
+
+    // Step 2: check if remote has history
+    let has_remote_commits = std::process::Command::new("git")
+        .args(["rev-parse", &format!("origin/{}", branch)])
+        .current_dir(sync_dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !has_remote_commits {
+        // Remote is empty — just push our init commit
+        let (pushed, push_err) = push_to_remote(sync_dir, &branch);
+        return if pushed {
+            Ok("Pushed to empty remote".into())
+        } else {
+            Err(format!("Push failed: {}", push_err.unwrap_or_default()))
+        };
+    }
+
+    // Step 3: rebase local init commit(s) on top of remote history
+    let rebase = std::process::Command::new("git")
+        .args(["rebase", &format!("origin/{}", branch)])
+        .current_dir(sync_dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .map_err(|e| format!("rebase failed: {e}"))?;
+
+    if !rebase.status.success() {
+        // Rebase conflict — abort, then reset to remote and re-commit init files
+        eprintln!("[gitmemo] init rebase failed, resetting to remote and re-applying init files");
+        let _ = std::process::Command::new("git")
+            .args(["rebase", "--abort"])
+            .current_dir(sync_dir)
+            .output();
+
+        // Reset to remote HEAD
+        let _ = std::process::Command::new("git")
+            .args(["reset", "--hard", &format!("origin/{}", branch)])
+            .current_dir(sync_dir)
+            .output();
+
+        // Re-create directory structure (in case remote doesn't have all dirs)
+        let _ = files::create_directory_structure(sync_dir);
+        for dir in ["clips", "plans", "imports", "claude-config"] {
+            let _ = std::fs::create_dir_all(sync_dir.join(dir));
+        }
+
+        // Re-commit any new init files
+        let _ = git::commit_only(sync_dir, "init: gitmemo setup");
+    }
+
+    // Step 4: push
+    let (pushed, push_err) = push_to_remote(sync_dir, &branch);
+    if pushed {
+        Ok("Synced with remote".into())
+    } else {
+        // Push failed but local is now on the right history — user can retry
+        Err(format!("Merged remote history, but push failed: {}", push_err.unwrap_or_default()))
+    }
+}
+
+fn push_to_remote(repo_path: &std::path::Path, branch: &str) -> (bool, Option<String>) {
+    let output = std::process::Command::new("git")
+        .args(["push", "-u", "origin", &format!("HEAD:{}", branch)])
+        .current_dir(repo_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => (true, None),
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr).trim().to_string();
+            (false, Some(if stderr.is_empty() { "push failed".into() } else { stderr }))
+        }
+        Err(e) => (false, Some(e.to_string())),
+    }
+}
+
+// ── Capture conversations ──────────────────────────────────────────���───────
 
 #[derive(Debug, Serialize)]
 pub struct CaptureResponse {
