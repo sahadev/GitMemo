@@ -188,7 +188,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
-    borderRadius: 10,
+    borderRadius: 6,
     padding: "20px 24px",
   };
 
@@ -567,7 +567,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
 
       {/* About */}
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-        <img src="/logo.png" alt="GitMemo" style={{ width: 48, height: 48, borderRadius: 10, marginBottom: 10 }} />
+        <img src="/logo.png" alt="GitMemo" style={{ width: 48, height: 48, borderRadius: 6, marginBottom: 10 }} />
         <p style={{ fontSize: 14, fontWeight: 600 }}>GitMemo Desktop</p>
         <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
@@ -624,7 +624,7 @@ export default function SettingsPage({ theme, onToggleTheme }: SettingsPageProps
           <div style={{
             width: "90%", maxWidth: 520, maxHeight: "70vh",
             background: "var(--bg-card)", border: "1px solid var(--border)",
-            borderRadius: 12, display: "flex", flexDirection: "column",
+            borderRadius: 8, display: "flex", flexDirection: "column",
             boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
           }}>
             <div style={{

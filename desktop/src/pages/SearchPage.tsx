@@ -254,7 +254,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
             placeholder={t("search.placeholder")}
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
-              borderRadius: 10, fontSize: 14, fontFamily: "inherit",
+              borderRadius: 6, fontSize: 14, fontFamily: "inherit",
               background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)",
             }}
           />
@@ -282,7 +282,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
                   key={i}
                   onClick={() => openFile(r.file_path)}
                   style={{
-                    width: "100%", textAlign: "left", padding: "14px 18px", borderRadius: 10, cursor: "pointer",
+                    width: "100%", textAlign: "left", padding: "14px 18px", borderRadius: 6, cursor: "pointer",
                     background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)",
                     transition: "background 0.15s",
                   }}

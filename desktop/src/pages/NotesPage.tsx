@@ -311,7 +311,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               placeholder={activeTab === "daily" ? t("notes.placeholderDaily") : activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
               rows={3}
               style={{
-                width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 13,
+                width: "100%", padding: "10px 12px", borderRadius: 6, fontSize: 13,
                 resize: "vertical", background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
               }}

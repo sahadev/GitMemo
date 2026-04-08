@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <pre style={{
             background: "#2a2a2a",
             padding: 16,
-            borderRadius: 8,
+            borderRadius: 6,
             maxWidth: "80vw",
             overflow: "auto",
             fontSize: 13,

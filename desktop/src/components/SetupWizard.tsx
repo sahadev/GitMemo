@@ -136,7 +136,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     width: "100%",
     maxWidth: 480,
     padding: "36px 32px",
-    borderRadius: 16,
+    borderRadius: 8,
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
   };
@@ -148,7 +148,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     gap: 8,
     width: "100%",
     padding: "12px 20px",
-    borderRadius: 10,
+    borderRadius: 6,
     border: "none",
     background: "var(--accent)",
     color: "#fff",
@@ -170,7 +170,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     alignItems: "center",
     gap: 14,
     padding: "14px 18px",
-    borderRadius: 10,
+    borderRadius: 6,
     border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
     background: selected ? "var(--accent)10" : "transparent",
     cursor: "pointer",
@@ -289,7 +289,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                           flexDirection: "column",
                           gap: 4,
                           padding: "10px 12px",
-                          borderRadius: 8,
+                          borderRadius: 6,
                           border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
                           background: selected ? "var(--accent)10" : "transparent",
                           cursor: "pointer",
@@ -333,7 +333,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                       style={{
                         width: "100%",
                         padding: "10px 14px",
-                        borderRadius: 8,
+                        borderRadius: 6,
                         border: "1px solid var(--border)",
                         background: "var(--bg-input)",
                         color: "var(--text)",
@@ -482,7 +482,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 {result && result.steps.length > 0 && (
                   <div style={{
                     marginBottom: 16, padding: "12px 16px",
-                    borderRadius: 8, background: "var(--bg-hover)",
+                    borderRadius: 6, background: "var(--bg-hover)",
                     maxHeight: 160, overflowY: "auto",
                   }}>
                     {result.steps.map((s, i) => (
@@ -502,7 +502,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 {result?.ssh_public_key && (
                   <div style={{
                     marginBottom: 16, padding: "12px 16px",
-                    borderRadius: 8, border: "1px dashed var(--border)",
+                    borderRadius: 6, border: "1px dashed var(--border)",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <GitBranch size={14} style={{ color: "var(--accent)" }} />
@@ -557,7 +557,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 {/* Tip: /save command */}
                 <div style={{
                   marginBottom: 16, padding: "10px 14px",
-                  borderRadius: 8, background: "var(--accent)08",
+                  borderRadius: 6, background: "var(--accent)08",
                   border: "1px solid var(--accent)20",
                   fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6,
                 }}>

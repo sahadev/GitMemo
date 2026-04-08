@@ -70,7 +70,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <img src="/logo.png" alt="GitMemo" style={{ width: 22, height: 22, borderRadius: 5 }} />
+          <img src="/logo.png" alt="GitMemo" style={{ width: 22, height: 22, borderRadius: 4 }} />
           <span style={{ fontWeight: 700, fontSize: 15 }}>GitMemo</span>
         </div>
       </div>

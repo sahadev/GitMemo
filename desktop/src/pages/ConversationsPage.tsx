@@ -339,7 +339,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                     </span>
                     {meta?.model && (
                       <span style={{
-                        fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                        fontSize: 9, padding: "1px 6px", borderRadius: 4,
                         background: selected ? "rgba(255,255,255,0.2)" : "var(--bg-hover)",
                         color: selected ? "#fff" : "var(--accent)",
                       }}>
@@ -491,7 +491,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                     minHeight: "100%",
                     resize: "none",
                     padding: 16,
-                    borderRadius: 10,
+                    borderRadius: 6,
                     border: "1px solid var(--border)",
                     background: "var(--bg-card)",
                     color: "var(--text)",
@@ -514,7 +514,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                       style={{
                         marginBottom: 20,
                         padding: "14px 16px",
-                        borderRadius: 8,
+                        borderRadius: 6,
                         borderLeft: `3px solid ${msg.role === "user" ? "var(--accent)" : "var(--green)"}`,
                         background: msg.role === "user" ? "var(--bg-hover)" : "transparent",
                       }}

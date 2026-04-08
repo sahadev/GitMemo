@@ -168,7 +168,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
-    borderRadius: 10,
+    borderRadius: 6,
     padding: "16px 20px",
   };
 
@@ -266,7 +266,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
       {/* Empty state guide */}
       {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips === 0 && recent.length === 0 && (
         <div style={{
-          padding: "20px 24px", borderRadius: 10, marginBottom: 16,
+          padding: "20px 24px", borderRadius: 6, marginBottom: 16,
           border: "1px dashed var(--accent)40", background: "var(--accent)06",
           textAlign: "center",
         }}>
@@ -411,7 +411,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (page: Page
 
       {/* Quick Info */}
       <div style={{
-        padding: "16px 20px", borderRadius: 10,
+        padding: "16px 20px", borderRadius: 6,
         border: "1px dashed var(--border)", background: "transparent",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>

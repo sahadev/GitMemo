@@ -107,7 +107,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
           padding: "8px 10px",
           marginBottom: 12,
           border: "1px solid var(--border)",
-          borderRadius: 8,
+          borderRadius: 6,
           background: "var(--bg-card)",
         }}>
           <Search size={14} style={{ color: "var(--text-secondary)" }} />

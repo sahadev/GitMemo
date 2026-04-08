@@ -201,7 +201,7 @@ export function OnboardingChecklist({
     <>
     <div style={{
       padding: "20px",
-      borderRadius: 12,
+      borderRadius: 6,
       border: `1px solid ${allDone ? "var(--green)30" : "var(--accent)30"}`,
       background: allDone ? "var(--green)08" : "var(--accent)08",
       marginBottom: 16,
@@ -261,7 +261,7 @@ export function OnboardingChecklist({
                   alignItems: "center",
                   gap: 12,
                   padding: "10px 14px",
-                  borderRadius: 8,
+                  borderRadius: 6,
                   background: done ? "transparent" : "var(--bg-card)",
                   border: done ? "none" : "1px solid var(--border)",
                   opacity: done ? 0.6 : 1,
