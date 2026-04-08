@@ -124,10 +124,11 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
   const containerStyle: React.CSSProperties = {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
-    height: "100%",
+    minHeight: "100%",
     padding: "24px",
+    overflowY: "auto",
   };
 
   const cardStyle: React.CSSProperties = {
