@@ -101,7 +101,6 @@ pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
             }
             Err(e) => {
                 result.add_err("ssh_key", &format!("SSH key error: {e}"));
-                // Continue anyway — user can set up SSH later
             }
         }
     }
@@ -147,7 +146,7 @@ pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
         }
     }
 
-    // 6. Initial commit (skip push — user hasn't configured SSH key on remote yet)
+    // 6. Initial commit
     match git::commit_only(&sync_dir, "init: gitmemo") {
         Ok(_) => result.add_ok("commit", "Initial commit created"),
         Err(e) => result.add_err("commit", &format!("Commit failed: {e}")),
@@ -168,7 +167,6 @@ fn find_or_generate_ssh_key() -> Result<(String, bool), String> {
     let home = home_dir()?;
     let ssh_dir = home.join(".ssh");
 
-    // Check existing keys
     for name in ["id_ed25519", "id_rsa", "id_ecdsa"] {
         let key_path = ssh_dir.join(name);
         let pub_path = ssh_dir.join(format!("{name}.pub"));
@@ -178,7 +176,6 @@ fn find_or_generate_ssh_key() -> Result<(String, bool), String> {
         }
     }
 
-    // Generate new ED25519 key
     std::fs::create_dir_all(&ssh_dir).map_err(|e| e.to_string())?;
     let key_path = ssh_dir.join("id_ed25519");
     let output = std::process::Command::new("ssh-keygen")
@@ -205,176 +202,68 @@ fn find_or_generate_ssh_key() -> Result<(String, bool), String> {
 
 /// Set up Claude Code integration (CLAUDE.md + settings hook + MCP + skills)
 fn setup_claude_full(sync_dir: &str, lang: &str) -> Result<(), String> {
-    let home = home_dir()?;
+    use gitmemo_core::inject::{claude_md, settings_hook, mcp_register, session_log_skill};
+    use gitmemo_core::utils::i18n::Lang;
 
-    // 1. CLAUDE.md injection — reuse existing Tauri command logic
-    super::settings::setup_claude_integration()
+    let home = home_dir()?;
+    let lang_enum = Lang::parse(lang);
+
+    // 1. CLAUDE.md injection
+    let claude_md_path = home.join(".claude").join("CLAUDE.md");
+    claude_md::inject(&claude_md_path, sync_dir, lang_enum)
         .map_err(|e| format!("CLAUDE.md injection failed: {e}"))?;
 
     // 2. Settings hook injection
     let settings_path = home.join(".claude").join("settings.json");
-    inject_settings_hook(&settings_path, sync_dir)?;
+    settings_hook::inject(&settings_path, sync_dir)
+        .map_err(|e| format!("Settings hook failed: {e}"))?;
 
     // 3. MCP server registration
     let claude_json = home.join(".claude.json");
-    inject_mcp_server(&claude_json)?;
+    let cli_path = which_gitmemo().unwrap_or_else(|| "gitmemo".to_string());
+    mcp_register::register(&claude_json, &cli_path)
+        .map_err(|e| format!("MCP registration failed: {e}"))?;
 
-    // 4. Skills (save + session-log)
+    // 4. Skills
     let skills_dir = home.join(".claude").join("skills");
     install_save_skill(&skills_dir)?;
-    install_session_log_skill(&skills_dir, sync_dir, lang)?;
+    let session_dir = skills_dir.join("gitmemo-session-log");
+    session_log_skill::install(&session_dir, sync_dir, lang_enum)
+        .map_err(|e| format!("Session-log skill failed: {e}"))?;
 
     Ok(())
 }
 
 /// Set up Cursor integration (rules + MCP + skills)
-fn setup_cursor_full(_sync_dir: &str, lang: &str) -> Result<(), String> {
-    // Reuse existing Tauri command
-    super::settings::setup_cursor_integration(lang.to_string())?;
+fn setup_cursor_full(sync_dir: &str, lang: &str) -> Result<(), String> {
+    use gitmemo_core::inject::{cursor_rules, cursor_mcp, session_log_skill};
+    use gitmemo_core::utils::i18n::Lang;
 
-    // Also register MCP for Cursor
     let home = home_dir()?;
-    let cursor_mcp = home.join(".cursor").join("mcp.json");
-    inject_cursor_mcp(&cursor_mcp)?;
+    let lang_enum = Lang::parse(lang);
 
-    Ok(())
-}
+    // 1. Cursor rules
+    let rules_path = home.join(".cursor").join("rules").join("gitmemo.mdc");
+    cursor_rules::inject(&rules_path, sync_dir, lang_enum)
+        .map_err(|e| format!("Cursor rules failed: {e}"))?;
 
-/// Inject PostToolUse hook into Claude Code settings.json
-fn inject_settings_hook(settings_path: &std::path::Path, sync_dir: &str) -> Result<(), String> {
-    if let Some(parent) = settings_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
+    // 2. Skills (save + session-log)
+    let skills_dir = home.join(".cursor").join("skills");
+    install_save_skill(&skills_dir)?;
+    let session_dir = skills_dir.join("gitmemo-session-log");
+    session_log_skill::install(&session_dir, sync_dir, lang_enum)
+        .map_err(|e| format!("Session-log skill failed: {e}"))?;
 
-    let content = if settings_path.exists() {
-        let raw = std::fs::read_to_string(settings_path).map_err(|e| e.to_string())?;
-        if raw.trim().is_empty() { "{}".to_string() } else { raw }
-    } else {
-        "{}".to_string()
-    };
-
-    let mut json: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {e}"))?;
-
-    // Ensure hooks.PostToolUse is an array
-    let hooks = json
-        .as_object_mut()
-        .ok_or("settings.json root is not an object")?
-        .entry("hooks")
-        .or_insert(serde_json::json!({}));
-    let post_tool = hooks
-        .as_object_mut()
-        .ok_or("hooks is not an object")?
-        .entry("PostToolUse")
-        .or_insert(serde_json::json!([]));
-    let arr = post_tool.as_array_mut().ok_or("PostToolUse is not an array")?;
-
-    // Remove existing gitmemo hook
-    arr.retain(|h| {
-        h.get("_source").and_then(|s| s.as_str()) != Some("gitmemo")
-    });
-
-    // Add new hook
-    let hook = serde_json::json!({
-        "_source": "gitmemo",
-        "matcher": format!("Write|Edit|NotebookEdit"),
-        "hooks": [{
-            "type": "command",
-            "command": format!(
-                "FILE=\"$TOOL_INPUT_file_path$TOOL_INPUT_notebook_path\"; if echo \"$FILE\" | grep -q '{}'; then cd '{}' && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(basename \"$FILE\")\" && git push origin HEAD 2>/dev/null & fi",
-                sync_dir.replace('\'', "'\\''"),
-                sync_dir.replace('\'', "'\\''"),
-            ),
-        }],
-    });
-    arr.push(hook);
-
-    let output = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
-    std::fs::write(settings_path, output).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Register MCP server in ~/.claude.json
-fn inject_mcp_server(claude_json: &std::path::Path) -> Result<(), String> {
-    let binary = std::env::current_exe()
-        .map_err(|e| e.to_string())?
-        .to_string_lossy()
-        .to_string();
-
-    // For desktop app, we need the CLI binary path
-    // Try to find gitmemo CLI in PATH
-    let cli_path = which_gitmemo().unwrap_or(binary);
-
-    if let Some(parent) = claude_json.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-
-    let content = if claude_json.exists() {
-        std::fs::read_to_string(claude_json).map_err(|e| e.to_string())?
-    } else {
-        "{}".to_string()
-    };
-
-    let mut json: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {e}"))?;
-
-    let servers = json
-        .as_object_mut()
-        .ok_or("root is not an object")?
-        .entry("mcpServers")
-        .or_insert(serde_json::json!({}));
-
-    servers.as_object_mut().ok_or("mcpServers not object")?.insert(
-        "gitmemo".to_string(),
-        serde_json::json!({
-            "command": cli_path,
-            "args": ["mcp-serve"],
-        }),
-    );
-
-    let output = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
-    std::fs::write(claude_json, output).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Register MCP server in ~/.cursor/mcp.json
-fn inject_cursor_mcp(cursor_mcp: &std::path::Path) -> Result<(), String> {
+    // 3. MCP for Cursor
+    let cursor_mcp_path = home.join(".cursor").join("mcp.json");
     let cli_path = which_gitmemo().unwrap_or_else(|| "gitmemo".to_string());
+    cursor_mcp::register(&cursor_mcp_path, &cli_path)
+        .map_err(|e| format!("Cursor MCP failed: {e}"))?;
 
-    if let Some(parent) = cursor_mcp.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-
-    let content = if cursor_mcp.exists() {
-        let raw = std::fs::read_to_string(cursor_mcp).map_err(|e| e.to_string())?;
-        if raw.trim().is_empty() { "{}".to_string() } else { raw }
-    } else {
-        "{}".to_string()
-    };
-
-    let mut json: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {e}"))?;
-
-    let servers = json
-        .as_object_mut()
-        .ok_or("root is not an object")?
-        .entry("mcpServers")
-        .or_insert(serde_json::json!({}));
-
-    servers.as_object_mut().ok_or("mcpServers not object")?.insert(
-        "gitmemo".to_string(),
-        serde_json::json!({
-            "command": cli_path,
-            "args": ["mcp-serve"],
-        }),
-    );
-
-    let output = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
-    std::fs::write(cursor_mcp, output).map_err(|e| e.to_string())?;
     Ok(())
 }
 
-/// Install /save skill
+/// Install /save skill (uses include_str! with Desktop-relative path)
 fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
     let save_dir = skills_dir.join("save");
     std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
@@ -383,21 +272,6 @@ fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
         include_str!("../../../../skills/save/SKILL.md"),
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Install session-log skill
-fn install_session_log_skill(
-    skills_dir: &std::path::Path,
-    sync_dir: &str,
-    lang: &str,
-) -> Result<(), String> {
-    let session_dir = skills_dir.join("gitmemo-session-log");
-    std::fs::create_dir_all(&session_dir).map_err(|e| e.to_string())?;
-
-    // Generate the skill content using the same function from settings
-    let content = super::settings::generate_session_log_skill_content(sync_dir, lang);
-    std::fs::write(session_dir.join("SKILL.md"), content).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -418,9 +292,6 @@ fn which_gitmemo() -> Option<String> {
 
 // ── Post-init remote sync ─────────────────────────────────────────────────
 
-/// Background sync with remote after initial setup.
-/// Fetches remote history and rebases local init commit on top of it,
-/// so the local repo shares a common ancestor with the remote.
 #[tauri::command]
 pub fn sync_remote_init(app_handle: AppHandle) {
     let _ = app_handle.emit("git-sync-start", ());
@@ -454,7 +325,6 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
 
     if !fetch.status.success() {
         let stderr = String::from_utf8_lossy(&fetch.stderr).to_string();
-        // Network error or SSH not configured yet — not fatal, user can retry via sync
         return Err(format!("Fetch failed (SSH key may not be configured yet): {}", stderr.trim()));
     }
 
@@ -469,7 +339,6 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
         .unwrap_or(false);
 
     if !has_remote_commits {
-        // Remote is empty — just push our init commit
         let (pushed, push_err) = push_to_remote(sync_dir, &branch);
         return if pushed {
             Ok("Pushed to empty remote".into())
@@ -488,26 +357,22 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
         .map_err(|e| format!("rebase failed: {e}"))?;
 
     if !rebase.status.success() {
-        // Rebase conflict — abort, then reset to remote and re-commit init files
         eprintln!("[gitmemo] init rebase failed, resetting to remote and re-applying init files");
         let _ = std::process::Command::new("git")
             .args(["rebase", "--abort"])
             .current_dir(sync_dir)
             .output();
 
-        // Reset to remote HEAD
         let _ = std::process::Command::new("git")
             .args(["reset", "--hard", &format!("origin/{}", branch)])
             .current_dir(sync_dir)
             .output();
 
-        // Re-create directory structure (in case remote doesn't have all dirs)
         let _ = files::create_directory_structure(sync_dir);
         for dir in ["clips", "plans", "imports", "claude-config"] {
             let _ = std::fs::create_dir_all(sync_dir.join(dir));
         }
 
-        // Re-commit any new init files
         let _ = git::commit_only(sync_dir, "init: gitmemo setup");
     }
 
@@ -516,7 +381,6 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
     if pushed {
         Ok("Synced with remote".into())
     } else {
-        // Push failed but local is now on the right history — user can retry
         Err(format!("Merged remote history, but push failed: {}", push_err.unwrap_or_default()))
     }
 }
@@ -539,7 +403,7 @@ fn push_to_remote(repo_path: &std::path::Path, branch: &str) -> (bool, Option<St
     }
 }
 
-// ── Capture conversations ──────────────────────────────────────────���───────
+// ── Capture conversations ─────────────────────────────────────────────────
 
 #[derive(Debug, Serialize)]
 pub struct CaptureResponse {

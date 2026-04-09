@@ -1,7 +1,7 @@
 use anyhow::Result;
 use crate::utils::i18n::Lang;
 
-const MARKER_START: &str = "<!-- [gitmemo:start] -->";
+pub const MARKER_START: &str = "<!-- [gitmemo:start] -->";
 const MARKER_END: &str = "<!-- [gitmemo:end] -->";
 
 /// Generate the CLAUDE.md instruction block (language-aware)
