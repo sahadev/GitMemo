@@ -1,0 +1,175 @@
+# ── Init command ─────────────────────────────────────────
+
+init_title = "GitMemo 初始化"
+select_editor_prompt = "选择要配置的编辑器"
+editor_options = ["Claude Code", "Cursor", "两者都安装"]
+select_language_prompt = "选择语言"
+unsupported_editor = "不支持的编辑器: {}。可选: claude, cursor, all"
+not_a_git_repo = "{} 不是一个 Git 仓库"
+linked_repo = "链接到已有仓库"
+detected_remote = "检测到已有远程"
+git_url_prompt = "Git 仓库地址（直接回车跳过，仅本地存储）"
+local_mode_selected = "仅本地模式（不同步到远端）"
+local_saved_hint = "已保存到本地（运行 `gitmemo remote <url>` 开启远程同步）"
+sync_mode_local = "同步模式: 仅本地"
+remote_current = "远程仓库: {}"
+remote_none = "未配置远程仓库。运行 `gitmemo remote <url>` 进行配置。"
+remote_set_ok = "远程仓库已配置"
+remote_pushing = "正在推送本地提交到远端..."
+remote_removed = "远程仓库已移除，已切换到仅本地模式。"
+remote_same = "远程仓库已经是 {}"
+opening_browser = "正在浏览器中打开 Deploy Keys 页面..."
+dir_structure_ready = "目录结构就绪"
+git_repo_ready = "Git 仓库就绪"
+ssh_key_generated = "SSH 密钥已生成"
+ssh_key_exists = "SSH 密钥已存在，跳过生成"
+ssh_url_recommended = "推荐使用 SSH 地址进行自动同步（无需密码）："
+use_ssh_url = "使用 SSH 地址（推荐）"
+keep_https_url = "保持 HTTPS 地址"
+choose_url_prompt = "选择地址类型"
+testing_ssh = "正在测试 SSH 连接"
+ssh_test_ok = "SSH 连接正常"
+ssh_test_auth_failed = "SSH 认证失败 — 公钥未被识别"
+ssh_test_connection_failed = "SSH 连接失败 — 无法访问主机"
+ssh_test_unknown = "SSH 连接状态不确定，可能需要手动检查"
+ssh_test_error = "SSH 测试出错："
+configs_backed_up = "原始配置已备份"
+claude_md_injected = "CLAUDE.md 指令已注入"
+git_hook_injected = "Git 同步 Hook 已注入"
+claude_mcp_registered = "Claude MCP Server 已注册"
+save_skill_installed = "/save 快捷命令已安装"
+claude_session_log_skill_installed = "已安装 Claude Code 会话摘要技能（~/.claude/skills/gitmemo-session-log）"
+cursor_rules_injected = "已写入 Cursor 全局规则（~/.cursor/rules/gitmemo.mdc）"
+cursor_save_skill_installed = "已安装 Cursor /save 技能（~/.cursor/skills/save）"
+cursor_session_log_skill_installed = "已安装 Cursor 会话摘要技能（路径与对话相同：conversations/年-月/）"
+cursor_mcp_registered = "Cursor MCP Server 已注册"
+deploy_key_hint = "请将以下公钥添加到仓库的 Deploy Keys（允许写入）："
+all_set = "一切就绪！"
+next_steps = "下一步："
+claude_next_step_1 = "在 Claude 中输入 {} 试试保存当前会话（无需重启）"
+claude_next_step_2 = "如果 /save 未生效，重启 Claude 会话即可"
+cursor_next_step_1 = "{} 重启 Cursor（使配置生效）"
+cursor_next_step_2 = "对话保存后会自动通过 MCP 同步到 Git"
+verify_heading = "验证是否生效："
+verify_test = "手动测试"
+verify_status = "查看状态"
+recommend = "建议"
+
+# ── Uninstall command ────────────────────────────────────
+
+uninstall_title = "GitMemo 卸载"
+claude_md_removed = "CLAUDE.md 指令已移除"
+git_hook_removed = "Git 同步 Hook 已移除"
+claude_mcp_removed = "Claude MCP Server 已移除"
+save_skill_removed = "/save 快捷命令已移除"
+claude_session_log_skill_removed = "Claude Code 会话摘要技能已移除"
+cursor_rules_removed = "Cursor Rules 已移除"
+cursor_save_skill_removed = "Cursor /save 技能已移除"
+cursor_session_log_skill_removed = "Cursor 会话摘要技能已移除"
+cursor_mcp_removed = "Cursor MCP Server 已移除"
+data_deleted = "数据目录已删除: {}"
+data_preserved = "数据已保留在 {}"
+
+# ── Status command ───────────────────────────────────────
+
+status_title = "GitMemo 状态"
+not_initialized = "未初始化。运行 {} 开始。"
+data_dir = "数据目录"
+git_remote = "Git 远程"
+git_branch = "Git 分支"
+conversations_count = "对话记录"
+notes_count = "笔记"
+unpushed_commits = "未推送: {} 条提交（运行 gitmemo sync 推送）"
+sync_ok = "同步状态: ✓ 已同步"
+
+# ── Sync command ─────────────────────────────────────────
+
+synced_to_git = "已同步到 Git"
+committed_push_failed = "已提交，但推送失败: {}"
+retry_push_hint = "运行 {} 重试推送"
+no_changes = "无变更需要提交"
+all_synced = "一切已同步，无需操作"
+pushing_commits = "{} 条未推送的提交，正在推送..."
+pushed_commits = "已推送 {} 条提交"
+push_failed = "推送失败: {}"
+
+# ── Unpushed command ─────────────────────────────────────
+
+no_unpushed = "没有未推送的提交"
+unpushed_heading = "⚠ {} 条未推送的提交："
+push_hint = "运行 {} 推送到远程"
+
+# ── Note commands ────────────────────────────────────────
+
+scratch_created = "便签已创建: {}"
+daily_saved = "今日笔记已保存"
+daily_appended = "已追加到今日笔记: {}"
+content_empty = "内容为空，跳过。"
+manual_saved = "手册已保存: {}"
+
+# ── Search / Recent ──────────────────────────────────────
+
+no_results = "未找到匹配 \"{}\" 的结果。"
+found_results = "🔍 找到 {} 条结果："
+badge_conversation = "对话"
+badge_note = "笔记"
+no_recent = "最近 {} 天没有对话记录。"
+recent_heading = "📋 最近 {} 天的对话："
+
+# ── Stats ────────────────────────────────────────────────
+
+stats_title = "GitMemo 统计"
+stats_conversations = "对话记录"
+stats_daily = "每日笔记"
+stats_manual = "手册"
+stats_scratch = "便签"
+stats_storage = "存储大小"
+
+# ── Reindex ──────────────────────────────────────────────
+
+index_rebuilt = "索引已重建，共 {} 个文件"
+
+# ── Branch command ───────────────────────────────────────
+
+branch_current = "当前同步分支: {}"
+branch_switched = "同步分支已切换: {} → {}"
+branch_same = "已经在 {} 分支上"
+
+# ── Global errors ────────────────────────────────────────
+
+not_init_error = "未初始化。请先运行 gitmemo init"
+not_init_error_mcp = "GitMemo 未初始化。请先运行 gitmemo init"
+
+# ── MCP tool descriptions ────────────────────────────────
+
+mcp_search_desc = "搜索用户的历史 AI 对话和笔记。当用户说'搜索我的对话'、'找一下之前关于 X 的讨论'时使用。"
+mcp_search_query_desc = "搜索关键词"
+mcp_search_type_desc = "搜索范围，默认 all"
+mcp_search_limit_desc = "返回结果数量，默认 10"
+mcp_recent_desc = "列出最近的 AI 对话记录。当用户说'最近的对话'、'看看历史'时使用。"
+mcp_recent_limit_desc = "返回数量，默认 10"
+mcp_recent_days_desc = "最近几天，默认 7"
+mcp_read_desc = "读取某条对话或笔记的完整内容。"
+mcp_read_path_desc = "文件相对路径"
+mcp_note_desc = "创建一条便签笔记。当用户说'记一下'、'保存这个想法'时使用。"
+mcp_note_content_desc = "笔记内容"
+mcp_daily_desc = "追加内容到今天的日记。当用户说'记到今天的日记里'时使用。"
+mcp_daily_content_desc = "要追加的内容"
+mcp_manual_desc = "创建或追加到手册文档。当用户说'创建一篇手册'、'整理成文档'时使用。"
+mcp_manual_title_desc = "手册标题"
+mcp_manual_content_desc = "手册内容"
+mcp_manual_append_desc = "是否追加到已有手册"
+mcp_stats_desc = "获取对话和笔记的统计信息。"
+mcp_sync_desc = "将 GitMemo 数据目录的变更同步到 Git（git add + commit + push）。在 Cursor 等没有自动 Hook 的编辑器中，保存对话文件后必须调用此工具完成同步。"
+mcp_sync_message_desc = "commit message（可选，默认自动生成）"
+
+# ── MCP tool responses ───────────────────────────────────
+
+mcp_note_created = "便签已创建: {}"
+mcp_daily_appended = "已追加到今日笔记: {}"
+mcp_manual_saved = "手册已保存: {}"
+mcp_sync_done = "Git 同步完成（已提交并推送）"
+mcp_committed_push_failed = "已提交，但推送失败: {}"
+mcp_pushed_commits = "已推送 {} 条提交"
+mcp_push_failed = "推送失败: {}"
+mcp_all_synced = "一切已同步，无需操作"

@@ -43,3 +43,49 @@ impl Config {
         crate::storage::files::sync_dir().join(".metadata").join("config.toml")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_roundtrip() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let config = Config {
+            git: GitConfig {
+                remote: "git@github.com:user/repo.git".to_string(),
+                branch: "main".to_string(),
+            },
+            lang: "zh".to_string(),
+        };
+        config.save(tmp.path()).unwrap();
+        let loaded = Config::load(tmp.path()).unwrap();
+        assert_eq!(loaded.git.remote, "git@github.com:user/repo.git");
+        assert_eq!(loaded.git.branch, "main");
+        assert_eq!(loaded.lang, "zh");
+    }
+
+    #[test]
+    fn test_has_remote() {
+        let with_remote = Config {
+            git: GitConfig { remote: "https://example.com".to_string(), branch: "main".to_string() },
+            lang: "en".to_string(),
+        };
+        assert!(with_remote.has_remote());
+
+        let without_remote = Config {
+            git: GitConfig { remote: String::new(), branch: "main".to_string() },
+            lang: "en".to_string(),
+        };
+        assert!(!without_remote.has_remote());
+    }
+
+    #[test]
+    fn test_default_lang() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        // Write config without lang field
+        std::fs::write(tmp.path(), "[git]\nremote = \"\"\nbranch = \"main\"\n").unwrap();
+        let loaded = Config::load(tmp.path()).unwrap();
+        assert_eq!(loaded.lang, "en");
+    }
+}

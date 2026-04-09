@@ -1,0 +1,175 @@
+# ── Init command ─────────────────────────────────────────
+
+init_title = "GitMemo Setup"
+select_editor_prompt = "Select editor to configure"
+editor_options = ["Claude Code", "Cursor", "Both"]
+select_language_prompt = "Select language"
+unsupported_editor = "Unsupported editor: {}. Options: claude, cursor, all"
+not_a_git_repo = "{} is not a Git repository"
+linked_repo = "Linked to existing repo"
+detected_remote = "Detected existing remote"
+git_url_prompt = "Git repository URL (Enter to skip, local-only)"
+local_mode_selected = "Local-only mode (no remote sync)"
+local_saved_hint = "Saved locally (run `gitmemo remote <url>` to enable sync)"
+sync_mode_local = "Sync mode: local only"
+remote_current = "Remote: {}"
+remote_none = "No remote configured. Run `gitmemo remote <url>` to set one."
+remote_set_ok = "Remote configured"
+remote_pushing = "Pushing local commits to remote..."
+remote_removed = "Remote removed. Switched to local-only mode."
+remote_same = "Remote is already set to {}"
+opening_browser = "Opening Deploy Keys page in browser..."
+dir_structure_ready = "Directory structure ready"
+git_repo_ready = "Git repo ready"
+ssh_key_generated = "SSH key generated"
+ssh_key_exists = "SSH key exists, skipped generation"
+ssh_url_recommended = "SSH URL is recommended for automatic sync (no password needed):"
+use_ssh_url = "Use SSH URL (recommended)"
+keep_https_url = "Keep HTTPS URL"
+choose_url_prompt = "Choose URL type"
+testing_ssh = "Testing SSH connection"
+ssh_test_ok = "SSH connection OK"
+ssh_test_auth_failed = "SSH authentication failed — public key not recognized"
+ssh_test_connection_failed = "SSH connection failed — cannot reach host"
+ssh_test_unknown = "SSH connection status unclear, may need manual check"
+ssh_test_error = "SSH test error:"
+configs_backed_up = "Original configs backed up"
+claude_md_injected = "CLAUDE.md instructions injected"
+git_hook_injected = "Git sync hook injected"
+claude_mcp_registered = "Claude MCP Server registered"
+save_skill_installed = "/save shortcut installed"
+claude_session_log_skill_installed = "Claude Code session-log skill installed (~/.claude/skills/gitmemo-session-log)"
+cursor_rules_injected = "Cursor global rule written (~/.cursor/rules/gitmemo.mdc)"
+cursor_save_skill_installed = "Cursor /save skill installed (~/.cursor/skills/save)"
+cursor_session_log_skill_installed = "Cursor session-log skill installed (~/.cursor/skills/gitmemo-session-log → conversations/YYYY-MM/ same as chats)"
+cursor_mcp_registered = "Cursor MCP Server registered"
+deploy_key_hint = "Please add this public key to your repo's Deploy Keys (allow write access):"
+all_set = "All set!"
+next_steps = "Next steps:"
+claude_next_step_1 = "Try typing {} in Claude to save the current session (no restart needed)"
+claude_next_step_2 = "If /save doesn't work, restart the Claude session"
+cursor_next_step_1 = "{} Restart Cursor (to apply config)"
+cursor_next_step_2 = "Conversations will auto-sync to Git via MCP"
+verify_heading = "Verify it works:"
+verify_test = "manual test"
+verify_status = "check status"
+recommend = "Recommended"
+
+# ── Uninstall command ────────────────────────────────────
+
+uninstall_title = "GitMemo Uninstall"
+claude_md_removed = "CLAUDE.md instructions removed"
+git_hook_removed = "Git sync hook removed"
+claude_mcp_removed = "Claude MCP Server removed"
+save_skill_removed = "/save shortcut removed"
+claude_session_log_skill_removed = "Claude Code session-log skill removed"
+cursor_rules_removed = "Cursor Rules removed"
+cursor_save_skill_removed = "Cursor /save skill removed"
+cursor_session_log_skill_removed = "Cursor session-log skill removed"
+cursor_mcp_removed = "Cursor MCP Server removed"
+data_deleted = "Data directory deleted: {}"
+data_preserved = "Data preserved at {}"
+
+# ── Status command ───────────────────────────────────────
+
+status_title = "GitMemo Status"
+not_initialized = "Not initialized. Run {} to get started."
+data_dir = "Data directory"
+git_remote = "Git remote"
+git_branch = "Git branch"
+conversations_count = "Conversations"
+notes_count = "Notes"
+unpushed_commits = "Unpushed: {} commits (run gitmemo sync to push)"
+sync_ok = "Sync status: ✓ up to date"
+
+# ── Sync command ─────────────────────────────────────────
+
+synced_to_git = "Synced to Git"
+committed_push_failed = "Committed, but push failed: {}"
+retry_push_hint = "Run {} to retry push"
+no_changes = "No changes to commit"
+all_synced = "All synced, nothing to do"
+pushing_commits = "{} unpushed commits, pushing..."
+pushed_commits = "Pushed {} commits"
+push_failed = "Push failed: {}"
+
+# ── Unpushed command ─────────────────────────────────────
+
+no_unpushed = "No unpushed commits"
+unpushed_heading = "⚠ {} unpushed commits:"
+push_hint = "Run {} to push to remote"
+
+# ── Note commands ────────────────────────────────────────
+
+scratch_created = "Scratch note created: {}"
+daily_saved = "Today's note saved"
+daily_appended = "Appended to today's note: {}"
+content_empty = "Content is empty, skipped."
+manual_saved = "Manual saved: {}"
+
+# ── Search / Recent ──────────────────────────────────────
+
+no_results = "No results matching \"{}\"."
+found_results = "🔍 Found {} results:"
+badge_conversation = "conv"
+badge_note = "note"
+no_recent = "No conversations in the last {} days."
+recent_heading = "📋 Conversations in the last {} days:"
+
+# ── Stats ────────────────────────────────────────────────
+
+stats_title = "GitMemo Stats"
+stats_conversations = "Conversations"
+stats_daily = "Daily notes"
+stats_manual = "Manuals"
+stats_scratch = "Scratch notes"
+stats_storage = "Storage size"
+
+# ── Reindex ──────────────────────────────────────────────
+
+index_rebuilt = "Index rebuilt, {} files indexed"
+
+# ── Branch command ───────────────────────────────────────
+
+branch_current = "Current sync branch: {}"
+branch_switched = "Sync branch changed: {} → {}"
+branch_same = "Already on branch {}"
+
+# ── Global errors ────────────────────────────────────────
+
+not_init_error = "Not initialized. Please run gitmemo init first"
+not_init_error_mcp = "GitMemo not initialized. Please run gitmemo init first"
+
+# ── MCP tool descriptions ────────────────────────────────
+
+mcp_search_desc = "Search the user's AI conversation history and notes. Use when the user says 'search my conversations' or 'find discussions about X'."
+mcp_search_query_desc = "Search keywords"
+mcp_search_type_desc = "Search scope, default all"
+mcp_search_limit_desc = "Number of results, default 10"
+mcp_recent_desc = "List recent AI conversations. Use when the user says 'recent conversations' or 'show history'."
+mcp_recent_limit_desc = "Number of results, default 10"
+mcp_recent_days_desc = "Days to look back, default 7"
+mcp_read_desc = "Read the full content of a conversation or note."
+mcp_read_path_desc = "Relative file path"
+mcp_note_desc = "Create a scratch note. Use when the user says 'note this down' or 'save this idea'."
+mcp_note_content_desc = "Note content"
+mcp_daily_desc = "Append content to today's daily note. Use when the user says 'add to today's journal'."
+mcp_daily_content_desc = "Content to append"
+mcp_manual_desc = "Create or append to a manual document. Use when the user says 'create a manual' or 'organize into a doc'."
+mcp_manual_title_desc = "Manual title"
+mcp_manual_content_desc = "Manual content"
+mcp_manual_append_desc = "Whether to append to existing manual"
+mcp_stats_desc = "Get statistics about conversations and notes."
+mcp_sync_desc = "Sync GitMemo data changes to Git (git add + commit + push). In editors without auto hooks (like Cursor), this must be called after saving conversation files."
+mcp_sync_message_desc = "Commit message (optional, auto-generated by default)"
+
+# ── MCP tool responses ───────────────────────────────────
+
+mcp_note_created = "Scratch note created: {}"
+mcp_daily_appended = "Appended to today's note: {}"
+mcp_manual_saved = "Manual saved: {}"
+mcp_sync_done = "Git sync complete (committed and pushed)"
+mcp_committed_push_failed = "Committed, but push failed: {}"
+mcp_pushed_commits = "Pushed {} commits"
+mcp_push_failed = "Push failed: {}"
+mcp_all_synced = "All synced, nothing to do"

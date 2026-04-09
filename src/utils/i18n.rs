@@ -1,4 +1,8 @@
+use std::collections::HashMap;
 use std::sync::OnceLock;
+
+const EN_TOML: &str = include_str!("i18n/en.toml");
+const ZH_TOML: &str = include_str!("i18n/zh.toml");
 
 /// Supported languages
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,998 +54,312 @@ pub fn init_from_config() {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct I18n {
     pub lang: Lang,
+    strings: HashMap<String, toml::Value>,
 }
 
 impl I18n {
     pub fn new(lang: Lang) -> Self {
-        Self { lang }
+        let raw = match lang {
+            Lang::En => EN_TOML,
+            Lang::Zh => ZH_TOML,
+        };
+        let strings: HashMap<String, toml::Value> =
+            toml::from_str(raw).expect("Failed to parse i18n TOML");
+        Self { lang, strings }
     }
 
-    // ── Init command ─────────────────────────────────────────
+    // ── Internal helpers ────────────────────────────────────
 
-    pub fn init_title(&self) -> &str {
-        match self.lang {
-            Lang::En => "GitMemo Setup",
-            Lang::Zh => "GitMemo 初始化",
-        }
+    fn s<'a>(&'a self, key: &'a str) -> &'a str {
+        self.strings
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or(key)
     }
 
-    pub fn select_editor_prompt(&self) -> &str {
-        match self.lang {
-            Lang::En => "Select editor to configure",
-            Lang::Zh => "选择要配置的编辑器",
-        }
+    fn fmt1(&self, key: &str, arg: &str) -> String {
+        self.s(key).replacen("{}", arg, 1)
     }
 
-    pub fn editor_options(&self) -> Vec<&str> {
-        match self.lang {
-            Lang::En => vec!["Claude Code", "Cursor", "Both"],
-            Lang::Zh => vec!["Claude Code", "Cursor", "两者都安装"],
-        }
+    fn fmt2(&self, key: &str, a: &str, b: &str) -> String {
+        self.s(key).replacen("{}", a, 1).replacen("{}", b, 1)
     }
 
+    fn fmt_n(&self, key: &str, n: usize) -> String {
+        self.s(key).replacen("{}", &n.to_string(), 1)
+    }
+
+    fn fmt_u32(&self, key: &str, n: u32) -> String {
+        self.s(key).replacen("{}", &n.to_string(), 1)
+    }
+
+    fn arr(&self, key: &str) -> Vec<&str> {
+        self.strings
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+            .unwrap_or_default()
+    }
+
+    // ── Init command ────────────────────────────────────────
+
+    pub fn init_title(&self) -> &str { self.s("init_title") }
+    pub fn select_editor_prompt(&self) -> &str { self.s("select_editor_prompt") }
+    pub fn editor_options(&self) -> Vec<&str> { self.arr("editor_options") }
     #[allow(dead_code)]
-    pub fn select_language_prompt(&self) -> &str {
-        match self.lang {
-            Lang::En => "Select language",
-            Lang::Zh => "选择语言",
-        }
-    }
-
-    pub fn unsupported_editor(&self, name: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Unsupported editor: {}. Options: claude, cursor, all", name),
-            Lang::Zh => format!("不支持的编辑器: {}。可选: claude, cursor, all", name),
-        }
-    }
-
-    pub fn not_a_git_repo(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("{} is not a Git repository", path),
-            Lang::Zh => format!("{} 不是一个 Git 仓库", path),
-        }
-    }
-
-    pub fn linked_repo(&self) -> &str {
-        match self.lang {
-            Lang::En => "Linked to existing repo",
-            Lang::Zh => "链接到已有仓库",
-        }
-    }
-
-    pub fn detected_remote(&self) -> &str {
-        match self.lang {
-            Lang::En => "Detected existing remote",
-            Lang::Zh => "检测到已有远程",
-        }
-    }
-
-    pub fn git_url_prompt(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git repository URL (Enter to skip, local-only)",
-            Lang::Zh => "Git 仓库地址（直接回车跳过，仅本地存储）",
-        }
-    }
-
-    pub fn local_mode_selected(&self) -> &str {
-        match self.lang {
-            Lang::En => "Local-only mode (no remote sync)",
-            Lang::Zh => "仅本地模式（不同步到远端）",
-        }
-    }
-
-    pub fn local_saved_hint(&self) -> &str {
-        match self.lang {
-            Lang::En => "Saved locally (run `gitmemo remote <url>` to enable sync)",
-            Lang::Zh => "已保存到本地（运行 `gitmemo remote <url>` 开启远程同步）",
-        }
-    }
-
-    pub fn sync_mode_local(&self) -> &str {
-        match self.lang {
-            Lang::En => "Sync mode: local only",
-            Lang::Zh => "同步模式: 仅本地",
-        }
-    }
-
-    pub fn remote_current(&self, url: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Remote: {}", url),
-            Lang::Zh => format!("远程仓库: {}", url),
-        }
-    }
-
-    pub fn remote_none(&self) -> &str {
-        match self.lang {
-            Lang::En => "No remote configured. Run `gitmemo remote <url>` to set one.",
-            Lang::Zh => "未配置远程仓库。运行 `gitmemo remote <url>` 进行配置。",
-        }
-    }
-
-    pub fn remote_set_ok(&self) -> &str {
-        match self.lang {
-            Lang::En => "Remote configured",
-            Lang::Zh => "远程仓库已配置",
-        }
-    }
-
-    pub fn remote_pushing(&self) -> &str {
-        match self.lang {
-            Lang::En => "Pushing local commits to remote...",
-            Lang::Zh => "正在推送本地提交到远端...",
-        }
-    }
-
-    pub fn remote_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Remote removed. Switched to local-only mode.",
-            Lang::Zh => "远程仓库已移除，已切换到仅本地模式。",
-        }
-    }
-
-    pub fn remote_same(&self, url: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Remote is already set to {}", url),
-            Lang::Zh => format!("远程仓库已经是 {}", url),
-        }
-    }
-
-    pub fn opening_browser(&self) -> &str {
-        match self.lang {
-            Lang::En => "Opening Deploy Keys page in browser...",
-            Lang::Zh => "正在浏览器中打开 Deploy Keys 页面...",
-        }
-    }
-
-    pub fn dir_structure_ready(&self) -> &str {
-        match self.lang {
-            Lang::En => "Directory structure ready",
-            Lang::Zh => "目录结构就绪",
-        }
-    }
-
-    pub fn git_repo_ready(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git repo ready",
-            Lang::Zh => "Git 仓库就绪",
-        }
-    }
-
-    pub fn ssh_key_generated(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH key generated",
-            Lang::Zh => "SSH 密钥已生成",
-        }
-    }
-
-    pub fn ssh_key_exists(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH key exists, skipped generation",
-            Lang::Zh => "SSH 密钥已存在，跳过生成",
-        }
-    }
-
-    pub fn ssh_url_recommended(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH URL is recommended for automatic sync (no password needed):",
-            Lang::Zh => "推荐使用 SSH 地址进行自动同步（无需密码）：",
-        }
-    }
-
-    pub fn use_ssh_url(&self) -> &str {
-        match self.lang {
-            Lang::En => "Use SSH URL (recommended)",
-            Lang::Zh => "使用 SSH 地址（推荐）",
-        }
-    }
-
-    pub fn keep_https_url(&self) -> &str {
-        match self.lang {
-            Lang::En => "Keep HTTPS URL",
-            Lang::Zh => "保持 HTTPS 地址",
-        }
-    }
-
-    pub fn choose_url_prompt(&self) -> &str {
-        match self.lang {
-            Lang::En => "Choose URL type",
-            Lang::Zh => "选择地址类型",
-        }
-    }
-
-    pub fn testing_ssh(&self) -> &str {
-        match self.lang {
-            Lang::En => "Testing SSH connection",
-            Lang::Zh => "正在测试 SSH 连接",
-        }
-    }
-
-    pub fn ssh_test_ok(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH connection OK",
-            Lang::Zh => "SSH 连接正常",
-        }
-    }
-
-    pub fn ssh_test_auth_failed(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH authentication failed — public key not recognized",
-            Lang::Zh => "SSH 认证失败 — 公钥未被识别",
-        }
-    }
-
-    pub fn ssh_test_connection_failed(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH connection failed — cannot reach host",
-            Lang::Zh => "SSH 连接失败 — 无法访问主机",
-        }
-    }
-
-    pub fn ssh_test_unknown(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH connection status unclear, may need manual check",
-            Lang::Zh => "SSH 连接状态不确定，可能需要手动检查",
-        }
-    }
-
-    pub fn ssh_test_error(&self) -> &str {
-        match self.lang {
-            Lang::En => "SSH test error:",
-            Lang::Zh => "SSH 测试出错：",
-        }
-    }
-
-    pub fn configs_backed_up(&self) -> &str {
-        match self.lang {
-            Lang::En => "Original configs backed up",
-            Lang::Zh => "原始配置已备份",
-        }
-    }
-
-    pub fn claude_md_injected(&self) -> &str {
-        match self.lang {
-            Lang::En => "CLAUDE.md instructions injected",
-            Lang::Zh => "CLAUDE.md 指令已注入",
-        }
-    }
-
-    pub fn git_hook_injected(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git sync hook injected",
-            Lang::Zh => "Git 同步 Hook 已注入",
-        }
-    }
-
-    pub fn claude_mcp_registered(&self) -> &str {
-        match self.lang {
-            Lang::En => "Claude MCP Server registered",
-            Lang::Zh => "Claude MCP Server 已注册",
-        }
-    }
-
-    pub fn save_skill_installed(&self) -> &str {
-        match self.lang {
-            Lang::En => "/save shortcut installed",
-            Lang::Zh => "/save 快捷命令已安装",
-        }
-    }
-
-    pub fn claude_session_log_skill_installed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Claude Code session-log skill installed (~/.claude/skills/gitmemo-session-log)",
-            Lang::Zh => "已安装 Claude Code 会话摘要技能（~/.claude/skills/gitmemo-session-log）",
-        }
-    }
-
-    pub fn cursor_rules_injected(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor global rule written (~/.cursor/rules/gitmemo.mdc)",
-            Lang::Zh => "已写入 Cursor 全局规则（~/.cursor/rules/gitmemo.mdc）",
-        }
-    }
-
-    pub fn cursor_save_skill_installed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor /save skill installed (~/.cursor/skills/save)",
-            Lang::Zh => "已安装 Cursor /save 技能（~/.cursor/skills/save）",
-        }
-    }
-
-    pub fn cursor_session_log_skill_installed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor session-log skill installed (~/.cursor/skills/gitmemo-session-log → conversations/YYYY-MM/ same as chats)",
-            Lang::Zh => "已安装 Cursor 会话摘要技能（路径与对话相同：conversations/年-月/）",
-        }
-    }
-
-    pub fn cursor_mcp_registered(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor MCP Server registered",
-            Lang::Zh => "Cursor MCP Server 已注册",
-        }
-    }
-
-    pub fn deploy_key_hint(&self) -> &str {
-        match self.lang {
-            Lang::En => "Please add this public key to your repo's Deploy Keys (allow write access):",
-            Lang::Zh => "请将以下公钥添加到仓库的 Deploy Keys（允许写入）：",
-        }
-    }
-
-    pub fn all_set(&self) -> &str {
-        match self.lang {
-            Lang::En => "All set!",
-            Lang::Zh => "一切就绪！",
-        }
-    }
-
-    pub fn next_steps(&self) -> &str {
-        match self.lang {
-            Lang::En => "Next steps:",
-            Lang::Zh => "下一步：",
-        }
-    }
-
-    pub fn claude_next_step_1(&self) -> &str {
-        match self.lang {
-            Lang::En => "Try typing {} in Claude to save the current session (no restart needed)",
-            Lang::Zh => "在 Claude 中输入 {} 试试保存当前会话（无需重启）",
-        }
-    }
-
-    pub fn claude_next_step_2(&self) -> &str {
-        match self.lang {
-            Lang::En => "If /save doesn't work, restart the Claude session",
-            Lang::Zh => "如果 /save 未生效，重启 Claude 会话即可",
-        }
-    }
-
-    pub fn cursor_next_step_1(&self) -> &str {
-        match self.lang {
-            Lang::En => "{} Restart Cursor (to apply config)",
-            Lang::Zh => "{} 重启 Cursor（使配置生效）",
-        }
-    }
-
-    pub fn cursor_next_step_2(&self) -> &str {
-        match self.lang {
-            Lang::En => "Conversations will auto-sync to Git via MCP",
-            Lang::Zh => "对话保存后会自动通过 MCP 同步到 Git",
-        }
-    }
-
-    pub fn verify_heading(&self) -> &str {
-        match self.lang {
-            Lang::En => "Verify it works:",
-            Lang::Zh => "验证是否生效：",
-        }
-    }
-
-    pub fn verify_test(&self) -> &str {
-        match self.lang {
-            Lang::En => "manual test",
-            Lang::Zh => "手动测试",
-        }
-    }
-
-    pub fn verify_status(&self) -> &str {
-        match self.lang {
-            Lang::En => "check status",
-            Lang::Zh => "查看状态",
-        }
-    }
-
-    pub fn recommend(&self) -> &str {
-        match self.lang {
-            Lang::En => "Recommended",
-            Lang::Zh => "建议",
-        }
-    }
-
-    // ── Uninstall command ────────────────────────────────────
-
-    pub fn uninstall_title(&self) -> &str {
-        match self.lang {
-            Lang::En => "GitMemo Uninstall",
-            Lang::Zh => "GitMemo 卸载",
-        }
-    }
-
-    pub fn claude_md_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "CLAUDE.md instructions removed",
-            Lang::Zh => "CLAUDE.md 指令已移除",
-        }
-    }
-
-    pub fn git_hook_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git sync hook removed",
-            Lang::Zh => "Git 同步 Hook 已移除",
-        }
-    }
-
-    pub fn claude_mcp_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Claude MCP Server removed",
-            Lang::Zh => "Claude MCP Server 已移除",
-        }
-    }
-
-    pub fn save_skill_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "/save shortcut removed",
-            Lang::Zh => "/save 快捷命令已移除",
-        }
-    }
-
-    pub fn claude_session_log_skill_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Claude Code session-log skill removed",
-            Lang::Zh => "Claude Code 会话摘要技能已移除",
-        }
-    }
-
-    pub fn cursor_rules_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor Rules removed",
-            Lang::Zh => "Cursor Rules 已移除",
-        }
-    }
-
-    pub fn cursor_save_skill_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor /save skill removed",
-            Lang::Zh => "Cursor /save 技能已移除",
-        }
-    }
-
-    pub fn cursor_session_log_skill_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor session-log skill removed",
-            Lang::Zh => "Cursor 会话摘要技能已移除",
-        }
-    }
-
-    pub fn cursor_mcp_removed(&self) -> &str {
-        match self.lang {
-            Lang::En => "Cursor MCP Server removed",
-            Lang::Zh => "Cursor MCP Server 已移除",
-        }
-    }
-
-    pub fn data_deleted(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Data directory deleted: {}", path),
-            Lang::Zh => format!("数据目录已删除: {}", path),
-        }
-    }
-
-    pub fn data_preserved(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Data preserved at {}", path),
-            Lang::Zh => format!("数据已保留在 {}", path),
-        }
-    }
-
-    // ── Status command ───────────────────────────────────────
-
-    pub fn status_title(&self) -> &str {
-        match self.lang {
-            Lang::En => "GitMemo Status",
-            Lang::Zh => "GitMemo 状态",
-        }
-    }
-
-    pub fn not_initialized(&self) -> &str {
-        match self.lang {
-            Lang::En => "Not initialized. Run {} to get started.",
-            Lang::Zh => "未初始化。运行 {} 开始。",
-        }
-    }
-
-    pub fn data_dir(&self) -> &str {
-        match self.lang {
-            Lang::En => "Data directory",
-            Lang::Zh => "数据目录",
-        }
-    }
-
-    pub fn git_remote(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git remote",
-            Lang::Zh => "Git 远程",
-        }
-    }
-
-    pub fn git_branch(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git branch",
-            Lang::Zh => "Git 分支",
-        }
-    }
-
-    pub fn conversations_count(&self) -> &str {
-        match self.lang {
-            Lang::En => "Conversations",
-            Lang::Zh => "对话记录",
-        }
-    }
-
-    pub fn notes_count(&self) -> &str {
-        match self.lang {
-            Lang::En => "Notes",
-            Lang::Zh => "笔记",
-        }
-    }
-
-    pub fn unpushed_commits(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("Unpushed: {} commits (run {} to push)", count, "gitmemo sync"),
-            Lang::Zh => format!("未推送: {} 条提交（运行 {} 推送）", count, "gitmemo sync"),
-        }
-    }
-
-    pub fn sync_ok(&self) -> &str {
-        match self.lang {
-            Lang::En => "Sync status: ✓ up to date",
-            Lang::Zh => "同步状态: ✓ 已同步",
-        }
-    }
-
-    // ── Sync command ─────────────────────────────────────────
-
-    pub fn synced_to_git(&self) -> &str {
-        match self.lang {
-            Lang::En => "Synced to Git",
-            Lang::Zh => "已同步到 Git",
-        }
-    }
-
-    pub fn committed_push_failed(&self, err: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Committed, but push failed: {}", err),
-            Lang::Zh => format!("已提交，但推送失败: {}", err),
-        }
-    }
-
-    pub fn retry_push_hint(&self) -> &str {
-        match self.lang {
-            Lang::En => "Run {} to retry push",
-            Lang::Zh => "运行 {} 重试推送",
-        }
-    }
-
-    pub fn no_changes(&self) -> &str {
-        match self.lang {
-            Lang::En => "No changes to commit",
-            Lang::Zh => "无变更需要提交",
-        }
-    }
-
-    pub fn all_synced(&self) -> &str {
-        match self.lang {
-            Lang::En => "All synced, nothing to do",
-            Lang::Zh => "一切已同步，无需操作",
-        }
-    }
-
-    pub fn pushing_commits(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("{} unpushed commits, pushing...", count),
-            Lang::Zh => format!("{} 条未推送的提交，正在推送...", count),
-        }
-    }
-
-    pub fn pushed_commits(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("Pushed {} commits", count),
-            Lang::Zh => format!("已推送 {} 条提交", count),
-        }
-    }
-
-    pub fn push_failed(&self, err: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Push failed: {}", err),
-            Lang::Zh => format!("推送失败: {}", err),
-        }
-    }
-
-    // ── Unpushed command ─────────────────────────────────────
-
-    pub fn no_unpushed(&self) -> &str {
-        match self.lang {
-            Lang::En => "No unpushed commits",
-            Lang::Zh => "没有未推送的提交",
-        }
-    }
-
-    pub fn unpushed_heading(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("⚠ {} unpushed commits:", count),
-            Lang::Zh => format!("⚠ {} 条未推送的提交：", count),
-        }
-    }
-
-    pub fn push_hint(&self) -> &str {
-        match self.lang {
-            Lang::En => "Run {} to push to remote",
-            Lang::Zh => "运行 {} 推送到远程",
-        }
-    }
-
-    // ── Note commands ────────────────────────────────────────
-
-    pub fn scratch_created(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Scratch note created: {}", path),
-            Lang::Zh => format!("便签已创建: {}", path),
-        }
-    }
-
-    pub fn daily_saved(&self) -> &str {
-        match self.lang {
-            Lang::En => "Today's note saved",
-            Lang::Zh => "今日笔记已保存",
-        }
-    }
-
-    pub fn daily_appended(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Appended to today's note: {}", path),
-            Lang::Zh => format!("已追加到今日笔记: {}", path),
-        }
-    }
-
-    pub fn content_empty(&self) -> &str {
-        match self.lang {
-            Lang::En => "Content is empty, skipped.",
-            Lang::Zh => "内容为空，跳过。",
-        }
-    }
-
-    pub fn manual_saved(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Manual saved: {}", path),
-            Lang::Zh => format!("手册已保存: {}", path),
-        }
-    }
-
-    // ── Search / Recent ──────────────────────────────────────
-
-    pub fn no_results(&self, query: &str) -> String {
-        match self.lang {
-            Lang::En => format!("No results matching \"{}\".", query),
-            Lang::Zh => format!("未找到匹配 \"{}\" 的结果。", query),
-        }
-    }
-
-    pub fn found_results(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("🔍 Found {} results:", count),
-            Lang::Zh => format!("🔍 找到 {} 条结果：", count),
-        }
-    }
-
-    pub fn badge_conversation(&self) -> &str {
-        match self.lang {
-            Lang::En => "conv",
-            Lang::Zh => "对话",
-        }
-    }
-
-    pub fn badge_note(&self) -> &str {
-        match self.lang {
-            Lang::En => "note",
-            Lang::Zh => "笔记",
-        }
-    }
-
-    pub fn no_recent(&self, days: u32) -> String {
-        match self.lang {
-            Lang::En => format!("No conversations in the last {} days.", days),
-            Lang::Zh => format!("最近 {} 天没有对话记录。", days),
-        }
-    }
-
-    pub fn recent_heading(&self, days: u32) -> String {
-        match self.lang {
-            Lang::En => format!("📋 Conversations in the last {} days:", days),
-            Lang::Zh => format!("📋 最近 {} 天的对话：", days),
-        }
-    }
-
-    // ── Stats ────────────────────────────────────────────────
-
-    pub fn stats_title(&self) -> &str {
-        match self.lang {
-            Lang::En => "GitMemo Stats",
-            Lang::Zh => "GitMemo 统计",
-        }
-    }
-
-    pub fn stats_conversations(&self) -> &str {
-        match self.lang {
-            Lang::En => "Conversations",
-            Lang::Zh => "对话记录",
-        }
-    }
-
-    pub fn stats_daily(&self) -> &str {
-        match self.lang {
-            Lang::En => "Daily notes",
-            Lang::Zh => "每日笔记",
-        }
-    }
-
-    pub fn stats_manual(&self) -> &str {
-        match self.lang {
-            Lang::En => "Manuals",
-            Lang::Zh => "手册",
-        }
-    }
-
-    pub fn stats_scratch(&self) -> &str {
-        match self.lang {
-            Lang::En => "Scratch notes",
-            Lang::Zh => "便签",
-        }
-    }
-
-    pub fn stats_storage(&self) -> &str {
-        match self.lang {
-            Lang::En => "Storage size",
-            Lang::Zh => "存储大小",
-        }
-    }
-
-    // ── Reindex ──────────────────────────────────────────────
-
-    pub fn index_rebuilt(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("Index rebuilt, {} files indexed", count),
-            Lang::Zh => format!("索引已重建，共 {} 个文件", count),
-        }
-    }
-
-    // ── Branch command ───────────────────────────────────────
-
-    pub fn branch_current(&self, branch: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Current sync branch: {}", branch),
-            Lang::Zh => format!("当前同步分支: {}", branch),
-        }
-    }
-
-    pub fn branch_switched(&self, from: &str, to: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Sync branch changed: {} → {}", from, to),
-            Lang::Zh => format!("同步分支已切换: {} → {}", from, to),
-        }
-    }
-
-    pub fn branch_same(&self, branch: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Already on branch {}", branch),
-            Lang::Zh => format!("已经在 {} 分支上", branch),
-        }
-    }
-
-    // ── Global errors ────────────────────────────────────────
-
-    pub fn not_init_error(&self) -> &str {
-        match self.lang {
-            Lang::En => "Not initialized. Please run gitmemo init first",
-            Lang::Zh => "未初始化。请先运行 gitmemo init",
-        }
-    }
-
-    pub fn not_init_error_mcp(&self) -> &str {
-        match self.lang {
-            Lang::En => "GitMemo not initialized. Please run gitmemo init first",
-            Lang::Zh => "GitMemo 未初始化。请先运行 gitmemo init",
-        }
-    }
-
-    // ── MCP tool descriptions ────────────────────────────────
-
-    pub fn mcp_search_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Search the user's AI conversation history and notes. Use when the user says 'search my conversations' or 'find discussions about X'.",
-            Lang::Zh => "搜索用户的历史 AI 对话和笔记。当用户说'搜索我的对话'、'找一下之前关于 X 的讨论'时使用。",
-        }
-    }
-
-    pub fn mcp_search_query_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Search keywords",
-            Lang::Zh => "搜索关键词",
-        }
-    }
-
-    pub fn mcp_search_type_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Search scope, default all",
-            Lang::Zh => "搜索范围，默认 all",
-        }
-    }
-
-    pub fn mcp_search_limit_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Number of results, default 10",
-            Lang::Zh => "返回结果数量，默认 10",
-        }
-    }
-
-    pub fn mcp_recent_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "List recent AI conversations. Use when the user says 'recent conversations' or 'show history'.",
-            Lang::Zh => "列出最近的 AI 对话记录。当用户说'最近的对话'、'看看历史'时使用。",
-        }
-    }
-
-    pub fn mcp_recent_limit_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Number of results, default 10",
-            Lang::Zh => "返回数量，默认 10",
-        }
-    }
-
-    pub fn mcp_recent_days_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Days to look back, default 7",
-            Lang::Zh => "最近几天，默认 7",
-        }
-    }
-
-    pub fn mcp_read_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Read the full content of a conversation or note.",
-            Lang::Zh => "读取某条对话或笔记的完整内容。",
-        }
-    }
-
-    pub fn mcp_read_path_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Relative file path",
-            Lang::Zh => "文件相对路径",
-        }
-    }
-
-    pub fn mcp_note_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Create a scratch note. Use when the user says 'note this down' or 'save this idea'.",
-            Lang::Zh => "创建一条便签笔记。当用户说'记一下'、'保存这个想法'时使用。",
-        }
-    }
-
-    pub fn mcp_note_content_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Note content",
-            Lang::Zh => "笔记内容",
-        }
-    }
-
-    pub fn mcp_daily_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Append content to today's daily note. Use when the user says 'add to today's journal'.",
-            Lang::Zh => "追加内容到今天的日记。当用户说'记到今天的日记里'时使用。",
-        }
-    }
-
-    pub fn mcp_daily_content_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Content to append",
-            Lang::Zh => "要追加的内容",
-        }
-    }
-
-    pub fn mcp_manual_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Create or append to a manual document. Use when the user says 'create a manual' or 'organize into a doc'.",
-            Lang::Zh => "创建或追加到手册文档。当用户说'创建一篇手册'、'整理成文档'时使用。",
-        }
-    }
-
-    pub fn mcp_manual_title_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Manual title",
-            Lang::Zh => "手册标题",
-        }
-    }
-
-    pub fn mcp_manual_content_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Manual content",
-            Lang::Zh => "手册内容",
-        }
-    }
-
-    pub fn mcp_manual_append_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Whether to append to existing manual",
-            Lang::Zh => "是否追加到已有手册",
-        }
-    }
-
-    pub fn mcp_stats_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Get statistics about conversations and notes.",
-            Lang::Zh => "获取对话和笔记的统计信息。",
-        }
-    }
-
-    pub fn mcp_sync_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Sync GitMemo data changes to Git (git add + commit + push). In editors without auto hooks (like Cursor), this must be called after saving conversation files.",
-            Lang::Zh => "将 GitMemo 数据目录的变更同步到 Git（git add + commit + push）。在 Cursor 等没有自动 Hook 的编辑器中，保存对话文件后必须调用此工具完成同步。",
-        }
-    }
-
-    pub fn mcp_sync_message_desc(&self) -> &str {
-        match self.lang {
-            Lang::En => "Commit message (optional, auto-generated by default)",
-            Lang::Zh => "commit message（可选，默认自动生成）",
-        }
-    }
-
-    // ── MCP tool responses ───────────────────────────────────
-
-    pub fn mcp_note_created(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Scratch note created: {}", path),
-            Lang::Zh => format!("便签已创建: {}", path),
-        }
-    }
-
-    pub fn mcp_daily_appended(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Appended to today's note: {}", path),
-            Lang::Zh => format!("已追加到今日笔记: {}", path),
-        }
-    }
-
-    pub fn mcp_manual_saved(&self, path: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Manual saved: {}", path),
-            Lang::Zh => format!("手册已保存: {}", path),
-        }
-    }
-
-    pub fn mcp_sync_done(&self) -> &str {
-        match self.lang {
-            Lang::En => "Git sync complete (committed and pushed)",
-            Lang::Zh => "Git 同步完成（已提交并推送）",
-        }
-    }
-
-    pub fn mcp_committed_push_failed(&self, err: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Committed, but push failed: {}", err),
-            Lang::Zh => format!("已提交，但推送失败: {}", err),
-        }
-    }
-
-    pub fn mcp_pushed_commits(&self, count: usize) -> String {
-        match self.lang {
-            Lang::En => format!("Pushed {} commits", count),
-            Lang::Zh => format!("已推送 {} 条提交", count),
-        }
-    }
-
-    pub fn mcp_push_failed(&self, err: &str) -> String {
-        match self.lang {
-            Lang::En => format!("Push failed: {}", err),
-            Lang::Zh => format!("推送失败: {}", err),
-        }
-    }
-
-    pub fn mcp_all_synced(&self) -> &str {
-        match self.lang {
-            Lang::En => "All synced, nothing to do",
-            Lang::Zh => "一切已同步，无需操作",
-        }
+    pub fn select_language_prompt(&self) -> &str { self.s("select_language_prompt") }
+    pub fn unsupported_editor(&self, name: &str) -> String { self.fmt1("unsupported_editor", name) }
+    pub fn not_a_git_repo(&self, path: &str) -> String { self.fmt1("not_a_git_repo", path) }
+    pub fn linked_repo(&self) -> &str { self.s("linked_repo") }
+    pub fn detected_remote(&self) -> &str { self.s("detected_remote") }
+    pub fn git_url_prompt(&self) -> &str { self.s("git_url_prompt") }
+    pub fn local_mode_selected(&self) -> &str { self.s("local_mode_selected") }
+    pub fn local_saved_hint(&self) -> &str { self.s("local_saved_hint") }
+    pub fn sync_mode_local(&self) -> &str { self.s("sync_mode_local") }
+    pub fn remote_current(&self, url: &str) -> String { self.fmt1("remote_current", url) }
+    pub fn remote_none(&self) -> &str { self.s("remote_none") }
+    pub fn remote_set_ok(&self) -> &str { self.s("remote_set_ok") }
+    pub fn remote_pushing(&self) -> &str { self.s("remote_pushing") }
+    pub fn remote_removed(&self) -> &str { self.s("remote_removed") }
+    pub fn remote_same(&self, url: &str) -> String { self.fmt1("remote_same", url) }
+    pub fn opening_browser(&self) -> &str { self.s("opening_browser") }
+    pub fn dir_structure_ready(&self) -> &str { self.s("dir_structure_ready") }
+    pub fn git_repo_ready(&self) -> &str { self.s("git_repo_ready") }
+    pub fn ssh_key_generated(&self) -> &str { self.s("ssh_key_generated") }
+    pub fn ssh_key_exists(&self) -> &str { self.s("ssh_key_exists") }
+    pub fn ssh_url_recommended(&self) -> &str { self.s("ssh_url_recommended") }
+    pub fn use_ssh_url(&self) -> &str { self.s("use_ssh_url") }
+    pub fn keep_https_url(&self) -> &str { self.s("keep_https_url") }
+    pub fn choose_url_prompt(&self) -> &str { self.s("choose_url_prompt") }
+    pub fn testing_ssh(&self) -> &str { self.s("testing_ssh") }
+    pub fn ssh_test_ok(&self) -> &str { self.s("ssh_test_ok") }
+    pub fn ssh_test_auth_failed(&self) -> &str { self.s("ssh_test_auth_failed") }
+    pub fn ssh_test_connection_failed(&self) -> &str { self.s("ssh_test_connection_failed") }
+    pub fn ssh_test_unknown(&self) -> &str { self.s("ssh_test_unknown") }
+    pub fn ssh_test_error(&self) -> &str { self.s("ssh_test_error") }
+    pub fn configs_backed_up(&self) -> &str { self.s("configs_backed_up") }
+    pub fn claude_md_injected(&self) -> &str { self.s("claude_md_injected") }
+    pub fn git_hook_injected(&self) -> &str { self.s("git_hook_injected") }
+    pub fn claude_mcp_registered(&self) -> &str { self.s("claude_mcp_registered") }
+    pub fn save_skill_installed(&self) -> &str { self.s("save_skill_installed") }
+    pub fn claude_session_log_skill_installed(&self) -> &str { self.s("claude_session_log_skill_installed") }
+    pub fn cursor_rules_injected(&self) -> &str { self.s("cursor_rules_injected") }
+    pub fn cursor_save_skill_installed(&self) -> &str { self.s("cursor_save_skill_installed") }
+    pub fn cursor_session_log_skill_installed(&self) -> &str { self.s("cursor_session_log_skill_installed") }
+    pub fn cursor_mcp_registered(&self) -> &str { self.s("cursor_mcp_registered") }
+    pub fn deploy_key_hint(&self) -> &str { self.s("deploy_key_hint") }
+    pub fn all_set(&self) -> &str { self.s("all_set") }
+    pub fn next_steps(&self) -> &str { self.s("next_steps") }
+    pub fn claude_next_step_1(&self) -> &str { self.s("claude_next_step_1") }
+    pub fn claude_next_step_2(&self) -> &str { self.s("claude_next_step_2") }
+    pub fn cursor_next_step_1(&self) -> &str { self.s("cursor_next_step_1") }
+    pub fn cursor_next_step_2(&self) -> &str { self.s("cursor_next_step_2") }
+    pub fn verify_heading(&self) -> &str { self.s("verify_heading") }
+    pub fn verify_test(&self) -> &str { self.s("verify_test") }
+    pub fn verify_status(&self) -> &str { self.s("verify_status") }
+    pub fn recommend(&self) -> &str { self.s("recommend") }
+
+    // ── Uninstall command ───────────────────────────────────
+
+    pub fn uninstall_title(&self) -> &str { self.s("uninstall_title") }
+    pub fn claude_md_removed(&self) -> &str { self.s("claude_md_removed") }
+    pub fn git_hook_removed(&self) -> &str { self.s("git_hook_removed") }
+    pub fn claude_mcp_removed(&self) -> &str { self.s("claude_mcp_removed") }
+    pub fn save_skill_removed(&self) -> &str { self.s("save_skill_removed") }
+    pub fn claude_session_log_skill_removed(&self) -> &str { self.s("claude_session_log_skill_removed") }
+    pub fn cursor_rules_removed(&self) -> &str { self.s("cursor_rules_removed") }
+    pub fn cursor_save_skill_removed(&self) -> &str { self.s("cursor_save_skill_removed") }
+    pub fn cursor_session_log_skill_removed(&self) -> &str { self.s("cursor_session_log_skill_removed") }
+    pub fn cursor_mcp_removed(&self) -> &str { self.s("cursor_mcp_removed") }
+    pub fn data_deleted(&self, path: &str) -> String { self.fmt1("data_deleted", path) }
+    pub fn data_preserved(&self, path: &str) -> String { self.fmt1("data_preserved", path) }
+
+    // ── Status command ──────────────────────────────────────
+
+    pub fn status_title(&self) -> &str { self.s("status_title") }
+    pub fn not_initialized(&self) -> &str { self.s("not_initialized") }
+    pub fn data_dir(&self) -> &str { self.s("data_dir") }
+    pub fn git_remote(&self) -> &str { self.s("git_remote") }
+    pub fn git_branch(&self) -> &str { self.s("git_branch") }
+    pub fn conversations_count(&self) -> &str { self.s("conversations_count") }
+    pub fn notes_count(&self) -> &str { self.s("notes_count") }
+    pub fn unpushed_commits(&self, count: usize) -> String { self.fmt_n("unpushed_commits", count) }
+    pub fn sync_ok(&self) -> &str { self.s("sync_ok") }
+
+    // ── Sync command ────────────────────────────────────────
+
+    pub fn synced_to_git(&self) -> &str { self.s("synced_to_git") }
+    pub fn committed_push_failed(&self, err: &str) -> String { self.fmt1("committed_push_failed", err) }
+    pub fn retry_push_hint(&self) -> &str { self.s("retry_push_hint") }
+    pub fn no_changes(&self) -> &str { self.s("no_changes") }
+    pub fn all_synced(&self) -> &str { self.s("all_synced") }
+    pub fn pushing_commits(&self, count: usize) -> String { self.fmt_n("pushing_commits", count) }
+    pub fn pushed_commits(&self, count: usize) -> String { self.fmt_n("pushed_commits", count) }
+    pub fn push_failed(&self, err: &str) -> String { self.fmt1("push_failed", err) }
+
+    // ── Unpushed command ────────────────────────────────────
+
+    pub fn no_unpushed(&self) -> &str { self.s("no_unpushed") }
+    pub fn unpushed_heading(&self, count: usize) -> String { self.fmt_n("unpushed_heading", count) }
+    pub fn push_hint(&self) -> &str { self.s("push_hint") }
+
+    // ── Note commands ───────────────────────────────────────
+
+    pub fn scratch_created(&self, path: &str) -> String { self.fmt1("scratch_created", path) }
+    pub fn daily_saved(&self) -> &str { self.s("daily_saved") }
+    pub fn daily_appended(&self, path: &str) -> String { self.fmt1("daily_appended", path) }
+    pub fn content_empty(&self) -> &str { self.s("content_empty") }
+    pub fn manual_saved(&self, path: &str) -> String { self.fmt1("manual_saved", path) }
+
+    // ── Search / Recent ─────────────────────────────────────
+
+    pub fn no_results(&self, query: &str) -> String { self.fmt1("no_results", query) }
+    pub fn found_results(&self, count: usize) -> String { self.fmt_n("found_results", count) }
+    pub fn badge_conversation(&self) -> &str { self.s("badge_conversation") }
+    pub fn badge_note(&self) -> &str { self.s("badge_note") }
+    pub fn no_recent(&self, days: u32) -> String { self.fmt_u32("no_recent", days) }
+    pub fn recent_heading(&self, days: u32) -> String { self.fmt_u32("recent_heading", days) }
+
+    // ── Stats ───────────────────────────────────────────────
+
+    pub fn stats_title(&self) -> &str { self.s("stats_title") }
+    pub fn stats_conversations(&self) -> &str { self.s("stats_conversations") }
+    pub fn stats_daily(&self) -> &str { self.s("stats_daily") }
+    pub fn stats_manual(&self) -> &str { self.s("stats_manual") }
+    pub fn stats_scratch(&self) -> &str { self.s("stats_scratch") }
+    pub fn stats_storage(&self) -> &str { self.s("stats_storage") }
+
+    // ── Reindex ─────────────────────────────────────────────
+
+    pub fn index_rebuilt(&self, count: usize) -> String { self.fmt_n("index_rebuilt", count) }
+
+    // ── Branch command ──────────────────────────────────────
+
+    pub fn branch_current(&self, branch: &str) -> String { self.fmt1("branch_current", branch) }
+    pub fn branch_switched(&self, from: &str, to: &str) -> String { self.fmt2("branch_switched", from, to) }
+    pub fn branch_same(&self, branch: &str) -> String { self.fmt1("branch_same", branch) }
+
+    // ── Global errors ───────────────────────────────────────
+
+    pub fn not_init_error(&self) -> &str { self.s("not_init_error") }
+    pub fn not_init_error_mcp(&self) -> &str { self.s("not_init_error_mcp") }
+
+    // ── MCP tool descriptions ───────────────────────────────
+
+    pub fn mcp_search_desc(&self) -> &str { self.s("mcp_search_desc") }
+    pub fn mcp_search_query_desc(&self) -> &str { self.s("mcp_search_query_desc") }
+    pub fn mcp_search_type_desc(&self) -> &str { self.s("mcp_search_type_desc") }
+    pub fn mcp_search_limit_desc(&self) -> &str { self.s("mcp_search_limit_desc") }
+    pub fn mcp_recent_desc(&self) -> &str { self.s("mcp_recent_desc") }
+    pub fn mcp_recent_limit_desc(&self) -> &str { self.s("mcp_recent_limit_desc") }
+    pub fn mcp_recent_days_desc(&self) -> &str { self.s("mcp_recent_days_desc") }
+    pub fn mcp_read_desc(&self) -> &str { self.s("mcp_read_desc") }
+    pub fn mcp_read_path_desc(&self) -> &str { self.s("mcp_read_path_desc") }
+    pub fn mcp_note_desc(&self) -> &str { self.s("mcp_note_desc") }
+    pub fn mcp_note_content_desc(&self) -> &str { self.s("mcp_note_content_desc") }
+    pub fn mcp_daily_desc(&self) -> &str { self.s("mcp_daily_desc") }
+    pub fn mcp_daily_content_desc(&self) -> &str { self.s("mcp_daily_content_desc") }
+    pub fn mcp_manual_desc(&self) -> &str { self.s("mcp_manual_desc") }
+    pub fn mcp_manual_title_desc(&self) -> &str { self.s("mcp_manual_title_desc") }
+    pub fn mcp_manual_content_desc(&self) -> &str { self.s("mcp_manual_content_desc") }
+    pub fn mcp_manual_append_desc(&self) -> &str { self.s("mcp_manual_append_desc") }
+    pub fn mcp_stats_desc(&self) -> &str { self.s("mcp_stats_desc") }
+    pub fn mcp_sync_desc(&self) -> &str { self.s("mcp_sync_desc") }
+    pub fn mcp_sync_message_desc(&self) -> &str { self.s("mcp_sync_message_desc") }
+
+    // ── MCP tool responses ──────────────────────────────────
+
+    pub fn mcp_note_created(&self, path: &str) -> String { self.fmt1("mcp_note_created", path) }
+    pub fn mcp_daily_appended(&self, path: &str) -> String { self.fmt1("mcp_daily_appended", path) }
+    pub fn mcp_manual_saved(&self, path: &str) -> String { self.fmt1("mcp_manual_saved", path) }
+    pub fn mcp_sync_done(&self) -> &str { self.s("mcp_sync_done") }
+    pub fn mcp_committed_push_failed(&self, err: &str) -> String { self.fmt1("mcp_committed_push_failed", err) }
+    pub fn mcp_pushed_commits(&self, count: usize) -> String { self.fmt_n("mcp_pushed_commits", count) }
+    pub fn mcp_push_failed(&self, err: &str) -> String { self.fmt1("mcp_push_failed", err) }
+    pub fn mcp_all_synced(&self) -> &str { self.s("mcp_all_synced") }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_en_simple_strings() {
+        let i18n = I18n::new(Lang::En);
+        assert_eq!(i18n.init_title(), "GitMemo Setup");
+        assert_eq!(i18n.all_set(), "All set!");
+        assert_eq!(i18n.sync_ok(), "Sync status: ✓ up to date");
+    }
+
+    #[test]
+    fn test_zh_simple_strings() {
+        let i18n = I18n::new(Lang::Zh);
+        assert_eq!(i18n.init_title(), "GitMemo 初始化");
+        assert_eq!(i18n.all_set(), "一切就绪！");
+    }
+
+    #[test]
+    fn test_format_one_arg() {
+        let i18n = I18n::new(Lang::En);
+        assert_eq!(i18n.push_failed("timeout"), "Push failed: timeout");
+        assert_eq!(i18n.scratch_created("notes/scratch/test.md"), "Scratch note created: notes/scratch/test.md");
+    }
+
+    #[test]
+    fn test_format_numeric() {
+        let i18n = I18n::new(Lang::En);
+        assert_eq!(i18n.pushed_commits(5), "Pushed 5 commits");
+        assert_eq!(i18n.found_results(3), "🔍 Found 3 results:");
+    }
+
+    #[test]
+    fn test_format_two_args() {
+        let i18n = I18n::new(Lang::En);
+        let result = i18n.branch_switched("dev", "main");
+        assert_eq!(result, "Sync branch changed: dev → main");
+    }
+
+    #[test]
+    fn test_editor_options_array() {
+        let en = I18n::new(Lang::En);
+        let opts = en.editor_options();
+        assert_eq!(opts.len(), 3);
+        assert_eq!(opts[0], "Claude Code");
+
+        let zh = I18n::new(Lang::Zh);
+        let opts_zh = zh.editor_options();
+        assert_eq!(opts_zh.len(), 3);
+        assert_eq!(opts_zh[2], "两者都安装");
+    }
+
+    #[test]
+    fn test_missing_key_returns_key() {
+        let i18n = I18n::new(Lang::En);
+        assert_eq!(i18n.s("nonexistent_key"), "nonexistent_key");
+    }
+
+    #[test]
+    fn test_lang_parse() {
+        assert_eq!(Lang::parse("zh"), Lang::Zh);
+        assert_eq!(Lang::parse("zh-cn"), Lang::Zh);
+        assert_eq!(Lang::parse("chinese"), Lang::Zh);
+        assert_eq!(Lang::parse("en"), Lang::En);
+        assert_eq!(Lang::parse("anything"), Lang::En);
+    }
+
+    #[test]
+    fn test_lang_as_str() {
+        assert_eq!(Lang::En.as_str(), "en");
+        assert_eq!(Lang::Zh.as_str(), "zh");
+    }
+
+    #[test]
+    fn test_format_u32() {
+        let i18n = I18n::new(Lang::En);
+        let result = i18n.no_recent(7);
+        assert_eq!(result, "No conversations in the last 7 days.");
     }
 }

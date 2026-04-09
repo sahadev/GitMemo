@@ -431,3 +431,167 @@ pub fn get_stats(conn: &Connection) -> Result<Stats> {
         note_scratch_count,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn in_memory_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_content_hash_deterministic() {
+        let h1 = content_hash("hello world");
+        let h2 = content_hash("hello world");
+        assert_eq!(h1, h2);
+        assert_ne!(h1, content_hash("different"));
+    }
+
+    #[test]
+    fn test_frontmatter_time_extracts_date() {
+        let content = "---\ntitle: Test\ndate: 2025-01-15\n---\n\n# Hello";
+        assert_eq!(frontmatter_time(content), Some("2025-01-15".to_string()));
+    }
+
+    #[test]
+    fn test_frontmatter_time_updated() {
+        let content = "---\nupdated: 2025-03-20 10:00\n---\n\nBody";
+        assert_eq!(frontmatter_time(content), Some("2025-03-20 10:00".to_string()));
+    }
+
+    #[test]
+    fn test_frontmatter_time_none() {
+        assert_eq!(frontmatter_time("No frontmatter here"), None);
+    }
+
+    #[test]
+    fn test_index_file_and_search() {
+        let conn = in_memory_db();
+        index_file(&conn, "conversations/test.md", "conversation", "Test Title", "Some content about Rust", "2025-01-15").unwrap();
+
+        let results = search(&conn, "Rust", "all", 10).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Test Title");
+        assert_eq!(results[0].source_type, "conversation");
+    }
+
+    #[test]
+    fn test_search_type_filter() {
+        let conn = in_memory_db();
+        index_file(&conn, "conversations/a.md", "conversation", "Conv", "hello world", "2025-01-01").unwrap();
+        index_file(&conn, "notes/scratch/b.md", "note", "Note", "hello world", "2025-01-01").unwrap();
+
+        let all = search(&conn, "hello", "all", 10).unwrap();
+        assert_eq!(all.len(), 2);
+
+        let convs = search(&conn, "hello", "conversation", 10).unwrap();
+        assert_eq!(convs.len(), 1);
+        assert_eq!(convs[0].source_type, "conversation");
+
+        let notes = search(&conn, "hello", "note", 10).unwrap();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].source_type, "note");
+    }
+
+    #[test]
+    fn test_search_no_results() {
+        let conn = in_memory_db();
+        let results = search(&conn, "nonexistent", "all", 10).unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_get_stats() {
+        let conn = in_memory_db();
+        index_file(&conn, "conversations/a.md", "conversation", "A", "content", "2025-01-01").unwrap();
+        index_file(&conn, "conversations/b.md", "conversation", "B", "content", "2025-01-02").unwrap();
+        index_file(&conn, "notes/daily/c.md", "note", "C", "content", "2025-01-03").unwrap();
+        index_file(&conn, "notes/manual/d.md", "note", "D", "content", "2025-01-04").unwrap();
+        index_file(&conn, "notes/scratch/e.md", "note", "E", "content", "2025-01-05").unwrap();
+
+        let stats = get_stats(&conn).unwrap();
+        assert_eq!(stats.conversation_count, 2);
+        assert_eq!(stats.note_daily_count, 1);
+        assert_eq!(stats.note_manual_count, 1);
+        assert_eq!(stats.note_scratch_count, 1);
+    }
+
+    #[test]
+    fn test_index_file_dedup_by_hash() {
+        let conn = in_memory_db();
+        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+        // Same content, same hash - should be a no-op
+        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+
+        let count: u32 = conn.query_row("SELECT COUNT(*) FROM documents", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_index_file_updates_on_change() {
+        let conn = in_memory_db();
+        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+        // Different content → different hash → should update
+        index_file(&conn, "test.md", "conversation", "T Updated", "content v2", "2025-01-01").unwrap();
+
+        let title: String = conn.query_row(
+            "SELECT title FROM documents WHERE file_path = 'test.md'", [], |r| r.get(0)
+        ).unwrap();
+        assert_eq!(title, "T Updated");
+    }
+
+    #[test]
+    fn test_metadata_index_time() {
+        let conn = in_memory_db();
+        assert!(get_last_index_time(&conn).is_none());
+        set_last_index_time(&conn).unwrap();
+        assert!(get_last_index_time(&conn).is_some());
+    }
+
+    #[test]
+    fn test_build_index_with_tempdir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path();
+
+        // Create a conversation file
+        let conv_dir = base.join("conversations/2025-01");
+        std::fs::create_dir_all(&conv_dir).unwrap();
+        std::fs::write(
+            conv_dir.join("01-15-test.md"),
+            "---\ndate: 2025-01-15\n---\n\n# Test Conversation\n\nHello world",
+        ).unwrap();
+
+        // Create a daily note
+        let daily_dir = base.join("notes/daily");
+        std::fs::create_dir_all(&daily_dir).unwrap();
+        std::fs::write(
+            daily_dir.join("2025-01-15.md"),
+            "---\ndate: 2025-01-15\n---\n\n# 2025-01-15\n\nDaily note content",
+        ).unwrap();
+
+        let conn = in_memory_db();
+        let count = build_index(&conn, base).unwrap();
+        assert_eq!(count, 2);
+
+        let stats = get_stats(&conn).unwrap();
+        assert_eq!(stats.conversation_count, 1);
+        assert_eq!(stats.note_daily_count, 1);
+    }
+
+    #[test]
+    fn test_extract_snippet_found() {
+        let text = "This is a long text about Rust programming language and its features.";
+        let snippet = extract_snippet(text, "Rust", 10);
+        assert!(snippet.contains("Rust"));
+    }
+
+    #[test]
+    fn test_extract_snippet_not_found() {
+        let text = "Hello world";
+        let snippet = extract_snippet(text, "xyz", 10);
+        assert_eq!(snippet, "Hello world");
+    }
+}
