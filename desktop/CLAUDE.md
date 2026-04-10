@@ -34,3 +34,25 @@ All shared state MUST live in a Zustand store (`useAppStore`). Component-level `
 | `useAppStore` | App-wide: clipboard status, settings, integration flags, theme, app meta |
 | `useSync` | Git sync: sync state machine, git status |
 | `useI18n` | Internationalization: locale, translation function |
+
+## Tauri Command Threading Rule
+
+All `#[tauri::command]` functions that perform I/O, spawn subprocesses, or do any non-trivial work MUST be `async` and use `tokio::task::spawn_blocking` to offload the work. Synchronous Tauri commands block the IPC thread pool and freeze the UI.
+
+```rust
+// WRONG — blocks IPC thread
+#[tauri::command]
+pub fn my_command() -> Result<Data, String> {
+    do_heavy_work()
+}
+
+// CORRECT — runs on a dedicated thread
+#[tauri::command]
+pub async fn my_command() -> Result<Data, String> {
+    tokio::task::spawn_blocking(do_heavy_work)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+```
+
+If the same logic is also called from non-async contexts (e.g. tray menu handlers inside `std::thread::spawn`), extract a `pub(crate) fn my_command_blocking()` and call it from both places.
