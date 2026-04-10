@@ -3,7 +3,7 @@ use console::style;
 use serde::Deserialize;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const GITHUB_API_RELEASES: &str = "https://api.github.com/repos/sahadev/GitMemo/releases/latest";
@@ -51,7 +51,7 @@ fn fetch_latest_release() -> Result<Release> {
 }
 
 /// Download a file from URL to destination
-fn download_file(url: &str, dest: &PathBuf) -> Result<()> {
+fn download_file(url: &str, dest: &Path) -> Result<()> {
     let output = Command::new("curl")
         .args(["-sL", "-o", dest.to_str().unwrap(), url])
         .output()
@@ -120,7 +120,7 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
 
     if check_only {
         println!("\n{}", style(i18n.upgrade_new_available()).yellow());
-        println!("{}", style(format!("  gitmemo upgrade")).cyan());
+        println!("{}", style("  gitmemo upgrade").cyan());
         return Ok(());
     }
 
