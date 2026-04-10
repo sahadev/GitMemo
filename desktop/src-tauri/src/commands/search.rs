@@ -52,7 +52,7 @@ pub fn search_all(
     catch(move || {
         let sync_dir = files::sync_dir();
         if !sync_dir.exists() {
-            return Err("GitMemo 未初始化".into());
+            return Err("GitMemo not initialized".into());
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 
@@ -78,7 +78,7 @@ pub fn recent_conversations(
     catch(move || {
         let sync_dir = files::sync_dir();
         if !sync_dir.exists() {
-            return Err("GitMemo 未初始化".into());
+            return Err("GitMemo not initialized".into());
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 
@@ -98,7 +98,7 @@ pub fn reindex() -> Result<u32, String> {
     catch(|| {
         let sync_dir = files::sync_dir();
         if !sync_dir.exists() {
-            return Err("GitMemo 未初始化".into());
+            return Err("GitMemo not initialized".into());
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 

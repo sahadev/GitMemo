@@ -53,7 +53,7 @@ pub async fn get_stats() -> Result<AppStats, String> {
 fn get_stats_sync() -> Result<AppStats, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let total_size: u64 = walkdir::WalkDir::new(&sync_dir)

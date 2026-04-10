@@ -172,31 +172,31 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
 
     let result = git::commit_and_push(dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
     if result.committed && result.pushed {
-        Ok("已同步到 Git".into())
+        Ok("Synced to Git".into())
     } else if result.committed {
         if let Some(err) = result.push_error {
-            Err(format!("推送失败: {}", err))
+            Err(format!("Push failed: {}", err))
         } else {
-            Ok("已提交".into())
+            Ok("Committed".into())
         }
     } else if pulled {
-        Ok("已拉取最新".into())
+        Ok("Pulled latest".into())
     } else {
         // Check if repo is diverged — don't report "no changes" when it's actually broken
         if git::has_remote(dir) {
             let (ahead, behind) = git::ahead_behind(dir).unwrap_or((0, 0));
             if ahead > 0 && behind > 0 {
-                return Err(format!("同步冲突: {} ahead, {} behind — 需要手动解决", ahead, behind));
+                return Err(format!("Sync conflict: {} ahead, {} behind — manual resolution needed", ahead, behind));
             } else if behind > 0 {
-                return Err(format!("拉取失败: {} commits behind", behind));
+                return Err(format!("Pull failed: {} commits behind", behind));
             } else if ahead > 0 {
                 if let Some(err) = result.push_error {
-                    return Err(format!("推送失败: {}", err));
+                    return Err(format!("Push failed: {}", err));
                 }
-                return Err(format!("推送失败: {} commits unpushed", ahead));
+                return Err(format!("Push failed: {} commits unpushed", ahead));
             }
         }
-        Ok("无新变更".into())
+        Ok("No changes".into())
     }
 }
 
@@ -204,7 +204,7 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
 pub fn create_note(content: String) -> Result<NoteResult, String> {
     let dir = sync_dir();
     if !dir.exists() {
-        return Err("GitMemo 未初始化，请先运行 gitmemo init".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let rel_path = files::create_scratch(&dir, &content).map_err(|e| e.to_string())?;
@@ -214,7 +214,7 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
     Ok(NoteResult {
         success: true,
         path: rel_path.clone(),
-        message: format!("便签已创建: {}", rel_path),
+        message: format!("Note created: {}", rel_path),
     })
 }
 
@@ -222,7 +222,7 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
 pub fn append_daily(content: String) -> Result<NoteResult, String> {
     let dir = sync_dir();
     if !dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
@@ -232,7 +232,7 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
     Ok(NoteResult {
         success: true,
         path: rel_path.clone(),
-        message: format!("已追加到今日笔记: {}", rel_path),
+        message: format!("Appended to daily note: {}", rel_path),
     })
 }
 
@@ -240,7 +240,7 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
 pub fn create_manual(title: String, content: String, append: bool) -> Result<NoteResult, String> {
     let dir = sync_dir();
     if !dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let rel_path =
@@ -253,7 +253,7 @@ pub fn create_manual(title: String, content: String, append: bool) -> Result<Not
     Ok(NoteResult {
         success: true,
         path: rel_path.clone(),
-        message: format!("手册已保存: {}", rel_path),
+        message: format!("Manual saved: {}", rel_path),
     })
 }
 
@@ -579,7 +579,7 @@ pub fn save_pasted_attachment(
 ) -> Result<SavedAttachment, String> {
     let sync_dir = sync_dir();
     if !sync_dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let bytes = {
@@ -653,7 +653,7 @@ pub async fn sync_to_git() -> Result<String, String> {
 pub(crate) fn sync_to_git_blocking() -> Result<String, String> {
     let dir = sync_dir();
     if !dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
     run_full_sync(&dir)
 }

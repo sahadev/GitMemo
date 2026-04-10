@@ -64,7 +64,7 @@ fn import_single_file(
 ) -> Result<ImportedFile, String> {
     let source = Path::new(source_path);
     if !source.exists() {
-        return Err(format!("文件不存在: {}", source_path));
+        return Err(format!("File not found: {}", source_path));
     }
 
     let filename = source
@@ -106,14 +106,14 @@ fn import_single_file(
 
     let dest_full = sync_dir.join(&dest_rel);
     if let Some(parent) = dest_full.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
     match &category {
         FileCategory::Markdown => {
             // Read text content and wrap with frontmatter
             let content = std::fs::read_to_string(source)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
+                .map_err(|e| format!("Failed to read file: {}", e))?;
 
             let title = source
                 .file_stem()
@@ -124,7 +124,7 @@ fn import_single_file(
             // If already has frontmatter, keep as-is
             if content.starts_with("---") {
                 std::fs::write(&dest_full, &content)
-                    .map_err(|e| format!("写入失败: {}", e))?;
+                    .map_err(|e| format!("Failed to write: {}", e))?;
             } else {
                 let md = format!(
                     "---\ntitle: {}\ndate: {}\nsource: import\noriginal: {}\n---\n\n{}\n",
@@ -138,7 +138,7 @@ fn import_single_file(
                     let new_rel = format!("{}.md", dest_rel.trim_end_matches(&format!(".{}", ext)));
                     let new_full = sync_dir.join(&new_rel);
                     std::fs::write(&new_full, &md)
-                        .map_err(|e| format!("写入失败: {}", e))?;
+                        .map_err(|e| format!("Failed to write: {}", e))?;
                     return Ok(ImportedFile {
                         original_name: filename,
                         dest_path: new_rel,
@@ -147,7 +147,7 @@ fn import_single_file(
                     });
                 } else {
                     std::fs::write(&dest_full, &md)
-                        .map_err(|e| format!("写入失败: {}", e))?;
+                        .map_err(|e| format!("Failed to write: {}", e))?;
                     dest_rel.clone()
                 };
             }
@@ -168,7 +168,7 @@ fn import_single_file(
             let md_full = sync_dir.join(&md_filename);
 
             if let Some(parent) = md_full.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
             }
 
             let md = format!(
@@ -182,7 +182,7 @@ fn import_single_file(
                 content
             );
             std::fs::write(&md_full, &md)
-                .map_err(|e| format!("写入失败: {}", e))?;
+                .map_err(|e| format!("Failed to write: {}", e))?;
 
             return Ok(ImportedFile {
                 original_name: filename,
@@ -194,7 +194,7 @@ fn import_single_file(
         _ => {
             // Binary files (images, PDFs, etc.) → copy directly
             std::fs::copy(source, &dest_full)
-                .map_err(|e| format!("复制文件失败: {}", e))?;
+                .map_err(|e| format!("Failed to copy file: {}", e))?;
 
             // For images, also create a markdown reference
             if matches!(&category, FileCategory::Image) {
@@ -222,7 +222,7 @@ fn import_single_file(
 pub fn import_paths(paths: Vec<String>) -> Result<ImportResult, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
-        return Err("GitMemo 未初始化".into());
+        return Err("GitMemo not initialized".into());
     }
 
     let mut imported = Vec::new();
