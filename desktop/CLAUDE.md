@@ -1,5 +1,9 @@
 # GitMemo Desktop — Architecture Rules
 
+## Process Rule: Confirm Before Implementing
+
+For any non-trivial feature or architectural change, always present the design/approach to the user for confirmation BEFORE writing code. This avoids wasted effort and ensures alignment.
+
 ## State Management: Global-First Principle
 
 All shared state MUST live in a Zustand store (`useAppStore`). Component-level `useState` is ONLY for:

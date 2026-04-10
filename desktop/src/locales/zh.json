@@ -161,7 +161,14 @@
     "light": "浅色",
     "sendFeedback": "发送反馈",
     "changelog": "更新日志",
-    "noChangelog": "暂无更新日志"
+    "noChangelog": "暂无更新日志",
+    "checkUpdate": "检查更新",
+    "checking": "正在检查...",
+    "updateAvailable": "发现新版本 v{0}",
+    "installUpdate": "安装更新",
+    "downloading": "正在下载...",
+    "updateError": "检查更新失败",
+    "upToDate": "已是最新版本"
   },
   "time": {
     "justNow": "刚刚",

@@ -161,7 +161,14 @@
     "light": "light",
     "sendFeedback": "Send Feedback",
     "changelog": "Changelog",
-    "noChangelog": "No changelog available"
+    "noChangelog": "No changelog available",
+    "checkUpdate": "Check for Updates",
+    "checking": "Checking...",
+    "updateAvailable": "New version v{0} available",
+    "installUpdate": "Install Update",
+    "downloading": "Downloading...",
+    "updateError": "Update check failed",
+    "upToDate": "Up to date"
   },
   "time": {
     "justNow": "Just now",

@@ -44,6 +44,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "dmg",
       "app"
@@ -72,6 +73,14 @@
           "height": 400
         }
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "PLACEHOLDER_PUBLIC_KEY_FROM_PHASE1",
+      "endpoints": [
+        "https://github.com/sahadev/gitmemo/releases/latest/download/latest.json"
+      ]
     }
   }
 }

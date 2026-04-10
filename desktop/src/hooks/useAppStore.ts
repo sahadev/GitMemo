@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 // ---- Shared types (single source of truth) ----
 
@@ -47,6 +49,14 @@ interface AppStore {
   // App meta (version, release)
   appMeta: AppMeta | null;
 
+  // Update
+  updateStatus: "idle" | "checking" | "available" | "downloading" | "error";
+  updateVersion: string | null;
+  updateProgress: number;
+  updateError: string | null;
+  checkForUpdates: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+
   // Load all state at startup
   init: () => Promise<void>;
 }
@@ -65,6 +75,10 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   cursorEnabled: false,
   theme: loadTheme(),
   appMeta: null,
+  updateStatus: "idle",
+  updateVersion: null,
+  updateProgress: 0,
+  updateError: null,
 
   refreshClipboardStatus: async () => {
     try {
@@ -94,6 +108,47 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
     const next = get().theme === "dark" ? "light" : "dark";
     localStorage.setItem("gitmemo-theme", next);
     set({ theme: next });
+  },
+
+  checkForUpdates: async () => {
+    set({ updateStatus: "checking", updateProgress: 0, updateError: null });
+    try {
+      const update = await check();
+      if (update?.available) {
+        set({ updateStatus: "available", updateVersion: update.version });
+      } else {
+        set({ updateStatus: "idle", updateVersion: null });
+      }
+    } catch (e) {
+      set({ updateStatus: "error", updateError: String(e) });
+    }
+  },
+
+  installUpdate: async () => {
+    set({ updateStatus: "downloading", updateProgress: 0 });
+    try {
+      const update = await check();
+      if (!update?.available) {
+        set({ updateStatus: "idle" });
+        return;
+      }
+      let downloaded = 0;
+      let contentLength = 0;
+      await update.downloadAndInstall((event) => {
+        if (event.event === "Started") {
+          contentLength = event.data.contentLength ?? 0;
+        } else if (event.event === "Progress") {
+          downloaded += event.data.chunkLength;
+          const pct = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+          set({ updateProgress: pct });
+        } else if (event.event === "Finished") {
+          set({ updateProgress: 100 });
+        }
+      });
+      await relaunch();
+    } catch (e) {
+      set({ updateStatus: "error", updateError: String(e) });
+    }
   },
 
   init: async () => {

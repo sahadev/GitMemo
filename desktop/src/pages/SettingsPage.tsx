@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X } from "lucide-react";
+import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X, Download } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -49,6 +49,8 @@ export default function SettingsPage() {
     claudeEnabled, cursorEnabled, refreshIntegrationStatus,
     theme, toggleTheme,
     appMeta,
+    updateStatus, updateVersion, updateProgress, updateError,
+    checkForUpdates, installUpdate,
   } = useAppStore();
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
@@ -551,6 +553,64 @@ export default function SettingsPage() {
         <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
+        {/* Update status */}
+        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+          {updateStatus === "idle" && (
+            <button
+              onClick={() => void checkForUpdates()}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+              }}
+            >
+              <Download size={11} />
+              {t("settings.checkUpdate")}
+            </button>
+          )}
+          {updateStatus === "checking" && (
+            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("settings.checking")}</span>
+          )}
+          {updateStatus === "available" && (
+            <>
+              <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 500 }}>
+                {t("settings.updateAvailable", updateVersion ?? "")}
+              </span>
+              <button
+                onClick={() => void installUpdate()}
+                style={{
+                  padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                  background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                }}
+              >
+                {t("settings.installUpdate")}
+              </button>
+            </>
+          )}
+          {updateStatus === "downloading" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+              <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{t("settings.downloading")}</span>
+              <div style={{ flex: 1, height: 4, borderRadius: 2, background: "var(--bg-hover)", overflow: "hidden", maxWidth: 120 }}>
+                <div style={{ height: "100%", borderRadius: 2, background: "var(--accent)", width: `${updateProgress}%`, transition: "width 0.2s" }} />
+              </div>
+              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{updateProgress}%</span>
+            </div>
+          )}
+          {updateStatus === "error" && (
+            <>
+              <span style={{ fontSize: 11, color: "var(--red)" }}>{t("settings.updateError")}</span>
+              <button
+                onClick={() => void checkForUpdates()}
+                style={{
+                  padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                  background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                }}
+              >
+                {t("settings.checkUpdate")}
+              </button>
+            </>
+          )}
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
           <button
             onClick={() => void openUrl("https://github.com/sahadev/gitmemo")}

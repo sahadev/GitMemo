@@ -165,6 +165,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: desktop
           args: ${{ matrix.args }}
@@ -176,6 +178,7 @@ jobs:
           path: |
             desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz
+            desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz.sig
 
   release:
     needs: [check-version, build, build-desktop]
@@ -210,7 +213,61 @@ jobs:
           # Desktop binaries (flatten nested paths)
           find artifacts/gitmemo-desktop-* -name "*.dmg" -exec cp {} release-assets/ \; || true
           find artifacts/gitmemo-desktop-* -name "*.app.tar.gz" -exec cp {} release-assets/ \; || true
+          find artifacts/gitmemo-desktop-* -name "*.sig" -exec cp {} release-assets/ \; || true
           ls -la release-assets/
+
+      - name: Generate latest.json for updater
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          VERSION_NUM="${VERSION#v}"
+          REPO="sahadev/gitmemo"
+          BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
+
+          # Read signatures
+          AARCH64_SIG=""
+          X86_64_SIG=""
+          if [ -f release-assets/gitmemo-desktop.app.tar.gz.sig ]; then
+            AARCH64_SIG=$(cat release-assets/gitmemo-desktop.app.tar.gz.sig)
+            X86_64_SIG="$AARCH64_SIG"
+          fi
+          # Try arch-specific sig files
+          for f in release-assets/*aarch64*.app.tar.gz.sig; do
+            [ -f "$f" ] && AARCH64_SIG=$(cat "$f")
+          done
+          for f in release-assets/*x86_64*.app.tar.gz.sig; do
+            [ -f "$f" ] && X86_64_SIG=$(cat "$f")
+          done
+
+          # Find tar.gz filenames
+          AARCH64_TAR=$(find release-assets -name "*aarch64*.app.tar.gz" -not -name "*.sig" | head -1 | xargs basename 2>/dev/null || true)
+          X86_64_TAR=$(find release-assets -name "*x86_64*.app.tar.gz" -not -name "*.sig" | head -1 | xargs basename 2>/dev/null || true)
+          # Fallback to generic name
+          if [ -z "$AARCH64_TAR" ]; then
+            AARCH64_TAR=$(find release-assets -name "*.app.tar.gz" -not -name "*.sig" | head -1 | xargs basename 2>/dev/null || true)
+          fi
+          if [ -z "$X86_64_TAR" ]; then
+            X86_64_TAR="$AARCH64_TAR"
+          fi
+
+          cat > release-assets/latest.json << EOF
+          {
+            "version": "${VERSION_NUM}",
+            "notes": "See release notes on GitHub",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${AARCH64_SIG}",
+                "url": "${BASE_URL}/${AARCH64_TAR}"
+              },
+              "darwin-x86_64": {
+                "signature": "${X86_64_SIG}",
+                "url": "${BASE_URL}/${X86_64_TAR}"
+              }
+            }
+          }
+          EOF
+          echo "Generated latest.json:"
+          cat release-assets/latest.json
 
       - name: Create Release
         run: |
