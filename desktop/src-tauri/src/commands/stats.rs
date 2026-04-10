@@ -44,7 +44,13 @@ pub struct AppStatus {
 }
 
 #[tauri::command]
-pub fn get_stats() -> Result<AppStats, String> {
+pub async fn get_stats() -> Result<AppStats, String> {
+    tokio::task::spawn_blocking(get_stats_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn get_stats_sync() -> Result<AppStats, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Err("GitMemo 未初始化".into());
@@ -70,7 +76,13 @@ pub fn get_stats() -> Result<AppStats, String> {
 }
 
 #[tauri::command]
-pub fn get_status() -> Result<AppStatus, String> {
+pub async fn get_status() -> Result<AppStatus, String> {
+    tokio::task::spawn_blocking(get_status_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn get_status_sync() -> Result<AppStatus, String> {
     let sync_dir = files::sync_dir();
     let initialized = sync_dir.exists();
 
@@ -129,7 +141,13 @@ pub struct RecentItem {
 }
 
 #[tauri::command]
-pub fn get_recent_activity() -> Result<Vec<RecentItem>, String> {
+pub async fn get_recent_activity() -> Result<Vec<RecentItem>, String> {
+    tokio::task::spawn_blocking(get_recent_activity_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Ok(vec![]);
@@ -207,7 +225,13 @@ pub fn get_recent_activity() -> Result<Vec<RecentItem>, String> {
 
 /// Get a random historical item for "Today's Review" feature
 #[tauri::command]
-pub fn get_review_item() -> Result<Option<RecentItem>, String> {
+pub async fn get_review_item() -> Result<Option<RecentItem>, String> {
+    tokio::task::spawn_blocking(get_review_item_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Ok(None);

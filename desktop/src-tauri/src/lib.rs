@@ -176,7 +176,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 let app_handle = app.clone();
                 std::thread::spawn(move || {
                     let _ = app_handle.emit("git-sync-start", ());
-                    let payload = match notes::sync_to_git() {
+                    let payload = match notes::sync_to_git_blocking() {
                         Ok(message) => notes::GitSyncEvent { ok: true, message },
                         Err(message) => notes::GitSyncEvent { ok: false, message },
                     };
@@ -187,7 +187,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 let app_handle = app.clone();
                 std::thread::spawn(move || {
                     let _ = app_handle.emit("git-sync-start", ());
-                    let payload = match init::capture_conversations() {
+                    let payload = match init::capture_conversations_sync() {
                         Ok(r) => notes::GitSyncEvent {
                             ok: true,
                             message: format!("{} new, {} updated", r.new_sessions, r.updated_sessions),

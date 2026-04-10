@@ -60,7 +60,13 @@ impl InitResult {
 }
 
 #[tauri::command]
-pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
+pub async fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
+    tokio::task::spawn_blocking(move || init_gitmemo_sync(request))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     let mut result = InitResult::new();
     let sync_dir = files::sync_dir();
     let has_remote = !request.git_url.is_empty();
@@ -413,7 +419,13 @@ pub struct CaptureResponse {
 }
 
 #[tauri::command]
-pub fn capture_conversations() -> Result<CaptureResponse, String> {
+pub async fn capture_conversations() -> Result<CaptureResponse, String> {
+    tokio::task::spawn_blocking(capture_conversations_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+pub(crate) fn capture_conversations_sync() -> Result<CaptureResponse, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Err("GitMemo not initialized".into());

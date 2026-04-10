@@ -644,7 +644,13 @@ pub fn save_pasted_attachment(
 }
 
 #[tauri::command]
-pub fn sync_to_git() -> Result<String, String> {
+pub async fn sync_to_git() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| sync_to_git_blocking())
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+pub(crate) fn sync_to_git_blocking() -> Result<String, String> {
     let dir = sync_dir();
     if !dir.exists() {
         return Err("GitMemo 未初始化".into());

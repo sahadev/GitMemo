@@ -84,6 +84,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const [result, setResult] = useState<InitResult | null>(null);
   const [error, setError] = useState("");
   const [sshKeyCopied, setSshKeyCopied] = useState(false);
+  const [entering, setEntering] = useState(false);
 
   const handleLangSelect = useCallback((l: Locale) => {
     setLang(l);
@@ -566,8 +567,19 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   {t("setup.tipSave")}
                 </div>
 
-                <button style={btnPrimary} onClick={() => onComplete(result?.needs_remote_sync)}>
-                  {t("setup.enterApp")} <ChevronRight size={16} />
+                <button
+                  style={{ ...btnPrimary, opacity: entering ? 0.7 : 1 }}
+                  disabled={entering}
+                  onClick={() => {
+                    setEntering(true);
+                    onComplete(result?.needs_remote_sync);
+                  }}
+                >
+                  {entering ? (
+                    <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> {t("setup.pleaseWait")}</>
+                  ) : (
+                    <>{t("setup.enterApp")} <ChevronRight size={16} /></>
+                  )}
                 </button>
               </div>
             )}
