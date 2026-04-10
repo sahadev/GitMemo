@@ -77,7 +77,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "PLACEHOLDER_PUBLIC_KEY_FROM_PHASE1",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGNjU3Rjk1ODRCOTc5QTAKUldTZ2VibUVsWDlsdnhHaURiQ1FNSXhpTTZYQWo0dk9FWklFSHZjWHRqckp6Q2VKQjdEY1FYNzUK",
       "endpoints": [
         "https://github.com/sahadev/gitmemo/releases/latest/download/latest.json"
       ]
