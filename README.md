@@ -1,80 +1,59 @@
 # GitMemo
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/sahadev/GitMemo?logo=github&label=release)](https://github.com/sahadev/GitMemo/releases/latest)
+[![GitHub Issues](https://img.shields.io/github/issues/sahadev/GitMemo?logo=github)](https://github.com/sahadev/GitMemo/issues)
+
 [English](README.md) | [中文](README_CN.md)
 
-> Auto-sync your AI conversations and notes to Git
+## Introduction
 
-GitMemo automatically records your conversations with Claude or Cursor (or any AI agent) as Markdown files and syncs them to a Git repository. Zero background process. Zero effort.
+> **Your AI chats and notes sync automatically to Git.** GitMemo is a next-generation notes product that uses Git to save and centrally manage your AI chats and everyday notes.
 
 ## Features
 
-- **Auto-record** — Conversations saved as Markdown, completely transparent
+- **Unified sources + Git retention** — Many kinds of content in one place, managed by Git; auto commit & push (optional remote), branches, cross-device access
+- **Auto-record** — AI chats and more saved as Markdown, transparent and traceable
 - **Multi-editor** — Supports both Claude Code and Cursor
 - **i18n** — English and Chinese interface, selectable during `gitmemo init`
 - **Notes** — Scratch notes, daily journal, manuals — one command to create
-- **Git sync** — Auto commit & push, branch management, cross-device access
-- **MCP integration** — Search history and create notes directly from your AI editor
+- **MCP integration** — Search saved material and create notes from your AI editor (built on what’s already in your sync directory)
 - **Zero daemon** — No background process, powered by native editor hooks
-- **Data ownership** — Your data stays in YOUR Git repo
+- **Data ownership** — Your content lives in **your** Git repo; local indexes and helpers are explained in the [Data & storage statement](docs/DATA-STATEMENT.md)
 
-## Supported Editors
+## Environment & dependencies
 
-| Editor | System Instruction | Git Sync | MCP |
-|--------|-------------------|----------|-----|
-| **Claude Code** | `CLAUDE.md` | PostToolUse Hook (automatic) | `~/.claude.json` |
-| **Cursor** | Cursor Rules (`.mdc`) | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
-
-## How It Works
-
-GitMemo doesn't run as a background service. It injects into your editor's native infrastructure:
-
-**Claude Code:**
-
-| Injection Point | What It Does |
-|----------------|--------------|
-| `CLAUDE.md` instruction | Tells Claude to auto-save conversations as Markdown |
-| `settings.json` Hook | Auto `git commit && git push` after each file write |
-| `~/.claude/skills/save` | `/save` skill for explicit “save conversation” triggers |
-| `~/.claude/skills/gitmemo-session-log` | Same as Cursor: substantive Q&A summaries → `<sync>/conversations/YYYY-MM/` (same naming as auto-saved chats) |
-| MCP Server | Enables Claude to search history and create notes |
-
-**Cursor:**
-
-| Injection Point | What It Does |
-|----------------|--------------|
-| `~/.cursor/rules/gitmemo.mdc` | Global Cursor rule (`alwaysApply: true`) — written on **every** `gitmemo init`, regardless of editor choice |
-| `~/.cursor/skills/save` | `/save` skill metadata for “save conversation” triggers |
-| `~/.cursor/skills/gitmemo-session-log` | Optional-style skill: save substantive Q&A summaries under `<sync>/conversations/YYYY-MM/` (same path rule as chats, not the open project repo) |
-| `cds_sync` MCP tool | AI calls this after saving to trigger git sync (only when you pick Cursor at init and omit `--no-mcp`) |
-| MCP Server | Enables AI to search history and create notes |
-
-## Requirements
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI) and/or [Cursor](https://cursor.com)
-- Git
-- A Git remote repository (GitHub / GitLab / Gitee / self-hosted) — **optional**, local-only mode is supported
+- **Git (local CLI)**: Required to initialize the sync repo and run `commit` / `push` workflows. A **remote** is **not** required—you can stay local-only until you want to sync copies to another machine or a cloud Git host.
+- **Claude Code / Cursor**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want **automatic capture from the editor**, hooks, and MCP. You can start with CLI notes and sync, then run `init` again later to add an editor.
+- **Hosted Git remote** (GitHub / GitLab / Gitee / self-hosted): **Always optional**.
 
 ## Quick Start
 
 ### Install
+
+#### GitMemo Desktop (macOS) — start here for the GUI
+
+1. **Download**: open **[GitHub Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**, expand **Assets**, and pick the **Desktop** build:  
+   - Prefer **`.dmg`** (drag into Applications), or  
+   - **`.app.tar.gz`** (extract to get `.app`; filenames change each release — look for **desktop** / **GitMemo** in the asset name).  
+   **Linux / Windows**: this repository does **not** ship Desktop installers yet; use **CLI install** below (Linux CLI binaries are published).
+2. **First-time setup**: finish initialization once—**use the guided setup inside GitMemo Desktop**, or install the **CLI** below and run **`gitmemo init`** in a terminal if you prefer. This creates `~/.gitmemo` and optionally wires Claude / Cursor. After that you can stay mostly in Desktop for browsing, search, and clipboard.
+
+> **macOS Gatekeeper**: if the app is reported damaged or won’t open, run `xattr -cr /Applications/GitMemo.app` (adjust the path). For the CLI binary only: `xattr -cr /usr/local/bin/gitmemo`.
+
+#### CLI install (macOS & Linux)
+
+One-line installer (installs / updates the `gitmemo` CLI and related pieces the script manages):
 
 ```bash
 # One-line install (auto-detects your platform)
 bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh)
 ```
 
-> **macOS users**: If you see "app is damaged" or "can't be opened", run:
-> ```bash
-> xattr -cr /Applications/GitMemo.app
-> # or for CLI binary:
-> xattr -cr /usr/local/bin/gitmemo
-> ```
-> This is normal for unsigned apps — Apple requires a $99/year developer certificate for signing.
-
 <details>
-<summary>Manual download / Other install methods</summary>
+<summary>Manual CLI download / Build from source</summary>
 
-Download the binary for your platform from [Releases](https://github.com/sahadev/GitMemo/releases/latest), then:
+From **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)** → **Assets**, download the **CLI** binary for your platform (e.g. `gitmemo-macos-aarch64`), then:
 
 ```bash
 chmod +x gitmemo-macos-aarch64
@@ -90,8 +69,6 @@ cargo install --path .
 ```
 
 </details>
-
-> Desktop releases are currently macOS-only (`.dmg` / `.app.tar.gz`). CLI binaries are available for both macOS and Linux.
 
 ### Initialize
 
@@ -116,11 +93,11 @@ Follow the prompts: choose your editor, enter your Git remote URL (or press Ente
 
 ### That's It
 
-Your AI conversations will now auto-save to the Git repo. Try typing `/save` in Claude — it works without restarting. If it doesn't take effect, restart your editor session.
+After initialization, conversations, notes, and other sources flow into your sync directory and into Git. In **Claude** or **Cursor**, type **`/save`** to save the current session manually (after `init` installed the save skill for that editor); auto-save also runs under your rules. If nothing happens, restart the editor session.
 
 ### Desktop App
 
-After `gitmemo init`, open GitMemo Desktop and it will read the same sync directory as the CLI (usually `~/.gitmemo`).
+**Installer**: see **Install → GitMemo Desktop (macOS)** above, or go straight to **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**. After initialization, open GitMemo Desktop and it will read the same sync directory as the CLI (usually `~/.gitmemo`).
 
 - **Dashboard** with stats, sync status, recent activity feed, and clipboard monitoring indicator
 - **Full-text search** across conversations, notes, clips, plans, and config
@@ -130,11 +107,11 @@ After `gitmemo init`, open GitMemo Desktop and it will read the same sync direct
 - **System tray** with quick actions (Open/Sync/Clipboard/Quit)
 - Plans created by Claude Code and Cursor are both imported into `plans/`
 - Current desktop packages target **macOS only** (Apple Silicon + Intel)
-- Desktop does not require a separately installed CLI binary at runtime; the CLI is only needed for commands like `gitmemo init`
+- You don’t need a terminal day-to-day; **first-time setup can finish inside the app**, or you can use the CLI to run `gitmemo init`. The CLI is also handy for `gitmemo note`, `sync`, and other commands
 
 ### How Conversations Are Saved
 
-Type `/save` in any Claude conversation to save the current session. Claude also auto-saves after most responses (driven by CLAUDE.md instruction). If a session wasn't captured, `/save` is your safety net.
+In **Claude** or **Cursor**, type **`/save`** to save the current session (when the save skill from `gitmemo init` is present). On the Claude side, many turns also auto-save under your rules. If a session was missed, **`/save`** catches it.
 
 ### Verify It Works
 
@@ -185,19 +162,19 @@ gitmemo uninstall          # Remove configs (keeps data)
 │   └── 2026-03-25/
 ├── plans/                  # Implementation plans from Plan Mode
 ├── imports/                # Drag-and-drop imported files
-├── claude-config/          # Synced AI configuration backup
+├── claude-config/          # Claude-related config & memory synced here
 │   ├── CLAUDE.md           # Global Claude instructions
-��   ├── memory/             # Claude's auto-memory
+│   ├── memory/             # Claude's auto-memory
 │   ├── skills/             # Custom skills
 │   └── projects/           # Per-project memory
 └── .metadata/              # Search index (not synced)
 ```
 
-All data is plain Markdown. Readable with any editor. Survives uninstall.
+Your knowledge files are plain Markdown (and similar) and readable in any editor. The `.metadata/` folder holds local config and the search index—see **[Data & storage statement](docs/DATA-STATEMENT.md)**. Tracked content remains in your Git repo after uninstalling the app.
 
 ## What Gets Auto-Captured
 
-GitMemo automatically captures **8 types** of knowledge from your AI workflow:
+GitMemo automatically captures **8 types** of knowledge from your workflow:
 
 | Type | What | Where |
 |------|------|-------|
@@ -210,7 +187,38 @@ GitMemo automatically captures **8 types** of knowledge from your AI workflow:
 | **AI Memory** | Claude's auto-memory & project context | `claude-config/memory/` |
 | **Skills & Config** | Custom skills, CLAUDE.md instructions | `claude-config/skills/` |
 
-No manual copying. No export buttons. Everything flows into your Git repo automatically.
+No manual copying. No export buttons. Diverse sources flow into your sync directory and are tracked by Git automatically.
+
+## Supported Editors
+
+| Editor | System Instruction | Git Sync | MCP |
+|--------|-------------------|----------|-----|
+| **Claude Code** | `CLAUDE.md` | PostToolUse Hook (automatic) | `~/.claude.json` |
+| **Cursor** | Cursor Rules (`.mdc`) | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
+
+## How It Works
+
+GitMemo doesn't run as a background service. It injects into your editor's native infrastructure:
+
+**Claude Code:**
+
+| Injection Point | What It Does |
+|----------------|--------------|
+| `CLAUDE.md` instruction | Tells Claude to auto-save conversations as Markdown |
+| `settings.json` Hook | Auto `git commit && git push` after each file write |
+| `~/.claude/skills/save` | `/save` skill for explicit “save conversation” triggers |
+| `~/.claude/skills/gitmemo-session-log` | Same as Cursor: substantive Q&A summaries → `<sync>/conversations/YYYY-MM/` (same naming as auto-saved chats) |
+| MCP Server | Enables Claude to search history and create notes |
+
+**Cursor:**
+
+| Injection Point | What It Does |
+|----------------|--------------|
+| `~/.cursor/rules/gitmemo.mdc` | Global Cursor rule (`alwaysApply: true`) — written on **every** `gitmemo init`, regardless of editor choice; for **substantial** product/technical plans, also write to `<sync>/notes/manual/` **in the same turn**, without the user having to say "save" |
+| `~/.cursor/skills/save` | `/save` skill metadata for “save conversation” triggers |
+| `~/.cursor/skills/gitmemo-session-log` | Optional-style skill: save substantive Q&A summaries under `<sync>/conversations/YYYY-MM/` (same path rule as chats, not the open project repo) |
+| `cds_sync` MCP tool | AI calls this after saving to trigger git sync (only when you pick Cursor at init and omit `--no-mcp`) |
+| MCP Server | Enables AI to search history and create notes |
 
 ## Uninstall
 
@@ -229,7 +237,7 @@ git clone https://github.com/sahadev/GitMemo.git
 cd GitMemo
 cargo build
 cargo test
-cargo run -- help
+cargo run --help
 ```
 
 ## License

@@ -99,6 +99,23 @@ messages: {{消息轮次数}}
 
 **不触发**：普通问答、简短回复、纯代码修改与调试过程。
 
+### Proactive save（无需用户说「保存」）
+
+当本轮回答中输出了**成篇、可独立阅读**的内容时，**在同一轮回答内**主动落盘到 `notes/manual/`，**不要**等用户说 save / 保存会话 / `/save`。触发示例（满足其一即可考虑落盘；若多条合并为一篇更清晰则合并）：
+
+- 产品规划 / 商业与功能规划、路线图、PRD 级说明
+- 技术方案 / 架构设计 / 数据流与安全设计说明
+- 教程、Runbook、故障排查指南（多步骤、可复用）
+- 长篇调研结论（超出「会话摘要」即可单独成文的价值）
+
+**文件要求**：
+
+- 路径：`{sync_dir}/notes/manual/{{标题}}.md`（`title` 简洁、文件名友好，可用英文 kebab-case 或简短中文主题）
+- 正文应**尽量完整**收录本轮交付的规划/方案要点（不要只在 `conversations/` 里写「详见聊天」而省略 `manual` 正文）
+- 仍按上文执行：`conversations/` 的会话同步、`date` ISO 带偏移、保存后静默（不必向用户强调「已保存」）；若启用 GitMemo MCP 则对 `{sync_dir}/` 下变更调用 `cds_sync`
+
+**例外**：用户明确只要聊天里看看、不要写盘；或内容极短/纯确认句 — 不写 `notes/manual`。
+
 {MARKER_END}"#,
         sync_dir = sync_dir
     )
@@ -169,6 +186,23 @@ messages: {{message count}}
 
 Save reference-worthy standalone docs (reports, designs, tutorials) to `{sync_dir}/notes/manual/{{title}}.md`. Do not use this for ordinary Q&A or tiny edits.
 
+### Proactive save (without the user saying "save")
+
+When this turn's answer includes **substantial, self-contained** content, **in the same assistant turn** write it to `notes/manual/` proactively. **Do not** wait for the user to say "save", "save conversation", "/save", or "保存会话". Triggers (if any apply, save; merge into one document when clearer):
+
+- Product planning / business & feature planning, roadmaps, PRD-level writeups
+- Technical solution / architecture / data-flow & security design notes
+- Tutorials, runbooks, troubleshooting guides (multi-step, reusable)
+- Long-form research conclusions (worth more than a chat summary alone)
+
+**File requirements**:
+
+- Path: `{sync_dir}/notes/manual/{{title}}.md` (`title` short and filesystem-friendly; English kebab-case or a brief Chinese topic is fine)
+- The body should **fully** capture the planning / spec delivered this turn (do not only add "see chat" in `conversations/` and skip the full `manual` text)
+- Still follow the rules above: conversation sync to `conversations/`, ISO `date` with timezone offset, save silently (no need to announce "saved"); if GitMemo MCP is enabled, call `cds_sync` after writes under `{sync_dir}/`
+
+**Exceptions**: The user explicitly wants chat only, no disk writes; or the reply is very short / confirmation-only — skip `notes/manual`.
+
 {MARKER_END}"#,
         sync_dir = sync_dir
     )
@@ -221,5 +255,16 @@ mod tests {
         let s = generate_instruction("~/.gitmemo", Lang::Zh);
         assert!(s.contains("保存会话"));
         assert!(s.contains("alwaysApply: true"));
+        assert!(s.contains("Proactive save"));
+        assert!(s.contains("无需用户说"));
+        assert!(s.contains("notes/manual"));
+    }
+
+    #[test]
+    fn en_proactive_save_section() {
+        let s = generate_instruction("/tmp/.gitmemo", Lang::En);
+        assert!(s.contains("Proactive save (without the user saying"));
+        assert!(s.contains("PRD-level"));
+        assert!(s.contains("/tmp/.gitmemo/notes/manual"));
     }
 }

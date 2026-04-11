@@ -1,80 +1,61 @@
 # GitMemo
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/sahadev/GitMemo?logo=github&label=release)](https://github.com/sahadev/GitMemo/releases/latest)
+[![GitHub Issues](https://img.shields.io/github/issues/sahadev/GitMemo?logo=github)](https://github.com/sahadev/GitMemo/issues)
+
 [English](README.md) | [中文](README_CN.md)
 
-> 你的 AI 对话与笔记，自动备份到 Git
+## 简介
 
-GitMemo 自动将你与 Claude 或 Cursor（或任何 AI Agent）的对话记录为 Markdown 文件，并同步到 Git 仓库。零后台进程，零额外操作。
+> **你的 AI 对话与笔记，自动同步到 Git。** GitMemo 是一款用 Git 保存并统一管理 AI 对话与日常笔记的新一代笔记产品。
 
 ## 特性
 
-- **自动记录** — 对话自动保存为 Markdown，完全透明
-- **多编辑器** — 同时支持 Claude Code 和 Cursor
+- **多源统一 + Git 保留** — 多类信息汇入同一目录，由 Git 管理；自动 commit & push（可选远程）、分支与跨设备访问
+- **自动记录** — AI 对话等自动保存为 Markdown，透明可追溯
+- **多编辑器** — 同时支持 Claude Code 与 Cursor
 - **多语言** — 支持中英文界面，`gitmemo init` 时可选择
 - **笔记功能** — 便签、每日笔记、手册，一行命令创建
-- **Git 同步** — 自动 commit & push，分支管理、跨设备访问
-- **MCP 集成** — 在 AI 编辑器中直接搜索历史对话、创建笔记
+- **MCP 集成** — 在 AI 编辑器中搜索历史内容、创建笔记（基于已写入同步目录的材料）
 - **零进程** — 不启动后台服务，利用编辑器原生 hooks 驱动
-- **数据主权** — 数据存储在你自己的 Git 仓库，完全可控
+- **数据主权** — 内容在你自己的 Git 仓库中，完全可控；本地索引等辅助数据见 [Data & storage statement（数据与存储声明）](docs/DATA-STATEMENT.md)
 
-## 支持的编辑器
+## 环境与依赖
 
-| 编辑器 | 系统指令 | Git 同步 | MCP |
-|--------|---------|----------|-----|
-| **Claude Code** | `CLAUDE.md` | PostToolUse Hook（自动） | `~/.claude.json` |
-| **Cursor** | Cursor Rules（`.mdc`） | `cds_sync` MCP 工具 | `~/.cursor/mcp.json` |
-
-## 工作原理
-
-GitMemo 不是后台服务，而是注入编辑器的原生基础设施：
-
-**Claude Code：**
-
-| 注入点 | 作用 |
-|--------|------|
-| `CLAUDE.md` 指令 | 让 Claude 每次对话后自动保存为 Markdown |
-| `settings.json` Hook | 文件写入后自动 `git commit && git push` |
-| `~/.claude/skills/save` | `/save` 技能，便于显式触发「保存会话」 |
-| `~/.claude/skills/gitmemo-session-log` | 与 Cursor 相同：有实质内容的问答摘要写入 `<同步目录>/conversations/年-月/`（与自动会话同规则） |
-| MCP Server | 让 Claude 能搜索历史对话、创建笔记 |
-
-**Cursor：**
-
-| 注入点 | 作用 |
-|--------|------|
-| `~/.cursor/rules/gitmemo.mdc` | 让 AI 每次对话后自动保存为 Markdown（`init` **始终**写入该全局规则，含 `alwaysApply: true`，与是否只选 Claude Code 无关） |
-| `~/.cursor/skills/save` | 与 `/save` 技能说明，便于说「保存会话」时触发 |
-| `~/.cursor/skills/gitmemo-session-log` | 将有实质内容的问答摘要写入 `<同步目录>/conversations/年-月/`（与自动保存对话同一路径规则，不是当前项目仓库） |
-| `cds_sync` MCP 工具 | AI 保存文件后调用此工具触发 git 同步（仅当 `init` 时选择 Cursor 且未 `--no-mcp`） |
-| MCP Server | 让 AI 能搜索历史对话、创建笔记 |
-
-## 前置条件
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)（CLI）和/或 [Cursor](https://cursor.com)
-- Git
-- 一个 Git 远程仓库（GitHub / GitLab / Gitee / 自建）— **可选**，支持纯本地模式
+- **本机 Git**：用于在同步目录初始化仓库、`commit` / `push` 等；**不强制**配置远程（可长期纯本地，需要把内容同步到另一台电脑或云端仓库时再配远程即可）。
+- **Claude Code / Cursor**：**不是**安装 GitMemo 的前置门槛。只有当你希望 **编辑器自动写入对话、Hook、MCP** 时，再在 `gitmemo init` 里接入 **至少其一**；也可先只用 CLI 记笔记与手动同步，之后再补 `init`。
+- **远程 Git 托管**（GitHub / GitLab / Gitee / 自建）：**始终可选**。
 
 ## 快速开始
 
 ### 安装
+
+#### GitMemo Desktop（macOS）— 图形界面优先
+
+1. **下载**：打开 **[GitHub Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**，在 **Assets** 中下载 **桌面端**安装包：  
+   - 优先选 **`.dmg`**（拖拽安装到「应用程序」）；或  
+   - **`.app.tar.gz`**（解压后得到 `.app`，具体文件名随版本变化，认准 **desktop / GitMemo** 相关资源即可）。  
+   **Linux / Windows**：当前仓库 **不提供** Desktop 安装包；请使用下方 **CLI 安装**（Linux 支持 CLI）。
+2. **首次设置**：先完成一次初始化——**可在 GitMemo Desktop 里按界面引导完成**；若你更习惯终端，也可安装下方 **CLI** 后执行 **`gitmemo init`**。完成后会生成 `~/.gitmemo` 并可选接入 Claude / Cursor。之后日常可**主要用 Desktop** 做浏览、搜索与剪贴板。
+
+> **macOS 打不开应用？** 未签名应用可能被拦截，在终端执行（路径按你实际安装位置调整）：  
+> `xattr -cr /Applications/GitMemo.app`  
+> 若只用 CLI 二进制，也可：`xattr -cr /usr/local/bin/gitmemo`
+
+#### CLI 安装（macOS / Linux）
+
+一键安装脚本（同时包含 `gitmemo` CLI，并可在脚本流程中安装/更新相关组件）：
 
 ```bash
 # 一键安装（自动检测平台）
 bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh)
 ```
 
-> **macOS 用户**：如果提示"文件已损坏"或"无法打开"，请在终端执行：
-> ```bash
-> xattr -cr /Applications/GitMemo.app
-> # 或 CLI 二进制：
-> xattr -cr /usr/local/bin/gitmemo
-> ```
-> 这是未签名应用的正常现象，Apple 要求 $99/年的开发者证书才能签名。
-
 <details>
-<summary>手动下载 / 其他安装方式</summary>
+<summary>手动下载 CLI / 从源码编译</summary>
 
-从 [Releases](https://github.com/sahadev/GitMemo/releases/latest) 下载对应平台的二进制文件，然后：
+从 [Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest) 的 **Assets** 中下载对应平台的 **CLI** 二进制（如 `gitmemo-macos-aarch64`），然后：
 
 ```bash
 chmod +x gitmemo-macos-aarch64
@@ -90,8 +71,6 @@ cargo install --path .
 ```
 
 </details>
-
-> 当前桌面端发布包仅提供 macOS（`.dmg` / `.app.tar.gz`）。CLI 二进制同时支持 macOS 和 Linux。
 
 ### 初始化
 
@@ -116,25 +95,25 @@ gitmemo init --path /path/to/your/repo
 
 ### 就这样
 
-你的 AI 对话将自动保存到 Git 仓库。试试在 Claude 中输入 `/save`，无需重启即可生效。如果未生效，重启编辑器会话即可。
+完成初始化后，对话与笔记等多源内容会随工作流进入同步目录并写入 Git。在 **Claude** 或 **Cursor** 里输入 **`/save`** 可主动保存当前会话（需在 `init` 时已接入对应编辑器）；一般也会按规则自动保存。若无响应，可重启当前编辑器会话。
 
 ### Desktop 客户端
 
-执行 `gitmemo init` 后，打开 GitMemo Desktop，它会读取与 CLI 相同的同步目录（通常是 `~/.gitmemo`）。
+**安装包下载**：见上文 **「安装」→「GitMemo Desktop（macOS）」**，直达 **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**。完成初始化后，打开 GitMemo Desktop，它会读取与 CLI 相同的同步目录（通常是 `~/.gitmemo`）。
 
 - **仪表盘**：统计卡片、同步状态、最近动态 Feed、剪贴板监控指示器
 - **全文搜索**：跨对话、笔记、剪贴板、计划和配置搜索
 - **剪贴板监控**：支持文本和图片捕获，缩略图预览
 - **系统通知**：通过 macOS 通知中心推送同步错误和剪贴板捕获（仅后台）
 - **Quick Paste**：浮窗命令面板（Cmd+Shift+Space）
-- **系统托盘**：快捷操���（打开/同步/剪贴板/退出）
+- **系统托盘**：快捷操作（打开/同步/剪贴板/退出）
 - Claude Code 和 Cursor 生成的 plans 都会导入到 `plans/`
 - 当前桌面端安装包仅支持 **macOS**（Apple Silicon + Intel）
-- Desktop 运行时不依赖额外安装的 CLI 二进制；CLI 主要用于 `gitmemo init` 这类命令
+- Desktop 日常使用不必开着终端；**初始化可在应用内完成**，也可用 CLI 执行 `gitmemo init`。CLI 还便于在终端里用 `gitmemo note`、`sync` 等命令
 
 ### 对话如何保存
 
-在 Claude 对话中输入 `/save` 即可保存当前会话。Claude 在大多数对话后也会自动保存（由 CLAUDE.md 指令驱动）。如果某次会话未被自动捕获，`/save` 是你的兜底方案。
+在 **Claude** 或 **Cursor** 中输入 **`/save`** 可保存当前会话（已按 `gitmemo init` 写入保存技能时）。Claude 侧多数对话还会在规则下自动落盘。若某次未被自动记下，用 **`/save`** 即可补存。
 
 ### 验证是否生效
 
@@ -185,7 +164,7 @@ gitmemo uninstall          # 移除配置（保留数据）
 │   └── 2026-03-25/
 ├── plans/                  # Plan Mode 的实施方案
 ├── imports/                # 拖拽导入的文件
-├── claude-config/          # AI 配置备份
+├── claude-config/          # 与 Claude 同步的配置与记忆等
 │   ├── CLAUDE.md           # 全局 Claude 指令
 │   ├── memory/             # Claude 的自动记忆
 │   ├── skills/             # 自定义技能
@@ -193,11 +172,11 @@ gitmemo uninstall          # 移除配置（保留数据）
 └── .metadata/              # 搜索索引（不同步）
 ```
 
-所有数据都是纯 Markdown 文件，可以用任何编辑器打开。卸载后数据依然保留。
+主体知识内容为纯 Markdown 等文本，可用任意编辑器打开；`.metadata/` 为本地配置与搜索索引，详见 **[Data & storage statement（数据与存储声明）](docs/DATA-STATEMENT.md)**。卸载后 Git 中的用户内容仍保留在仓库内。
 
 ## 自动捕获的内容
 
-GitMemo 自动捕获 AI 工作流中的 **8 类知识产物**：
+GitMemo 自动捕获工作流中的 **8 类知识产物**：
 
 | 类型 | 内容 | 存储位置 |
 |------|------|---------|
@@ -210,7 +189,38 @@ GitMemo 自动捕获 AI 工作流中的 **8 类知识产物**：
 | **AI 记忆** | Claude 的自动记忆和项目上下文 | `claude-config/memory/` |
 | **技能与配置** | 自定义技能、CLAUDE.md 指令 | `claude-config/skills/` |
 
-无需手动复制，无需导出按钮，一切自动流入你的 Git 仓库。
+无需手动复制，无需导出按钮，多源内容自动流入同步目录并由 Git 跟踪。
+
+## 支持的编辑器
+
+| 编辑器 | 系统指令 | Git 同步 | MCP |
+|--------|---------|----------|-----|
+| **Claude Code** | `CLAUDE.md` | PostToolUse Hook（自动） | `~/.claude.json` |
+| **Cursor** | Cursor Rules（`.mdc`） | `cds_sync` MCP 工具 | `~/.cursor/mcp.json` |
+
+## 工作原理
+
+GitMemo 不是后台服务，而是注入编辑器的原生基础设施：
+
+**Claude Code：**
+
+| 注入点 | 作用 |
+|--------|------|
+| `CLAUDE.md` 指令 | 让 Claude 每次对话后自动保存为 Markdown |
+| `settings.json` Hook | 文件写入后自动 `git commit && git push` |
+| `~/.claude/skills/save` | `/save` 技能，便于显式触发「保存会话」 |
+| `~/.claude/skills/gitmemo-session-log` | 与 Cursor 相同：有实质内容的问答摘要写入 `<同步目录>/conversations/年-月/`（与自动会话同规则） |
+| MCP Server | 让 Claude 能搜索历史对话、创建笔记 |
+
+**Cursor：**
+
+| 注入点 | 作用 |
+|--------|------|
+| `~/.cursor/rules/gitmemo.mdc` | 让 AI 每次对话后自动保存为 Markdown（`init` **始终**写入该全局规则，含 `alwaysApply: true`，与是否只选 Claude Code 无关）；对**成篇**产品规划/技术方案等，**同一轮内**主动写入 `<同步目录>/notes/manual/`，无需用户再说「保存」 |
+| `~/.cursor/skills/save` | 与 `/save` 技能说明，便于说「保存会话」时触发 |
+| `~/.cursor/skills/gitmemo-session-log` | 将有实质内容的问答摘要写入 `<同步目录>/conversations/年-月/`（与自动保存对话同一路径规则，不是当前项目仓库） |
+| `cds_sync` MCP 工具 | AI 保存文件后调用此工具触发 git 同步（仅当 `init` 时选择 Cursor 且未 `--no-mcp`） |
+| MCP Server | 让 AI 能搜索历史对话、创建笔记 |
 
 ## 卸载
 
@@ -229,7 +239,7 @@ git clone https://github.com/sahadev/GitMemo.git
 cd GitMemo
 cargo build
 cargo test
-cargo run -- help
+cargo run --help
 ```
 
 ## 许可证

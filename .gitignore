@@ -10,3 +10,6 @@ desktop/src-tauri/gen/schemas/
 
 # Build-time generated
 desktop/public/changelog.json
+
+# Claude local worktrees (nested git repos; not portable)
+.claude/worktrees/
