@@ -37,6 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # File ops
 dirs = "5"
+fs4 = "0.13"
 walkdir = "2"
 tempfile = "3"
 

@@ -1,4 +1,6 @@
 use anyhow::Result;
+use fs4::fs_std::FileExt;
+use std::fs::OpenOptions;
 use std::path::Path;
 
 /// Result of a commit_and_push operation
@@ -63,6 +65,115 @@ fn git_raw(repo_path: &Path, args: &[&str]) -> Result<(bool, String, String)> {
         String::from_utf8_lossy(&output.stdout).trim().to_string(),
         String::from_utf8_lossy(&output.stderr).trim().to_string(),
     ))
+}
+
+// ── Cross-process git network serialization ─────────────────────────────
+//
+// Hosts that tunnel Git over gRPC sometimes return errors like "More than 5
+// connections" when too many push/pull/fetch sessions run at once (Desktop +
+// CLI + editor hooks). We serialize remote operations for a given sync repo
+// using an flock(2)-style lock file. This does not affect unrelated `git`
+// invocations outside GitMemo (e.g. raw `git push` in the same repo).
+
+struct RepoNetworkLockGuard {
+    file: std::fs::File,
+}
+
+impl Drop for RepoNetworkLockGuard {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
+fn try_acquire_repo_network_lock(repo_path: &Path) -> Option<RepoNetworkLockGuard> {
+    let lock_path = repo_path.join(".metadata").join("git-network.lock");
+    if let Some(dir) = lock_path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&lock_path)
+        .ok()?;
+    file.lock_exclusive().ok()?;
+    Some(RepoNetworkLockGuard { file })
+}
+
+fn with_repo_network_lock<T>(repo_path: &Path, f: impl FnOnce() -> T) -> T {
+    match try_acquire_repo_network_lock(repo_path) {
+        Some(_guard) => f(),
+        None => {
+            eprintln!(
+                "[gitmemo] Warning: could not acquire .metadata/git-network.lock; \
+                 remote git operations may race with other processes."
+            );
+            f()
+        }
+    }
+}
+
+fn is_transient_git_transport_error(msg: &str) -> bool {
+    let s = msg.to_lowercase();
+    s.contains("more than 5 connections")
+        || s.contains("grpc receive")
+        || s.contains("rpc error")
+        || s.contains("resource exhausted")
+        || s.contains("too many requests")
+        || s.contains(" 429 ")
+        || s.contains("status 429")
+        || s.contains("connection reset")
+        || s.contains("broken pipe")
+        || s.contains("connection timed out")
+        || s.contains("temporarily unavailable")
+}
+
+/// Single `git push` attempt (no lock — caller holds [`with_repo_network_lock`]).
+fn do_push_once(repo_path: &Path) -> (bool, Option<String>) {
+    let branch = configured_branch(repo_path);
+    match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {
+        Ok((true, _, _)) => (true, None),
+        Ok((false, stdout, stderr)) => {
+            let combined = format!("{stdout} {stderr}");
+            if combined.contains("Everything up-to-date") || combined.contains("up to date") {
+                (true, None)
+            } else {
+                (
+                    false,
+                    Some(if stderr.is_empty() {
+                        if stdout.is_empty() {
+                            "push failed".to_string()
+                        } else {
+                            stdout
+                        }
+                    } else {
+                        stderr
+                    }),
+                )
+            }
+        }
+        Err(e) => (false, Some(e.to_string())),
+    }
+}
+
+fn do_push_with_retry(repo_path: &Path) -> (bool, Option<String>) {
+    const MAX: usize = 4;
+    let delays_ms = [500u64, 1_500, 3_500, 8_000];
+    let mut last = (false, Some(String::new()));
+    for attempt in 0..MAX {
+        if attempt > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(delays_ms[attempt - 1]));
+        }
+        last = do_push_once(repo_path);
+        if last.0 {
+            return last;
+        }
+        let err = last.1.as_deref().unwrap_or("");
+        if !is_transient_git_transport_error(err) {
+            return last;
+        }
+    }
+    last
 }
 
 /// Read the configured branch from config.toml, default to "main"
@@ -225,29 +336,14 @@ pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
 
     // Push only if remote is configured
     if has_remote(repo_path) {
-        // Rebase on remote before pushing to avoid conflicts
-        let _ = pull(repo_path);
-
-        let (pushed, push_error) = do_push(repo_path);
+        // One lock for pull + push so another GitMemo process cannot interleave.
+        let (pushed, push_error) = with_repo_network_lock(repo_path, || {
+            let _ = pull_inner(repo_path);
+            do_push_with_retry(repo_path)
+        });
         Ok(SyncResult { committed, pushed, push_error })
     } else {
         Ok(SyncResult { committed, pushed: false, push_error: None })
-    }
-}
-
-/// Execute git push to the configured branch and return (success, error_message)
-fn do_push(repo_path: &Path) -> (bool, Option<String>) {
-    let branch = configured_branch(repo_path);
-    match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {
-        Ok((true, _, _)) => (true, None),
-        Ok((false, _, stderr)) => {
-            if stderr.contains("Everything up-to-date") || stderr.contains("up to date") {
-                (true, None)
-            } else {
-                (false, Some(if stderr.is_empty() { "push failed".to_string() } else { stderr }))
-            }
-        }
-        Err(e) => (false, Some(e.to_string())),
     }
 }
 
@@ -364,8 +460,12 @@ fn rev_list_count(repo_path: &Path, refspec: &str) -> Option<usize> {
     git_cmd(repo_path, &["rev-list", "--count", refspec]).ok()?.parse().ok()
 }
 
-/// Compare local HEAD with remote using ls-remote (requires network)
+/// Compare local HEAD with remote using ls-remote (requires network).
 fn count_via_ls_remote(repo_path: &Path) -> Option<usize> {
+    with_repo_network_lock(repo_path, || count_via_ls_remote_inner(repo_path))
+}
+
+fn count_via_ls_remote_inner(repo_path: &Path) -> Option<usize> {
     let cfg_branch = configured_branch(repo_path);
 
     let local_head = git_cmd(repo_path, &["rev-parse", "HEAD"]).ok()?;
@@ -474,7 +574,8 @@ fn rev_list_left_right_count(repo_path: &Path, refspec: &str) -> Option<(usize, 
 
 /// Push only (no commit)
 pub fn push(repo_path: &Path) -> Result<SyncResult> {
-    let (pushed, push_error) = do_push(repo_path);
+    let (pushed, push_error) =
+        with_repo_network_lock(repo_path, || do_push_with_retry(repo_path));
     Ok(SyncResult { committed: false, pushed, push_error })
 }
 
@@ -513,6 +614,10 @@ pub fn ensure_repo_clean(repo_path: &Path) -> Result<bool> {
 /// Falls back to merge if rebase fails, then merge -X theirs if merge also fails.
 /// Returns Ok(true) on success, Err with message on failure.
 pub fn pull(repo_path: &Path) -> Result<bool> {
+    with_repo_network_lock(repo_path, || pull_inner(repo_path))
+}
+
+fn pull_inner(repo_path: &Path) -> Result<bool> {
     let _ = ensure_repo_clean(repo_path);
     let branch = configured_branch(repo_path);
 
@@ -574,7 +679,9 @@ pub fn fetch(repo_path: &Path) -> Result<bool> {
     if !has_remote(repo_path) {
         return Ok(false);
     }
-    Ok(git_ok(repo_path, &["fetch", "--quiet", "origin"]))
+    Ok(with_repo_network_lock(repo_path, || {
+        git_ok(repo_path, &["fetch", "--quiet", "origin"])
+    }))
 }
 
 /// Test if remote is reachable
