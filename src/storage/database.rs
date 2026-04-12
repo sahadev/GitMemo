@@ -1,3 +1,4 @@
+use crate::utils::datetime::frontmatter_record_datetime_raw;
 use anyhow::Result;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
@@ -62,20 +63,6 @@ fn content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
     format!("{:x}", hasher.finalize())
-}
-
-fn frontmatter_time(content: &str) -> Option<String> {
-    for key in ["date:", "updated:", "created:"] {
-        if let Some(value) = content
-            .lines()
-            .find(|l| l.starts_with(key))
-            .map(|l| l.trim_start_matches(key).trim().to_string())
-            .filter(|value| !value.is_empty())
-        {
-            return Some(value);
-        }
-    }
-    None
 }
 
 /// Extract tags from frontmatter (supports "tags: a, b, c" and "tags: [a, b, c]")
@@ -190,7 +177,7 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
                 });
 
             // Extract date from frontmatter or filename
-            let date = frontmatter_time(&content).unwrap_or_else(|| {
+            let date = frontmatter_record_datetime_raw(&content).unwrap_or_else(|| {
                 path.file_stem()
                     .unwrap_or_default()
                     .to_string_lossy()
@@ -451,6 +438,7 @@ pub fn get_stats(conn: &Connection) -> Result<Stats> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::datetime::frontmatter_record_datetime_raw;
 
     fn in_memory_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
@@ -469,18 +457,24 @@ mod tests {
     #[test]
     fn test_frontmatter_time_extracts_date() {
         let content = "---\ntitle: Test\ndate: 2025-01-15\n---\n\n# Hello";
-        assert_eq!(frontmatter_time(content), Some("2025-01-15".to_string()));
+        assert_eq!(
+            frontmatter_record_datetime_raw(content),
+            Some("2025-01-15".to_string())
+        );
     }
 
     #[test]
     fn test_frontmatter_time_updated() {
         let content = "---\nupdated: 2025-03-20 10:00\n---\n\nBody";
-        assert_eq!(frontmatter_time(content), Some("2025-03-20 10:00".to_string()));
+        assert_eq!(
+            frontmatter_record_datetime_raw(content),
+            Some("2025-03-20 10:00".to_string())
+        );
     }
 
     #[test]
     fn test_frontmatter_time_none() {
-        assert_eq!(frontmatter_time("No frontmatter here"), None);
+        assert_eq!(frontmatter_record_datetime_raw("No frontmatter here"), None);
     }
 
     #[test]

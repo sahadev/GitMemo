@@ -1,9 +1,23 @@
 use gitmemo_core::storage::{files, git};
+use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
+use std::io::Read;
 use std::path::Path;
 
 fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+}
+
+/// Read the start of a Markdown file (frontmatter + head) without loading the whole file.
+fn read_md_head(path: &Path) -> String {
+    const MAX: usize = 64 * 1024;
+    let mut file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return String::new(),
+    };
+    let mut buf = vec![0u8; MAX];
+    let n = file.read(&mut buf).unwrap_or(0);
+    String::from_utf8_lossy(&buf[..n]).into_owned()
 }
 
 /// Count .md files under a directory (recursive).
@@ -172,21 +186,14 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
                 .unwrap_or(path)
                 .to_string_lossy()
                 .to_string();
+            let head = read_md_head(path);
             let meta = path.metadata().ok();
-            let modified_time = meta.as_ref().and_then(|m| m.modified().ok());
-            let modified_ts = modified_time
-                .map(|t| {
-                    t.duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as i64
-                })
-                .unwrap_or(0);
-            let modified = modified_time
-                .map(|t| {
-                    let dt: chrono::DateTime<chrono::Local> = t.into();
-                    local_timestamp(&dt)
-                })
-                .unwrap_or_default();
+            let modified_time = meta
+                .as_ref()
+                .and_then(|m| m.modified().ok())
+                .unwrap_or(std::time::UNIX_EPOCH);
+            let (modified, modified_ts) =
+                record_timestamp_for_markdown(&head, modified_time);
 
             let name = path
                 .file_stem()
@@ -253,27 +260,26 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
             .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
         {
             let path = entry.path();
+            let head = read_md_head(path);
             let meta = path.metadata().ok();
-            let modified_time = meta.as_ref().and_then(|m| m.modified().ok());
+            let modified_time = meta
+                .as_ref()
+                .and_then(|m| m.modified().ok())
+                .unwrap_or(std::time::UNIX_EPOCH);
+            let (modified, modified_ts) =
+                record_timestamp_for_markdown(&head, modified_time);
 
-            // Only include items older than min_age
-            if let Some(mt) = modified_time {
-                if let Ok(age) = now.duration_since(mt) {
-                    if age < min_age { continue; }
-                }
+            let record_system = std::time::UNIX_EPOCH
+                .checked_add(std::time::Duration::from_millis(modified_ts.max(0) as u64))
+                .unwrap_or(std::time::UNIX_EPOCH);
+            match now.duration_since(record_system) {
+                Ok(age) if age < min_age => continue,
+                Err(_) => continue,
+                Ok(_) => {}
             }
 
             let rel_path = path.strip_prefix(&sync_dir).unwrap_or(path).to_string_lossy().to_string();
             let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-            let modified_ts = modified_time
-                .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64)
-                .unwrap_or(0);
-            let modified = modified_time
-                .map(|t| {
-                    let dt: chrono::DateTime<chrono::Local> = t.into();
-                    local_timestamp(&dt)
-                })
-                .unwrap_or_default();
 
             let category = if rel_path.starts_with("conversations") { "conversation" }
                 else if rel_path.starts_with("notes/daily") { "daily" }

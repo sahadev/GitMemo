@@ -1,4 +1,5 @@
 use gitmemo_core::storage::{database, files, git};
+use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -10,10 +11,6 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 const CONTENT_FOLDERS: &[&str] = &[
     "conversations", "notes", "clips", "plans", "claude-config", "cursor-config",
 ];
-
-fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
-    now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
-}
 
 pub fn set_app_handle(handle: AppHandle) {
     let _ = APP_HANDLE.set(handle);
@@ -375,16 +372,10 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
         let meta = path.metadata().ok();
         let modified_time = meta
             .as_ref()
-            .and_then(|m| m.modified().ok());
-        let modified = modified_time
-            .map(|t| {
-                let dt: chrono::DateTime<chrono::Local> = t.into();
-                local_timestamp(&dt)
-            })
-            .unwrap_or_default();
-        let modified_ts = modified_time
-            .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64)
-            .unwrap_or(0);
+            .and_then(|m| m.modified().ok())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        let (modified, modified_ts) =
+            record_timestamp_for_markdown(&content, modified_time);
         let size = meta.map(|m| m.len()).unwrap_or(0);
 
         let source_type = if rel_path.starts_with("conversations") {
