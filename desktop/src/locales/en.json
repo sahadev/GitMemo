@@ -236,9 +236,9 @@
     "allDone": "All done!",
     "installDone": "Installation complete",
     "installDoneDesc": "GitMemo is set up and ready to use",
-    "writeNote": "Write your first note",
-    "writeNoteDesc": "Try a quick scratch note or daily journal entry",
-    "writeNow": "Write now",
+    "firstSave": "Do your first /save",
+    "firstSaveDesc": "Talk to Claude Code or Cursor first, then type /save. The session will appear in GitMemo.",
+    "firstSaveNeedEditorDesc": "Set up Claude Code or Cursor first. Then chat once and run /save to send the session into GitMemo.",
     "enableClipboard": "Enable clipboard capture",
     "enableClipboardDesc": "Auto-save copied text (20+ chars) to Git",
     "enable": "Enable",
@@ -283,6 +283,6 @@
     "copied": "Copied!",
     "enterApp": "Enter GitMemo",
     "tipTitle": "Quick Tip",
-    "tipSave": "Type /save in Claude Code or Cursor to manually save the current conversation anytime."
+    "tipSave": "In Claude Code or Cursor, talk to the AI first, then type /save. If you run /save before any real conversation, there is nothing useful to save."
   }
 }

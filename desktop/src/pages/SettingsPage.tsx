@@ -61,12 +61,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
   const [editingRemote, setEditingRemote] = useState(false);
   const [remoteInput, setRemoteInput] = useState("");
+  const [savingRemote, setSavingRemote] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!editingRemote) setRemoteInput(gitRemote);
+  }, [gitRemote, editingRemote]);
 
   const openChangelog = async () => {
     try {
@@ -145,13 +150,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       setEditingRemote(false);
       return;
     }
+    setSavingRemote(true);
     try {
       await invoke<string>("set_remote", { url: trimmed });
+      await refreshGitStatus();
+      setRemoteInput(trimmed);
       setEditingRemote(false);
-      showToast("Saved");
-      refreshGitStatus();
+      showToast(trimmed ? "Saved" : "Removed");
     } catch (e) {
       showToast(`Error: ${e}`, true);
+    } finally {
+      setSavingRemote(false);
     }
   };
 
@@ -447,9 +456,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     autoFocus
                     value={remoteInput}
                     onChange={(e) => setRemoteInput(e.target.value)}
+                    disabled={savingRemote}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveRemote();
-                      if (e.key === "Escape") { setEditingRemote(false); setRemoteInput(gitRemote); }
+                      if (e.key === "Escape" && !savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); }
                     }}
                     placeholder="git@github.com:user/repo.git"
                     style={{
@@ -460,18 +470,22 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   />
                   <button
                     onClick={() => void saveRemote()}
+                    disabled={savingRemote}
                     style={{
                       padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer",
                       background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                      opacity: savingRemote ? 0.7 : 1,
                     }}
                   >
-                    {t("conversations.save")}
+                    {savingRemote ? t("settings.checking") : t("conversations.save")}
                   </button>
                   <button
-                    onClick={() => { setEditingRemote(false); setRemoteInput(gitRemote); }}
+                    onClick={() => { if (!savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); } }}
+                    disabled={savingRemote}
                     style={{
                       padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                      opacity: savingRemote ? 0.6 : 1,
                     }}
                   >
                     {t("common.cancel")}

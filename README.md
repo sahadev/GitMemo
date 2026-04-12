@@ -39,6 +39,8 @@
    **Linux / Windows**: this repository does **not** ship Desktop installers yet; use **CLI install** below (Linux CLI binaries are published).
 2. **First-time setup**: finish initialization once—**use the guided setup inside GitMemo Desktop**, or install the **CLI** below and run **`gitmemo init`** in a terminal if you prefer. This creates `~/.gitmemo` and optionally wires Claude / Cursor. After that you can stay mostly in Desktop for browsing, search, and clipboard.
 
+> **Before you install Desktop**: current macOS Desktop builds are **not yet Apple-signed / notarized**. On some Macs, Gatekeeper may warn, report the app as damaged, or block launch until you clear the quarantine attribute. If you prefer a smoother first-run path or do not want to handle macOS security prompts, use the **CLI version first**.
+>
 > **macOS Gatekeeper**: if the app is reported damaged or won’t open, run `xattr -cr /Applications/GitMemo.app` (adjust the path). For the CLI binary only: `xattr -cr /usr/local/bin/gitmemo`.
 
 #### CLI install (macOS & Linux)
@@ -108,6 +110,7 @@ After initialization, conversations, notes, and other sources flow into your syn
 - **Diagnostics**: update-check events are logged with the `[updater]` prefix to `gitmemo.log` (on macOS, under `~/Library/Logs/` in the app’s log folder; you can also search for GitMemo in Console)
 - Plans created by Claude Code and Cursor are both imported into `plans/`
 - Current desktop packages target **macOS only** (Apple Silicon + Intel)
+- Current Desktop builds are **not yet Apple-signed / notarized**; if you want the lowest-friction first install, prefer the **CLI** first and add Desktop later
 - You don’t need a terminal day-to-day; **first-time setup can finish inside the app**, or you can use the CLI to run `gitmemo init`. The CLI is also handy for `gitmemo note`, `sync`, and other commands
 
 ### How Conversations Are Saved

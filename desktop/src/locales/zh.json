@@ -236,9 +236,9 @@
     "allDone": "全部完成！",
     "installDone": "安装完成",
     "installDoneDesc": "GitMemo 已设置就绪",
-    "writeNote": "写下第一条笔记",
-    "writeNoteDesc": "试试写一条便签或日记",
-    "writeNow": "立即写",
+    "firstSave": "完成第一次 /save",
+    "firstSaveDesc": "先和 Claude Code 或 Cursor 对话，再输入 /save。这次会话就会出现在 GitMemo 里。",
+    "firstSaveNeedEditorDesc": "请先配置 Claude Code 或 Cursor，然后先聊一句，再执行 /save 保存到 GitMemo。",
     "enableClipboard": "开启剪贴板捕获",
     "enableClipboardDesc": "自动保存复制的文本（20 字以上）到 Git",
     "enable": "开启",
@@ -283,6 +283,6 @@
     "copied": "已复制！",
     "enterApp": "进入 GitMemo",
     "tipTitle": "小提示",
-    "tipSave": "在 Claude Code 或 Cursor 中输入 /save 即可随时手动保存当前对话。"
+    "tipSave": "先在 Claude Code 或 Cursor 里和 AI 对话，再输入 /save。如果还没发生真实对话就执行 /save，就没有可保存的有效会话。"
   }
 }

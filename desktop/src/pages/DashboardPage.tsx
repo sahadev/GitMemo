@@ -250,8 +250,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* Onboarding Checklist */}
       <OnboardingChecklist
         onNavigate={(page) => onNavigate?.(page)}
-        onWriteNote={() => navigateTo("notes", "scratch")}
-        hasNotes={(stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes) > 0}
+        hasConversations={stats.conversations > 0}
         clipboardActive={clipStatus?.watching ?? false}
         editorConfigured={editorConfigured}
       />

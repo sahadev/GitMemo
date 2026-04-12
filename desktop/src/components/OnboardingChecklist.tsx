@@ -4,7 +4,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "./ClipboardPrivacyDialog";
 import {
-  Check, StickyNote, Clipboard, Cloud, Code2, X, ChevronRight, PartyPopper,
+  Check, MessageSquare, Clipboard, Cloud, Code2, X, ChevronRight, PartyPopper,
 } from "lucide-react";
 import type { Page } from "../App";
 
@@ -39,14 +39,12 @@ function saveState(state: OnboardingState) {
 
 export function OnboardingChecklist({
   onNavigate,
-  onWriteNote,
-  hasNotes,
+  hasConversations,
   clipboardActive,
   editorConfigured,
 }: {
   onNavigate: (page: Page) => void;
-  onWriteNote: () => void;
-  hasNotes: boolean;
+  hasConversations: boolean;
   clipboardActive: boolean;
   editorConfigured: boolean;
 }) {
@@ -65,8 +63,8 @@ export function OnboardingChecklist({
       completed.add("install");
       changed = true;
     }
-    if (hasNotes && !completed.has("note")) {
-      completed.add("note");
+    if (hasConversations && !completed.has("save")) {
+      completed.add("save");
       changed = true;
     }
     if (clipboardActive && !completed.has("clipboard")) {
@@ -87,7 +85,7 @@ export function OnboardingChecklist({
       setState(newState);
       saveState(newState);
     }
-  }, [hasNotes, clipboardActive, gitStatus, editorConfigured]);
+  }, [hasConversations, clipboardActive, gitStatus, editorConfigured]);
 
   const markCompleted = useCallback((id: string) => {
     setState(prev => {
@@ -121,7 +119,7 @@ export function OnboardingChecklist({
     void doStartClipboard();
   }, [privacy.isConfirmed, doStartClipboard]);
 
-  const allItems = ["install", "note", "clipboard", "remote", "editor"];
+  const allItems = ["install", "save", "clipboard", "remote", "editor"];
   const completedCount = allItems.filter(id => state.completed.includes(id)).length;
   const allDone = completedCount === allItems.length;
 
@@ -160,13 +158,13 @@ export function OnboardingChecklist({
       descKey: "onboarding.installDoneDesc",
     },
     {
-      id: "note",
-      icon: StickyNote,
-      iconColor: "var(--purple)",
-      labelKey: "onboarding.writeNote",
-      descKey: "onboarding.writeNoteDesc",
-      action: onWriteNote,
-      actionLabelKey: "onboarding.writeNow",
+      id: "save",
+      icon: MessageSquare,
+      iconColor: "var(--accent)",
+      labelKey: "onboarding.firstSave",
+      descKey: editorConfigured ? "onboarding.firstSaveDesc" : "onboarding.firstSaveNeedEditorDesc",
+      action: editorConfigured ? undefined : () => onNavigate("settings"),
+      actionLabelKey: editorConfigured ? undefined : "onboarding.goToSettings",
     },
     {
       id: "clipboard",

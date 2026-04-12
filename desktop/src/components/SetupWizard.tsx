@@ -126,11 +126,12 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
   const containerStyle: React.CSSProperties = {
     display: "flex",
-    alignItems: "center",
+    alignItems: step === "done" ? "flex-start" : "center",
     justifyContent: "center",
     height: "100%",
     padding: "24px",
     overflowY: "auto",
+    boxSizing: "border-box",
   };
 
   const cardStyle: React.CSSProperties = {
@@ -184,6 +185,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const steps: WizardStep[] = ["language", "storage", "editors"];
   const stepIndex = steps.indexOf(step);
   const showStepIndicator = stepIndex >= 0;
+  const selectedPlatformMeta = platform ? PLATFORM_META[platform] : null;
 
   return (
     <div style={containerStyle}>
@@ -243,7 +245,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
         {/* Storage Mode */}
         {step === "storage" && (
           <div>
-            <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ textAlign: "center", marginBottom: 22 }}>
               <HardDrive size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
               <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
                 {t("setup.storageTitle")}
@@ -252,8 +254,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 {t("setup.storageDesc")}
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-              <button style={optionCard(storageMode === "local")} onClick={() => setStorageMode("local")}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+              <button style={{ ...optionCard(storageMode === "local"), padding: "12px 16px" }} onClick={() => setStorageMode("local")}>
                 <HardDrive size={20} style={{ color: "var(--green)", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{t("setup.localMode")}</div>
@@ -261,7 +263,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 </div>
                 {storageMode === "local" && <Check size={18} style={{ color: "var(--accent)" }} />}
               </button>
-              <button style={optionCard(storageMode === "remote")} onClick={() => setStorageMode("remote")}>
+              <button style={{ ...optionCard(storageMode === "remote"), padding: "12px 16px" }} onClick={() => setStorageMode("remote")}>
                 <Cloud size={20} style={{ color: "var(--accent)", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{t("setup.remoteMode")}</div>
@@ -277,7 +279,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
                   {t("setup.platformTitle")}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                   {(Object.keys(PLATFORM_META) as GitPlatform[]).map(p => {
                     const meta = PLATFORM_META[p];
                     const selected = platform === p;
@@ -287,37 +289,25 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         onClick={() => { setPlatform(p); if (!gitUrl) setGitUrl(""); }}
                         style={{
                           display: "flex",
-                          flexDirection: "column",
-                          gap: 4,
-                          padding: "10px 12px",
-                          borderRadius: 6,
-                          border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "8px 12px",
+                          borderRadius: 999,
+                          border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
                           background: selected ? "var(--accent)10" : "transparent",
                           cursor: "pointer",
                           transition: "all 0.15s",
-                          textAlign: "left",
-                          ...(p === "other" ? { gridColumn: "1 / -1" } : {}),
+                          color: selected ? "var(--accent)" : "var(--text)",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <div style={{
-                            width: 8, height: 8, borderRadius: 4,
-                            background: meta.color, flexShrink: 0,
-                          }} />
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {p === "other" ? t("setup.platformOther") : meta.label}
-                          </span>
-                          {selected && <Check size={14} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
-                        </div>
-                        {p !== "other" && (
-                          <div style={{ fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.5, paddingLeft: 14 }}>
-                            {t("setup.repoLimit")}: {meta.repoLimit}
-                            {" · "}
-                            {t("setup.fileLimit")}: {meta.fileLimit}
-                            {" · "}
-                            {t("setup.freeStorage")}: {meta.freeStorage}
-                          </div>
-                        )}
+                        <div style={{
+                          width: 8, height: 8, borderRadius: 4,
+                          background: meta.color, flexShrink: 0,
+                        }} />
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>
+                          {p === "other" ? t("setup.platformOther") : meta.label}
+                        </span>
+                        {selected && <Check size={12} style={{ color: "var(--accent)" }} />}
                       </button>
                     );
                   })}
@@ -326,14 +316,23 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 {/* Git URL input */}
                 {platform && (
                   <>
+                    {selectedPlatformMeta && platform !== "other" && (
+                      <p style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
+                        {t("setup.repoLimit")}: {selectedPlatformMeta.repoLimit}
+                        {" · "}
+                        {t("setup.fileLimit")}: {selectedPlatformMeta.fileLimit}
+                        {" · "}
+                        {t("setup.freeStorage")}: {selectedPlatformMeta.freeStorage}
+                      </p>
+                    )}
                     <input
                       type="text"
                       value={gitUrl}
-                      onChange={e => setGitUrl(e.target.value)}
-                      placeholder={PLATFORM_META[platform].placeholder}
+                      onChange={(e) => setGitUrl(e.target.value)}
+                      placeholder={selectedPlatformMeta?.placeholder ?? ""}
                       style={{
                         width: "100%",
-                        padding: "10px 14px",
+                        padding: "9px 12px",
                         borderRadius: 6,
                         border: "1px solid var(--border)",
                         background: "var(--bg-input)",
@@ -436,7 +435,15 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
         {/* Running */}
         {step === "running" && (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <Loader2 size={40} style={{ color: "var(--accent)", animation: "spin 1s linear infinite", marginBottom: 16 }} />
+            <Loader2
+              size={40}
+              style={{
+                color: "var(--accent)",
+                animation: "spin 1s linear infinite",
+                display: "block",
+                margin: "0 auto 16px",
+              }}
+            />
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
               {t("setup.settingUp")}
             </h2>
@@ -484,7 +491,6 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <div style={{
                     marginBottom: 16, padding: "12px 16px",
                     borderRadius: 6, background: "var(--bg-hover)",
-                    maxHeight: 160, overflowY: "auto",
                   }}>
                     {result.steps.map((s, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 12 }}>
@@ -554,18 +560,6 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     })()}
                   </div>
                 )}
-
-                {/* Tip: /save command */}
-                <div style={{
-                  marginBottom: 16, padding: "10px 14px",
-                  borderRadius: 6, background: "var(--accent)08",
-                  border: "1px solid var(--accent)20",
-                  fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6,
-                }}>
-                  <span style={{ fontWeight: 600, color: "var(--text)" }}>💡 {t("setup.tipTitle")}</span>
-                  <br />
-                  {t("setup.tipSave")}
-                </div>
 
                 <button
                   style={{ ...btnPrimary, opacity: entering ? 0.7 : 1 }}

@@ -39,6 +39,9 @@
    **Linux / Windows**：当前仓库 **不提供** Desktop 安装包；请使用下方 **CLI 安装**（Linux 支持 CLI）。
 2. **首次设置**：先完成一次初始化——**可在 GitMemo Desktop 里按界面引导完成**；若你更习惯终端，也可安装下方 **CLI** 后执行 **`gitmemo init`**。完成后会生成 `~/.gitmemo` 并可选接入 Claude / Cursor。之后日常可**主要用 Desktop** 做浏览、搜索与剪贴板。
 
+> **安装 Desktop 前请注意**：当前 macOS Desktop 安装包**还没有 Apple 签名 / notarization**。在部分 Mac 上，Gatekeeper 可能会提示应用已损坏、无法打开，或先拦截启动，需要你手动清除隔离属性。  
+> 如果你对这类系统提示比较介意，或者希望首次使用路径更顺畅，**建议优先使用 CLI 版本**，后续再按需安装 Desktop。
+>
 > **macOS 打不开应用？** 未签名应用可能被拦截，在终端执行（路径按你实际安装位置调整）：  
 > `xattr -cr /Applications/GitMemo.app`  
 > 若只用 CLI 二进制，也可：`xattr -cr /usr/local/bin/gitmemo`
@@ -110,6 +113,7 @@ gitmemo init --path /path/to/your/repo
 - **诊断日志**：与「检查更新」相关的条目带 `[updater]` 前缀，写入应用日志文件 `gitmemo.log`（macOS 一般在 `~/Library/Logs/` 下与应用相关的目录中；也可用「控制台」搜索 GitMemo）
 - Claude Code 和 Cursor 生成的 plans 都会导入到 `plans/`
 - 当前桌面端安装包仅支持 **macOS**（Apple Silicon + Intel）
+- 当前 Desktop 安装包**尚未做 Apple 签名 / notarization**；如果你希望首次安装阻力更小，建议先使用 **CLI**
 - Desktop 日常使用不必开着终端；**初始化可在应用内完成**，也可用 CLI 执行 `gitmemo init`。CLI 还便于在终端里用 `gitmemo note`、`sync` 等命令
 
 ### 对话如何保存
