@@ -94,6 +94,7 @@ fn try_acquire_repo_network_lock(repo_path: &Path) -> Option<RepoNetworkLockGuar
         .read(true)
         .write(true)
         .create(true)
+        .truncate(false)
         .open(&lock_path)
         .ok()?;
     file.lock_exclusive().ok()?;
