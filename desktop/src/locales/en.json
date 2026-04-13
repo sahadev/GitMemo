@@ -154,6 +154,7 @@
     "claudeIntegrationDesc": "Auto-save conversations & sync plans via CLAUDE.md",
     "cursorIntegration": "Cursor IDE integration",
     "cursorIntegrationDesc": "Auto-save conversations & inject rules via ~/.cursor/",
+    "updateSkills": "Update Skills",
     "localDirs": "Local Claude / Cursor dirs",
     "localDirsDesc": "Read-only browse of the raw local folders for archive/debug checks",
     "open": "Open",

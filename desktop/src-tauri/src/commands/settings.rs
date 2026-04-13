@@ -346,6 +346,46 @@ fn cursor_skills_dir() -> std::path::PathBuf {
     std::path::PathBuf::from(home).join(".cursor").join("skills")
 }
 
+fn claude_skills_dir() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    std::path::PathBuf::from(home).join(".claude").join("skills")
+}
+
+fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
+    let save_dir = skills_dir.join("save");
+    std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
+    std::fs::write(save_dir.join("SKILL.md"), include_str!("../../../../skills/save/SKILL.md"))
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn install_claude_skills() -> Result<(), String> {
+    use gitmemo_core::inject::session_log_skill;
+
+    let sync_dir = files::sync_dir().to_string_lossy().to_string();
+    let lang = detect_lang();
+    let skills = claude_skills_dir();
+    install_save_skill(&skills)?;
+
+    let session_log_dir = skills.join("gitmemo-session-log");
+    session_log_skill::install(&session_log_dir, &sync_dir, lang).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn install_cursor_skills(lang: String) -> Result<(), String> {
+    use gitmemo_core::inject::session_log_skill;
+    use gitmemo_core::utils::i18n::Lang;
+
+    let sync_dir = files::sync_dir().to_string_lossy().to_string();
+    let lang_enum = Lang::parse(&lang);
+    let skills = cursor_skills_dir();
+    install_save_skill(&skills)?;
+
+    let session_log_dir = skills.join("gitmemo-session-log");
+    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ── Claude integration (delegates to gitmemo_core::inject) ──────────────────
 
 #[tauri::command]
@@ -367,7 +407,14 @@ pub fn setup_claude_integration() -> Result<String, String> {
     let lang = detect_lang();
 
     claude_md::inject(&path, &sync_dir, lang).map_err(|e| e.to_string())?;
+    install_claude_skills()?;
     Ok("enabled".into())
+}
+
+#[tauri::command]
+pub fn update_claude_skills() -> Result<String, String> {
+    install_claude_skills()?;
+    Ok("updated".into())
 }
 
 #[tauri::command]
@@ -398,7 +445,7 @@ pub fn get_cursor_integration_status() -> Result<bool, String> {
 
 #[tauri::command]
 pub fn setup_cursor_integration(lang: String) -> Result<String, String> {
-    use gitmemo_core::inject::{cursor_rules, session_log_skill};
+    use gitmemo_core::inject::cursor_rules;
     use gitmemo_core::utils::i18n::Lang;
 
     let sync_dir = files::sync_dir().to_string_lossy().to_string();
@@ -408,19 +455,16 @@ pub fn setup_cursor_integration(lang: String) -> Result<String, String> {
     cursor_rules::inject(&cursor_rules_path(), &sync_dir, lang_enum)
         .map_err(|e| e.to_string())?;
 
-    // 2. Write save skill
-    let skills = cursor_skills_dir();
-    let save_dir = skills.join("save");
-    std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
-    std::fs::write(save_dir.join("SKILL.md"), include_str!("../../../../skills/save/SKILL.md"))
-        .map_err(|e| e.to_string())?;
-
-    // 3. Write session-log skill
-    let session_log_dir = skills.join("gitmemo-session-log");
-    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum)
-        .map_err(|e| e.to_string())?;
+    // 2. Write bundled skills
+    install_cursor_skills(lang)?;
 
     Ok("enabled".into())
+}
+
+#[tauri::command]
+pub fn update_cursor_skills(lang: String) -> Result<String, String> {
+    install_cursor_skills(lang)?;
+    Ok("updated".into())
 }
 
 #[tauri::command]

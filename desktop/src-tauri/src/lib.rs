@@ -1,18 +1,31 @@
 mod commands;
 
 use commands::{clipboard, crash_log, import, init, local_editor, notes, search, settings, stats, watcher};
-use tauri::{Emitter, Listener};
+use tauri::{AppHandle, Emitter, Listener, Manager, WebviewWindow};
 
 #[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
 };
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+#[cfg(desktop)]
+fn show_main_window(window: &WebviewWindow) {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+}
+
+#[cfg(desktop)]
+fn show_main_window_from_app(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        show_main_window(&window);
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -96,9 +109,11 @@ pub fn run() {
             settings::get_ssh_public_key,
             settings::get_claude_integration_status,
             settings::setup_claude_integration,
+            settings::update_claude_skills,
             settings::remove_claude_integration,
             settings::get_cursor_integration_status,
             settings::setup_cursor_integration,
+            settings::update_cursor_skills,
             settings::remove_cursor_integration,
             // Init (setup wizard)
             init::init_gitmemo,
@@ -175,10 +190,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .menu(&menu)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "open" => {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+                show_main_window_from_app(app);
             }
             "sync" => {
                 let app_handle = app.clone();
@@ -232,8 +244,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     if w.is_visible().unwrap_or(false) {
                         let _ = w.hide();
                     } else {
-                        let _ = w.show();
-                        let _ = w.set_focus();
+                        show_main_window(&w);
                     }
                 }
             }
@@ -250,15 +261,22 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // --- Close → Hide (keep tray alive) ---
     let app_handle = app.handle().clone();
     if let Some(w) = app.get_webview_window("main") {
+        let close_app_handle = app_handle.clone();
         w.on_window_event(move |event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                if let Some(win) = app_handle.get_webview_window("main") {
+                if let Some(win) = close_app_handle.get_webview_window("main") {
                     let _ = win.hide();
                 }
             }
         });
     }
+
+    // --- Re-activate app from Dock → restore main window ---
+    #[cfg(target_os = "macos")]
+    app.listen("tauri://activate", move |_event| {
+        show_main_window_from_app(&app_handle);
+    });
 
     // --- Global Shortcut: Cmd+Shift+G → show + search ---
     let shortcut = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyG);
@@ -268,8 +286,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             return;
         }
         if let Some(w) = app_handle.get_webview_window("main") {
-            let _ = w.show();
-            let _ = w.set_focus();
+            show_main_window(&w);
             let _ = app_handle.emit("global-shortcut-search", ());
         }
     })?;
@@ -286,8 +303,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 let _ = w.hide();
             } else {
                 let _ = w.center();
-                let _ = w.show();
-                let _ = w.set_focus();
+                show_main_window(&w);
                 let _ = qp_handle.emit("quick-paste-show", ());
             }
         }

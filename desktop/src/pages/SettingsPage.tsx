@@ -66,6 +66,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
   const [proxyUrlInput, setProxyUrlInput] = useState("");
   const [editingProxy, setEditingProxy] = useState(false);
+  const [updatingClaudeSkills, setUpdatingClaudeSkills] = useState(false);
+  const [updatingCursorSkills, setUpdatingCursorSkills] = useState(false);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -149,6 +151,30 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       refreshIntegrationStatus();
     } catch (e) {
       showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const updateClaudeSkills = async () => {
+    setUpdatingClaudeSkills(true);
+    try {
+      await invoke<string>("update_claude_skills");
+      showToast("Claude skills updated");
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setUpdatingClaudeSkills(false);
+    }
+  };
+
+  const updateCursorSkills = async () => {
+    setUpdatingCursorSkills(true);
+    try {
+      await invoke<string>("update_cursor_skills", { lang: locale });
+      showToast("Cursor skills updated");
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setUpdatingCursorSkills(false);
     }
   };
 
@@ -394,7 +420,23 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
               </div>
             </div>
-            <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {claudeEnabled && (
+                <button
+                  type="button"
+                  onClick={() => void updateClaudeSkills()}
+                  disabled={updatingClaudeSkills}
+                  style={{
+                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingClaudeSkills ? "default" : "pointer",
+                    background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                    opacity: updatingClaudeSkills ? 0.6 : 1,
+                  }}
+                >
+                  {updatingClaudeSkills ? t("settings.checking") : t("settings.updateSkills")}
+                </button>
+              )}
+              <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+            </div>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
@@ -408,7 +450,23 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
               </div>
             </div>
-            <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {cursorEnabled && (
+                <button
+                  type="button"
+                  onClick={() => void updateCursorSkills()}
+                  disabled={updatingCursorSkills}
+                  style={{
+                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingCursorSkills ? "default" : "pointer",
+                    background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                    opacity: updatingCursorSkills ? 0.6 : 1,
+                  }}
+                >
+                  {updatingCursorSkills ? t("settings.checking") : t("settings.updateSkills")}
+                </button>
+              )}
+              <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
+            </div>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />

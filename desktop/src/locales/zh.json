@@ -154,6 +154,7 @@
     "claudeIntegrationDesc": "自动保存对话记录 & 同步计划文件",
     "cursorIntegration": "Cursor IDE 集成",
     "cursorIntegrationDesc": "自动保存对话记录 & 通过 ~/.cursor/ 注入规则",
+    "updateSkills": "更新 Skills",
     "localDirs": "本机 Claude / Cursor 目录",
     "localDirsDesc": "只读查看本机原始目录，用于排查文件是否已被归档",
     "open": "打开",
