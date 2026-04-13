@@ -186,6 +186,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const stepIndex = steps.indexOf(step);
   const showStepIndicator = stepIndex >= 0;
   const selectedPlatformMeta = platform ? PLATFORM_META[platform] : null;
+  const setupSucceeded = !!result?.success;
+  const showSetupError = !!error || (!!result && !result.success);
 
   return (
     <div style={containerStyle}>
@@ -454,7 +456,6 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
           </div>
         )}
 
-        {/* Done */}
         {step === "done" && (
           <div>
             {error ? (
@@ -473,16 +474,25 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <div style={{ textAlign: "center", marginBottom: 20 }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: 24,
-                    background: "var(--green)20", margin: "0 auto 12px",
+                    background: showSetupError ? "var(--red)20" : "var(--green)20", margin: "0 auto 12px",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <Check size={28} style={{ color: "var(--green)" }} />
+                    {showSetupError ? (
+                      <AlertCircle size={28} style={{ color: "var(--red)" }} />
+                    ) : (
+                      <Check size={28} style={{ color: "var(--green)" }} />
+                    )}
                   </div>
-                  <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                    {t("setup.complete")}
+                  <h2 style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    marginBottom: 6,
+                    color: showSetupError ? "var(--red)" : "var(--text)",
+                  }}>
+                    {showSetupError ? t("setup.failed") : t("setup.complete")}
                   </h2>
                   <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {t("setup.completeDesc")}
+                    {showSetupError ? "Setup finished with errors. Review the failed steps below and retry." : t("setup.completeDesc")}
                   </p>
                 </div>
 
@@ -561,20 +571,31 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   </div>
                 )}
 
-                <button
-                  style={{ ...btnPrimary, opacity: entering ? 0.7 : 1 }}
-                  disabled={entering}
-                  onClick={() => {
-                    setEntering(true);
-                    onComplete(result?.needs_remote_sync);
-                  }}
-                >
-                  {entering ? (
-                    <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> {t("setup.pleaseWait")}</>
-                  ) : (
-                    <>{t("setup.enterApp")} <ChevronRight size={16} /></>
-                  )}
-                </button>
+                {setupSucceeded ? (
+                  <button
+                    style={{ ...btnPrimary, opacity: entering ? 0.7 : 1 }}
+                    disabled={entering}
+                    onClick={() => {
+                      setEntering(true);
+                      onComplete(result?.needs_remote_sync);
+                    }}
+                  >
+                    {entering ? (
+                      <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> {t("setup.pleaseWait")}</>
+                    ) : (
+                      <>{t("setup.enterApp")} <ChevronRight size={16} /></>
+                    )}
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button style={btnPrimary} onClick={() => setStep("editors")}>
+                      {t("setup.retry")}
+                    </button>
+                    <button style={btnSecondary} onClick={() => setStep(storageMode === "remote" ? "git_url" : "editors")}>
+                      Back
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

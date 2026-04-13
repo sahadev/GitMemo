@@ -1,13 +1,14 @@
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::{Config, GitConfig};
+use gitmemo_core::utils::ssh;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
 
-fn home_dir() -> Result<PathBuf, String> {
+fn home_dir() -> Result<std::path::PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
-    Ok(PathBuf::from(home))
+    Ok(std::path::PathBuf::from(home))
 }
+
 
 #[derive(Debug, Deserialize)]
 pub struct InitRequest {
@@ -96,9 +97,11 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
 
     // 3. SSH key (only if remote)
     if has_remote {
-        match find_or_generate_ssh_key() {
+        match ssh::find_or_generate_key()
+            .and_then(|(key_path, is_new)| ssh::read_public_key(&key_path).map(|pub_key| (pub_key, is_new)))
+        {
             Ok((pub_key, is_new)) => {
-                result.ssh_public_key = Some(pub_key.clone());
+                result.ssh_public_key = Some(pub_key);
                 if is_new {
                     result.add_ok("ssh_key", "SSH key generated");
                 } else {
@@ -166,44 +169,6 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     }
 
     Ok(result)
-}
-
-/// Find existing or generate new SSH key
-fn find_or_generate_ssh_key() -> Result<(String, bool), String> {
-    let home = home_dir()?;
-    let ssh_dir = home.join(".ssh");
-
-    for name in ["id_ed25519", "id_rsa", "id_ecdsa"] {
-        let key_path = ssh_dir.join(name);
-        let pub_path = ssh_dir.join(format!("{name}.pub"));
-        if key_path.exists() && pub_path.exists() {
-            let pub_key = std::fs::read_to_string(&pub_path).map_err(|e| e.to_string())?;
-            return Ok((pub_key.trim().to_string(), false));
-        }
-    }
-
-    std::fs::create_dir_all(&ssh_dir).map_err(|e| e.to_string())?;
-    let key_path = ssh_dir.join("id_ed25519");
-    let output = std::process::Command::new("ssh-keygen")
-        .args([
-            "-t", "ed25519",
-            "-f", &key_path.to_string_lossy(),
-            "-N", "",
-            "-q",
-        ])
-        .output()
-        .map_err(|e| format!("ssh-keygen failed: {e}"))?;
-
-    if !output.status.success() {
-        return Err(format!(
-            "ssh-keygen error: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
-    let pub_path = ssh_dir.join("id_ed25519.pub");
-    let pub_key = std::fs::read_to_string(&pub_path).map_err(|e| e.to_string())?;
-    Ok((pub_key.trim().to_string(), true))
 }
 
 /// Set up Claude Code integration (CLAUDE.md + settings hook + MCP + skills)
