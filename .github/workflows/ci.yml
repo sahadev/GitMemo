@@ -209,22 +209,23 @@ jobs:
             local suffix="$1"
             local dir="artifacts/gitmemo-desktop-${suffix}"
             if [ ! -d "$dir" ]; then
-              echo "::warning::missing artifact dir $dir"
-              return 0
+              echo "::error::missing artifact dir $dir"
+              return 1
             fi
             local tar sig
             tar=$(find "$dir" -type f -name "*.app.tar.gz" ! -name "*.sig" | head -1)
             sig=$(find "$dir" -type f -name "*.app.tar.gz.sig" | head -1)
             if [ -z "$tar" ] || [ ! -f "$tar" ]; then
-              echo "::warning::no .app.tar.gz under $dir"
-              return 0
+              echo "::error::no .app.tar.gz under $dir"
+              return 1
             fi
             local out="GitMemo-desktop-${suffix}.app.tar.gz"
             cp "$tar" "release-assets/${out}"
             if [ -n "$sig" ] && [ -f "$sig" ]; then
               cp "$sig" "release-assets/${out}.sig"
             else
-              echo "::warning::no .app.tar.gz.sig next to bundle in $dir (updater needs TAURI_SIGNING_PRIVATE_KEY during build)"
+              echo "::error::no .app.tar.gz.sig next to bundle in $dir (updater needs TAURI_SIGNING_PRIVATE_KEY during build)"
+              return 1
             fi
           }
           copy_desktop_pair "macos-aarch64"
@@ -235,12 +236,8 @@ jobs:
       - name: Generate latest.json for updater
         env:
           VERSION_TAG: ${{ needs.check-version.outputs.version }}
-        run: |
-          if [ -f release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig ] && [ -f release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig ]; then
-            python3 scripts/write_latest_json.py
-          else
-            echo "::warning::Skipping latest.json because updater signatures are missing; release will continue without desktop auto-update metadata."
-          fi
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/write_latest_json.py
 
       - name: Create tag
         run: |

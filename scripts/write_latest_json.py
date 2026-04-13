@@ -16,8 +16,19 @@ def main() -> None:
         sys.exit(1)
 
     version_num = version_tag.removeprefix("v")
-    repo = "sahadev/gitmemo"
-    base = f"https://github.com/{repo}/releases/download/{version_tag}"
+    repository = (
+        os.environ.get("RELEASE_REPOSITORY")
+        or os.environ.get("GITHUB_REPOSITORY")
+        or ""
+    ).strip()
+    if not repository:
+        print(
+            "ERROR: RELEASE_REPOSITORY or GITHUB_REPOSITORY env required",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    base = f"https://github.com/{repository}/releases/download/{version_tag}"
     root = pathlib.Path("release-assets")
 
     aarch64_tar = "GitMemo-desktop-macos-aarch64.app.tar.gz"
