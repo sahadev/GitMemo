@@ -13,43 +13,51 @@
 
 ### 英文版
 
-GitMemo automatically records every conversation you have with Claude and syncs it to your Git repository — zero config, zero background processes, zero effort.
+GitMemo helps Claude Code and Cursor users save valuable AI conversations, notes, and everyday work into a Git-backed knowledge repo they actually own.
+
+It is a local-first CLI + desktop companion: your saved files stay in your local repo, remote sync is optional, and you can search the same material later from the CLI, Desktop app, or MCP.
 
 **How it works:**
-GitMemo doesn't run as a background service. Instead, it injects into Claude Code's native infrastructure:
-- A CLAUDE.md instruction tells Claude to auto-save conversations as Markdown
-- A PostToolUse hook automatically `git commit && git push` after each save
-- An MCP server lets Claude search your conversation history and create notes
+GitMemo integrates with the native mechanisms of Claude Code and Cursor:
+- It installs instructions / rules and save skills so supported workflows can write conversations to Markdown
+- It wires hooks or MCP-assisted sync so saved files can be tracked in Git
+- It provides MCP tools so you can search history and create notes from inside the editor
 
-**One command to set up, then forget it exists:**
-```
+**Setup:**
+```bash
 gitmemo init --path ~/my-notes-repo
 ```
 
-**Key features:**
-- 🤖 Auto-record all Claude conversations as Markdown
-- 📝 Built-in notes: scratch notes, daily journal, manuals
-- 🔍 Full-text search across all conversations and notes
-- 🔌 MCP integration — ask Claude to search your history directly
-- 🚀 Zero daemon — leverages Claude Code hooks, no background process
-- 🔐 Data sovereignty — your data stays in YOUR Git repo
+Setup is guided: choose Claude Code, Cursor, or both; optionally connect a remote Git repo; if you use a remote, add the generated SSH public key to your repo's Deploy Keys.
 
-Built with Rust. Open source. Free forever.
+**Key features:**
+- 🤖 Save supported Claude Code and Cursor conversations as Markdown
+- 📝 Built-in notes: scratch notes, daily journal, manuals
+- 🔍 Full-text search across saved conversations, notes, and clips
+- 🔌 MCP integration — search history and create notes from the editor
+- 🖥️ Native Desktop companion for browsing, search, and optional clipboard capture
+- 🔐 Local-first data ownership — your content stays in your repo, remote optional
+
+Built with Rust. Open source under MIT.
 
 ### 中文版
 
-GitMemo 自动记录你与 Claude 的每一次对话，并同步到你的 Git 仓库——零配置、零后台进程、零额外操作。
+GitMemo 帮助 Claude Code 和 Cursor 用户，把有价值的 AI 对话、笔记和日常工作产物保存到一个由 Git 管理、归自己所有的知识库里。
+
+它是一个本地优先的 CLI + Desktop 工具：保存下来的文件先留在本地仓库里，远程同步可选，之后你还可以通过 CLI、Desktop 或 MCP 搜索和复用同一批内容。
 
 **工作原理：**
-GitMemo 不是后台服务，而是注入 Claude Code 的原生基础设施：
-- CLAUDE.md 指令让 Claude 自动保存对话为 Markdown
-- PostToolUse Hook 在每次保存后自动 git commit & push
-- MCP Server 让 Claude 直接搜索历史对话、创建笔记
+GitMemo 接入 Claude Code 和 Cursor 的原生机制：
+- 安装相应的指令 / 规则和保存技能，让已支持的工作流把对话写成 Markdown
+- 接入 hooks 或 MCP 辅助同步，让保存下来的文件由 Git 跟踪
+- 提供 MCP 工具，让你直接在编辑器内搜索历史、创建笔记
 
-**一条命令配置，然后忘掉它的存在：**
-```
+**设置方式：**
+```bash
 gitmemo init
 ```
+
+初始化是引导式的：选择 Claude Code、Cursor 或两者；可选连接远程 Git 仓库；如果启用远程，需要把生成的 SSH 公钥添加到仓库 Deploy Keys。
 
 ---
 
@@ -59,45 +67,47 @@ gitmemo init
 
 Hey everyone! 👋
 
-I built GitMemo because I kept losing valuable conversations with Claude.
+I built GitMemo because I kept losing valuable AI conversations and notes that I wanted to reuse later.
 
-Every day I ask Claude to solve bugs, design architectures, write scripts — and the answers are gold. But after the conversation ends, that knowledge just... disappears into the chat history. I'd find myself asking the same questions again a week later.
+I use Claude Code and Cursor every day for debugging, design work, scripts, research, and planning. The useful outputs were there — but after the session ended, they were scattered across chat history, clipboard snippets, and half-finished notes. A week later I would end up solving the same problem again.
 
-I tried manually copying conversations to Notion, but that lasted about 2 days. I tried Obsidian with git plugins, but the setup was painful. What I really wanted was something that just *works* — install it once and never think about it again.
+I tried manual copy-paste into note apps, but it never lasted. What I really wanted was a local-first workflow where useful AI work becomes searchable files in my own repo.
 
-**So I built GitMemo with a radically simple approach:**
+**So GitMemo takes a practical approach:**
 
-Instead of running a background daemon to watch files (the obvious solution), GitMemo injects directly into Claude Code's existing infrastructure:
+Instead of building a hosted knowledge base, GitMemo works with the tools I already use:
 
-1. It adds an instruction to CLAUDE.md that tells Claude to save conversations as Markdown files
-2. It adds a PostToolUse hook that auto-commits and pushes after each save
-3. It registers an MCP server so Claude can search your history
+1. It installs the instructions / rules and save skills needed for supported Claude Code and Cursor workflows
+2. It wires Git tracking into the saved files, with optional remote sync if I want it
+3. It gives me CLI, Desktop, and MCP access to the same local knowledge repo later
 
-The result? **Zero background processes. Zero resource usage. Zero maintenance.** Claude itself does the saving, and Claude Code's hook system does the syncing.
+The result is simple: useful AI work stops disappearing. Conversations, notes, plans, and everyday work become local files I can search, version, and keep.
 
-After one week of use, I already have 40+ conversations neatly organized in my Git repo, fully searchable. It feels like having a second brain that builds itself.
+Desktop currently ships for macOS, and clipboard capture is optional. The CLI works on macOS and Linux.
 
-Built with Rust for minimal overhead. Fully open source under MIT.
-
-Would love your feedback! What's your approach to preserving AI conversations?
+Built with Rust. MIT licensed. Would love your feedback — especially if you also use AI heavily for development work.
 
 ### 中文版
 
 大家好！👋
 
-我做 GitMemo 是因为我不断丢失与 Claude 的宝贵对话。
+我做 GitMemo，是因为我不断丢失那些之后还想复用的 AI 对话和笔记。
 
-每天我用 Claude 解决 bug、设计架构、写脚本——这些回答都是金子。但对话结束后，这些知识就消失在历史记录里了。一周后我发现自己在问同样的问题。
+我每天都会用 Claude Code 和 Cursor 来调 bug、做设计、写脚本、做调研、拆计划。真正有价值的内容其实已经产出了，但会话一结束，它们就散落在聊天记录、剪贴板片段和零散笔记里。过一周我又会重新问一遍同样的问题。
 
-我试过手动复制到 Notion，坚持了 2 天。试过 Obsidian + Git 插件，配置太痛苦。我真正想要的是装一次就不用管的东西。
+我试过手动复制到笔记软件，但根本坚持不下来。我真正想要的，是一个本地优先的工作流：把有价值的 AI 工作成果变成我自己仓库里可搜索的文件。
 
-**所以我用了一个极简的方案：**
+**所以 GitMemo 采用了一个很务实的方案：**
 
-不跑后台守护进程，而是直接注入 Claude Code 的原生基础设施——Claude 自己保存对话，Hook 自动 commit & push。零进程、零资源占用、零维护。
+它不是再造一个托管式知识库，而是和我已经在用的工具协同：
 
-用了一周，已经有 40+ 条对话整齐地保存在 Git 仓库里，支持全文搜索。
+1. 为已支持的 Claude Code 和 Cursor 工作流安装相应的指令 / 规则和保存技能
+2. 让保存下来的文件接入 Git 跟踪；如果我愿意，也可以再接远程同步
+3. 之后通过 CLI、Desktop 和 MCP 访问同一份本地知识库
 
-Rust 写的，MIT 开源，永久免费。
+结果就是：有价值的 AI 工作成果不再轻易消失。对话、笔记、计划和日常工作产物变成本地文件，可搜索、可版本化、可长期保留。
+
+Desktop 当前提供 macOS 版本，剪贴板捕获是可选功能；CLI 支持 macOS 和 Linux。
 
 ---
 
@@ -135,31 +145,28 @@ Rust 写的，MIT 开源，永久免费。
 ```
 🚀 Just launched GitMemo on Product Hunt!
 
-Auto-sync your Claude conversations to Git.
-No background process. No config. Just works.
+A local-first tool for saving Claude Code and Cursor conversations, notes, and selected AI work into Git.
 
-One command: `gitmemo init`
+Search it later from CLI, Desktop, or MCP.
+Remote sync optional.
 
-Built with Rust 🦀 | Open source | Free forever
+Built with Rust 🦀 | Open source | MIT
 
 → https://producthunt.com/posts/gitmemo
 ```
 
 ### Hacker News (Show HN)
 
-**标题**: Show HN: GitMemo – Auto-sync Claude conversations to Git (Rust)
+**标题**: Show HN: GitMemo – Save AI conversations and notes into Git
 
 **正文**:
-I built a CLI tool that automatically saves all your Claude Code conversations as Markdown files in a Git repository.
+I built a local-first tool that helps Claude Code and Cursor users save useful AI conversations, notes, and everyday work into a Git-backed knowledge repo.
 
-Instead of running a background daemon, it injects into Claude Code's native hook system:
-- CLAUDE.md instruction → Claude saves conversations as Markdown
-- PostToolUse hook → auto git commit & push
-- MCP server → search history from within Claude
+GitMemo works with the editors' native instructions, hooks, and MCP integrations so saved files stay searchable and versioned in Git. Remote sync is optional.
 
-Zero processes, zero resource usage. Claude does the recording, hooks do the syncing.
+Desktop currently ships for macOS, and the CLI works on macOS and Linux.
 
-Built with Rust (~1,700 lines). MIT licensed.
+Built with Rust. MIT licensed.
 
 GitHub: https://github.com/sahadev/GitMemo
 

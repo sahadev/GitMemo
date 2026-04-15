@@ -738,10 +738,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       <div style={{ ...cardStyle, marginTop: 20 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutSearch")}</p>
           <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutGlobalSearch")}</p>
           <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutQuickNote")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutTogglePaste")}</p>
           <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutFind")}</p>
           <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutEditDelete")}</p>
         </div>

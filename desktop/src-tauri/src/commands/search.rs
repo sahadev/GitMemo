@@ -1,6 +1,8 @@
 use gitmemo_core::storage::{database, files};
+use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
 use std::panic;
+use std::path::Path;
 
 use super::notes;
 
@@ -30,15 +32,27 @@ fn catch<T>(f: impl FnOnce() -> Result<T, String> + panic::UnwindSafe) -> Result
     }
 }
 
-fn map_results(results: Vec<database::SearchResult>) -> Vec<SearchResultItem> {
+fn compute_activity_date(sync_dir: &Path, rel_path: &str) -> String {
+    let full_path = sync_dir.join(rel_path);
+    let content = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let modified_time = full_path
+        .metadata()
+        .ok()
+        .and_then(|m| m.modified().ok())
+        .unwrap_or(std::time::UNIX_EPOCH);
+    let (date, _) = record_timestamp_for_markdown(&content, modified_time);
+    date
+}
+
+fn map_results(sync_dir: &Path, results: Vec<database::SearchResult>) -> Vec<SearchResultItem> {
     results
         .into_iter()
         .map(|r| SearchResultItem {
             source_type: r.source_type,
             title: r.title,
-            file_path: r.file_path,
+            file_path: r.file_path.clone(),
             snippet: r.snippet,
-            date: r.date,
+            date: compute_activity_date(sync_dir, &r.file_path),
         })
         .collect()
 }
@@ -66,7 +80,7 @@ pub fn search_all(
         let results =
             database::search_smart(&conn, &query, filter, max).map_err(|e| e.to_string())?;
 
-        Ok(map_results(results))
+        Ok(map_results(&sync_dir, results))
     })
 }
 
@@ -89,7 +103,7 @@ pub fn recent_conversations(
         let results = database::recent(&conn, limit.unwrap_or(20), days.unwrap_or(30))
             .map_err(|e| e.to_string())?;
 
-        Ok(map_results(results))
+        Ok(map_results(&sync_dir, results))
     })
 }
 
@@ -176,13 +190,12 @@ pub fn fuzzy_search_files(
                     "note"
                 };
 
-                let meta = path.metadata().ok();
-                let date = meta
+                let content = std::fs::read_to_string(path).unwrap_or_default();
+                let date = path
+                    .metadata()
+                    .ok()
                     .and_then(|m| m.modified().ok())
-                    .map(|t| {
-                        let dt: chrono::DateTime<chrono::Local> = t.into();
-                        dt.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
-                    })
+                    .map(|modified| record_timestamp_for_markdown(&content, modified).0)
                     .unwrap_or_default();
 
                 results.push(SearchResultItem {

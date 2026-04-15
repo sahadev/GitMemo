@@ -85,22 +85,6 @@ function App() {
     const unlistenClipSaved = listen<{ preview: string }>("clipboard-saved", ({ payload }) => {
       void notify("GitMemo Clipboard", payload?.preview || "Clip saved");
     });
-    const unlistenQuickPastePage = listen<{ page: Page | "sync" }>("quick-paste-open-page", ({ payload }) => {
-      if (!payload) return;
-      if (payload.page === "sync") {
-        void sync.triggerSync();
-        return;
-      }
-      setCurrentPage(payload.page);
-      setFocusTrigger((n) => n + 1);
-      setSidebarFocused(false);
-    });
-    const unlistenQuickPasteFile = listen<{ filePath: string }>("quick-paste-open-file", ({ payload }) => {
-      if (!payload?.filePath) return;
-      setCurrentPage("search");
-      setOpenFilePath(payload.filePath);
-      setSidebarFocused(false);
-    });
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -143,8 +127,6 @@ function App() {
       unlistenSearch.then((fn) => fn());
       unlistenClip.then((fn) => fn());
       unlistenClipSaved.then((fn) => fn());
-      unlistenQuickPastePage.then((fn) => fn());
-      unlistenQuickPasteFile.then((fn) => fn());
     };
   }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync]);
 

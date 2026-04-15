@@ -8,17 +8,19 @@
 
 ## Introduction
 
-> **Your AI chats and notes sync automatically to Git.** GitMemo is a next-generation notes product that uses Git to save and centrally manage your AI chats and everyday notes.
+> **Your AI chats and notes sync automatically to Git.** GitMemo helps you turn AI conversations, notes, and everyday work into a Git-backed personal knowledge repo.
+
+Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code and Cursor users.
 
 ## Features
 
-- **Unified sources + Git retention** — Many kinds of content in one place, managed by Git; auto commit & push (optional remote), branches, cross-device access
-- **Auto-record** — AI chats and more saved as Markdown, transparent and traceable
+- **Git-backed knowledge repo** — AI conversations, notes, and everyday work flow into one directory managed by Git; remote sync stays optional
+- **Auto-save for supported editor workflows** — Claude Code and Cursor conversations can be saved as Markdown with GitMemo’s configured rules and skills
+- **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
 - **Multi-editor** — Supports both Claude Code and Cursor
-- **i18n** — English and Chinese interface, selectable during `gitmemo init`
 - **Notes** — Scratch notes, daily journal, manuals — one command to create
-- **MCP integration** — Search saved material and create notes from your AI editor (built on what’s already in your sync directory)
-- **Zero daemon** — No background process, powered by native editor hooks
+- **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
+- **No always-on sync daemon for editor capture** — Editor-side capture relies on native hooks and integrations rather than a separate sync service
 - **Data ownership** — Your content lives in **your** Git repo; local indexes and helpers are explained in the [Data & storage statement](docs/DATA-STATEMENT.md)
 
 ## Environment & dependencies
@@ -91,11 +93,11 @@ gitmemo init --lang en          # English interface
 gitmemo init --path /path/to/your/repo
 ```
 
-Follow the prompts: choose your editor, enter your Git remote URL (or press Enter to skip for local-only mode). If using a remote repo, add the generated SSH public key to your repo's Deploy Keys. Done.
+Follow the prompts: choose your editor, enter your Git remote URL (or press Enter to skip for local-only mode). If using a remote repo, add the generated SSH public key to your repo's Deploy Keys.
 
-### That's It
+### After setup
 
-After initialization, conversations, notes, and other sources flow into your sync directory and into Git. In **Claude** or **Cursor**, type **`/save`** to save the current session manually (after `init` installed the save skill for that editor); auto-save also runs under your rules. If nothing happens, restart the editor session.
+After initialization, conversations, notes, and other supported sources flow into your sync directory and into Git. In **Claude** or **Cursor**, type **`/save`** to save the current session manually (after `init` installed the save skill for that editor); auto-save also runs for supported workflows under your configured rules. If nothing happens, restart the editor session.
 
 ### Desktop App
 
@@ -178,7 +180,7 @@ Your knowledge files are plain Markdown (and similar) and readable in any editor
 
 ## What Gets Auto-Captured
 
-GitMemo automatically captures **8 types** of knowledge from your workflow:
+GitMemo can capture and organize **8 types** of knowledge from supported workflows:
 
 | Type | What | Where |
 |------|------|-------|
@@ -191,7 +193,7 @@ GitMemo automatically captures **8 types** of knowledge from your workflow:
 | **AI Memory** | Claude's auto-memory & project context | `claude-config/memory/` |
 | **Skills & Config** | Custom skills, CLAUDE.md instructions | `claude-config/skills/` |
 
-No manual copying. No export buttons. Diverse sources flow into your sync directory and are tracked by Git automatically.
+No manual copying. No export buttons. Supported sources can flow into your sync directory and be tracked by Git automatically.
 
 ## Supported Editors
 
@@ -202,7 +204,7 @@ No manual copying. No export buttons. Diverse sources flow into your sync direct
 
 ## How It Works
 
-GitMemo doesn't run as a background service. It injects into your editor's native infrastructure:
+For Claude Code and Cursor capture flows, GitMemo avoids an extra sync daemon and instead integrates with each editor's native mechanisms:
 
 **Claude Code:**
 

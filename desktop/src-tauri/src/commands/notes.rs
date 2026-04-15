@@ -1,4 +1,5 @@
 use gitmemo_core::storage::{database, files, git};
+use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -412,6 +413,8 @@ pub fn update_note(file_path: String, content: String) -> Result<NoteResult, Str
         return Err(format!("File not found: {}", file_path));
     }
 
+    let now = chrono::Local::now();
+    let content = refresh_updated_frontmatter(&content, &now);
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
     refresh_index(&dir);
     bg_commit_and_push(format!("edit: {}", file_path));

@@ -46,6 +46,48 @@ pub fn write_note(base: &Path, rel_path: &str, content: &str) -> Result<PathBuf>
     Ok(full_path)
 }
 
+pub fn refresh_updated_frontmatter(content: &str, now: &chrono::DateTime<Local>) -> String {
+    let updated_line = format!("updated: {}", local_timestamp(now));
+
+    if !content.starts_with("---") {
+        return content.to_string();
+    }
+
+    let Some(rest) = content.strip_prefix("---") else {
+        return content.to_string();
+    };
+    let rest = rest.strip_prefix('\r').unwrap_or(rest);
+    let Some(rest) = rest.strip_prefix('\n') else {
+        return content.to_string();
+    };
+    let Some(end) = rest.find("\n---") else {
+        return content.to_string();
+    };
+
+    let frontmatter = &rest[..end];
+    let body = &rest[end + 4..];
+    let mut lines = Vec::new();
+    let mut replaced = false;
+
+    for line in frontmatter.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("updated:") {
+            let indent_len = line.len() - trimmed.len();
+            let indent = &line[..indent_len];
+            lines.push(format!("{}{}", indent, updated_line));
+            replaced = true;
+        } else {
+            lines.push(line.to_string());
+        }
+    }
+
+    if !replaced {
+        lines.push(updated_line);
+    }
+
+    format!("---\n{}\n---{}", lines.join("\n"), body)
+}
+
 /// Create a scratch note, returns relative path
 pub fn create_scratch(base: &Path, content: &str) -> Result<String> {
     let now = Local::now();
@@ -87,18 +129,20 @@ pub fn append_daily(base: &Path, content: &str) -> Result<String> {
 
     if full_path.exists() {
         // Append
-        let mut existing = std::fs::read_to_string(&full_path)?;
-        existing.push_str(&format!(
+        let existing = std::fs::read_to_string(&full_path)?;
+        let mut updated = refresh_updated_frontmatter(&existing, &now);
+        updated.push_str(&format!(
             "\n## {} - \n\n{}\n",
             now.format("%H:%M"),
             content
         ));
-        std::fs::write(&full_path, existing)?;
+        std::fs::write(&full_path, updated)?;
     } else {
         // Create new
         let md = format!(
-            "---\ndate: {}\n---\n\n# {}\n\n## {} - \n\n{}\n",
+            "---\ndate: {}\nupdated: {}\n---\n\n# {}\n\n## {} - \n\n{}\n",
             date_str,
+            local_timestamp(&now),
             date_str,
             now.format("%H:%M"),
             content
@@ -122,11 +166,13 @@ pub fn write_manual(base: &Path, title: &str, content: &str, append: bool) -> Re
     let full_path = base.join(&rel_path);
 
     std::fs::create_dir_all(full_path.parent().unwrap())?;
+    let now = Local::now();
 
     if append && full_path.exists() {
-        let mut existing = std::fs::read_to_string(&full_path)?;
-        existing.push_str(&format!("\n\n{}\n", content));
-        std::fs::write(&full_path, existing)?;
+        let existing = std::fs::read_to_string(&full_path)?;
+        let mut updated = refresh_updated_frontmatter(&existing, &now);
+        updated.push_str(&format!("\n\n{}\n", content));
+        std::fs::write(&full_path, updated)?;
     } else {
         let now = Local::now();
         let md = format!(
@@ -158,6 +204,25 @@ mod tests {
         assert!(tmp.path().join("notes/scratch").is_dir());
         assert!(tmp.path().join(".metadata").is_dir());
         assert!(tmp.path().join(".gitignore").exists());
+    }
+
+    #[test]
+    fn test_refresh_updated_frontmatter_replaces_existing() {
+        let now = Local::now();
+        let content = "---\ntitle: A\nupdated: 2025-01-01T00:00:00+08:00\n---\n\nBody\n";
+        let updated = refresh_updated_frontmatter(content, &now);
+        assert!(updated.contains("updated:"));
+        assert!(!updated.contains("updated: 2025-01-01T00:00:00+08:00"));
+        assert!(updated.contains("Body"));
+    }
+
+    #[test]
+    fn test_refresh_updated_frontmatter_inserts_missing() {
+        let now = Local::now();
+        let content = "---\ndate: 2025-04-13\n---\n\nBody\n";
+        let updated = refresh_updated_frontmatter(content, &now);
+        assert!(updated.contains("date: 2025-04-13"));
+        assert!(updated.contains("updated:"));
     }
 
     #[test]
@@ -199,6 +264,7 @@ mod tests {
         let content = std::fs::read_to_string(tmp.path().join(&rel)).unwrap();
         assert!(content.contains("Morning thoughts"));
         assert!(content.contains("date:"));
+        assert!(content.contains("updated:"));
     }
 
     #[test]
@@ -211,6 +277,12 @@ mod tests {
         let content = std::fs::read_to_string(tmp.path().join(&rel1)).unwrap();
         assert!(content.contains("Morning"));
         assert!(content.contains("Evening"));
+
+        let updated_line = content
+            .lines()
+            .find(|line| line.starts_with("updated:"))
+            .unwrap();
+        assert!(updated_line.len() > "updated: ".len());
     }
 
     #[test]
@@ -234,6 +306,7 @@ mod tests {
         let content = std::fs::read_to_string(tmp.path().join(&rel)).unwrap();
         assert!(content.contains("Entry 1"));
         assert!(content.contains("Entry 2"));
+        assert_eq!(content.matches("updated:").count(), 1);
     }
 
     #[test]

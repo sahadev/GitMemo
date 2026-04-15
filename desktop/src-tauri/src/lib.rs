@@ -1,7 +1,7 @@
 mod commands;
 
 use commands::{clipboard, crash_log, import, init, local_editor, notes, search, settings, stats, watcher};
-use tauri::{AppHandle, Emitter, Listener, Manager, WebviewWindow};
+use tauri::{AppHandle, Emitter, Listener, Manager, RunEvent, WebviewWindow};
 
 #[cfg(desktop)]
 use tauri::{
@@ -58,7 +58,7 @@ pub fn run() {
             .plugin(tauri_plugin_global_shortcut::Builder::new().build());
     }
 
-    builder
+    let app = builder
         .invoke_handler(tauri::generate_handler![
             // Notes
             notes::create_note,
@@ -159,12 +159,20 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .unwrap_or_else(|e| {
-            let msg = format!("Tauri application failed to start: {e}");
+            let msg = format!("Tauri application failed to build: {e}");
             log::error!("{}", msg);
             crash_log::write_crash_log("startup_error", &msg);
+            panic!("{}", msg);
         });
+
+    app.run(move |app_handle, event| {
+        #[cfg(target_os = "macos")]
+        if let RunEvent::Reopen { .. } = event {
+            show_main_window_from_app(app_handle);
+        }
+    });
 }
 
 #[cfg(desktop)]
@@ -272,12 +280,6 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // --- Re-activate app from Dock → restore main window ---
-    #[cfg(target_os = "macos")]
-    app.listen("tauri://activate", move |_event| {
-        show_main_window_from_app(&app_handle);
-    });
-
     // --- Global Shortcut: Cmd+Shift+G → show + search ---
     let shortcut = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyG);
     let app_handle = app.handle().clone();
@@ -288,24 +290,6 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(w) = app_handle.get_webview_window("main") {
             show_main_window(&w);
             let _ = app_handle.emit("global-shortcut-search", ());
-        }
-    })?;
-
-    // --- Global Shortcut: Cmd+Shift+Space → toggle Quick Paste ---
-    let qp_shortcut = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::Space);
-    let qp_handle = app.handle().clone();
-    app.global_shortcut().on_shortcut(qp_shortcut, move |_app, _shortcut, event| {
-        if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
-            return;
-        }
-        if let Some(w) = qp_handle.get_webview_window("quick-paste") {
-            if w.is_visible().unwrap_or(false) {
-                let _ = w.hide();
-            } else {
-                let _ = w.center();
-                show_main_window(&w);
-                let _ = qp_handle.emit("quick-paste-show", ());
-            }
         }
     })?;
 
