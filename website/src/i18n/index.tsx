@@ -147,7 +147,7 @@ const en: Record<string, string> = {
   'start.comment': '# Install the CLI (auto-detects platform)',
   'start.step1': 'Install CLI',
   'start.step2': 'Run gitmemo init',
-  'start.step3': 'Choose local-only or optional remote sync, then start saving searchable AI work.',
+  'start.step3': 'Choose local-only or optional remote sync',
 
   // Footer
   'footer.cta.title': 'Stop losing useful AI work',
@@ -266,7 +266,7 @@ const zh: Record<string, string> = {
   'start.comment': '# 安装 CLI（自动检测平台）',
   'start.step1': '安装 CLI',
   'start.step2': '运行 gitmemo init',
-  'start.step3': '选择纯本地或可选远程同步，然后开始保存和搜索 AI 工作成果。',
+  'start.step3': '选择纯本地或可选远程同步',
 
   // Footer
   'footer.cta.title': '别再丢失有价值的 AI 工作成果',

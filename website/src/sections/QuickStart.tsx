@@ -26,7 +26,7 @@ export default function QuickStart() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-12">
+        <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 sm:gap-6 mb-12">
           <Step num="1" label={t('start.step1')} />
           <Arrow />
           <Step num="2" label={t('start.step2')} />
@@ -46,9 +46,9 @@ export default function QuickStart() {
 
 function Step({ num, label }: { num: string; label: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white text-sm font-bold">{num}</span>
-      <span className="text-text text-sm font-medium">{label}</span>
+    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 rounded-2xl border border-border bg-surface px-4 py-4 sm:min-w-[168px] sm:max-w-[280px] text-center sm:text-left">
+      <span className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white text-sm font-bold shrink-0">{num}</span>
+      <span className="text-text text-sm font-medium leading-6">{label}</span>
     </div>
   )
 }
