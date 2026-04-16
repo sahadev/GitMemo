@@ -12,7 +12,7 @@
 
 ## 2. 产品描述（Description）
 
-### 英文版（497 chars — PH 限制 500）
+### 英文版（496 chars — PH 限制 500）
 
 GitMemo saves Claude Code & Cursor AI conversations, notes and work into a Git repo you own.
 
@@ -21,7 +21,7 @@ Useful outputs vanish after each session. GitMemo hooks into your editor to capt
 • AI conversations saved as Markdown
 • Built-in scratch, daily notes & docs
 • Full-text search across everything
-• MCP integration inside the editor
+• MCP + CLI access to search later
 • Desktop app with clipboard capture (macOS)
 • Local-first — remote sync optional
 
