@@ -12,20 +12,9 @@
 
 ## 2. 产品描述（Description）
 
-### 英文版（496 chars — PH 限制 500）
+### 英文版（379 chars — PH 限制 500）
 
-GitMemo saves Claude Code & Cursor AI conversations, notes and work into a Git repo you own.
-
-Useful outputs vanish after each session. GitMemo hooks into your editor to capture them as searchable Markdown in Git.
-
-• AI conversations saved as Markdown
-• Built-in scratch, daily notes & docs
-• Full-text search across everything
-• MCP + CLI access to search later
-• Desktop app with clipboard capture (macOS)
-• Local-first — remote sync optional
-
-Set up once, use /save. Rust & MIT.
+GitMemo helps Claude Code & Cursor users save AI conversations, notes and work into a Git repo they own. It hooks into your editor to capture useful outputs as searchable Markdown in Git. Search everything later from CLI, MCP or Desktop. Built-in scratch notes, daily notes and docs. Local-first, remote sync optional. Set up once, then use /save. Desktop app available on macOS.
 
 ### 中文版
 
