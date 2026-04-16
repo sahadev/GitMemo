@@ -180,7 +180,7 @@ jobs:
             desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz
             desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz.sig
 
-  release:
+  dispatch-release:
     needs: [check-version, build, build-desktop]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
@@ -189,56 +189,6 @@ jobs:
         with:
           ref: main
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: List artifacts
-        run: find artifacts -type f | head -50
-
-      - name: Collect desktop binaries
-        run: |
-          mkdir -p release-assets
-          # CLI binaries
-          cp artifacts/gitmemo-macos-aarch64/gitmemo-macos-aarch64 release-assets/ || true
-          cp artifacts/gitmemo-macos-x86_64/gitmemo-macos-x86_64 release-assets/ || true
-          # Desktop: each matrix job produces GitMemo.app.tar.gz + .sig with the SAME basename — flattening
-          # with a single find would overwrite. Copy per artifact name with distinct release filenames.
-          copy_desktop_pair() {
-            local suffix="$1"
-            local dir="artifacts/gitmemo-desktop-${suffix}"
-            if [ ! -d "$dir" ]; then
-              echo "::error::missing artifact dir $dir"
-              return 1
-            fi
-            local tar sig
-            tar=$(find "$dir" -type f -name "*.app.tar.gz" ! -name "*.sig" | head -1)
-            sig=$(find "$dir" -type f -name "*.app.tar.gz.sig" | head -1)
-            if [ -z "$tar" ] || [ ! -f "$tar" ]; then
-              echo "::error::no .app.tar.gz under $dir"
-              return 1
-            fi
-            local out="GitMemo-desktop-${suffix}.app.tar.gz"
-            cp "$tar" "release-assets/${out}"
-            if [ -n "$sig" ] && [ -f "$sig" ]; then
-              cp "$sig" "release-assets/${out}.sig"
-            else
-              echo "::error::no .app.tar.gz.sig next to bundle in $dir (updater needs TAURI_SIGNING_PRIVATE_KEY during build)"
-              return 1
-            fi
-          }
-          copy_desktop_pair "macos-aarch64"
-          copy_desktop_pair "macos-x86_64"
-          find artifacts/gitmemo-desktop-* -name "*.dmg" -exec cp {} release-assets/ \; || true
-          ls -la release-assets/
-
-      - name: Generate latest.json for updater
-        env:
-          VERSION_TAG: ${{ needs.check-version.outputs.version }}
-          RELEASE_REPOSITORY: ${{ github.repository }}
-        run: python3 scripts/write_latest_json.py
-
       - name: Create tag
         run: |
           git config user.name "github-actions[bot]"
@@ -246,11 +196,17 @@ jobs:
           git tag ${{ needs.check-version.outputs.version }}
           git push origin ${{ needs.check-version.outputs.version }}
 
-      - name: Create Release
+      - name: Trigger sign-and-release
         run: |
-          gh release delete ${{ needs.check-version.outputs.version }} --yes 2>/dev/null || true
-          gh release create ${{ needs.check-version.outputs.version }} \
-            --generate-notes \
-            release-assets/*
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RELEASE_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ secrets.RELEASE_REPO }}/dispatches \
+            -d '{
+              "event_type": "sign-and-release",
+              "client_payload": {
+                "version": "${{ needs.check-version.outputs.version }}",
+                "run_id": "${{ github.run_id }}",
+                "repository": "${{ github.repository }}"
+              }
+            }'
