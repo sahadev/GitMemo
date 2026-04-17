@@ -51,11 +51,15 @@ I use Claude Code and Cursor every day. During a session, I'd get valuable outpu
 
 I tried saving things manually to note apps, but it never stuck. What I really wanted was simple: useful AI work should become searchable files in my own repo, not disappear into another hosted tool.
 
-That's why GitMemo integrates with Claude Code and Cursor, saves conversations and notes as local Markdown tracked by Git, and makes them searchable later through CLI, MCP, and Desktop.
+So GitMemo is built for developers who live in Claude Code or Cursor and want their AI work — conversations, notes, decisions — to stay theirs, searchable and versioned in Git.
+
+It integrates with both editors through native instructions, hooks, and MCP, and saves conversations as local Markdown tracked by Git. Alongside that, it comes with built-in scratch notes, daily notes, and docs, plus full-text search across conversations, notes, and clipboard history — reachable from CLI, MCP, or the Desktop app.
+
+Setup is one command: `gitmemo init` → pick your editor → done. After that, `/save` inside Claude Code or Cursor is all you need.
 
 The goal is straightforward: your AI work shouldn't vanish after the session. It should stay searchable, versioned, and fully yours.
 
-Desktop is available on macOS, CLI works on macOS and Linux, clipboard capture is optional, and the project is open source under MIT.
+Desktop ships for macOS, CLI works on macOS and Linux, clipboard capture is optional, remote Git sync is optional, and the whole thing is built in Rust and open source under MIT.
 
 Would love to hear how you're handling AI conversations today — especially if you also build with Claude Code or Cursor.
 
@@ -69,11 +73,15 @@ Would love to hear how you're handling AI conversations today — especially if 
 
 我试过手动复制到笔记软件，但根本坚持不下来。我真正想要的其实很简单：有价值的 AI 工作成果，应该变成我自己仓库里可搜索的文件，而不是消失在又一个托管工具里。
 
-所以 GitMemo 接入了 Claude Code 和 Cursor，把对话和笔记保存为本地 Markdown，由 Git 跟踪，之后可以通过 CLI、MCP 和 Desktop 搜索复用。
+所以 GitMemo 是做给每天在 Claude Code 或 Cursor 里工作的开发者的——让你的 AI 产出（对话、笔记、决策）继续归你所有，可搜索、可版本化，沉淀在你自己的 Git 仓库里。
+
+它通过原生指令、hooks 和 MCP 接入这两个编辑器，把对话保存为本地 Markdown 并由 Git 跟踪。同时内置了便签、日记和文档，支持跨对话、笔记、剪贴板的全文搜索——CLI、MCP 和 Desktop 三种入口都能访问。
+
+设置只需一条命令：`gitmemo init` → 选择编辑器 → 完成。之后在 Claude Code 或 Cursor 里用 `/save` 就够了。
 
 目标很直接：你的 AI 工作成果不该在会话结束后消失，它应该可搜索、可版本化、完全属于你。
 
-Desktop 提供 macOS 版本，CLI 支持 macOS 和 Linux，剪贴板捕获是可选功能，项目在 MIT 协议下开源。
+Desktop 提供 macOS 版本，CLI 支持 macOS 和 Linux，剪贴板捕获可选，远程 Git 同步可选，整个项目用 Rust 构建，MIT 协议开源。
 
 也想听听你们现在是怎么处理 AI 对话的——特别是同样在用 Claude Code 或 Cursor 开发的朋友。
 
