@@ -14,7 +14,7 @@
 
 - [ ] 添加 FAQ 区块（安装、兼容性、数据隐私等常见问题）
 - [ ] 添加安全/隐私声明（SSH key 处理、数据不离开本地等）
-- [ ] 删除旧截图 `website/src/assets/screenshot-20260409-075619.png`
+- [x] 删除旧截图 `website/src/assets/screenshot-20260409-075619.png`
 
 ## 产品改进
 
