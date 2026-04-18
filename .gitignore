@@ -3,7 +3,19 @@ PRODUCTHUNT.md
 ARTICLE_CN.md
 
 # macOS
-.DS_Store
+**/.DS_Store
+
+# IDE / editor configs
+.cursor/
+.idea/
+*.swp
+
+# Secrets & certificates
+.env*
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Tauri generated schemas
 desktop/src-tauri/gen/schemas/
@@ -13,3 +25,6 @@ desktop/public/changelog.json
 
 # Claude local worktrees (nested git repos; not portable)
 .claude/worktrees/
+
+# Logs
+*.log
