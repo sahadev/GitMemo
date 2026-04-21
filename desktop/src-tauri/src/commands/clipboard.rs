@@ -102,12 +102,94 @@ fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
 }
 
+/// Check recent 100 clips for duplicates and remove old ones if found
+fn remove_duplicate_clips(sync_dir: &std::path::Path, new_content: &str) -> Result<(), String> {
+    let clips_dir = sync_dir.join("clips");
+    if !clips_dir.exists() {
+        return Ok(());
+    }
+
+    // Collect all clip files sorted by modification time (newest first)
+    let mut clip_files: Vec<_> = walkdir::WalkDir::new(&clips_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path().extension().is_some_and(|ext| ext == "md")
+                && e.path().file_name().is_some_and(|name| {
+                    let name_str = name.to_string_lossy();
+                    !name_str.contains("screenshot")
+                })
+        })
+        .filter_map(|e| {
+            let path = e.path().to_path_buf();
+            let metadata = std::fs::metadata(&path).ok()?;
+            let modified = metadata.modified().ok()?;
+            Some((path, modified))
+        })
+        .collect();
+
+    // Sort by modification time, newest first
+    clip_files.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Only check the most recent 100 clips
+    let recent_clips: Vec<_> = clip_files.into_iter().take(100).collect();
+
+    // Extract content from markdown files and check for duplicates
+    for (path, _) in recent_clips {
+        if let Ok(file_content) = std::fs::read_to_string(&path) {
+            // Extract the actual content after frontmatter
+            let content = extract_clip_content(&file_content);
+
+            // If content matches, delete the old file
+            if content.trim() == new_content.trim() {
+                if let Err(e) = std::fs::remove_file(&path) {
+                    log::warn!("Failed to remove duplicate clip {:?}: {}", path, e);
+                } else {
+                    log::info!("Removed duplicate clip: {:?}", path);
+
+                    // Commit the deletion
+                    let dir = sync_dir.to_path_buf();
+                    let msg = format!("clip: remove duplicate");
+                    std::thread::spawn(move || {
+                        let _ = gitmemo_core::storage::git::commit_and_push(&dir, &msg);
+                    });
+                }
+                break; // Only remove the first (most recent) duplicate
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Extract actual content from markdown file (skip frontmatter)
+fn extract_clip_content(file_content: &str) -> String {
+    let lines: Vec<&str> = file_content.lines().collect();
+
+    // Check if file starts with frontmatter
+    if lines.first() == Some(&"---") {
+        // Find the closing ---
+        if let Some(end_idx) = lines.iter().skip(1).position(|&line| line == "---") {
+            // Content starts after the second ---
+            return lines[(end_idx + 2)..].join("\n");
+        }
+    }
+
+    // No frontmatter, return as is
+    file_content.to_string()
+}
+
 pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String> {
     use gitmemo_core::storage::{files, git};
 
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Err("GitMemo not initialized".into());
+    }
+
+    // Check for duplicates in recent 100 clips and remove if found
+    if let Err(e) = remove_duplicate_clips(&sync_dir, content) {
+        log::warn!("Failed to check/remove duplicates: {}", e);
     }
 
     let now = chrono::Local::now();
