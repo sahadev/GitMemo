@@ -78,6 +78,21 @@ export default function Hero() {
         </a>
       </div>
 
+      {/* Product Hunt */}
+      <a
+        href="https://www.producthunt.com/products/gitmemo?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-gitmemo"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative z-10 mt-8"
+      >
+        <img
+          alt="GitMemo - Save AI conversations and notes into your Git repo. | Product Hunt"
+          width="250"
+          height="54"
+          src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1125906&theme=${theme === 'dark' ? 'dark' : 'light'}`}
+        />
+      </a>
+
       {/* Terminal */}
       <div className="relative z-10 mt-16 w-full max-w-2xl">
         <Terminal />
