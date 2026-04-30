@@ -309,8 +309,8 @@ export default function ExternalFilesPage({
                 flexShrink: 0,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
-                    {selectedEntry.file_path}
+                  <span style={{ flex: 1, fontSize: 15, fontWeight: 650, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
+                    {selectedEntry.file_name}
                   </span>
                   <CopyPathButton absolutePath={selectedEntry.file_path} />
                   <button
