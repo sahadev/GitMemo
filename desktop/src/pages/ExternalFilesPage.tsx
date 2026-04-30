@@ -119,15 +119,17 @@ export default function ExternalFilesPage({
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
-    setEditing(false);
+    setEditing(true);
     setEditContent("");
     try {
       const result = await invoke<ExternalFileOpenResult>("open_external_file", { filePath });
       setSelectedFilePath(result.entry.file_path);
       setFileContent(result.content);
+      setEditContent(result.content);
       upsertEntry(result.entry, !preserveListOrder);
     } catch (e) {
       setFileContent("");
+      setEditContent("");
       setFileError(String(e));
     } finally {
       setFileLoading(false);
@@ -328,7 +330,7 @@ export default function ExternalFilesPage({
                     <>
                       <button
                         type="button"
-                        onClick={() => { setEditing(false); setEditContent(fileContent); }}
+                        onClick={() => setEditing(false)}
                         style={{
                           display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
                           borderRadius: 6, fontSize: 12, cursor: "pointer",
@@ -336,7 +338,7 @@ export default function ExternalFilesPage({
                         }}
                       >
                         <X size={12} />
-                        {t("externalFiles.cancel")}
+                        {t("common.preview")}
                       </button>
                       <button
                         type="button"
@@ -355,7 +357,7 @@ export default function ExternalFilesPage({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => { setEditContent(fileContent); setEditing(true); }}
+                      onClick={() => setEditing(true)}
                       disabled={!selectedEntry.exists}
                       style={{
                         display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
