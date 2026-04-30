@@ -36,6 +36,7 @@ interface ExternalFileImportResult {
 
 interface ExternalFileOpenTarget {
   filePath: string;
+  requestId: number;
 }
 
 function isProbablyMarkdown(name: string) {
@@ -65,6 +66,7 @@ export default function ExternalFilesPage({
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const selectedFilePathRef = useRef<string | null>(null);
+  const lastConsumedOpenTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
     selectedFilePathRef.current = selectedFilePath;
@@ -76,6 +78,21 @@ export default function ExternalFilesPage({
     setEditContent("");
     setEditing(false);
     setFileError("");
+  }, []);
+
+  const upsertEntry = useCallback((entry: ExternalFileEntry, moveToTop = false) => {
+    setEntries((prev) => {
+      const existingIndex = prev.findIndex((item) => item.file_path === entry.file_path);
+      if (existingIndex === -1) {
+        return moveToTop ? [entry, ...prev] : [...prev, entry];
+      }
+      if (!moveToTop) {
+        const next = [...prev];
+        next[existingIndex] = entry;
+        return next;
+      }
+      return [entry, ...prev.filter((item) => item.file_path !== entry.file_path)];
+    });
   }, []);
 
   const loadEntries = useCallback(async () => {
@@ -94,7 +111,8 @@ export default function ExternalFilesPage({
     }
   }, [clearSelection, showToast]);
 
-  const openExternalFile = useCallback(async (filePath: string) => {
+  const openExternalFile = useCallback(async (filePath: string, options?: { preserveListOrder?: boolean }) => {
+    const preserveListOrder = options?.preserveListOrder ?? false;
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
@@ -104,17 +122,14 @@ export default function ExternalFilesPage({
       const result = await invoke<ExternalFileOpenResult>("open_external_file", { filePath });
       setSelectedFilePath(result.entry.file_path);
       setFileContent(result.content);
-      setEntries((prev) => {
-        const next = [result.entry, ...prev.filter((item) => item.file_path !== result.entry.file_path)];
-        return next;
-      });
+      upsertEntry(result.entry, !preserveListOrder);
     } catch (e) {
       setFileContent("");
       setFileError(String(e));
     } finally {
       setFileLoading(false);
     }
-  }, []);
+  }, [upsertEntry]);
 
   useEffect(() => {
     void loadEntries();
@@ -122,8 +137,14 @@ export default function ExternalFilesPage({
 
   useEffect(() => {
     if (!openTarget?.filePath) return;
-    void openExternalFile(openTarget.filePath).finally(() => onOpenTargetConsumed?.());
-  }, [openTarget, openExternalFile, onOpenTargetConsumed]);
+    if (lastConsumedOpenTargetRef.current === openTarget.requestId) return;
+    lastConsumedOpenTargetRef.current = openTarget.requestId;
+    onOpenTargetConsumed?.();
+    if (selectedFilePathRef.current === openTarget.filePath && fileContent) {
+      return;
+    }
+    void openExternalFile(openTarget.filePath, { preserveListOrder: true });
+  }, [openTarget, openExternalFile, onOpenTargetConsumed, fileContent]);
 
   const selectedEntry = useMemo(
     () => entries.find((item) => item.file_path === selectedFilePath) ?? null,
@@ -140,14 +161,14 @@ export default function ExternalFilesPage({
       });
       setFileContent(editContent);
       setEditing(false);
-      setEntries((prev) => [result.entry, ...prev.filter((item) => item.file_path !== result.entry.file_path)]);
+      upsertEntry(result.entry, false);
       showToast(result.message || t("externalFiles.saved"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setSaving(false);
     }
-  }, [selectedFilePath, editContent, showToast, t]);
+  }, [selectedFilePath, editContent, upsertEntry, showToast, t]);
 
   const handleRemove = useCallback(async (filePath: string) => {
     const confirmed = await ask(t("externalFiles.removeConfirm"), {
@@ -198,13 +219,13 @@ export default function ExternalFilesPage({
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
       <div style={{
-        padding: "14px 20px", borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", gap: 12,
+        padding: "18px 24px", borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", gap: 14,
       }}>
         <FileSymlink size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("externalFiles.title")}</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--text-secondary)" }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("externalFiles.title")}</h1>
+          <p style={{ margin: "6px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
             {t("externalFiles.subtitle")}
           </p>
         </div>
@@ -222,8 +243,8 @@ export default function ExternalFilesPage({
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div style={{ width: 340, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontSize: 11, color: "var(--text-secondary)" }}>
+        <div style={{ width: 404, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
             {t("externalFiles.localOnlyHint")}
           </div>
           <div style={{ flex: 1, overflowY: "auto" }}>
@@ -242,25 +263,25 @@ export default function ExternalFilesPage({
                     width: "100%",
                     border: "none",
                     borderBottom: "1px solid var(--border)",
-                    background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text)",
+                    background: active ? "color-mix(in srgb, var(--accent) 16%, transparent)" : "transparent",
+                    color: "var(--text)",
                     cursor: "pointer",
                     textAlign: "left",
-                    padding: "12px 14px",
+                    padding: "16px 18px",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, fontWeight: 600 }}>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 650 }}>
                       {entry.file_name}
                     </span>
                     {!entry.exists ? (
                       <span style={{ fontSize: 10, opacity: 0.85 }}>{t("externalFiles.missing")}</span>
                     ) : null}
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 11, opacity: active ? 0.9 : 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {entry.parent_dir}
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 10, opacity: active ? 0.85 : 0.6 }}>
+                  <div style={{ marginTop: 6, fontSize: 10, opacity: 0.62 }}>
                     {t("externalFiles.lastOpened", relativeTime(entry.last_opened_at, t))}
                   </div>
                 </button>
@@ -278,8 +299,8 @@ export default function ExternalFilesPage({
           ) : (
             <>
               <div style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
-                borderBottom: "1px solid var(--border)", flexShrink: 0,
+                display: "flex", alignItems: "center", gap: 8, padding: "14px 18px",
+                borderBottom: "1px solid var(--border)", flexShrink: 0, flexWrap: "wrap",
               }}>
                 <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
                   {selectedEntry.file_path}
@@ -360,13 +381,13 @@ export default function ExternalFilesPage({
                 </button>
               </div>
 
-              <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)", fontSize: 11, color: "var(--text-secondary)" }}>
+              <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)", fontSize: 11, lineHeight: 1.55, color: "var(--text-secondary)" }}>
                 {selectedEntry.exists
                   ? t("externalFiles.editingLive")
                   : t("externalFiles.fileMissing")}
               </div>
 
-              <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+              <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>
                 {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                 {!fileLoading && fileError ? (
                   <p style={{ fontSize: 12, color: "var(--red)" }}>{fileError}</p>

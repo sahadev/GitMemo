@@ -237,8 +237,20 @@
     "dayAgo": "{0} 天前"
   },
   "dropzone": {
-    "dropToImport": "松开以导入文件",
-    "routeHint": "文件将自动路由到正确的目录并同步到 Git",
+    "title": "处理拖入文件",
+    "chooseMode": "选择直接打开原文件，还是导入到由 GitMemo 托管的存储中。",
+    "dropToChoose": "松开文件后选择处理方式",
+    "dragHint": "你可以原地打开文件，也可以交给 GitMemo 接管并同步。",
+    "singleFileHint": "打开会保留原始文件位置，导入会复制到 GitMemo 中。",
+    "multiFileTitle": "已选择 {0} 个文件",
+    "multiFileHint": "导入支持多个文件，打开模式一次只支持一个文件。",
+    "openAction": "打开文件",
+    "openDesc": "直接预览或编辑原始文件，不会把它移动到 GitMemo 存储中。",
+    "importAction": "导入到 GitMemo",
+    "importDesc": "把文件复制到 GitMemo 托管目录，方便后续整理与 Git 同步。",
+    "routeHint": "导入后的文件仍会按类型自动路由到笔记、剪贴板、代码、文档等目录。",
+    "opening": "正在打开文件...",
+    "openSingleOnly": "打开模式一次只支持一个文件；多个文件请使用导入。",
     "importing": "导入中...",
     "imported": "已导入 {0} 个文件",
     "importFailed": "导入失败"

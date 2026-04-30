@@ -237,8 +237,20 @@
     "dayAgo": "{0} day ago"
   },
   "dropzone": {
-    "dropToImport": "Drop to import files",
-    "routeHint": "Files will be auto-routed to the correct directory and synced to Git",
+    "title": "Handle dropped files",
+    "chooseMode": "Choose whether to open the original file directly or import it into GitMemo-managed storage.",
+    "dropToChoose": "Drop files to choose a mode",
+    "dragHint": "You can open a file in place or let GitMemo take over and sync it.",
+    "singleFileHint": "Open keeps the original file in place. Import copies it into GitMemo.",
+    "multiFileTitle": "{0} files selected",
+    "multiFileHint": "Import supports multiple files. Open works one file at a time.",
+    "openAction": "Open file",
+    "openDesc": "Preview or edit the original file directly, without moving it into GitMemo storage.",
+    "importAction": "Import to GitMemo",
+    "importDesc": "Copy the file into GitMemo-managed storage so it can be organized and synced.",
+    "routeHint": "Imported files are still auto-routed to notes, clips, code, docs, or other matching destinations.",
+    "opening": "Opening file...",
+    "openSingleOnly": "Open supports one file at a time. Use import to manage multiple files.",
     "importing": "Importing files...",
     "imported": "Imported {0} file(s)",
     "importFailed": "Import failed"

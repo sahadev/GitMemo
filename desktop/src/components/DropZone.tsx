@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { Download, FileText, Image, Code2, File, FolderOpen, Check, X } from "lucide-react";
@@ -22,6 +22,14 @@ interface DragDropPayload {
   position: { x: number; y: number };
 }
 
+interface DropZoneProps {
+  onOpenDroppedFiles?: (paths: string[]) => Promise<boolean>;
+}
+
+interface PendingDrop {
+  paths: string[];
+}
+
 function categoryIcon(cat: string) {
   switch (cat) {
     case "Markdown":
@@ -43,14 +51,69 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DropZone() {
+function describeDrop(paths: string[], t: (key: string, ...args: (string | number)[]) => string) {
+  if (paths.length === 1) {
+    const name = paths[0].split(/[/\\]/).pop() || paths[0];
+    return {
+      title: name,
+      subtitle: t("dropzone.singleFileHint"),
+    };
+  }
+  return {
+    title: t("dropzone.multiFileTitle", String(paths.length)),
+    subtitle: t("dropzone.multiFileHint"),
+  };
+}
+
+export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
+  const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
-  const [droppedPaths, setDroppedPaths] = useState<string[] | null>(null);
+  const [opening, setOpening] = useState(false);
 
-  // Event sources → state only
+  const clearPendingDrop = useCallback(() => {
+    setPendingDrop(null);
+    setIsDragging(false);
+  }, []);
+
+  const dismissResultLater = useCallback(() => {
+    window.setTimeout(() => setResult(null), 5000);
+  }, []);
+
+  const handleImport = useCallback(async (paths: string[]) => {
+    setImporting(true);
+    try {
+      const res = await invoke<ImportResult>("import_files", { paths });
+      setResult(res);
+      dismissResultLater();
+    } catch (e) {
+      setResult({ success: false, imported: [], errors: [`${e}`] });
+      dismissResultLater();
+    } finally {
+      setImporting(false);
+      setPendingDrop(null);
+    }
+  }, [dismissResultLater]);
+
+  const handleOpen = useCallback(async (paths: string[]) => {
+    if (!onOpenDroppedFiles) return;
+    setOpening(true);
+    try {
+      const opened = await onOpenDroppedFiles(paths);
+      if (!opened && paths.length > 1) {
+        setResult({ success: false, imported: [], errors: [t("dropzone.openSingleOnly")] });
+        dismissResultLater();
+      }
+      if (opened) {
+        setPendingDrop(null);
+      }
+    } finally {
+      setOpening(false);
+    }
+  }, [dismissResultLater, onOpenDroppedFiles, t]);
+
   useEffect(() => {
     const listeners: (() => void)[] = [];
 
@@ -59,116 +122,197 @@ export default function DropZone() {
     }).then((fn) => listeners.push(fn));
 
     listen("tauri://drag-leave", () => {
-      setIsDragging(false);
+      if (!pendingDrop) {
+        setIsDragging(false);
+      }
     }).then((fn) => listeners.push(fn));
 
     listen<DragDropPayload>("tauri://drag-drop", (event) => {
       setIsDragging(false);
       const paths = event.payload.paths;
       if (paths && paths.length > 0) {
-        setDroppedPaths(paths);
+        setPendingDrop({ paths });
       }
     }).then((fn) => listeners.push(fn));
 
     return () => {
       listeners.forEach((fn) => fn());
     };
-  }, []);
+  }, [pendingDrop]);
 
-  // State-driven import: react to droppedPaths change
-  useEffect(() => {
-    if (!droppedPaths || importing) return;
-    let cancelled = false;
+  const overlayActive = isDragging || !!pendingDrop;
+  const activePaths = pendingDrop?.paths ?? [];
+  const dropCopy = describeDrop(activePaths, t);
 
-    setImporting(true);
-    invoke<ImportResult>("import_files", { paths: droppedPaths })
-      .then((res) => {
-        if (cancelled) return;
-        setResult(res);
-        setTimeout(() => setResult(null), 5000);
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setResult({ success: false, imported: [], errors: [`${e}`] });
-        setTimeout(() => setResult(null), 5000);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setImporting(false);
-          setDroppedPaths(null);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [droppedPaths]);
-
-  // Full-screen drag overlay
-  if (isDragging) {
+  if (overlayActive) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(4px)" }}
+        className="fixed inset-0 z-50 flex items-center justify-center px-6"
+        style={{ background: "rgba(0, 0, 0, 0.72)", backdropFilter: "blur(6px)" }}
+        onClick={() => {
+          if (!importing && !opening && pendingDrop) clearPendingDrop();
+        }}
       >
         <div
-          className="flex flex-col items-center gap-4 p-10 rounded-2xl border-2 border-dashed"
-          style={{ borderColor: "var(--accent)", background: "rgba(79, 156, 247, 0.08)" }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "100%",
+            maxWidth: 720,
+            borderRadius: 18,
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
+            overflow: "hidden",
+          }}
         >
-          <Download size={48} style={{ color: "var(--accent)" }} className="animate-bounce" />
-          <p className="text-[18px] font-semibold" style={{ color: "var(--accent)" }}>
-            {t("dropzone.dropToImport")}
-          </p>
-          <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-            {t("dropzone.routeHint")}
-          </p>
-          <div className="flex gap-4 mt-2">
-            {[
-              { icon: FileText, label: "Markdown → notes/", color: "var(--accent)" },
-              { icon: Image, label: "Images → clips/", color: "var(--green)" },
-              { icon: Code2, label: "Code → imports/code/", color: "var(--yellow)" },
-              { icon: File, label: "Docs → imports/docs/", color: "var(--purple)" },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded text-[11px]"
-                  style={{ background: "rgba(255,255,255,0.05)", color: item.color }}
-                >
-                  <Icon size={12} />
-                  {item.label}
+          <div style={{ padding: "28px 30px 18px", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(79, 156, 247, 0.12)",
+                  color: "var(--accent)",
+                  flexShrink: 0,
+                }}
+              >
+                <Download size={24} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{t("dropzone.title")}</div>
+                <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                  {t("dropzone.chooseMode")}
                 </div>
-              );
-            })}
+              </div>
+              {pendingDrop ? (
+                <button
+                  type="button"
+                  onClick={clearPendingDrop}
+                  disabled={importing || opening}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: "var(--text-secondary)",
+                    cursor: importing || opening ? "default" : "pointer",
+                    padding: 6,
+                    borderRadius: 8,
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div style={{ padding: "22px 30px 28px" }}>
+            {pendingDrop ? (
+              <>
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    background: "var(--bg)",
+                    border: "1px solid var(--border)",
+                    marginBottom: 22,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", wordBreak: "break-word" }}>
+                    {dropCopy.title}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
+                    {dropCopy.subtitle}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => void handleOpen(pendingDrop.paths)}
+                    disabled={importing || opening}
+                    style={{
+                      textAlign: "left",
+                      padding: "18px 18px 16px",
+                      borderRadius: 14,
+                      border: "1px solid var(--border)",
+                      background: "var(--bg)",
+                      cursor: importing || opening ? "default" : "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)" }}>
+                      <FolderOpen size={18} />
+                      <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.openAction")}</span>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                      {t("dropzone.openDesc")}
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleImport(pendingDrop.paths)}
+                    disabled={importing || opening}
+                    style={{
+                      textAlign: "left",
+                      padding: "18px 18px 16px",
+                      borderRadius: 14,
+                      border: "1px solid var(--border)",
+                      background: "var(--bg)",
+                      cursor: importing || opening ? "default" : "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--green)" }}>
+                      <Download size={18} />
+                      <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.importAction")}</span>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                      {t("dropzone.importDesc")}
+                    </div>
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                  {t("dropzone.routeHint")}
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "18px 0 6px" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
+                <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                  {t("dropzone.dragHint")}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // Importing spinner
-  if (importing) {
+  if (importing || opening) {
     return (
       <div
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg"
         style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
       >
         <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
-        <span className="text-[13px]">{t("dropzone.importing")}</span>
+        <span className="text-[13px]">{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
       </div>
     );
   }
 
-  // Result toast
   if (result) {
     const hasErrors = result.errors.length > 0;
     return (
       <div
-        className="fixed bottom-4 right-4 z-50 max-w-[360px] rounded-lg shadow-lg overflow-hidden"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        className="fixed bottom-4 right-4 z-50 rounded-xl shadow-lg overflow-hidden"
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", width: 440, maxWidth: "calc(100vw - 32px)" }}
       >
-        {/* Header */}
         <div
-          className="flex items-center gap-2 px-4 py-2.5"
+          className="flex items-center gap-2 px-5 py-3.5"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
           {hasErrors ? (
@@ -182,6 +326,7 @@ export default function DropZone() {
               : t("dropzone.importFailed")}
           </span>
           <button
+            type="button"
             onClick={() => setResult(null)}
             className="ml-auto p-0.5 rounded hover:bg-[var(--bg-hover)]"
           >
@@ -189,22 +334,21 @@ export default function DropZone() {
           </button>
         </div>
 
-        {/* File list */}
-        <div className="max-h-[200px] overflow-y-auto">
+        <div className="max-h-[260px] overflow-y-auto">
           {result.imported.map((f, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 px-4 py-2 text-[12px]"
+              className="flex items-start gap-3 px-5 py-3.5 text-[12px]"
               style={{ borderBottom: "1px solid var(--border)" }}
             >
-              {categoryIcon(f.category)}
+              <div style={{ marginTop: 2 }}>{categoryIcon(f.category)}</div>
               <div className="flex-1 min-w-0">
-                <p className="truncate">{f.original_name}</p>
-                <p className="text-[10px] truncate" style={{ color: "var(--text-secondary)" }}>
+                <p className="truncate" style={{ fontSize: 13, fontWeight: 600 }}>{f.original_name}</p>
+                <p className="text-[11px] truncate mt-1" style={{ color: "var(--text-secondary)" }}>
                   → {f.dest_path}
                 </p>
               </div>
-              <span className="text-[10px] shrink-0" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>
                 {formatSize(f.size)}
               </span>
             </div>
@@ -212,11 +356,11 @@ export default function DropZone() {
           {result.errors.map((err, i) => (
             <div
               key={`err-${i}`}
-              className="flex items-center gap-2 px-4 py-2 text-[12px]"
+              className="flex items-start gap-2 px-5 py-3 text-[12px]"
               style={{ color: "var(--red)" }}
             >
-              <X size={12} />
-              <span className="truncate">{err}</span>
+              <X size={12} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span style={{ lineHeight: 1.5, wordBreak: "break-word" }}>{err}</span>
             </div>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -20,6 +20,7 @@ import { SetupWizard } from "./components/SetupWizard";
 import { useSync } from "./hooks/useSync";
 import { usePlatform } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
+import { useI18n } from "./hooks/useI18n";
 
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
@@ -41,6 +42,7 @@ interface EditorOpenTarget {
 
 interface ExternalFileOpenTarget {
   filePath: string;
+  requestId: number;
 }
 
 const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
@@ -48,6 +50,7 @@ const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "cli
 function App() {
   const platform = usePlatform();
   const isMobile = platform === "mobile";
+  const { t } = useI18n();
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [visitedPages, setVisitedPages] = useState<Set<Page>>(() => new Set<Page>(["dashboard"]));
   const [focusTrigger, setFocusTrigger] = useState(0);
@@ -89,27 +92,28 @@ function App() {
         setPendingOpenPath(target.rel_path);
         setOpenFilePath(target.rel_path);
         setCurrentPage(page);
-        return;
+        return true;
       }
       if (target.kind === "editor" && target.root && target.rel_path) {
         setOpenFilePath(null);
         setExternalFileOpenTarget(null);
         setEditorOpenTarget({ root: target.root, relPath: target.rel_path });
         setCurrentPage("editor-home");
-        return;
+        return true;
       }
       if (target.kind === "external-file") {
         setOpenFilePath(null);
         setEditorOpenTarget(null);
         setPendingOpenPath(null);
-        setExternalFileOpenTarget({ filePath: target.file_path });
+        setExternalFileOpenTarget({ filePath: target.file_path, requestId: Date.now() });
         setCurrentPage("external-files");
-        return;
+        return true;
       }
       await notify("GitMemo", `Unsupported file: ${target.file_path}`);
     } catch (e) {
       await notify("GitMemo", `Open failed: ${String(e)}`);
     }
+    return false;
   }, [setPendingOpenPath]);
 
   // Derive initialization state from global gitStatus
@@ -220,15 +224,35 @@ function App() {
     };
   }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync, initialized, routeExternalFile]);
 
+  const handleExternalFileTargetConsumed = useCallback(() => {
+    setExternalFileOpenTarget(null);
+  }, []);
+
+  const handleOpenImportedDraft = useCallback((relPath: string) => {
+    setEditorOpenTarget({ root: "anonymous", relPath });
+    setCurrentPage("editor-home");
+  }, []);
+
   const handleSetupComplete = useCallback((needsRemoteSync?: boolean) => {
-    localStorage.removeItem("gitmemo-onboarding-state");
     setInitialized(true);
-    sync.refreshGitStatus();
-    invoke("restart_file_watcher").catch(() => {});
+    setCurrentPage("dashboard");
     if (needsRemoteSync) {
-      invoke("sync_remote_init").catch(() => {});
+      sync.triggerSync();
     }
   }, [sync]);
+
+  const handleOpenDroppedFiles = useCallback(async (paths: string[]) => {
+    if (paths.length !== 1) {
+      await notify("GitMemo", t("dropzone.openSingleOnly"));
+      return false;
+    }
+    return routeExternalFile(paths[0]);
+  }, [routeExternalFile, t]);
+
+  const dropZone = useMemo(
+    () => (!isMobile ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} /> : null),
+    [isMobile, handleOpenDroppedFiles],
+  );
 
   const pageContent = initialized === false && currentPage !== "settings" ? (
     <SetupWizard onComplete={handleSetupComplete} />
@@ -241,7 +265,7 @@ function App() {
       {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "contents" : "none" }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "contents" : "none" }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "contents" : "none" }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
-      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "contents" : "none" }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={() => setExternalFileOpenTarget(null)} onOpenImportedDraft={(relPath) => { setEditorOpenTarget({ root: "anonymous", relPath }); setCurrentPage("editor-home"); }} /></div>}
+      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "contents" : "none" }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onOpenImportedDraft={handleOpenImportedDraft} /></div>}
       {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "contents" : "none" }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
       {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "contents" : "none" }}><SettingsPage onNavigate={setCurrentPage} /></div>}
     </>
@@ -271,7 +295,7 @@ function App() {
       {isMobile && (
         <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
       )}
-      {!isMobile && <DropZone />}
+      {dropZone}
     </div>
   );
 }
