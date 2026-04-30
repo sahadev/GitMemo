@@ -260,6 +260,27 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [editing, selectedFileRel, handleSave]);
 
+  useEffect(() => {
+    if (!openTarget) return;
+    if (root !== openTarget.root) {
+      setRoot(openTarget.root);
+      setRel(parentRel(openTarget.relPath));
+      clearSelection();
+      return;
+    }
+    const nextRel = parentRel(openTarget.relPath);
+    if (rel !== nextRel) {
+      setRel(nextRel);
+      clearSelection();
+      return;
+    }
+    if (selectedFileRel === openTarget.relPath) {
+      onOpenTargetConsumed?.();
+      return;
+    }
+    void openFile(openTarget.relPath).finally(() => onOpenTargetConsumed?.());
+  }, [openTarget, root, rel, selectedFileRel, openFile, clearSelection, onOpenTargetConsumed]);
+
   const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
 
   return (

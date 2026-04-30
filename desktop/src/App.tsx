@@ -78,12 +78,14 @@ function App() {
       const target = await invoke<ExternalOpenTarget>("classify_external_open_target", { filePath });
       if (target.kind === "sync" && target.page && target.rel_path) {
         const page = target.page as Page;
+        setEditorOpenTarget(null);
         setPendingOpenPath(target.rel_path);
         setOpenFilePath(target.rel_path);
         setCurrentPage(page);
         return;
       }
       if (target.kind === "editor" && target.root && target.rel_path) {
+        setOpenFilePath(null);
         setEditorOpenTarget({ root: target.root, relPath: target.rel_path });
         setCurrentPage("editor-home");
         return;

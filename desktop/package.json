@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "generate:changelog": "python3 ../scripts/generate_changelog.py --output public/changelog.json",
+    "build": "pnpm run generate:changelog && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },

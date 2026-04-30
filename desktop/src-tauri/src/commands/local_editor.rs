@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -102,6 +103,70 @@ fn sync_page_for_rel(rel_path: &str) -> Option<&'static str> {
     } else {
         None
     }
+}
+
+fn is_supported_external_file(abs_path: &Path) -> bool {
+    abs_path
+        .extension()
+        .and_then(OsStr::to_str)
+        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "md" | "mdx" | "txt"))
+        .unwrap_or(false)
+}
+
+fn ensure_external_open_staging_dir() -> Result<PathBuf, String> {
+    let dir = anonymous_root_dir()?.join("external-open");
+    fs::create_dir_all(&dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
+    dir.canonicalize()
+        .map_err(|e| format!("{}: {}", dir.display(), e))
+}
+
+fn sanitize_file_stem(name: &str) -> String {
+    let mut out = String::new();
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+    let trimmed = out.trim_matches('_').trim_matches('.');
+    if trimmed.is_empty() {
+        "file".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn stage_external_file(abs_path: &Path) -> Result<String, String> {
+    let base = ensure_external_open_staging_dir()?;
+    let stem = abs_path
+        .file_stem()
+        .and_then(OsStr::to_str)
+        .map(sanitize_file_stem)
+        .unwrap_or_else(|| "file".to_string());
+    let ext = abs_path.extension().and_then(OsStr::to_str).map(|s| s.to_ascii_lowercase());
+
+    for index in 0..10_000 {
+        let suffix = if index == 0 { String::new() } else { format!("-{}", index + 1) };
+        let file_name = match ext.as_deref() {
+            Some(ext) if !ext.is_empty() => format!("{}{suffix}.{}", stem, ext),
+            _ => format!("{}{suffix}", stem),
+        };
+        let candidate = base.join(&file_name);
+        if candidate.exists() {
+            continue;
+        }
+        fs::copy(abs_path, &candidate).map_err(|e| format!("{}: {}", candidate.display(), e))?;
+        return Ok(
+            candidate
+                .strip_prefix(&base)
+                .map_err(|e| e.to_string())?
+                .to_string_lossy()
+                .replace('\\', "/"),
+        );
+    }
+
+    Err("Unable to stage external file".into())
 }
 
 /// Resolve `rel` under `root` and ensure the result stays inside `root` (no `..` escape).
@@ -260,6 +325,17 @@ pub fn classify_external_open_target(file_path: String) -> Result<ExternalOpenTa
             page: Some("editor-home".into()),
             root: Some(root_name.into()),
             rel_path: Some(rel_path),
+            file_path: abs_path.to_string_lossy().into(),
+        });
+    }
+
+    if is_supported_external_file(&abs_path) {
+        let rel_path = stage_external_file(&abs_path)?;
+        return Ok(ExternalOpenTarget {
+            kind: "editor".into(),
+            page: Some("editor-home".into()),
+            root: Some("anonymous".into()),
+            rel_path: Some(format!("external-open/{}", rel_path)),
             file_path: abs_path.to_string_lossy().into(),
         });
     }
