@@ -283,7 +283,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
   const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
 
   return (
-    <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
+    <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
         padding: "14px 20px", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 12,

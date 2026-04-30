@@ -252,7 +252,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   const showDetail = !isMobile || !!selectedFile;
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
+    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="notes"
         defaultWidth={300}

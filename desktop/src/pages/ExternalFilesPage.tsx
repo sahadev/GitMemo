@@ -220,7 +220,7 @@ export default function ExternalFilesPage({
   }, [selectedFilePath, showToast]);
 
   return (
-    <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
+    <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
         padding: "18px 24px", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 14,

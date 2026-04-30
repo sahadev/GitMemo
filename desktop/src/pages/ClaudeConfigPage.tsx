@@ -158,7 +158,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
   const TabIcon = tabs.find((t) => t.id === activeTab)?.icon ?? Brain;
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
+    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="claude-config"
         defaultWidth={300}
