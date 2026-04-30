@@ -1,6 +1,6 @@
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::{Config, GitConfig};
-use gitmemo_core::utils::ssh;
+use gitmemo_core::utils::ssh::{self, SshKeyCandidate};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
@@ -14,6 +14,7 @@ fn home_dir() -> Result<std::path::PathBuf, String> {
 pub struct InitRequest {
     pub lang: String,           // "en" or "zh"
     pub git_url: String,        // empty = local-only
+    pub ssh_key_path: Option<String>,
     pub editors: Vec<String>,   // ["claude", "cursor"]
 }
 
@@ -22,6 +23,7 @@ pub struct InitResult {
     pub success: bool,
     pub steps: Vec<InitStep>,
     pub ssh_public_key: Option<String>,
+    pub deploy_keys_url: Option<String>,
     pub needs_remote_sync: bool,
 }
 
@@ -38,6 +40,7 @@ impl InitResult {
             success: true,
             steps: Vec::new(),
             ssh_public_key: None,
+            deploy_keys_url: None,
             needs_remote_sync: false,
         }
     }
@@ -60,11 +63,37 @@ impl InitResult {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct SshKeyScanResult {
+    pub candidates: Vec<SshKeyCandidate>,
+    pub recommended_key_path: Option<String>,
+    pub deploy_keys_url: Option<String>,
+}
+
 #[tauri::command]
-pub async fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
-    tokio::task::spawn_blocking(move || init_gitmemo_sync(request))
-        .await
-        .map_err(|e| format!("Task join error: {e}"))?
+pub fn scan_ssh_keys(git_url: String) -> Result<SshKeyScanResult, String> {
+    let candidates = ssh::list_ssh_key_candidates(&git_url);
+    let recommended_key_path = candidates
+        .iter()
+        .find(|candidate| candidate.recommended)
+        .map(|candidate| candidate.path.clone());
+
+    Ok(SshKeyScanResult {
+        candidates,
+        recommended_key_path,
+        deploy_keys_url: ssh::deploy_keys_url(&git_url),
+    })
+}
+
+#[tauri::command]
+pub fn generate_ssh_key(git_url: String) -> Result<SshKeyCandidate, String> {
+    ssh::generate_key_candidate(&git_url).map_err(|e| e.to_string())
+}
+
+
+#[tauri::command]
+pub fn init_gitmemo(request: InitRequest) -> Result<InitResult, String> {
+    init_gitmemo_sync(request)
 }
 
 fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
@@ -97,20 +126,26 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
 
     // 3. SSH key (only if remote)
     if has_remote {
-        match ssh::find_or_generate_key()
-            .and_then(|(key_path, is_new)| ssh::read_public_key(&key_path).map(|pub_key| (pub_key, is_new)))
-        {
-            Ok((pub_key, is_new)) => {
-                result.ssh_public_key = Some(pub_key);
-                if is_new {
-                    result.add_ok("ssh_key", "SSH key generated");
-                } else {
-                    result.add_ok("ssh_key", "Existing SSH key found");
+        if ssh::is_ssh_url(&request.git_url) {
+            let Some(ssh_key_path) = request.ssh_key_path.as_deref() else {
+                result.add_err("ssh_key", "SSH key selection required");
+                return Ok(result);
+            };
+
+            let key_path = std::path::PathBuf::from(ssh_key_path);
+            match ssh::read_public_key(&key_path) {
+                Ok(pub_key) => {
+                    result.ssh_public_key = Some(pub_key);
+                    result.deploy_keys_url = ssh::deploy_keys_url(&request.git_url);
+                    result.add_ok("ssh_key", "SSH key selected");
+                }
+                Err(e) => {
+                    result.add_err("ssh_key", &format!("SSH key error: {e}"));
+                    return Ok(result);
                 }
             }
-            Err(e) => {
-                result.add_err("ssh_key", &format!("SSH key error: {e}"));
-            }
+        } else {
+            result.deploy_keys_url = ssh::deploy_keys_url(&request.git_url);
         }
     }
 
@@ -125,6 +160,7 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
         git: GitConfig {
             remote: request.git_url.clone(),
             branch: branch.clone(),
+            ssh_key_path: request.ssh_key_path.clone(),
         },
         lang: request.lang.clone(),
     };
@@ -286,28 +322,15 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
     };
 
     // Step 1: fetch remote
-    let fetch = std::process::Command::new("git")
-        .args(["fetch", "origin", &branch])
-        .current_dir(sync_dir)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
+    let fetch = git::fetch_branch(sync_dir, &branch)
         .map_err(|e| format!("fetch failed: {e}"))?;
 
-    if !fetch.status.success() {
-        let stderr = String::from_utf8_lossy(&fetch.stderr).to_string();
-        return Err(format!("Fetch failed (SSH key may not be configured yet): {}", stderr.trim()));
+    if !fetch.0 {
+        return Err(format!("Fetch failed (SSH key may not be configured yet): {}", fetch.2.trim()));
     }
 
     // Step 2: check if remote has history
-    let has_remote_commits = std::process::Command::new("git")
-        .args(["rev-parse", &format!("origin/{}", branch)])
-        .current_dir(sync_dir)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
+    let has_remote_commits = git::remote_ref_exists(sync_dir, &format!("origin/{}", branch));
 
     if !has_remote_commits {
         let (pushed, push_err) = push_to_remote(sync_dir, &branch);
@@ -319,25 +342,13 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
     }
 
     // Step 3: rebase local init commit(s) on top of remote history
-    let rebase = std::process::Command::new("git")
-        .args(["rebase", &format!("origin/{}", branch)])
-        .current_dir(sync_dir)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
+    let rebase = git::rebase_onto_remote(sync_dir, &branch)
         .map_err(|e| format!("rebase failed: {e}"))?;
 
-    if !rebase.status.success() {
+    if !rebase.0 {
         eprintln!("[gitmemo] init rebase failed, resetting to remote and re-applying init files");
-        let _ = std::process::Command::new("git")
-            .args(["rebase", "--abort"])
-            .current_dir(sync_dir)
-            .output();
-
-        let _ = std::process::Command::new("git")
-            .args(["reset", "--hard", &format!("origin/{}", branch)])
-            .current_dir(sync_dir)
-            .output();
+        git::abort_rebase(sync_dir);
+        git::reset_hard_to_remote(sync_dir, &branch);
 
         let _ = files::create_directory_structure(sync_dir);
         for dir in ["clips", "plans", "imports", "claude-config"] {
@@ -357,21 +368,7 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
 }
 
 fn push_to_remote(repo_path: &std::path::Path, branch: &str) -> (bool, Option<String>) {
-    let output = std::process::Command::new("git")
-        .args(["push", "-u", "origin", &format!("HEAD:{}", branch)])
-        .current_dir(repo_path)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output();
-
-    match output {
-        Ok(o) if o.status.success() => (true, None),
-        Ok(o) => {
-            let stderr = String::from_utf8_lossy(&o.stderr).trim().to_string();
-            (false, Some(if stderr.is_empty() { "push failed".into() } else { stderr }))
-        }
-        Err(e) => (false, Some(e.to_string())),
-    }
+    git::push_branch(repo_path, branch).unwrap_or_else(|e| (false, Some(e.to_string())))
 }
 
 // ── Capture conversations ─────────────────────────────────────────────────

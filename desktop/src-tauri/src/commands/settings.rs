@@ -269,6 +269,17 @@ pub fn test_remote_sync() -> Result<String, String> {
 
 #[tauri::command]
 pub fn get_ssh_public_key() -> Result<String, String> {
+    let config_path = Config::config_path();
+    if config_path.exists() {
+        if let Ok(config) = Config::load(&config_path) {
+            if let Some(path) = config.git.ssh_key_path {
+                let key = gitmemo_core::utils::ssh::read_public_key(std::path::Path::new(&path))
+                    .map_err(|e| e.to_string())?;
+                return Ok(key);
+            }
+        }
+    }
+
     let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
     let ssh_dir = std::path::PathBuf::from(home).join(".ssh");
     for name in ["id_ed25519.pub", "id_rsa.pub", "id_ecdsa.pub"] {
@@ -331,17 +342,6 @@ fn update_config_lang(lang: &str) -> Result<(), String> {
 
     config.lang = lang.to_string();
     config.save(&config_path).map_err(|e| e.to_string())
-}
-
-fn detect_lang() -> gitmemo_core::utils::i18n::Lang {
-    use gitmemo_core::utils::i18n::Lang;
-    let config_path = Config::config_path();
-    if config_path.exists() {
-        if let Ok(config) = Config::load(&config_path) {
-            return Lang::parse(&config.lang);
-        }
-    }
-    Lang::En
 }
 
 #[tauri::command]

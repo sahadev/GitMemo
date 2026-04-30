@@ -2,6 +2,40 @@ use anyhow::Result;
 use fs4::fs_std::FileExt;
 use std::fs::OpenOptions;
 use std::path::Path;
+use std::process::Command;
+
+fn config_value(repo_path: &Path, key: &str) -> Option<String> {
+    let config_path = repo_path.join(".metadata").join("config.toml");
+    let content = std::fs::read_to_string(config_path).ok()?;
+    let config = toml::from_str::<toml::Value>(&content).ok()?;
+    config
+        .get("git")
+        .and_then(|g| g.get(key))
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string())
+}
+
+fn configured_ssh_key_path(repo_path: &Path) -> Option<String> {
+    config_value(repo_path, "ssh_key_path").filter(|path| !path.is_empty())
+}
+
+fn git_command(repo_path: &Path, args: &[&str]) -> Command {
+    let mut command = Command::new("git");
+    command.args(args).current_dir(repo_path);
+
+    if let Some(key_path) = configured_ssh_key_path(repo_path) {
+        command.env(
+            "GIT_SSH_COMMAND",
+            format!(
+                "ssh -i '{}' -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
+                key_path.replace('\'', r#"'\''"#)
+            ),
+        );
+    }
+
+    command
+}
+
 
 /// Result of a commit_and_push operation
 #[derive(Debug)]
@@ -26,9 +60,7 @@ impl SyncResult {
 
 /// Run a git command and return stdout on success, Err on failure.
 fn git_cmd(repo_path: &Path, args: &[&str]) -> Result<String> {
-    let output = std::process::Command::new("git")
-        .args(args)
-        .current_dir(repo_path)
+    let output = git_command(repo_path, args)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .output()?;
@@ -42,9 +74,7 @@ fn git_cmd(repo_path: &Path, args: &[&str]) -> Result<String> {
 
 /// Run a git command silently; return true if exit code is 0.
 fn git_ok(repo_path: &Path, args: &[&str]) -> bool {
-    std::process::Command::new("git")
-        .args(args)
-        .current_dir(repo_path)
+    git_command(repo_path, args)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
@@ -54,9 +84,7 @@ fn git_ok(repo_path: &Path, args: &[&str]) -> bool {
 
 /// Run a git command and return (success, stdout, stderr) regardless of exit code.
 fn git_raw(repo_path: &Path, args: &[&str]) -> Result<(bool, String, String)> {
-    let output = std::process::Command::new("git")
-        .args(args)
-        .current_dir(repo_path)
+    let output = git_command(repo_path, args)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .output()?;
@@ -179,36 +207,14 @@ fn do_push_with_retry(repo_path: &Path) -> (bool, Option<String>) {
 
 /// Read the configured branch from config.toml, default to "main"
 fn configured_branch(repo_path: &Path) -> String {
-    let config_path = repo_path.join(".metadata").join("config.toml");
-    if config_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(config) = toml::from_str::<toml::Value>(&content) {
-                if let Some(branch) = config.get("git")
-                    .and_then(|g| g.get("branch"))
-                    .and_then(|b| b.as_str())
-                {
-                    return branch.to_string();
-                }
-            }
-        }
-    }
-    "main".to_string()
+    config_value(repo_path, "branch").unwrap_or_else(|| "main".to_string())
 }
 
 /// Check if a remote is configured (non-empty remote in config.toml)
 pub fn has_remote(repo_path: &Path) -> bool {
-    let config_path = repo_path.join(".metadata").join("config.toml");
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(config) = toml::from_str::<toml::Value>(&content) {
-            if let Some(remote) = config.get("git")
-                .and_then(|g| g.get("remote"))
-                .and_then(|r| r.as_str())
-            {
-                return !remote.is_empty();
-            }
-        }
-    }
-    false
+    config_value(repo_path, "remote")
+        .map(|remote| !remote.is_empty())
+        .unwrap_or(false)
 }
 
 /// Initialize or open Git repository at the given path.
@@ -578,6 +584,54 @@ pub fn push(repo_path: &Path) -> Result<SyncResult> {
     let (pushed, push_error) =
         with_repo_network_lock(repo_path, || do_push_with_retry(repo_path));
     Ok(SyncResult { committed: false, pushed, push_error })
+}
+
+pub fn fetch_branch(repo_path: &Path, branch: &str) -> Result<(bool, String, String)> {
+    git_raw(repo_path, &["fetch", "origin", branch])
+}
+
+pub fn remote_ref_exists(repo_path: &Path, remote_ref: &str) -> bool {
+    git_ok(repo_path, &["rev-parse", remote_ref])
+}
+
+pub fn rebase_onto_remote(repo_path: &Path, branch: &str) -> Result<(bool, String, String)> {
+    git_raw(repo_path, &["rebase", &format!("origin/{}", branch)])
+}
+
+pub fn abort_rebase(repo_path: &Path) {
+    let _ = git_ok(repo_path, &["rebase", "--abort"]);
+}
+
+pub fn reset_hard_to_remote(repo_path: &Path, branch: &str) {
+    let _ = git_ok(repo_path, &["reset", "--hard", &format!("origin/{}", branch)]);
+}
+
+pub fn push_branch(repo_path: &Path, branch: &str) -> Result<(bool, Option<String>)> {
+    Ok(with_repo_network_lock(repo_path, || {
+        match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {
+            Ok((true, _, _)) => (true, None),
+            Ok((false, stdout, stderr)) => {
+                let combined = format!("{stdout} {stderr}");
+                if combined.contains("Everything up-to-date") || combined.contains("up to date") {
+                    (true, None)
+                } else {
+                    (
+                        false,
+                        Some(if stderr.is_empty() {
+                            if stdout.is_empty() {
+                                "push failed".to_string()
+                            } else {
+                                stdout
+                            }
+                        } else {
+                            stderr
+                        }),
+                    )
+                }
+            }
+            Err(e) => (false, Some(e.to_string())),
+        }
+    }))
 }
 
 /// Check if the repository is in a stuck state (rebase/merge in progress)

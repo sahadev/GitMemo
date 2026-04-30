@@ -20,6 +20,8 @@ pub struct GitConfig {
     #[serde(default)]
     pub remote: String,
     pub branch: String,
+    #[serde(default)]
+    pub ssh_key_path: Option<String>,
 }
 
 impl Config {
@@ -55,6 +57,7 @@ mod tests {
             git: GitConfig {
                 remote: "git@github.com:user/repo.git".to_string(),
                 branch: "main".to_string(),
+                ssh_key_path: Some("/Users/test/.ssh/id_ed25519".to_string()),
             },
             lang: "zh".to_string(),
         };
@@ -62,19 +65,28 @@ mod tests {
         let loaded = Config::load(tmp.path()).unwrap();
         assert_eq!(loaded.git.remote, "git@github.com:user/repo.git");
         assert_eq!(loaded.git.branch, "main");
+        assert_eq!(loaded.git.ssh_key_path.as_deref(), Some("/Users/test/.ssh/id_ed25519"));
         assert_eq!(loaded.lang, "zh");
     }
 
     #[test]
     fn test_has_remote() {
         let with_remote = Config {
-            git: GitConfig { remote: "https://example.com".to_string(), branch: "main".to_string() },
+            git: GitConfig {
+                remote: "https://example.com".to_string(),
+                branch: "main".to_string(),
+                ssh_key_path: None,
+            },
             lang: "en".to_string(),
         };
         assert!(with_remote.has_remote());
 
         let without_remote = Config {
-            git: GitConfig { remote: String::new(), branch: "main".to_string() },
+            git: GitConfig {
+                remote: String::new(),
+                branch: "main".to_string(),
+                ssh_key_path: None,
+            },
             lang: "en".to_string(),
         };
         assert!(!without_remote.has_remote());

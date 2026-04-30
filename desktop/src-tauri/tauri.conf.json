@@ -49,6 +49,15 @@
       "dmg",
       "app"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["md", "mdx", "txt"],
+        "name": "GitMemo Document",
+        "description": "Open text files in GitMemo",
+        "role": "Editor",
+        "mimeType": "text/plain"
+      }
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

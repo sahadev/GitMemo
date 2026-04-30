@@ -178,7 +178,7 @@ pub fn cmd_remote(sync_dir: &Path, url: Option<String>, remove: bool) -> Result<
             } else { new_url };
 
             // SSH key check
-            let (key_path, is_new_key) = utils::ssh::find_or_generate_key()?;
+            let (key_path, is_new_key) = utils::ssh::find_or_generate_key_for_git_url(&new_url)?;
             let pub_key = utils::ssh::read_public_key(&key_path)?;
             if is_new_key {
                 println!("  {} {}", style("✓").green(), t.ssh_key_generated());

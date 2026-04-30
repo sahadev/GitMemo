@@ -1,7 +1,8 @@
 mod commands;
 
 use commands::{clipboard, crash_log, import, init, local_editor, notes, search, settings, stats, watcher};
-use tauri::{AppHandle, Emitter, Listener, Manager, RunEvent, WebviewWindow};
+use std::sync::Mutex;
+use tauri::{AppHandle, Emitter, Listener, Manager, RunEvent, State, WebviewWindow};
 
 #[cfg(desktop)]
 use tauri::{
@@ -12,6 +13,9 @@ use tauri::{
 use tauri_plugin_autostart::MacosLauncher;
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+#[derive(Default)]
+struct PendingExternalOpen(Mutex<Vec<String>>);
 
 #[cfg(desktop)]
 fn show_main_window(window: &WebviewWindow) {
@@ -27,12 +31,29 @@ fn show_main_window_from_app(app: &AppHandle) {
     }
 }
 
+fn emit_external_open(app: &AppHandle, file_path: String) {
+    let _ = app.emit("system-open-file", file_path);
+}
+
+fn flush_pending_external_open(app: &AppHandle, pending: &State<PendingExternalOpen>) {
+    let mut paths = pending.0.lock().unwrap();
+    for path in paths.drain(..) {
+        emit_external_open(app, path);
+    }
+}
+
+#[tauri::command]
+fn app_ready(app: AppHandle, pending: State<PendingExternalOpen>) {
+    flush_pending_external_open(&app, &pending);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Install panic hook FIRST — catches any panic from here on
     crash_log::install_panic_hook();
 
     let mut builder = tauri::Builder::default()
+        .manage(PendingExternalOpen::default())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .target(tauri_plugin_log::Target::new(
@@ -104,9 +125,14 @@ pub fn run() {
             settings::set_remote,
             settings::test_remote_sync,
             local_editor::get_editor_data_roots,
+            local_editor::classify_external_open_target,
             local_editor::list_editor_directory,
             local_editor::read_editor_home_file,
             local_editor::resolve_editor_file_abs,
+            local_editor::create_editor_file,
+            local_editor::write_editor_file,
+            local_editor::delete_editor_file,
+            local_editor::create_editor_directory,
             settings::get_ssh_public_key,
             settings::get_claude_integration_status,
             settings::setup_claude_integration,
@@ -117,6 +143,8 @@ pub fn run() {
             settings::update_cursor_skills,
             settings::remove_cursor_integration,
             // Init (setup wizard)
+            init::scan_ssh_keys,
+            init::generate_ssh_key,
             init::init_gitmemo,
             init::sync_remote_init,
             // Watcher
@@ -126,6 +154,7 @@ pub fn run() {
             // Crash logs
             crash_log::get_crash_logs,
             crash_log::clear_crash_logs,
+            app_ready,
         ])
         .setup(|app| {
             // Store app handle for background git sync events
@@ -172,6 +201,23 @@ pub fn run() {
         #[cfg(target_os = "macos")]
         if let RunEvent::Reopen { .. } = event {
             show_main_window_from_app(app_handle);
+        }
+
+        #[cfg(desktop)]
+        if let RunEvent::Opened { urls } = event {
+            show_main_window_from_app(app_handle);
+            let pending = app_handle.state::<PendingExternalOpen>();
+            let has_window = app_handle.get_webview_window("main").is_some();
+            for url in urls {
+                if let Ok(path) = url.to_file_path() {
+                    let path = path.to_string_lossy().into_owned();
+                    if has_window {
+                        emit_external_open(app_handle, path);
+                    } else {
+                        pending.0.lock().unwrap().push(path);
+                    }
+                }
+            }
         }
     });
 }

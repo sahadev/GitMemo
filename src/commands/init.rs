@@ -163,7 +163,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
 
     // 5. Find or generate SSH key (only if remote is configured)
     let key_path_and_pub = if has_remote {
-        let (key_path, is_new_key) = utils::ssh::find_or_generate_key()?;
+        let (key_path, is_new_key) = utils::ssh::find_or_generate_key_for_git_url(&url)?;
         let pub_key = utils::ssh::read_public_key(&key_path)?;
         if is_new_key {
             println!("  {} {} ({})", style("✓").green(), t.ssh_key_generated(), style(key_path.display()).dim());
@@ -289,6 +289,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         git: utils::config::GitConfig {
             remote: url.clone(),
             branch: branch.clone(),
+            ssh_key_path: key_path_and_pub.as_ref().map(|(key_path, _, _)| key_path.to_string_lossy().to_string()),
         },
         lang: lang.as_str().to_string(),
     };
