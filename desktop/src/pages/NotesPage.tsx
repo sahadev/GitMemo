@@ -5,7 +5,7 @@ import { Loading } from "../components/Loading";
 import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { useResizablePanel } from "../hooks/useResizablePanel";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -47,7 +47,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   const { notesTab: activeTab, setNotesTab, pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const panel = useResizablePanel("notes", 300);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
@@ -254,10 +253,12 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
-      {/* Left Panel - File List */}
-      {showList && (
+      <DesktopSplitPane
+        panelKey="notes"
+        defaultWidth={300}
+        left={showList && (
       <div style={{
-        width: isMobile ? "100%" : panel.width, borderRight: isMobile ? "none" : "1px solid var(--border)",
+        borderRight: isMobile ? "none" : "1px solid var(--border)",
         display: "flex", flexDirection: "column", height: "100%",
       }}>
         {/* Tabs */}
@@ -327,7 +328,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               onKeyDown={(e) => {
                 if (e.key !== "Enter" || e.shiftKey) return;
                 const ev = e.nativeEvent;
-                // IME: confirming candidates with Enter must not submit (Tauri/WebKit often flaky on isComposing alone)
                 if (imeComposingRef.current || ev.isComposing) return;
                 if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
                 e.preventDefault();
@@ -380,7 +380,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
             </div>
           ) : (
             files.map((file) => {
-              // For scratch notes with date-like names, show preview as title
               const isDateName = /^\d{4}-\d{2}-\d{2}/.test(file.name);
               const title = isDateName && file.preview ? file.preview : file.name;
               const selected = selectedFile === file.path;
@@ -411,15 +410,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
       </div>
       )}
 
-      {/* Drag handle */}
-      {!isMobile && (
-      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-        <div style={panel.handleHoverStyle} />
-      </div>
-      )}
-
-      {/* Right Panel - Content */}
-      {showDetail && (
+        right={showDetail && (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         {selectedFile ? (
           <>
@@ -495,6 +486,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
         )}
       </div>
       )}
+      />
     </div>
   );
 }

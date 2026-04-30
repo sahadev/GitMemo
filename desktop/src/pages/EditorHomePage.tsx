@@ -7,7 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { useResizablePanel } from "../hooks/useResizablePanel";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
 type EditorRoot = "claude" | "cursor" | "anonymous";
 
@@ -56,7 +56,6 @@ function joinRel(base: string, name: string): string {
 export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const panel = useResizablePanel("editor-home", 320);
   const [roots, setRoots] = useState<EditorRootsStatus | null>(null);
   const [root, setRoot] = useState<EditorRoot>("claude");
   const [rel, setRel] = useState("");
@@ -309,243 +308,244 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         </button>
       </div>
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div style={{
-          width: panel.width, borderRight: "1px solid var(--border)",
-          display: "flex", flexDirection: "column", flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
-            {(["claude", "cursor", "anonymous"] as EditorRoot[]).map((r) => {
-              const exists = r === "claude"
-                ? roots?.claude_exists
-                : r === "cursor"
-                  ? roots?.cursor_exists
-                  : roots?.anonymous_exists;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  disabled={!exists}
-                  onClick={() => handleSwitchRoot(r)}
-                  style={{
-                    flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: root === r ? 600 : 400,
-                    border: "none", cursor: exists ? "pointer" : "not-allowed", opacity: exists ? 1 : 0.45,
-                    background: root === r ? "var(--accent)" : "var(--bg-hover)",
-                    color: root === r ? "#fff" : "var(--text-secondary)",
-                  }}
-                >
-                  {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : t("editorHome.anonymous")}
-                </button>
-              );
-            })}
-          </div>
-
+      <DesktopSplitPane
+        panelKey="editor-home"
+        defaultWidth={320}
+        left={(
           <div style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
-            fontSize: 11, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
+            borderRight: "1px solid var(--border)",
+            display: "flex", flexDirection: "column", flexShrink: 0,
           }}>
-            {rel ? (
-              <button
-                type="button"
-                onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 4, padding: "2px 6px",
-                  borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                  cursor: "pointer", color: "var(--text-secondary)", fontSize: 11,
-                }}
-              >
-                <ChevronLeft size={14} />
-                {t("editorHome.up")}
-              </button>
-            ) : null}
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={rootPath || rel || "."}>
-              {rel || rootPath || "~"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
-            <button
-              type="button"
-              onClick={() => void handleCreateFile()}
-              disabled={!rootOk || creating}
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
-              }}
-            >
-              <FilePlus2 size={13} />
-              {t("editorHome.newFile")}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleCreateFolder()}
-              disabled={!rootOk || creatingDir}
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
-              }}
-            >
-              <FolderPlus size={13} />
-              {t("editorHome.newFolder")}
-            </button>
-          </div>
-
-          <div style={{ flex: 1, overflowY: "auto" }}>
-            {!rootOk ? (
-              <div style={{ padding: 24, textAlign: "center", fontSize: 12, color: "var(--text-secondary)" }}>
-                {rootPath}
-                <p style={{ marginTop: 8 }}>{t("editorHome.missingDir")}</p>
-              </div>
-            ) : listLoading ? (
-              <Loading compact text={t("dashboard.loading")} />
-            ) : listError ? (
-              <p style={{ padding: 16, fontSize: 12, color: "var(--red)" }}>{listError}</p>
-            ) : entries.length === 0 ? (
-              <p style={{ padding: 16, fontSize: 12, color: "var(--text-secondary)" }}>{leftEmptyText}</p>
-            ) : (
-              entries.map((entry) => {
-                const sel = selectedFileRel === entry.rel_path;
+            <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+              {(["claude", "cursor", "anonymous"] as EditorRoot[]).map((r) => {
+                const exists = r === "claude"
+                  ? roots?.claude_exists
+                  : r === "cursor"
+                    ? roots?.cursor_exists
+                    : roots?.anonymous_exists;
                 return (
                   <button
-                    key={entry.rel_path}
+                    key={r}
                     type="button"
-                    onClick={() => {
-                      if (entry.is_dir) {
-                        setRel(entry.rel_path);
-                        clearSelection();
-                      } else {
-                        void openFile(entry.rel_path);
-                      }
-                    }}
+                    disabled={!exists}
+                    onClick={() => handleSwitchRoot(r)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 8, width: "100%",
-                      padding: "10px 14px", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
-                      background: sel ? "var(--accent)" : "transparent",
-                      color: sel ? "#fff" : "var(--text)", cursor: "pointer", fontSize: 13,
+                      flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: root === r ? 600 : 400,
+                      border: "none", cursor: exists ? "pointer" : "not-allowed", opacity: exists ? 1 : 0.45,
+                      background: root === r ? "var(--accent)" : "var(--bg-hover)",
+                      color: root === r ? "#fff" : "var(--text-secondary)",
                     }}
                   >
-                    {entry.is_dir ? <Folder size={14} style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size={14} style={{ flexShrink: 0, opacity: 0.85 }} />}
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
+                    {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : t("editorHome.anonymous")}
                   </button>
                 );
-              })
-            )}
-          </div>
-        </div>
-
-        <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-          <div style={panel.handleHoverStyle} />
-        </div>
-
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-          {!selectedFileRel ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                {root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
-              </p>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>{t("editorHome.editableWarning")}</p>
+              })}
             </div>
-          ) : (
-            <>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
-                borderBottom: "1px solid var(--border)", flexShrink: 0,
-              }}>
-                <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
-                  {selectedFileRel}
-                </span>
-                {fileAbs ? <CopyPathButton absolutePath={fileAbs} /> : null}
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {editing ? (
-                    <>
+
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
+              fontSize: 11, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
+            }}>
+              {rel ? (
+                <button
+                  type="button"
+                  onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4, padding: "2px 6px",
+                    borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-hover)",
+                    cursor: "pointer", color: "var(--text-secondary)", fontSize: 11,
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  {t("editorHome.up")}
+                </button>
+              ) : null}
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={rootPath || rel || "."}>
+                {rel || rootPath || "~"}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+              <button
+                type="button"
+                onClick={() => void handleCreateFile()}
+                disabled={!rootOk || creating}
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
+                }}
+              >
+                <FilePlus2 size={13} />
+                {t("editorHome.newFile")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCreateFolder()}
+                disabled={!rootOk || creatingDir}
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
+                }}
+              >
+                <FolderPlus size={13} />
+                {t("editorHome.newFolder")}
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {!rootOk ? (
+                <div style={{ padding: 24, textAlign: "center", fontSize: 12, color: "var(--text-secondary)" }}>
+                  {rootPath}
+                  <p style={{ marginTop: 8 }}>{t("editorHome.missingDir")}</p>
+                </div>
+              ) : listLoading ? (
+                <Loading compact text={t("dashboard.loading")} />
+              ) : listError ? (
+                <p style={{ padding: 16, fontSize: 12, color: "var(--red)" }}>{listError}</p>
+              ) : entries.length === 0 ? (
+                <p style={{ padding: 16, fontSize: 12, color: "var(--text-secondary)" }}>{leftEmptyText}</p>
+              ) : (
+                entries.map((entry) => {
+                  const sel = selectedFileRel === entry.rel_path;
+                  return (
+                    <button
+                      key={entry.rel_path}
+                      type="button"
+                      onClick={() => {
+                        if (entry.is_dir) {
+                          setRel(entry.rel_path);
+                          clearSelection();
+                        } else {
+                          void openFile(entry.rel_path);
+                        }
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8, width: "100%",
+                        padding: "10px 14px", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
+                        background: sel ? "var(--accent)" : "transparent",
+                        color: sel ? "#fff" : "var(--text)", cursor: "pointer", fontSize: 13,
+                      }}
+                    >
+                      {entry.is_dir ? <Folder size={14} style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size={14} style={{ flexShrink: 0, opacity: 0.85 }} />}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+        right={(
+          <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+            {!selectedFileRel ? (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  {root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>{t("editorHome.editableWarning")}</p>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
+                  borderBottom: "1px solid var(--border)", flexShrink: 0,
+                }}>
+                  <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
+                    {selectedFileRel}
+                  </span>
+                  {fileAbs ? <CopyPathButton absolutePath={fileAbs} /> : null}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {editing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => { setEditing(false); setEditContent(fileContent); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                            borderRadius: 6, fontSize: 12, cursor: "pointer",
+                            background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                          }}
+                        >
+                          <X size={12} />
+                          {t("editorHome.cancel")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleSave()}
+                          disabled={saving}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                            borderRadius: 6, fontSize: 12, cursor: "pointer",
+                            background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
+                          }}
+                        >
+                          <Save size={12} />
+                          {t("editorHome.save")}
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => { setEditing(false); setEditContent(fileContent); }}
+                        onClick={() => { setEditContent(fileContent); setEditing(true); }}
                         style={{
                           display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
                           borderRadius: 6, fontSize: 12, cursor: "pointer",
                           background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                         }}
                       >
-                        <X size={12} />
-                        {t("editorHome.cancel")}
+                        <Pencil size={12} />
+                        {t("editorHome.edit")}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleSave()}
-                        disabled={saving}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                          borderRadius: 6, fontSize: 12, cursor: "pointer",
-                          background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
-                        }}
-                      >
-                        <Save size={12} />
-                        {t("editorHome.save")}
-                      </button>
-                    </>
-                  ) : (
+                    )}
                     <button
                       type="button"
-                      onClick={() => { setEditContent(fileContent); setEditing(true); }}
+                      onClick={() => void handleDelete()}
                       style={{
-                        display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                        borderRadius: 6, fontSize: 12, cursor: "pointer",
-                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                        padding: 6, borderRadius: 4, background: "none", border: "none",
+                        cursor: "pointer", color: "var(--text-secondary)",
                       }}
+                      title={t("common.delete")}
                     >
-                      <Pencil size={12} />
-                      {t("editorHome.edit")}
+                      <Trash2 size={14} />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete()}
-                    style={{
-                      padding: 6, borderRadius: 4, background: "none", border: "none",
-                      cursor: "pointer", color: "var(--text-secondary)",
-                    }}
-                    title={t("common.delete")}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  </div>
                 </div>
-              </div>
-              <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
-                {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
-                {!fileLoading && fileError ? (
-                  <p style={{ fontSize: 12, color: "var(--red)" }}>{fileError}</p>
-                ) : null}
-                {!fileLoading && !fileError && selectedFileRel ? (
-                  editing ? (
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      style={{
-                        width: "100%", height: "100%", resize: "none", padding: 0,
-                        background: "transparent", border: "none", color: "var(--text)",
-                        fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
-                        outline: "none", minHeight: 420,
-                      }}
-                    />
-                  ) : isProbablyMarkdown(selectedFileRel) ? (
-                    <MarkdownView content={fileContent} />
-                  ) : (
-                    <pre style={{
-                      margin: 0, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
-                      fontFamily: "ui-monospace, monospace", color: "var(--text)",
-                    }}>
-                      {fileContent}
-                    </pre>
-                  )
-                ) : null}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+                <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+                  {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
+                  {!fileLoading && fileError ? (
+                    <p style={{ fontSize: 12, color: "var(--red)" }}>{fileError}</p>
+                  ) : null}
+                  {!fileLoading && !fileError && selectedFileRel ? (
+                    editing ? (
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        style={{
+                          width: "100%", height: "100%", resize: "none", padding: 0,
+                          background: "transparent", border: "none", color: "var(--text)",
+                          fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                          outline: "none", minHeight: 420,
+                        }}
+                      />
+                    ) : isProbablyMarkdown(selectedFileRel) ? (
+                      <MarkdownView content={fileContent} />
+                    ) : (
+                      <pre style={{
+                        margin: 0, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        fontFamily: "ui-monospace, monospace", color: "var(--text)",
+                      }}>
+                        {fileContent}
+                      </pre>
+                    )
+                  ) : null}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      />
     </div>
   );
 }

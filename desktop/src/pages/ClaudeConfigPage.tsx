@@ -4,7 +4,7 @@ import { Brain, Wrench, FileText, ChevronLeft, ScrollText, BookOpen, RefreshCw }
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { useResizablePanel } from "../hooks/useResizablePanel";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -39,7 +39,6 @@ const cursorTabs: { id: Tab; labelKey: string; folder: string; icon: typeof Brai
 export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
   useRelativeTimeTick();
-  const panel = useResizablePanel("claude-config", 300);
   const [editor, setEditor] = useState<Editor>("claude");
   const [activeTab, setActiveTab] = useState<Tab>("memory");
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -160,9 +159,12 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
-      {/* Left Panel */}
+      <DesktopSplitPane
+        panelKey="claude-config"
+        defaultWidth={300}
+        left={(
       <div style={{
-        width: panel.width, borderRight: "1px solid var(--border)",
+        borderRight: "1px solid var(--border)",
         display: "flex", flexDirection: "column", flexShrink: 0,
       }}>
         {/* Header */}
@@ -287,13 +289,9 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
           )}
         </div>
       </div>
+      )}
 
-      {/* Drag handle */}
-      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-        <div style={panel.handleHoverStyle} />
-      </div>
-
-      {/* Right Panel */}
+        right={(
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -325,6 +323,8 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
           </>
         )}
       </div>
+      )}
+      />
     </div>
   );
 }

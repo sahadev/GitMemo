@@ -8,6 +8,8 @@ import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
 
 interface ExternalFileEntry {
@@ -55,6 +57,7 @@ export default function ExternalFilesPage({
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const isMobile = usePlatform() === "mobile";
   const [entries, setEntries] = useState<ExternalFileEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
@@ -242,11 +245,12 @@ export default function ExternalFilesPage({
         </button>
       </div>
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div style={{ width: 404, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
-            {t("externalFiles.localOnlyHint")}
-          </div>
+      <DesktopSplitPane
+        panelKey="external-files"
+        defaultWidth={404}
+        minWidth={260}
+        maxWidth={560}
+        left={(
           <div style={{ flex: 1, overflowY: "auto" }}>
             {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
             {!loading && entries.length === 0 ? (
@@ -288,13 +292,11 @@ export default function ExternalFilesPage({
               );
             })}
           </div>
-        </div>
-
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-          {!selectedEntry ? (
+        )}
+        right={
+          !selectedEntry ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
               <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("externalFiles.selectFile")}</p>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>{t("externalFiles.localOnlyHint")}</p>
             </div>
           ) : (
             <>
@@ -322,10 +324,7 @@ export default function ExternalFilesPage({
                 </div>
 
                 <div style={{ fontSize: 11, lineHeight: 1.55, color: "var(--text-secondary)" }}>
-                  <div>{t("externalFiles.localOnlyHint")}</div>
-                  <div style={{ marginTop: 4 }}>
-                    {selectedEntry.exists ? t("externalFiles.editingLive") : t("externalFiles.fileMissing")}
-                  </div>
+                  {selectedEntry.exists ? t("externalFiles.editingLive") : t("externalFiles.fileMissing")}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -433,9 +432,9 @@ export default function ExternalFilesPage({
                 ) : null}
               </div>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
     </div>
   );
 }

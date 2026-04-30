@@ -5,7 +5,7 @@ import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { useResizablePanel } from "../hooks/useResizablePanel";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
@@ -105,7 +105,6 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const panel = useResizablePanel("conversations", 300);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [metaCache, setMetaCache] = useState<Map<string, ConversationMeta>>(new Map());
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -279,10 +278,12 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
-      {/* Left panel — conversation list */}
-      {showList && (
+      <DesktopSplitPane
+        panelKey="conversations"
+        defaultWidth={300}
+        left={showList && (
       <div style={{
-        width: isMobile ? "100%" : panel.width, borderRight: isMobile ? "none" : "1px solid var(--border)", display: "flex", flexDirection: "column",
+        borderRight: isMobile ? "none" : "1px solid var(--border)", display: "flex", flexDirection: "column",
         flexShrink: 0, background: "var(--bg)",
       }}>
         {/* Header */}
@@ -368,15 +369,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
       </div>
       )}
 
-      {/* Drag handle — desktop only */}
-      {!isMobile && (
-      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-        <div style={panel.handleHoverStyle} />
-      </div>
-      )}
-
-      {/* Right panel — chat viewer */}
-      {showDetail && (
+        right={showDetail && (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -552,6 +545,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
         )}
       </div>
       )}
+      />
     </div>
   );
 }

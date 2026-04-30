@@ -5,7 +5,7 @@ import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
-import { useResizablePanel } from "../hooks/useResizablePanel";
+import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -29,7 +29,6 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   const isMobile = usePlatform() === "mobile";
   useRelativeTimeTick();
-  const panel = useResizablePanel("plans", 300);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
@@ -118,10 +117,12 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
-      {/* Left Panel */}
-      {showList && (
+      <DesktopSplitPane
+        panelKey="plans"
+        defaultWidth={300}
+        left={showList && (
       <div style={{
-        width: isMobile ? "100%" : panel.width, borderRight: isMobile ? "none" : "1px solid var(--border)",
+        borderRight: isMobile ? "none" : "1px solid var(--border)",
         display: "flex", flexDirection: "column", flexShrink: 0,
       }}>
         <div style={{
@@ -191,15 +192,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
       </div>
       )}
 
-      {/* Drag handle */}
-      {!isMobile && (
-      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-        <div style={panel.handleHoverStyle} />
-      </div>
-      )}
-
-      {/* Right Panel */}
-      {showDetail && (
+        right={showDetail && (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -239,6 +232,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
         )}
       </div>
       )}
+      />
     </div>
   );
 }
