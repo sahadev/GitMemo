@@ -258,16 +258,16 @@ function App() {
     <SetupWizard onComplete={handleSetupComplete} />
   ) : (
     <>
-      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "contents" : "none" }}><DashboardPage onNavigate={setCurrentPage} active={currentPage === "dashboard"} /></div>}
-      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "contents" : "none" }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} /></div>}
-      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "contents" : "none" }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "contents" : "none" }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "contents" : "none" }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "contents" : "none" }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "contents" : "none" }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
-      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "contents" : "none" }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onOpenImportedDraft={handleOpenImportedDraft} /></div>}
-      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "contents" : "none" }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
-      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "contents" : "none" }}><SettingsPage onNavigate={setCurrentPage} /></div>}
+      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={setCurrentPage} active={currentPage === "dashboard"} /></div>}
+      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} /></div>}
+      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
+      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onOpenImportedDraft={handleOpenImportedDraft} /></div>}
+      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
+      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SettingsPage onNavigate={setCurrentPage} /></div>}
     </>
   );
 
@@ -289,7 +289,7 @@ function App() {
           onSync={sync.triggerSync}
         />
       )}
-      <main style={{ flex: 1, overflow: "hidden" }} onClick={() => setSidebarFocused(false)}>
+      <main style={{ flex: 1, overflow: "hidden", display: "flex", minWidth: 0, minHeight: 0 }} onClick={() => setSidebarFocused(false)}>
         {pageContent}
       </main>
       {isMobile && (
