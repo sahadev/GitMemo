@@ -586,26 +586,32 @@ pub fn push(repo_path: &Path) -> Result<SyncResult> {
     Ok(SyncResult { committed: false, pushed, push_error })
 }
 
+#[allow(dead_code)]
 pub fn fetch_branch(repo_path: &Path, branch: &str) -> Result<(bool, String, String)> {
     git_raw(repo_path, &["fetch", "origin", branch])
 }
 
+#[allow(dead_code)]
 pub fn remote_ref_exists(repo_path: &Path, remote_ref: &str) -> bool {
     git_ok(repo_path, &["rev-parse", remote_ref])
 }
 
+#[allow(dead_code)]
 pub fn rebase_onto_remote(repo_path: &Path, branch: &str) -> Result<(bool, String, String)> {
     git_raw(repo_path, &["rebase", &format!("origin/{}", branch)])
 }
 
+#[allow(dead_code)]
 pub fn abort_rebase(repo_path: &Path) {
     let _ = git_ok(repo_path, &["rebase", "--abort"]);
 }
 
+#[allow(dead_code)]
 pub fn reset_hard_to_remote(repo_path: &Path, branch: &str) {
     let _ = git_ok(repo_path, &["reset", "--hard", &format!("origin/{}", branch)]);
 }
 
+#[allow(dead_code)]
 pub fn push_branch(repo_path: &Path, branch: &str) -> Result<(bool, Option<String>)> {
     Ok(with_repo_network_lock(repo_path, || {
         match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {

@@ -7,6 +7,7 @@ use std::process::Command;
 /// Known SSH key filenames to search for (in priority order)
 const KEY_NAMES: &[&str] = &["id_ed25519", "id_rsa", "id_ecdsa"];
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 pub struct SshKeyCandidate {
     pub path: String,
@@ -130,6 +131,7 @@ fn list_keys_from_ssh_config(host: Option<&str>) -> Vec<PathBuf> {
     candidates
 }
 
+#[allow(dead_code)]
 pub fn list_ssh_key_candidates(git_url: &str) -> Vec<SshKeyCandidate> {
     let mut seen = HashSet::new();
     let mut candidates = Vec::new();
@@ -176,6 +178,7 @@ pub fn list_ssh_key_candidates(git_url: &str) -> Vec<SshKeyCandidate> {
     candidates
 }
 
+#[allow(dead_code)]
 fn push_candidate(
     candidates: &mut Vec<SshKeyCandidate>,
     seen: &mut HashSet<PathBuf>,
@@ -203,6 +206,7 @@ fn push_candidate(
     });
 }
 
+#[allow(dead_code)]
 pub fn generate_key_candidate(git_url: &str) -> Result<SshKeyCandidate> {
     let (key_path, _) = generate_new_key_for_git_url(git_url)?;
     Ok(SshKeyCandidate {
