@@ -304,25 +304,11 @@ export default function ExternalFilesPage({
                 padding: "14px 18px",
                 borderBottom: "1px solid var(--border)",
                 display: "flex",
-                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "space-between",
                 gap: 12,
                 flexShrink: 0,
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 650, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
-                    {selectedEntry.file_name}
-                  </span>
-                  <CopyPathButton absolutePath={selectedEntry.file_path} />
-                  <button
-                    type="button"
-                    onClick={() => void handleReveal()}
-                    style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
-                    title={t("externalFiles.reveal")}
-                  >
-                    <FolderOpen size={14} />
-                  </button>
-                </div>
-
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
@@ -388,6 +374,15 @@ export default function ExternalFilesPage({
                     title={t("common.delete")}
                   >
                     <Trash2 size={14} />
+                  </button>
+                  <CopyPathButton absolutePath={selectedEntry.file_path} />
+                  <button
+                    type="button"
+                    onClick={() => void handleReveal()}
+                    style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                    title={t("externalFiles.reveal")}
+                  >
+                    <FolderOpen size={14} />
                   </button>
                 </div>
               </div>
