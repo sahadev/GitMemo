@@ -38,6 +38,7 @@ export function DesktopSplitPane({
         {left}
       </div>
       <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
+        <div style={panel.handleLineStyle} />
         <div style={panel.handleHoverStyle} />
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>

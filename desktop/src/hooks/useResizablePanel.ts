@@ -42,7 +42,19 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     cursor: "col-resize",
     background: "transparent",
     flexShrink: 0,
+    alignSelf: "stretch",
     position: "relative",
+  };
+
+  const handleLineStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: "50%",
+    width: 1,
+    transform: "translateX(-50%)",
+    background: "var(--border)",
+    pointerEvents: "none",
   };
 
   const handleHoverStyle: React.CSSProperties = {
@@ -53,5 +65,5 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     width: 8,
   };
 
-  return { width, onMouseDown, handleStyle, handleHoverStyle };
+  return { width, onMouseDown, handleStyle, handleLineStyle, handleHoverStyle };
 }

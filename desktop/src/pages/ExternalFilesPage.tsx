@@ -323,10 +323,6 @@ export default function ExternalFilesPage({
                   </button>
                 </div>
 
-                <div style={{ fontSize: 11, lineHeight: 1.55, color: "var(--text-secondary)" }}>
-                  {selectedEntry.exists ? t("externalFiles.editingLive") : t("externalFiles.fileMissing")}
-                </div>
-
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
