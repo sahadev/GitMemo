@@ -15,12 +15,13 @@ import ConversationsPage from "./pages/ConversationsPage";
 import PlansPage from "./pages/PlansPage";
 import ClaudeConfigPage from "./pages/ClaudeConfigPage";
 import EditorHomePage from "./pages/EditorHomePage";
+import ExternalFilesPage from "./pages/ExternalFilesPage";
 import { SetupWizard } from "./components/SetupWizard";
 import { useSync } from "./hooks/useSync";
 import { usePlatform } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 
-export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "editor-home" | "settings";
+export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
 
 type EditorRoot = "claude" | "cursor" | "anonymous";
@@ -38,7 +39,11 @@ interface EditorOpenTarget {
   relPath: string;
 }
 
-const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "settings"];
+interface ExternalFileOpenTarget {
+  filePath: string;
+}
+
+const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
 
 function App() {
   const platform = usePlatform();
@@ -51,6 +56,7 @@ function App() {
   const [openFilePath, setOpenFilePath] = useState<string | null>(null);
   const [initialized, setInitialized] = useState<boolean | null>(null);
   const [editorOpenTarget, setEditorOpenTarget] = useState<EditorOpenTarget | null>(null);
+  const [externalFileOpenTarget, setExternalFileOpenTarget] = useState<ExternalFileOpenTarget | null>(null);
   const [deferredSystemFilePath, setDeferredSystemFilePath] = useState<string | null>(null);
   const sync = useSync();
   const { gitStatus } = sync;
@@ -79,6 +85,7 @@ function App() {
       if (target.kind === "sync" && target.page && target.rel_path) {
         const page = target.page as Page;
         setEditorOpenTarget(null);
+        setExternalFileOpenTarget(null);
         setPendingOpenPath(target.rel_path);
         setOpenFilePath(target.rel_path);
         setCurrentPage(page);
@@ -86,8 +93,17 @@ function App() {
       }
       if (target.kind === "editor" && target.root && target.rel_path) {
         setOpenFilePath(null);
+        setExternalFileOpenTarget(null);
         setEditorOpenTarget({ root: target.root, relPath: target.rel_path });
         setCurrentPage("editor-home");
+        return;
+      }
+      if (target.kind === "external-file") {
+        setOpenFilePath(null);
+        setEditorOpenTarget(null);
+        setPendingOpenPath(null);
+        setExternalFileOpenTarget({ filePath: target.file_path });
+        setCurrentPage("external-files");
         return;
       }
       await notify("GitMemo", `Unsupported file: ${target.file_path}`);
@@ -225,6 +241,7 @@ function App() {
       {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "contents" : "none" }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "contents" : "none" }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "contents" : "none" }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
+      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "contents" : "none" }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={() => setExternalFileOpenTarget(null)} onOpenImportedDraft={(relPath) => { setEditorOpenTarget({ root: "anonymous", relPath }); setCurrentPage("editor-home"); }} /></div>}
       {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "contents" : "none" }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
       {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "contents" : "none" }}><SettingsPage onNavigate={setCurrentPage} /></div>}
     </>

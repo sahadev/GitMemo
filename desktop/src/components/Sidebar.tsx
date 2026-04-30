@@ -7,6 +7,7 @@ import {
   Search,
   Lightbulb,
   Brain,
+  FileSymlink,
 } from "lucide-react";
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
@@ -30,6 +31,7 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] =
   { id: "clipboard", icon: Clipboard, labelKey: "nav.clipboard" },
   { id: "plans", icon: Lightbulb, labelKey: "nav.plans" },
   { id: "claude-config", icon: Brain, labelKey: "nav.claudeConfig" },
+  { id: "external-files", icon: FileSymlink, labelKey: "nav.externalFiles" },
   { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 

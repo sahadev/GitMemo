@@ -8,6 +8,7 @@
     "plans": "计划",
     "claudeConfig": "AI 配置",
     "editorHome": "本机目录",
+    "externalFiles": "外部文件",
     "settings": "设置"
   },
   "editorHome": {
@@ -35,6 +36,26 @@
     "deleted": "已删除",
     "editableWarning": "此处的修改会直接写入本机文件。",
     "untitled": "untitled"
+  },
+  "externalFiles": {
+    "title": "外部文件",
+    "subtitle": "记录你从设备中打开过的文件，仅保存在本机索引中。",
+    "empty": "暂无外部文件",
+    "selectFile": "通过 GitMemo 打开一个文件后，它会出现在这里",
+    "localOnlyHint": "这个列表仅保存在当前设备，不会同步到 Git。",
+    "lastOpened": "最近打开：{0}",
+    "missing": "已丢失",
+    "fileMissing": "这个文件在原始路径中已不存在。",
+    "editingLive": "这里的修改会直接写回原始文件。",
+    "edit": "编辑",
+    "save": "保存",
+    "cancel": "取消",
+    "saved": "文件已保存",
+    "reveal": "在 Finder 中显示",
+    "import": "导入到草稿",
+    "imported": "已导入到匿名草稿",
+    "removeConfirm": "将这个文件从外部文件列表中移除？",
+    "removed": "已从外部文件列表移除"
   },
   "sidebar": {
     "syncing": "同步中...",

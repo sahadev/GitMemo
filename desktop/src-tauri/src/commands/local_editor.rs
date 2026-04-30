@@ -1,10 +1,38 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::fs;
-use std::io::Read;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExternalFileEntry {
+    pub file_path: String,
+    pub file_name: String,
+    pub parent_dir: String,
+    pub exists: bool,
+    pub last_opened_at: String,
+    pub last_modified_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExternalFileOpenResult {
+    pub entry: ExternalFileEntry,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExternalFileWriteResult {
+    pub entry: ExternalFileEntry,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExternalFileImportResult {
+    pub rel_path: String,
+    pub message: String,
+}
 
 const MAX_VIEW_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_INDEX_ENTRIES: usize = 200;
 
 type EditorRootKind = &'static str;
 
@@ -17,6 +45,10 @@ fn home_dir() -> Option<PathBuf> {
 fn anonymous_root_dir() -> Result<PathBuf, String> {
     let home = home_dir().ok_or_else(|| "HOME/USERPROFILE not set".to_string())?;
     Ok(home.join(".gitmemo").join("editor-anonymous"))
+}
+
+fn external_files_index_path() -> Result<PathBuf, String> {
+    Ok(anonymous_root_dir()?.join("external-files-index.json"))
 }
 
 fn ensure_dir(path: &Path) -> Result<PathBuf, String> {
@@ -61,17 +93,17 @@ fn normalize_rel(rel: &str) -> Result<String, String> {
     let mut parts = Vec::new();
     for component in Path::new(&trimmed).components() {
         match component {
-            Component::Normal(seg) => {
+            std::path::Component::Normal(seg) => {
                 let seg = seg.to_string_lossy();
                 if seg.is_empty() || seg == "." {
                     return Err("Invalid path".into());
                 }
                 parts.push(seg.into_owned());
             }
-            Component::CurDir => return Err("Invalid path".into()),
-            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-                return Err("Invalid path".into())
-            }
+            std::path::Component::CurDir => return Err("Invalid path".into()),
+            std::path::Component::ParentDir
+            | std::path::Component::RootDir
+            | std::path::Component::Prefix(_) => return Err("Invalid path".into()),
         }
     }
 
@@ -113,13 +145,6 @@ fn is_supported_external_file(abs_path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn ensure_external_open_staging_dir() -> Result<PathBuf, String> {
-    let dir = anonymous_root_dir()?.join("external-open");
-    fs::create_dir_all(&dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
-    dir.canonicalize()
-        .map_err(|e| format!("{}: {}", dir.display(), e))
-}
-
 fn sanitize_file_stem(name: &str) -> String {
     let mut out = String::new();
     for ch in name.chars() {
@@ -137,36 +162,110 @@ fn sanitize_file_stem(name: &str) -> String {
     }
 }
 
-fn stage_external_file(abs_path: &Path) -> Result<String, String> {
-    let base = ensure_external_open_staging_dir()?;
-    let stem = abs_path
-        .file_stem()
-        .and_then(OsStr::to_str)
-        .map(sanitize_file_stem)
-        .unwrap_or_else(|| "file".to_string());
-    let ext = abs_path.extension().and_then(OsStr::to_str).map(|s| s.to_ascii_lowercase());
-
-    for index in 0..10_000 {
-        let suffix = if index == 0 { String::new() } else { format!("-{}", index + 1) };
-        let file_name = match ext.as_deref() {
-            Some(ext) if !ext.is_empty() => format!("{}{suffix}.{}", stem, ext),
-            _ => format!("{}{suffix}", stem),
-        };
-        let candidate = base.join(&file_name);
-        if candidate.exists() {
-            continue;
-        }
-        fs::copy(abs_path, &candidate).map_err(|e| format!("{}: {}", candidate.display(), e))?;
-        return Ok(
-            candidate
-                .strip_prefix(&base)
-                .map_err(|e| e.to_string())?
-                .to_string_lossy()
-                .replace('\\', "/"),
-        );
+fn read_utf8_file(path: &Path) -> Result<String, String> {
+    let len = path.metadata().map_err(|e| e.to_string())?.len();
+    if len > MAX_VIEW_BYTES {
+        return Err(format!(
+            "File too large to preview ({} MB; max {} MB). Open in an external editor.",
+            len / 1024 / 1024,
+            MAX_VIEW_BYTES / 1024 / 1024
+        ));
     }
+    let bytes = fs::read(path).map_err(|e| e.to_string())?;
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
 
-    Err("Unable to stage external file".into())
+fn now_rfc3339() -> String {
+    chrono::Utc::now().to_rfc3339()
+}
+
+fn modified_at(path: &Path) -> Option<String> {
+    let meta = path.metadata().ok()?;
+    let modified = meta.modified().ok()?;
+    let dt: chrono::DateTime<chrono::Utc> = modified.into();
+    Some(dt.to_rfc3339())
+}
+
+fn entry_from_abs_path(abs_path: &Path, last_opened_at: String) -> ExternalFileEntry {
+    ExternalFileEntry {
+        file_path: abs_path.to_string_lossy().into_owned(),
+        file_name: abs_path
+            .file_name()
+            .and_then(OsStr::to_str)
+            .unwrap_or("file")
+            .to_string(),
+        parent_dir: abs_path
+            .parent()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        exists: abs_path.is_file(),
+        last_opened_at,
+        last_modified_at: modified_at(abs_path),
+    }
+}
+
+fn read_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
+    let path = external_files_index_path()?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid external files index path".to_string())?;
+    fs::create_dir_all(parent).map_err(|e| format!("{}: {}", parent.display(), e))?;
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| format!("{}: {}", path.display(), e))?;
+    if raw.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    serde_json::from_str::<Vec<ExternalFileEntry>>(&raw).map_err(|e| format!("{}: {}", path.display(), e))
+}
+
+fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), String> {
+    let path = external_files_index_path()?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid external files index path".to_string())?;
+    fs::create_dir_all(parent).map_err(|e| format!("{}: {}", parent.display(), e))?;
+    let json = serde_json::to_string_pretty(entries).map_err(|e| e.to_string())?;
+    fs::write(&path, json).map_err(|e| format!("{}: {}", path.display(), e))
+}
+
+fn upsert_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, String> {
+    let mut entries = read_external_files_index()?;
+    let now = now_rfc3339();
+    let entry = entry_from_abs_path(abs_path, now);
+    entries.retain(|item| item.file_path != entry.file_path);
+    entries.insert(0, entry.clone());
+    if entries.len() > MAX_INDEX_ENTRIES {
+        entries.truncate(MAX_INDEX_ENTRIES);
+    }
+    write_external_files_index(&entries)?;
+    Ok(entry)
+}
+
+fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
+    let mut entries = read_external_files_index()?;
+    for entry in &mut entries {
+        let path = PathBuf::from(&entry.file_path);
+        entry.exists = path.is_file();
+        entry.last_modified_at = modified_at(&path);
+        if entry.file_name.is_empty() {
+            entry.file_name = path
+                .file_name()
+                .and_then(OsStr::to_str)
+                .unwrap_or("file")
+                .to_string();
+        }
+        if entry.parent_dir.is_empty() {
+            entry.parent_dir = path
+                .parent()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default();
+        }
+    }
+    entries.sort_by(|a, b| b.last_opened_at.cmp(&a.last_opened_at));
+    write_external_files_index(&entries)?;
+    Ok(entries)
 }
 
 /// Resolve `rel` under `root` and ensure the result stays inside `root` (no `..` escape).
@@ -236,7 +335,6 @@ pub struct EditorRootsStatus {
 #[derive(Debug, Serialize)]
 pub struct EditorDirEntry {
     pub name: String,
-    /// Relative path from root using `/`.
     pub rel_path: String,
     pub is_dir: bool,
 }
@@ -330,12 +428,11 @@ pub fn classify_external_open_target(file_path: String) -> Result<ExternalOpenTa
     }
 
     if is_supported_external_file(&abs_path) {
-        let rel_path = stage_external_file(&abs_path)?;
         return Ok(ExternalOpenTarget {
-            kind: "editor".into(),
-            page: Some("editor-home".into()),
-            root: Some("anonymous".into()),
-            rel_path: Some(format!("external-open/{}", rel_path)),
+            kind: "external-file".into(),
+            page: Some("external-files".into()),
+            root: None,
+            rel_path: None,
             file_path: abs_path.to_string_lossy().into(),
         });
     }
@@ -347,6 +444,98 @@ pub fn classify_external_open_target(file_path: String) -> Result<ExternalOpenTa
         rel_path: None,
         file_path: abs_path.to_string_lossy().into(),
     })
+}
+
+#[tauri::command]
+pub fn list_external_files() -> Result<Vec<ExternalFileEntry>, String> {
+    refresh_external_files_index()
+}
+
+#[tauri::command]
+pub fn open_external_file(file_path: String) -> Result<ExternalFileOpenResult, String> {
+    let abs_path = PathBuf::from(file_path.trim())
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !abs_path.is_file() {
+        return Err("Not a file".into());
+    }
+    if !is_supported_external_file(&abs_path) {
+        return Err("Unsupported file type".into());
+    }
+    let content = read_utf8_file(&abs_path)?;
+    let entry = upsert_external_file_entry(&abs_path)?;
+    Ok(ExternalFileOpenResult { entry, content })
+}
+
+#[tauri::command]
+pub fn save_external_file(file_path: String, content: String) -> Result<ExternalFileWriteResult, String> {
+    let abs_path = PathBuf::from(file_path.trim())
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !abs_path.is_file() {
+        return Err("Not a file".into());
+    }
+    if !is_supported_external_file(&abs_path) {
+        return Err("Unsupported file type".into());
+    }
+    fs::write(&abs_path, content).map_err(|e| e.to_string())?;
+    let entry = upsert_external_file_entry(&abs_path)?;
+    Ok(ExternalFileWriteResult {
+        entry,
+        message: "File saved".into(),
+    })
+}
+
+#[tauri::command]
+pub fn remove_external_file(file_path: String) -> Result<Vec<ExternalFileEntry>, String> {
+    let mut entries = read_external_files_index()?;
+    entries.retain(|item| item.file_path != file_path.trim());
+    write_external_files_index(&entries)?;
+    refresh_external_files_index()
+}
+
+#[tauri::command]
+pub fn import_external_file_to_anonymous(file_path: String) -> Result<ExternalFileImportResult, String> {
+    let abs_path = PathBuf::from(file_path.trim())
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !abs_path.is_file() {
+        return Err("Not a file".into());
+    }
+    let base = ensure_dir(&anonymous_root_dir()?)?;
+    let stem = abs_path
+        .file_stem()
+        .and_then(OsStr::to_str)
+        .map(sanitize_file_stem)
+        .unwrap_or_else(|| "file".to_string());
+    let ext = abs_path
+        .extension()
+        .and_then(OsStr::to_str)
+        .map(|s| s.to_ascii_lowercase());
+
+    for index in 0..10_000 {
+        let suffix = if index == 0 { String::new() } else { format!("-{}", index + 1) };
+        let file_name = match ext.as_deref() {
+            Some(ext) if !ext.is_empty() => format!("{}{suffix}.{}", stem, ext),
+            _ => format!("{}{suffix}", stem),
+        };
+        let candidate = base.join(&file_name);
+        if candidate.exists() {
+            continue;
+        }
+        fs::copy(&abs_path, &candidate).map_err(|e| format!("{}: {}", candidate.display(), e))?;
+        let rel_path = candidate
+            .strip_prefix(&base)
+            .map_err(|e| e.to_string())?
+            .to_string_lossy()
+            .replace('\\', "/");
+        return Ok(ExternalFileImportResult {
+            rel_path,
+            message: "Imported to anonymous drafts".into(),
+        });
+    }
+
+    Err("Unable to import file".into())
 }
 
 #[tauri::command]
@@ -392,20 +581,7 @@ pub fn read_editor_home_file(root: String, rel: String) -> Result<String, String
     if !path.is_file() {
         return Err("Not a file".into());
     }
-    let len = path.metadata().map_err(|e| e.to_string())?.len();
-    if len > MAX_VIEW_BYTES {
-        return Err(format!(
-            "File too large to preview ({} MB; max {} MB). Open in an external editor.",
-            len / 1024 / 1024,
-            MAX_VIEW_BYTES / 1024 / 1024
-        ));
-    }
-    let f = std::fs::File::open(&path).map_err(|e| e.to_string())?;
-    let mut buf = Vec::new();
-    f.take(MAX_VIEW_BYTES)
-        .read_to_end(&mut buf)
-        .map_err(|e| e.to_string())?;
-    Ok(String::from_utf8_lossy(&buf).into_owned())
+    read_utf8_file(&path)
 }
 
 #[tauri::command]

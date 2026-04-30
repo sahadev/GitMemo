@@ -4,6 +4,7 @@ import {
   MessageSquare,
   StickyNote,
   Settings,
+  FileSymlink,
 } from "lucide-react";
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
@@ -13,6 +14,7 @@ const mobileNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string
   { id: "search", icon: Search, labelKey: "nav.search" },
   { id: "conversations", icon: MessageSquare, labelKey: "nav.conversations" },
   { id: "notes", icon: StickyNote, labelKey: "nav.notes" },
+  { id: "external-files", icon: FileSymlink, labelKey: "nav.externalFiles" },
   { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
