@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -64,25 +64,35 @@ export default function ExternalFilesPage({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const selectedFilePathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedFilePathRef.current = selectedFilePath;
+  }, [selectedFilePath]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedFilePath(null);
+    setFileContent("");
+    setEditContent("");
+    setEditing(false);
+    setFileError("");
+  }, []);
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
     try {
       const next = await invoke<ExternalFileEntry[]>("list_external_files");
       setEntries(next);
-      if (selectedFilePath && !next.some((item) => item.file_path === selectedFilePath)) {
-        setSelectedFilePath(null);
-        setFileContent("");
-        setEditContent("");
-        setEditing(false);
-        setFileError("");
+      const currentSelectedPath = selectedFilePathRef.current;
+      if (currentSelectedPath && !next.some((item) => item.file_path === currentSelectedPath)) {
+        clearSelection();
       }
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setLoading(false);
     }
-  }, [selectedFilePath, showToast]);
+  }, [clearSelection, showToast]);
 
   const openExternalFile = useCallback(async (filePath: string) => {
     setSelectedFilePath(filePath);
@@ -149,17 +159,13 @@ export default function ExternalFilesPage({
       const next = await invoke<ExternalFileEntry[]>("remove_external_file", { filePath });
       setEntries(next);
       if (selectedFilePath === filePath) {
-        setSelectedFilePath(null);
-        setFileContent("");
-        setEditContent("");
-        setEditing(false);
-        setFileError("");
+        clearSelection();
       }
       showToast(t("externalFiles.removed"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [selectedFilePath, showToast, t]);
+  }, [selectedFilePath, clearSelection, showToast, t]);
 
   const handleImport = useCallback(async () => {
     if (!selectedFilePath) return;
