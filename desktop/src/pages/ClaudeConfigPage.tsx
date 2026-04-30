@@ -164,7 +164,6 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
         defaultWidth={300}
         left={(
       <div style={{
-        borderRight: "1px solid var(--border)",
         display: "flex", flexDirection: "column", flexShrink: 0,
       }}>
         {/* Header */}

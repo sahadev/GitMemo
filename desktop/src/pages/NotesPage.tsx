@@ -258,7 +258,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
         defaultWidth={300}
         left={showList && (
       <div style={{
-        borderRight: isMobile ? "none" : "1px solid var(--border)",
         display: "flex", flexDirection: "column", height: "100%",
       }}>
         {/* Tabs */}

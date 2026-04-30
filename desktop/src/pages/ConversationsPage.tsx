@@ -283,7 +283,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
         defaultWidth={300}
         left={showList && (
       <div style={{
-        borderRight: isMobile ? "none" : "1px solid var(--border)", display: "flex", flexDirection: "column",
+        display: "flex", flexDirection: "column",
         flexShrink: 0, background: "var(--bg)",
       }}>
         {/* Header */}

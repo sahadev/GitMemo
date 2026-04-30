@@ -313,7 +313,6 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         defaultWidth={320}
         left={(
           <div style={{
-            borderRight: "1px solid var(--border)",
             display: "flex", flexDirection: "column", flexShrink: 0,
           }}>
             <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>

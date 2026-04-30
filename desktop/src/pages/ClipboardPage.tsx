@@ -244,7 +244,6 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
         defaultWidth={340}
         left={showList && (
       <div style={{
-        borderRight: isMobile ? "none" : "1px solid var(--border)",
         display: "flex", flexDirection: "column", flexShrink: 0,
       }}>
         {/* Header */}

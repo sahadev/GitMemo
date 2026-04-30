@@ -122,7 +122,6 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
         defaultWidth={300}
         left={showList && (
       <div style={{
-        borderRight: isMobile ? "none" : "1px solid var(--border)",
         display: "flex", flexDirection: "column", flexShrink: 0,
       }}>
         <div style={{
