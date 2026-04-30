@@ -133,7 +133,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
 
   if (selectedFile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           padding: "12px 20px", borderBottom: "1px solid var(--border)",
@@ -229,7 +229,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* Search Bar */}
       <div style={{ padding: "20px 28px 16px" }}>
         <div style={{ position: "relative" }}>

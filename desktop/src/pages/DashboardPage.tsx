@@ -148,7 +148,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   if (error) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
         <div style={{ textAlign: "center", padding: "0 32px" }}>
           <GitBranch size={48} style={{ color: "#555", margin: "0 auto 16px" }} />
           <p style={{ fontSize: 16, color: "var(--red)", marginBottom: 8 }}>{error}</p>
@@ -207,7 +207,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   })();
 
   return (
-    <div style={{ padding: "20px 28px 28px", overflowY: "auto", height: "100%" }}>
+    <div style={{ padding: "20px 28px 28px", overflowY: "auto", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>{t("dashboard.title")}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

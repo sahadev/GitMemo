@@ -266,6 +266,7 @@
     "clickToCopy": "Click to copy",
     "copyPath": "Copy full path on this device",
     "pathCopied": "Path copied",
+    "preview": "Preview",
     "refresh": "Refresh"
   },
   "claudeConfig": {
