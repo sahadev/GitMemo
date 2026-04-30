@@ -299,92 +299,102 @@ export default function ExternalFilesPage({
           ) : (
             <>
               <div style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "14px 18px",
-                borderBottom: "1px solid var(--border)", flexShrink: 0, flexWrap: "wrap",
+                padding: "14px 18px",
+                borderBottom: "1px solid var(--border)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                flexShrink: 0,
               }}>
-                <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
-                  {selectedEntry.file_path}
-                </span>
-                <CopyPathButton absolutePath={selectedEntry.file_path} />
-                <button
-                  type="button"
-                  onClick={() => void handleReveal()}
-                  style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
-                  title={t("externalFiles.reveal")}
-                >
-                  <FolderOpen size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleImport()}
-                  disabled={importing}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                    borderRadius: 6, fontSize: 12, cursor: "pointer",
-                    background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                  }}
-                  title={t("externalFiles.import")}
-                >
-                  <Download size={12} />
-                  {t("externalFiles.import")}
-                </button>
-                {editing ? (
-                  <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={selectedEntry.file_path}>
+                    {selectedEntry.file_path}
+                  </span>
+                  <CopyPathButton absolutePath={selectedEntry.file_path} />
+                  <button
+                    type="button"
+                    onClick={() => void handleReveal()}
+                    style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                    title={t("externalFiles.reveal")}
+                  >
+                    <FolderOpen size={14} />
+                  </button>
+                </div>
+
+                <div style={{ fontSize: 11, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                  <div>{t("externalFiles.localOnlyHint")}</div>
+                  <div style={{ marginTop: 4 }}>
+                    {selectedEntry.exists ? t("externalFiles.editingLive") : t("externalFiles.fileMissing")}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => void handleImport()}
+                    disabled={importing}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                      borderRadius: 6, fontSize: 12, cursor: "pointer",
+                      background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                    }}
+                    title={t("externalFiles.import")}
+                  >
+                    <Download size={12} />
+                    {t("externalFiles.import")}
+                  </button>
+                  {editing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { setEditing(false); setEditContent(fileContent); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                          borderRadius: 6, fontSize: 12, cursor: "pointer",
+                          background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                        }}
+                      >
+                        <X size={12} />
+                        {t("externalFiles.cancel")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSave()}
+                        disabled={saving}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                          borderRadius: 6, fontSize: 12, cursor: "pointer",
+                          background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
+                        }}
+                      >
+                        <Save size={12} />
+                        {t("externalFiles.save")}
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => { setEditing(false); setEditContent(fileContent); }}
+                      onClick={() => { setEditContent(fileContent); setEditing(true); }}
+                      disabled={!selectedEntry.exists}
                       style={{
                         display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                        borderRadius: 6, fontSize: 12, cursor: "pointer",
+                        borderRadius: 6, fontSize: 12, cursor: selectedEntry.exists ? "pointer" : "not-allowed",
                         background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                       }}
                     >
-                      <X size={12} />
-                      {t("externalFiles.cancel")}
+                      <Pencil size={12} />
+                      {t("externalFiles.edit")}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleSave()}
-                      disabled={saving}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                        borderRadius: 6, fontSize: 12, cursor: "pointer",
-                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
-                      }}
-                    >
-                      <Save size={12} />
-                      {t("externalFiles.save")}
-                    </button>
-                  </>
-                ) : (
+                  )}
                   <button
                     type="button"
-                    onClick={() => { setEditContent(fileContent); setEditing(true); }}
-                    disabled={!selectedEntry.exists}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: selectedEntry.exists ? "pointer" : "not-allowed",
-                      background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                    }}
+                    onClick={() => void handleRemove(selectedEntry.file_path)}
+                    style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                    title={t("common.delete")}
                   >
-                    <Pencil size={12} />
-                    {t("externalFiles.edit")}
+                    <Trash2 size={14} />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void handleRemove(selectedEntry.file_path)}
-                  style={{ padding: 6, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
-                  title={t("common.delete")}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-
-              <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)", fontSize: 11, lineHeight: 1.55, color: "var(--text-secondary)" }}>
-                {selectedEntry.exists
-                  ? t("externalFiles.editingLive")
-                  : t("externalFiles.fileMissing")}
+                </div>
               </div>
 
               <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>
