@@ -165,7 +165,6 @@ export default function ExternalFilesPage({
         content: editContent,
       });
       setFileContent(editContent);
-      setEditing(false);
       upsertEntry(result.entry, false);
       showToast(result.message || t("externalFiles.saved"));
     } catch (e) {
@@ -224,13 +223,13 @@ export default function ExternalFilesPage({
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
-        padding: "18px 24px", borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", gap: 14,
+        padding: "12px 18px", borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", gap: 12,
       }}>
-        <FileSymlink size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
+        <FileSymlink size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("externalFiles.title")}</h1>
-          <p style={{ margin: "6px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("externalFiles.title")}</h1>
+          <p style={{ margin: "2px 0 0", fontSize: 11, lineHeight: 1.4, color: "var(--text-secondary)" }}>
             {t("externalFiles.subtitle")}
           </p>
         </div>
