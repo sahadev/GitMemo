@@ -76,6 +76,7 @@ build_website() {
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"
+    mkdir -p "$SCRIPT_DIR/dist"
     cp -r "$WEBSITE_DIR/dist" "$SCRIPT_DIR/dist/gitmemo"
 
     fix_fonts_for_china
