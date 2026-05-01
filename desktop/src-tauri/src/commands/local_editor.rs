@@ -523,6 +523,29 @@ pub fn clear_external_files() -> Result<Vec<ExternalFileEntry>, String> {
 }
 
 #[tauri::command]
+pub fn reveal_external_file_in_finder(file_path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("open")
+            .arg("-R")
+            .arg(file_path.trim())
+            .status()
+            .map_err(|e| e.to_string())?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(format!("open -R exited with status {status}"))
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = file_path;
+        Err("Reveal in file manager is only supported on macOS here".into())
+    }
+}
+
+#[tauri::command]
 pub fn import_external_file_to_anonymous(file_path: String) -> Result<ExternalFileImportResult, String> {
     let abs_path = PathBuf::from(file_path.trim())
         .canonicalize()

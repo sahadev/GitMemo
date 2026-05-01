@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, FolderOpen, Download, Eraser } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -83,18 +82,15 @@ export default function ExternalFilesPage({
     setFileError("");
   }, []);
 
-  const upsertEntry = useCallback((entry: ExternalFileEntry, moveToTop = false) => {
+  const upsertEntry = useCallback((entry: ExternalFileEntry) => {
     setEntries((prev) => {
       const existingIndex = prev.findIndex((item) => item.file_path === entry.file_path);
       if (existingIndex === -1) {
-        return moveToTop ? [entry, ...prev] : [...prev, entry];
+        return [...prev, entry];
       }
-      if (!moveToTop) {
-        const next = [...prev];
-        next[existingIndex] = entry;
-        return next;
-      }
-      return [entry, ...prev.filter((item) => item.file_path !== entry.file_path)];
+      const next = [...prev];
+      next[existingIndex] = entry;
+      return next;
     });
   }, []);
 
@@ -114,8 +110,7 @@ export default function ExternalFilesPage({
     }
   }, [clearSelection, showToast]);
 
-  const openExternalFile = useCallback(async (filePath: string, options?: { preserveListOrder?: boolean }) => {
-    const preserveListOrder = options?.preserveListOrder ?? false;
+  const openExternalFile = useCallback(async (filePath: string) => {
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
@@ -126,7 +121,8 @@ export default function ExternalFilesPage({
       setSelectedFilePath(result.entry.file_path);
       setFileContent(result.content);
       setEditContent(result.content);
-      upsertEntry(result.entry, !preserveListOrder);
+      upsertEntry(result.entry);
+      void loadEntries();
     } catch (e) {
       setFileContent("");
       setEditContent("");
@@ -134,7 +130,7 @@ export default function ExternalFilesPage({
     } finally {
       setFileLoading(false);
     }
-  }, [upsertEntry]);
+  }, [loadEntries, upsertEntry]);
 
   useEffect(() => {
     void loadEntries();
@@ -148,7 +144,7 @@ export default function ExternalFilesPage({
     if (selectedFilePathRef.current === openTarget.filePath && fileContent) {
       return;
     }
-    void openExternalFile(openTarget.filePath, { preserveListOrder: true });
+    void openExternalFile(openTarget.filePath);
   }, [openTarget, openExternalFile, onOpenTargetConsumed, fileContent]);
 
   const selectedEntry = useMemo(
@@ -165,7 +161,7 @@ export default function ExternalFilesPage({
         content: editContent,
       });
       setFileContent(editContent);
-      upsertEntry(result.entry, false);
+      upsertEntry(result.entry);
       void loadEntries();
       showToast(result.message || t("externalFiles.saved"));
     } catch (e) {
@@ -228,10 +224,7 @@ export default function ExternalFilesPage({
   const handleReveal = useCallback(async () => {
     if (!selectedFilePath) return;
     try {
-      const result = await openPath(selectedFilePath);
-      if (typeof result === "string" && result) {
-        showToast(result, true);
-      }
+      await invoke("reveal_external_file_in_finder", { filePath: selectedFilePath });
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }

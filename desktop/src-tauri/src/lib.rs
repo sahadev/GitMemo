@@ -131,6 +131,7 @@ pub fn run() {
             local_editor::save_external_file,
             local_editor::remove_external_file,
             local_editor::clear_external_files,
+            local_editor::reveal_external_file_in_finder,
             local_editor::import_external_file_to_anonymous,
             local_editor::list_editor_directory,
             local_editor::read_editor_home_file,
