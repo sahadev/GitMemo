@@ -261,6 +261,21 @@ fn upsert_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, Stri
 
 fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
     let mut entries = read_external_files_index()?;
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut deduped: Vec<ExternalFileEntry> = Vec::with_capacity(entries.len());
+    for entry in entries.drain(..) {
+        let canonical = PathBuf::from(&entry.file_path)
+            .canonicalize()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| entry.file_path.clone());
+        if !seen.insert(canonical.clone()) {
+            continue;
+        }
+        let mut entry = entry;
+        entry.file_path = canonical;
+        deduped.push(entry);
+    }
+    let mut entries = deduped;
     for entry in &mut entries {
         let path = PathBuf::from(&entry.file_path);
         entry.exists = path.is_file();
@@ -284,7 +299,8 @@ fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
         let b_key = b.last_modified_at.as_deref().unwrap_or(b.last_opened_at.as_str());
         b_key
             .cmp(a_key)
-            .then_with(|| b.last_opened_at.cmp(&a.last_opened_at))
+            .then_with(|| a.file_name.cmp(&b.file_name))
+            .then_with(|| a.file_path.cmp(&b.file_path))
     });
     write_external_files_index(&entries)?;
     Ok(entries)

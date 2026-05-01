@@ -51,6 +51,11 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function isOpenableByGitMemo(name: string) {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc") || lower.endsWith(".txt");
+}
+
 function describeDrop(paths: string[], t: (key: string, ...args: (string | number)[]) => string) {
   if (paths.length === 1) {
     const name = paths[0].split(/[/\\]/).pop() || paths[0];
@@ -143,6 +148,7 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
   const overlayActive = isDragging || !!pendingDrop;
   const activePaths = pendingDrop?.paths ?? [];
   const dropCopy = describeDrop(activePaths, t);
+  const canOpen = activePaths.length === 1 && isOpenableByGitMemo(activePaths[0]);
 
   if (overlayActive) {
     return (
@@ -228,28 +234,34 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-                  <button
-                    type="button"
-                    onClick={() => void handleOpen(pendingDrop.paths)}
-                    disabled={importing || opening}
-                    style={{
-                      textAlign: "left",
-                      padding: "18px 18px 16px",
-                      borderRadius: 14,
-                      border: "1px solid var(--border)",
-                      background: "var(--bg)",
-                      cursor: importing || opening ? "default" : "pointer",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)" }}>
-                      <FolderOpen size={18} />
-                      <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.openAction")}</span>
-                    </div>
-                    <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
-                      {t("dropzone.openDesc")}
-                    </div>
-                  </button>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: canOpen ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+                  gap: 16,
+                }}>
+                  {canOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleOpen(pendingDrop.paths)}
+                      disabled={importing || opening}
+                      style={{
+                        textAlign: "left",
+                        padding: "18px 18px 16px",
+                        borderRadius: 14,
+                        border: "1px solid var(--border)",
+                        background: "var(--bg)",
+                        cursor: importing || opening ? "default" : "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)" }}>
+                        <FolderOpen size={18} />
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.openAction")}</span>
+                      </div>
+                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                        {t("dropzone.openDesc")}
+                      </div>
+                    </button>
+                  ) : null}
 
                   <button
                     type="button"
@@ -295,11 +307,23 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
   if (importing || opening) {
     return (
       <div
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 50,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 18px",
+          borderRadius: 12,
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+        }}
       >
         <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
-        <span className="text-[13px]">{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
+        <span style={{ fontSize: 13 }}>{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
       </div>
     );
   }
@@ -308,19 +332,35 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
     const hasErrors = result.errors.length > 0;
     return (
       <div
-        className="fixed bottom-4 right-4 z-50 rounded-xl shadow-lg overflow-hidden"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", width: 440, maxWidth: "calc(100vw - 32px)" }}
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 50,
+          width: 440,
+          maxWidth: "calc(100vw - 32px)",
+          borderRadius: 14,
+          overflow: "hidden",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          boxShadow: "0 14px 40px rgba(0,0,0,0.22)",
+        }}
       >
         <div
-          className="flex items-center gap-2 px-5 py-3.5"
-          style={{ borderBottom: "1px solid var(--border)" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px 18px",
+            borderBottom: "1px solid var(--border)",
+          }}
         >
           {hasErrors ? (
-            <X size={16} style={{ color: "var(--red)" }} />
+            <X size={16} style={{ color: "var(--red)", flexShrink: 0 }} />
           ) : (
-            <Check size={16} style={{ color: "var(--green)" }} />
+            <Check size={16} style={{ color: "var(--green)", flexShrink: 0 }} />
           )}
-          <span className="text-[13px] font-medium">
+          <span style={{ fontSize: 13, fontWeight: 600 }}>
             {result.imported.length > 0
               ? t("dropzone.imported", String(result.imported.length))
               : t("dropzone.importFailed")}
@@ -328,27 +368,43 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
           <button
             type="button"
             onClick={() => setResult(null)}
-            className="ml-auto p-0.5 rounded hover:bg-[var(--bg-hover)]"
+            style={{
+              marginLeft: "auto",
+              padding: 4,
+              borderRadius: 6,
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
           >
             <X size={14} style={{ color: "var(--text-secondary)" }} />
           </button>
         </div>
 
-        <div className="max-h-[260px] overflow-y-auto">
+        <div style={{ maxHeight: 260, overflowY: "auto" }}>
           {result.imported.map((f, i) => (
             <div
               key={i}
-              className="flex items-start gap-3 px-5 py-3.5 text-[12px]"
-              style={{ borderBottom: "1px solid var(--border)" }}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                padding: "14px 18px",
+                borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)",
+              }}
             >
-              <div style={{ marginTop: 2 }}>{categoryIcon(f.category)}</div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate" style={{ fontSize: 13, fontWeight: 600 }}>{f.original_name}</p>
-                <p className="text-[11px] truncate mt-1" style={{ color: "var(--text-secondary)" }}>
+              <div style={{ marginTop: 2, flexShrink: 0 }}>{categoryIcon(f.category)}</div>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {f.original_name}
+                </p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                   → {f.dest_path}
                 </p>
               </div>
-              <span className="text-[11px] shrink-0" style={{ color: "var(--text-secondary)" }}>
+              <span style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0, marginTop: 2 }}>
                 {formatSize(f.size)}
               </span>
             </div>
@@ -356,11 +412,19 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
           {result.errors.map((err, i) => (
             <div
               key={`err-${i}`}
-              className="flex items-start gap-2 px-5 py-3 text-[12px]"
-              style={{ color: "var(--red)" }}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "14px 18px",
+                color: "var(--red)",
+                fontSize: 12,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
             >
-              <X size={12} style={{ marginTop: 2, flexShrink: 0 }} />
-              <span style={{ lineHeight: 1.5, wordBreak: "break-word" }}>{err}</span>
+              <X size={12} style={{ marginTop: 3, flexShrink: 0 }} />
+              <span>{err}</span>
             </div>
           ))}
         </div>

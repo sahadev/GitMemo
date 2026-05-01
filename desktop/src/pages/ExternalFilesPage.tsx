@@ -30,9 +30,17 @@ interface ExternalFileWriteResult {
   message: string;
 }
 
-interface ExternalFileImportResult {
-  rel_path: string;
-  message: string;
+interface ImportedFile {
+  original_name: string;
+  dest_path: string;
+  category: string;
+  size: number;
+}
+
+interface ImportResult {
+  success: boolean;
+  imported: ImportedFile[];
+  errors: string[];
 }
 
 interface ExternalFileOpenTarget {
@@ -48,11 +56,11 @@ function isProbablyMarkdown(name: string) {
 export default function ExternalFilesPage({
   openTarget,
   onOpenTargetConsumed,
-  onOpenImportedDraft,
+  onImportResult,
 }: {
   openTarget?: ExternalFileOpenTarget | null;
   onOpenTargetConsumed?: () => void;
-  onOpenImportedDraft?: (relPath: string) => void;
+  onImportResult?: (result: ImportResult) => void;
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -209,17 +217,21 @@ export default function ExternalFilesPage({
     if (!selectedFilePath) return;
     setImporting(true);
     try {
-      const result = await invoke<ExternalFileImportResult>("import_external_file_to_anonymous", {
-        filePath: selectedFilePath,
+      const result = await invoke<ImportResult>("import_files", {
+        paths: [selectedFilePath],
       });
-      showToast(result.message || t("externalFiles.imported"));
-      onOpenImportedDraft?.(result.rel_path);
+      if (result.imported.length > 0) {
+        showToast(t("externalFiles.imported"));
+        onImportResult?.(result);
+      } else if (result.errors.length > 0) {
+        showToast(`Error: ${result.errors[0]}`, true);
+      }
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setImporting(false);
     }
-  }, [selectedFilePath, showToast, t, onOpenImportedDraft]);
+  }, [selectedFilePath, showToast, t, onImportResult]);
 
   const handleReveal = useCallback(async () => {
     if (!selectedFilePath) return;
@@ -274,10 +286,10 @@ export default function ExternalFilesPage({
         minWidth={260}
         maxWidth={560}
         left={(
-          <div style={{ flex: 1, overflowY: "auto" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
             {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
             {!loading && entries.length === 0 ? (
-              <p style={{ padding: 16, fontSize: 12, color: "var(--text-secondary)" }}>{t("externalFiles.empty")}</p>
+              <p style={{ padding: 20, fontSize: 12, color: "var(--text-secondary)" }}>{t("externalFiles.empty")}</p>
             ) : null}
             {!loading && entries.map((entry) => {
               const active = selectedFilePath === entry.file_path;
@@ -294,21 +306,24 @@ export default function ExternalFilesPage({
                     color: "var(--text)",
                     cursor: "pointer",
                     textAlign: "left",
-                    padding: "16px 18px",
+                    padding: "20px 22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 650 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 650, lineHeight: 1.3 }}>
                       {entry.file_name}
                     </span>
                     {!entry.exists ? (
                       <span style={{ fontSize: 10, opacity: 0.85 }}>{t("externalFiles.missing")}</span>
                     ) : null}
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: 11, opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                     {entry.parent_dir}
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 10, opacity: 0.62 }}>
+                  <div style={{ fontSize: 10, opacity: 0.62, lineHeight: 1.5 }}>
                     {t("externalFiles.lastSaved", relativeTime(entry.last_modified_at || entry.last_opened_at, t))}
                   </div>
                 </button>

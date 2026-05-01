@@ -47,6 +47,19 @@ interface ExternalFileOpenTarget {
 
 const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
 
+interface ImportedFileResult {
+  original_name: string;
+  dest_path: string;
+  category: string;
+  size: number;
+}
+
+interface ImportResult {
+  success: boolean;
+  imported: ImportedFileResult[];
+  errors: string[];
+}
+
 function App() {
   const platform = usePlatform();
   const isMobile = platform === "mobile";
@@ -228,10 +241,30 @@ function App() {
     setExternalFileOpenTarget(null);
   }, []);
 
-  const handleOpenImportedDraft = useCallback((relPath: string) => {
-    setEditorOpenTarget({ root: "anonymous", relPath });
-    setCurrentPage("editor-home");
-  }, []);
+  const handleExternalImportResult = useCallback((result: ImportResult) => {
+    const first = result.imported[0];
+    if (!first) return;
+
+    setEditorOpenTarget(null);
+    setExternalFileOpenTarget(null);
+    setOpenFilePath(null);
+    setPendingOpenPath(first.dest_path);
+
+    if (first.dest_path.startsWith("clips/")) {
+      setCurrentPage("clipboard");
+      return;
+    }
+
+    if (first.dest_path.startsWith("notes/")) {
+      setCurrentPage("notes");
+      return;
+    }
+
+    if (first.dest_path.startsWith("plans/")) {
+      setCurrentPage("plans");
+      return;
+    }
+  }, [setPendingOpenPath]);
 
   const handleSetupComplete = useCallback((needsRemoteSync?: boolean) => {
     setInitialized(true);
@@ -265,7 +298,7 @@ function App() {
       {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
-      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onOpenImportedDraft={handleOpenImportedDraft} /></div>}
+      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
       {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
       {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SettingsPage onNavigate={setCurrentPage} /></div>}
     </>
