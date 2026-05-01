@@ -434,6 +434,19 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
         return Err(format!("File not found: {}", file_path));
     }
 
+    // For imports companion .md files (e.g. "imports/xxx.png.md"),
+    // also delete the binary sibling (e.g. "imports/xxx.png").
+    if file_path.starts_with("imports/") && file_path.ends_with(".md") {
+        let base = file_path.trim_end_matches(".md");
+        let has_ext = base.rsplit('.').next().map_or(false, |e| !e.contains('/'));
+        if has_ext {
+            let sibling = dir.join(base);
+            if sibling.is_file() {
+                let _ = std::fs::remove_file(&sibling);
+            }
+        }
+    }
+
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
     refresh_index(&dir);
     bg_commit_and_push(format!("delete: {}", file_path));

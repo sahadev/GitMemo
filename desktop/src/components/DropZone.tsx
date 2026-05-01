@@ -24,7 +24,7 @@ interface DragDropPayload {
 
 interface DropZoneProps {
   onOpenDroppedFiles?: (paths: string[]) => Promise<boolean>;
-  onNavigateAfterImport?: () => void;
+  onNavigateAfterImport?: (result: ImportResult) => void;
 }
 
 interface PendingDrop {
@@ -94,7 +94,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
       const res = await invoke<ImportResult>("import_files", { paths });
       setResult(res);
       dismissResultLater();
-      if (res.imported.length > 0) onNavigateAfterImport?.();
+      if (res.imported.length > 0) onNavigateAfterImport?.(res);
     } catch (e) {
       setResult({ success: false, imported: [], errors: [`${e}`] });
       dismissResultLater();

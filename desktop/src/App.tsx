@@ -269,9 +269,13 @@ function App() {
     return routeExternalFile(paths[0]);
   }, [routeExternalFile, t]);
 
-  const handleDropImportNavigate = useCallback(() => {
+  const handleDropImportNavigate = useCallback((result: ImportResult) => {
+    const first = result.imported[0];
+    if (first) {
+      setPendingOpenPath(first.dest_path);
+    }
     setCurrentPage("imports");
-  }, []);
+  }, [setPendingOpenPath]);
 
   const dropZone = useMemo(
     () => (!isMobile ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} onNavigateAfterImport={handleDropImportNavigate} /> : null),

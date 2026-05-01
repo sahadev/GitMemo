@@ -80,7 +80,7 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("imports/")) return;
-    void openFile(pendingOpenPath);
+    void loadFiles().then(() => openFile(pendingOpenPath));
     consumePendingOpenPath();
   }, [pendingOpenPath, consumePendingOpenPath]);
 
