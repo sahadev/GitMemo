@@ -263,7 +263,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   ];
 
   return (
-    <div style={{ padding: "20px 32px 32px", overflowY: "auto", height: "100%" }}>
+    <div style={{
+      padding: "20px 32px 32px",
+      overflowY: "auto",
+      height: "100%",
+      width: "100%",
+      flex: 1,
+      minWidth: 0,
+      minHeight: 0,
+      boxSizing: "border-box",
+    }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <Settings size={20} style={{ color: "var(--text-secondary)" }} />
         <h1 style={{ fontSize: 22, fontWeight: 700, flex: 1 }}>{t("settings.title")}</h1>
