@@ -56,9 +56,9 @@ const en: Record<string, string> = {
   'pain.knowledge.title': 'AI Knowledge Gets Lost',
   'pain.knowledge.desc': 'Claude Code, Cursor, and ChatGPT sessions produce invaluable knowledge — architecture decisions, debugging solutions, code patterns. But once the chat closes, it all vanishes. No search, no version control, no way to reference it later.',
   'pain.input.title': 'Notes Are Everywhere',
-  'pain.input.desc': 'Code snippets in the clipboard, ideas in Apple Notes, docs in Notion, bookmarks in Raindrop — your knowledge is scattered across 5+ tools. You need one place for everything.',
-  'pain.tool.title': 'Editors Lack Note Management',
-  'pain.tool.desc': 'Sublime Text and VS Code are great for code, but they don\'t manage notes, capture clipboard, or sync to Git automatically. Obsidian handles notes but ignores AI conversations. No tool does both.',
+  'pain.input.desc': 'Code snippets in the clipboard, ideas in Apple Notes, docs in Notion or Evernote, bookmarks in Raindrop — your knowledge is scattered across 5+ tools with different subscriptions. You need one place for everything.',
+  'pain.tool.title': 'Cloud Notes Lock Your Data',
+  'pain.tool.desc': 'Evernote and cloud note apps charge monthly fees and lock your data behind proprietary formats. Sublime Text and VS Code are great editors but can\'t manage notes. Obsidian handles notes but ignores AI conversations. No tool does it all — for free.',
 
   // Features
   'feat.label': 'Features',
@@ -111,8 +111,8 @@ const en: Record<string, string> = {
 
   // Comparison
   'cmp.label': 'Comparison',
-  'cmp.title': 'GitMemo vs Obsidian vs Notion vs Sublime Text',
-  'cmp.subtitle': 'The only tool that combines Markdown editing, AI conversation capture, clipboard history, Git-native sync, and open source.',
+  'cmp.title': 'GitMemo vs Evernote vs Obsidian vs Notion vs Sublime Text',
+  'cmp.subtitle': 'The only tool that combines Markdown editing, AI conversation capture, clipboard history, Git-native sync, and open source. A true alternative to cloud note apps.',
   'cmp.feature': 'Feature',
   'cmp.features.aiBackup': 'AI conversation capture',
   'cmp.features.notes': 'Markdown notes & editor',
@@ -123,14 +123,14 @@ const en: Record<string, string> = {
   'cmp.features.openSource': 'Open source',
   'cmp.features.appSize': 'App size',
   'cmp.features.price': 'Price',
+  'cmp.products.evernote': 'Evernote',
   'cmp.products.obsidian': 'Obsidian',
   'cmp.products.notion': 'Notion',
   'cmp.products.sublime': 'Sublime Text',
   'cmp.products.typora': 'Typora',
-  'cmp.products.logseq': 'Logseq',
   'cmp.products.gitmemo': 'GitMemo',
   'cmp.note': 'GitMemo\'s unique position:',
-  'cmp.note2': 'Notes + Editor + AI capture + Git-native + Open source + Free',
+  'cmp.note2': 'Notes + Editor + AI capture + Git-native + Open source + Free + No subscription',
 
   // Desktop App
   'app.label': 'Desktop App',
@@ -178,9 +178,9 @@ const zh: Record<string, string> = {
   'pain.knowledge.title': 'AI 知识白白丢失',
   'pain.knowledge.desc': 'Claude Code、Cursor、ChatGPT 的深度对话产出大量有价值知识——架构决策、调试方案、代码模式。但对话关闭后即刻流失，无法搜索、无法版本控制、无法再次引用。',
   'pain.input.title': '笔记散落各处',
-  'pain.input.desc': '代码片段在剪贴板，想法在备忘录，文档在语雀/飞书，书签在浏览器——你的知识分散在 5 个以上工具中。你需要一个统一的地方。',
-  'pain.tool.title': '编辑器不管知识',
-  'pain.tool.desc': 'Sublime Text、VS Code 写代码很好，但不能管理笔记、捕获剪贴板、自动同步到 Git。Obsidian/思源笔记管笔记但忽略 AI 对话。Typora 只是编辑器。没有工具同时做到这些。',
+  'pain.input.desc': '代码片段在剪贴板，想法在备忘录，文档在印象笔记/有道云笔记，书签在浏览器——你的知识分散在 5 个以上工具中，每个还要交订阅费。你需要一个统一的免费工具。',
+  'pain.tool.title': '云笔记锁住你的数据',
+  'pain.tool.desc': '印象笔记/有道云笔记按月收费，数据锁在私有格式里无法导出。Sublime Text、VS Code 写代码好用但不能管笔记。Obsidian/思源笔记管笔记但忽略 AI 对话。没有工具同时免费做到这些。',
 
   // Features
   'feat.label': '核心特性',
@@ -233,8 +233,8 @@ const zh: Record<string, string> = {
 
   // Comparison
   'cmp.label': '竞品对比',
-  'cmp.title': 'GitMemo vs Obsidian vs Notion vs Sublime Text',
-  'cmp.subtitle': '唯一一个同时覆盖 Markdown 编辑、AI 对话捕获、剪贴板历史、Git 原生同步和开源的工具。Obsidian/思源笔记/Typora/Sublime Text 用户的新选择。',
+  'cmp.title': 'GitMemo vs 印象笔记 vs Obsidian vs 有道云笔记',
+  'cmp.subtitle': '唯一一个同时覆盖 Markdown 编辑、AI 对话捕获、剪贴板历史、Git 原生同步和开源的笔记工具。印象笔记/有道云笔记/Obsidian/Typora 用户的免费开源替代。',
   'cmp.feature': '功能',
   'cmp.features.aiBackup': 'AI 对话自动备份',
   'cmp.features.notes': 'Markdown 笔记 & 编辑器',
@@ -245,14 +245,14 @@ const zh: Record<string, string> = {
   'cmp.features.openSource': '开源',
   'cmp.features.appSize': '应用体积',
   'cmp.features.price': '价格',
+  'cmp.products.evernote': '印象笔记',
   'cmp.products.obsidian': 'Obsidian',
   'cmp.products.notion': 'Notion',
   'cmp.products.sublime': 'Sublime Text',
   'cmp.products.typora': 'Typora',
-  'cmp.products.logseq': 'Logseq',
   'cmp.products.gitmemo': 'GitMemo',
   'cmp.note': 'GitMemo 的独特定位：',
-  'cmp.note2': '笔记 + 编辑器 + AI 捕获 + Git 原生 + 开源 + 免费',
+  'cmp.note2': '笔记 + 编辑器 + AI 捕获 + Git 原生 + 开源 + 免费 + 无订阅',
 
   // Desktop App
   'app.label': '桌面客户端',

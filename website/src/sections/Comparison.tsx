@@ -21,11 +21,11 @@ interface Product {
 }
 
 const products: Product[] = [
+  { nameKey: 'cmp.products.evernote', values: ['no', 'partial', 'no', 'no', 'no', 'no', 'no', '~200MB', '$15/mo'] },
   { nameKey: 'cmp.products.obsidian', values: ['no', 'yes', 'no', 'partial', 'no', 'yes', 'no', '~200MB', 'Free + $50/yr'] },
   { nameKey: 'cmp.products.notion', values: ['no', 'partial', 'no', 'no', 'yes', 'no', 'no', 'Web', 'Free + $10/mo'] },
   { nameKey: 'cmp.products.sublime', values: ['no', 'no', 'no', 'no', 'no', 'yes', 'no', '~30MB', '$99 license'] },
   { nameKey: 'cmp.products.typora', values: ['no', 'yes', 'no', 'no', 'no', 'yes', 'no', '~80MB', '$14.99'] },
-  { nameKey: 'cmp.products.logseq', values: ['no', 'yes', 'no', 'partial', 'no', 'yes', 'yes', '~200MB', 'Free + $5/mo'] },
   { nameKey: 'cmp.products.gitmemo', highlight: true, values: ['yes', 'yes', 'yes', 'yes', 'yes', 'yes', 'yes', '~16MB', 'Free forever'] },
 ]
 
