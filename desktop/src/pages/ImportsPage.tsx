@@ -48,7 +48,7 @@ function ImportImagePreview({ relPath }: { relPath: string }) {
   return <img src={src} alt="" style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid var(--border)" }} />;
 }
 
-export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
+export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger, active }: { onFocusSidebar?: () => void; enterTrigger?: number; active?: boolean } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
@@ -73,6 +73,10 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
   }, [selectedFile, files]);
 
   useEffect(() => { loadFiles(); }, []);
+
+  useEffect(() => {
+    if (active) loadFiles();
+  }, [active]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("imports/")) return;
