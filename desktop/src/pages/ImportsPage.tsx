@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Download, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
+import { Download, ChevronLeft, Trash2, RefreshCw, Pencil, Save, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
@@ -57,6 +57,9 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -105,6 +108,8 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
+      setEditContent(content);
+      setEditing(false);
       setTimeout(() => {
         itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 50);
@@ -119,10 +124,26 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
       await invoke<NoteResult>("delete_note", { filePath: selectedFile });
       setSelectedFile(null);
       setFileContent("");
+      setEditContent("");
+      setEditing(false);
       showToast(t("imports.deleted"));
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
+
+  const handleSave = useCallback(async () => {
+    if (!selectedFile) return;
+    setSaving(true);
+    try {
+      await invoke<NoteResult>("update_note", { filePath: selectedFile, content: editContent });
+      setFileContent(editContent);
+      showToast(t("externalFiles.saved"));
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedFile, editContent, showToast, t]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -228,11 +249,51 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                   padding: "12px 20px", borderBottom: "1px solid var(--border)",
                 }}>
                   <button
-                    onClick={() => { setSelectedFile(null); setFileContent(""); }}
+                    onClick={() => { setSelectedFile(null); setFileContent(""); setEditContent(""); setEditing(false); }}
                     style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
                   >
                     <ChevronLeft size={16} />
                   </button>
+                  {!editing ? (
+                    <button
+                      onClick={() => setEditing(true)}
+                      style={{
+                        width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+                        borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)",
+                        cursor: "pointer", color: "var(--text)",
+                      }}
+                      title="Edit"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setEditing(false)}
+                        style={{
+                          width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+                          borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)",
+                          cursor: "pointer", color: "var(--text)",
+                        }}
+                        title="Preview"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{
+                          width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+                          borderRadius: 6, border: "1px solid var(--accent)", background: "var(--accent)",
+                          cursor: saving ? "default" : "pointer", color: "#fff",
+                          opacity: saving ? 0.6 : 1,
+                        }}
+                        title="Save"
+                      >
+                        <Save size={14} />
+                      </button>
+                    </>
+                  )}
                   <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {selectedFile}
                   </span>
@@ -242,7 +303,26 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                   </button>
                 </div>
                 <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
-                  <MarkdownView content={fileContent} filePath={selectedFile} />
+                  {editing ? (
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                          e.preventDefault();
+                          void handleSave();
+                        }
+                      }}
+                      style={{
+                        width: "100%", height: "100%", resize: "none", padding: 0,
+                        background: "transparent", border: "none", color: "var(--text)",
+                        fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                        outline: "none", minHeight: 420,
+                      }}
+                    />
+                  ) : (
+                    <MarkdownView content={fileContent} filePath={selectedFile} />
+                  )}
                 </div>
               </>
             ) : (
