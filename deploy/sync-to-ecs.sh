@@ -13,6 +13,7 @@ set -euo pipefail
 #   ECS_IP    — ECS 公网 IP（默认 101.200.217.80）
 #   ECS_USER  — SSH 用户名（默认 root）
 #   ECS_DIR   — ECS 上项目目录（默认 /opt/kakacut）
+#   BAIDU_VERIFY_CODE — 百度站长平台验证码（可选，从 ziyuan.baidu.com 获取）
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -50,19 +51,32 @@ ECS_SSH="$ECS_USER@$ECS_IP"
 # ============================================
 # 替换 Google Fonts 为国内镜像
 # ============================================
-fix_fonts_for_china() {
-    log "替换 Google Fonts 为国内 CDN 镜像..."
+fix_for_china() {
+    log "国内站适配：字体 CDN + SEO 元数据..."
     local dist_index="$SCRIPT_DIR/dist/gitmemo/index.html"
     if [ -f "$dist_index" ]; then
         # 替换 fonts.googleapis.com → fonts.googleapis.cn (Google 中国镜像)
         # 替换 fonts.gstatic.com → fonts.gstatic.cn
+        # 替换 canonical / og:url 为国内站域名
         sed -i '' \
             -e 's|https://fonts.googleapis.com|https://fonts.googleapis.cn|g' \
             -e 's|https://fonts.gstatic.com|https://fonts.gstatic.cn|g' \
+            -e 's|https://gitmemo.dev|https://gitmemo.kakacut.cn|g' \
             "$dist_index"
-        log "字体 CDN 替换完成"
+
+        # 注入百度站长验证标签（如已配置）
+        if [ -n "${BAIDU_VERIFY_CODE:-}" ]; then
+            sed -i '' \
+                "s|<meta charset=\"UTF-8\" />|<meta charset=\"UTF-8\" />\n    <meta name=\"baidu-site-verification\" content=\"${BAIDU_VERIFY_CODE}\" />|" \
+                "$dist_index"
+            log "百度验证标签已注入: ${BAIDU_VERIFY_CODE}"
+        else
+            warn "未设置 BAIDU_VERIFY_CODE 环境变量，跳过百度验证标签注入"
+        fi
+
+        log "国内站适配完成"
     else
-        warn "未找到 dist/index.html，跳过字体替换"
+        warn "未找到 dist/index.html，跳过国内站适配"
     fi
 }
 
@@ -79,7 +93,7 @@ build_website() {
     mkdir -p "$SCRIPT_DIR/dist"
     cp -r "$WEBSITE_DIR/dist" "$SCRIPT_DIR/dist/gitmemo"
 
-    fix_fonts_for_china
+    fix_for_china
     log "构建完成"
 }
 
