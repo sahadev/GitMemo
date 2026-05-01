@@ -1,7 +1,7 @@
 [package]
 name = "gitmemo-desktop"
 
-version = "1.0.49"
+version = "1.0.50"
 description = "GitMemo Desktop - Your AI knowledge, always in Git"
 authors = ["GitMemo Team"]
 edition = "2021"
