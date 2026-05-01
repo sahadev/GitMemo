@@ -2,6 +2,7 @@ import { useI18n } from '../i18n'
 
 const features = [
   'cmp.features.aiBackup',
+  'cmp.features.notes',
   'cmp.features.clipboard',
   'cmp.features.gitNative',
   'cmp.features.mcp',
@@ -20,12 +21,12 @@ interface Product {
 }
 
 const products: Product[] = [
-  { nameKey: 'cmp.products.obsidian', values: ['no', 'no', 'partial', 'no', 'yes', 'no', '~200MB', 'Free + $50/yr'] },
-  { nameKey: 'cmp.products.notion', values: ['no', 'no', 'no', 'yes', 'no', 'no', 'Web', 'Free + $10/mo'] },
-  { nameKey: 'cmp.products.logseq', values: ['no', 'no', 'partial', 'no', 'yes', 'yes', '~200MB', 'Free + $5/mo'] },
-  { nameKey: 'cmp.products.novi', values: ['no', 'no', 'no', 'yes', 'yes', 'no', '~30MB', '$12.99'] },
-  { nameKey: 'cmp.products.waylog', values: ['partial', 'no', 'no', 'no', 'yes', 'yes', 'Extension', 'Free'] },
-  { nameKey: 'cmp.products.gitmemo', highlight: true, values: ['yes', 'yes', 'yes', 'yes', 'yes', 'yes', '~16MB', 'Free forever'] },
+  { nameKey: 'cmp.products.obsidian', values: ['no', 'yes', 'no', 'partial', 'no', 'yes', 'no', '~200MB', 'Free + $50/yr'] },
+  { nameKey: 'cmp.products.notion', values: ['no', 'partial', 'no', 'no', 'yes', 'no', 'no', 'Web', 'Free + $10/mo'] },
+  { nameKey: 'cmp.products.sublime', values: ['no', 'no', 'no', 'no', 'no', 'yes', 'no', '~30MB', '$99 license'] },
+  { nameKey: 'cmp.products.typora', values: ['no', 'yes', 'no', 'no', 'no', 'yes', 'no', '~80MB', '$14.99'] },
+  { nameKey: 'cmp.products.logseq', values: ['no', 'yes', 'no', 'partial', 'no', 'yes', 'yes', '~200MB', 'Free + $5/mo'] },
+  { nameKey: 'cmp.products.gitmemo', highlight: true, values: ['yes', 'yes', 'yes', 'yes', 'yes', 'yes', 'yes', '~16MB', 'Free forever'] },
 ]
 
 function Cell({ value }: { value: Status }) {
