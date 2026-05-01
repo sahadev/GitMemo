@@ -279,7 +279,13 @@ fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
                 .unwrap_or_default();
         }
     }
-    entries.sort_by(|a, b| b.last_opened_at.cmp(&a.last_opened_at));
+    entries.sort_by(|a, b| {
+        let a_key = a.last_modified_at.as_deref().unwrap_or(a.last_opened_at.as_str());
+        let b_key = b.last_modified_at.as_deref().unwrap_or(b.last_opened_at.as_str());
+        b_key
+            .cmp(a_key)
+            .then_with(|| b.last_opened_at.cmp(&a.last_opened_at))
+    });
     write_external_files_index(&entries)?;
     Ok(entries)
 }
@@ -508,6 +514,12 @@ pub fn remove_external_file(file_path: String) -> Result<Vec<ExternalFileEntry>,
     entries.retain(|item| item.file_path != file_path.trim());
     write_external_files_index(&entries)?;
     refresh_external_files_index()
+}
+
+#[tauri::command]
+pub fn clear_external_files() -> Result<Vec<ExternalFileEntry>, String> {
+    write_external_files_index(&[])?;
+    Ok(Vec::new())
 }
 
 #[tauri::command]

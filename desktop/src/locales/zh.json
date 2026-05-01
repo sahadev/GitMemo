@@ -55,7 +55,10 @@
     "import": "导入到草稿",
     "imported": "已导入到匿名草稿",
     "removeConfirm": "将这个文件从外部文件列表中移除？",
-    "removed": "已从外部文件列表移除"
+    "removed": "已从外部文件列表移除",
+    "clearAll": "全部清空",
+    "clearAllConfirm": "将所有文件从外部文件列表中移除？",
+    "cleared": "已清空外部文件列表"
   },
   "sidebar": {
     "syncing": "同步中...",

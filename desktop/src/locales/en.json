@@ -55,7 +55,10 @@
     "import": "Import to drafts",
     "imported": "Imported to anonymous drafts",
     "removeConfirm": "Remove this file from the external files list?",
-    "removed": "Removed from external files"
+    "removed": "Removed from external files",
+    "clearAll": "Clear all",
+    "clearAllConfirm": "Remove all files from the external files list?",
+    "cleared": "Cleared external files list"
   },
   "sidebar": {
     "syncing": "Syncing...",

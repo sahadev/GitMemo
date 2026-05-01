@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, FolderOpen, Download } from "lucide-react";
+import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, FolderOpen, Download, Eraser } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
@@ -166,6 +166,7 @@ export default function ExternalFilesPage({
       });
       setFileContent(editContent);
       upsertEntry(result.entry, false);
+      void loadEntries();
       showToast(result.message || t("externalFiles.saved"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -191,6 +192,22 @@ export default function ExternalFilesPage({
       showToast(`Error: ${e}`, true);
     }
   }, [selectedFilePath, clearSelection, showToast, t]);
+
+  const handleClearAll = useCallback(async () => {
+    const confirmed = await ask(t("externalFiles.clearAllConfirm"), {
+      title: t("common.confirm"),
+      kind: "warning",
+    });
+    if (!confirmed) return;
+    try {
+      await invoke<ExternalFileEntry[]>("clear_external_files");
+      setEntries([]);
+      clearSelection();
+      showToast(t("externalFiles.cleared"));
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  }, [clearSelection, showToast, t]);
 
   const handleImport = useCallback(async () => {
     if (!selectedFilePath) return;
@@ -233,6 +250,18 @@ export default function ExternalFilesPage({
             {t("externalFiles.subtitle")}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => void handleClearAll()}
+          disabled={loading || entries.length === 0}
+          title={t("externalFiles.clearAll")}
+          style={{
+            background: "none", border: "none", cursor: loading || entries.length === 0 ? "not-allowed" : "pointer", padding: 6, borderRadius: 6,
+            color: "var(--text-secondary)", display: "flex", alignItems: "center", opacity: loading || entries.length === 0 ? 0.45 : 1,
+          }}
+        >
+          <Eraser size={14} />
+        </button>
         <button
           type="button"
           onClick={() => void loadEntries()}
