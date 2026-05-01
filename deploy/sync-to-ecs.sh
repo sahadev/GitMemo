@@ -70,9 +70,9 @@ fix_fonts_for_china() {
 # 构建
 # ============================================
 build_website() {
-    log "========== 构建 GitMemo 官网 =========="
+    log "========== 构建 GitMemo 官网（默认中文）=========="
     cd "$WEBSITE_DIR"
-    npm run build
+    VITE_DEFAULT_LANG=zh npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"

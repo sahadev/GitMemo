@@ -13,8 +13,9 @@ const I18nContext = createContext<I18nContextType>(null!)
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(() => {
     const saved = localStorage.getItem('gitmemo-lang')
-    if (saved === 'zh') return 'zh'
-    return 'en'
+    if (saved === 'zh' || saved === 'en') return saved
+    const defaultLang = (import.meta.env.VITE_DEFAULT_LANG as Lang) || 'en'
+    return defaultLang
   })
 
   const changeLang = (l: Lang) => {
