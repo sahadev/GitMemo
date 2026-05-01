@@ -230,6 +230,22 @@ fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), Strin
     fs::write(&path, json).map_err(|e| format!("{}: {}", path.display(), e))
 }
 
+fn save_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, String> {
+    let mut entries = read_external_files_index()?;
+    let existing = entries.iter().find(|item| item.file_path == abs_path.to_string_lossy());
+    let last_opened_at = existing
+        .map(|item| item.last_opened_at.clone())
+        .unwrap_or_else(now_rfc3339);
+    let entry = entry_from_abs_path(abs_path, last_opened_at);
+    entries.retain(|item| item.file_path != entry.file_path);
+    entries.insert(0, entry.clone());
+    if entries.len() > MAX_INDEX_ENTRIES {
+        entries.truncate(MAX_INDEX_ENTRIES);
+    }
+    write_external_files_index(&entries)?;
+    Ok(entry)
+}
+
 fn upsert_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, String> {
     let mut entries = read_external_files_index()?;
     let now = now_rfc3339();
@@ -479,7 +495,7 @@ pub fn save_external_file(file_path: String, content: String) -> Result<External
         return Err("Unsupported file type".into());
     }
     fs::write(&abs_path, content).map_err(|e| e.to_string())?;
-    let entry = upsert_external_file_entry(&abs_path)?;
+    let entry = save_external_file_entry(&abs_path)?;
     Ok(ExternalFileWriteResult {
         entry,
         message: "File saved".into(),

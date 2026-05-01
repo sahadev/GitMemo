@@ -43,7 +43,7 @@
     "empty": "暂无外部文件",
     "selectFile": "通过 GitMemo 打开一个文件后，它会出现在这里",
     "localOnlyHint": "这个列表仅保存在当前设备，不会同步到 Git。",
-    "lastOpened": "最近打开：{0}",
+    "lastSaved": "最近保存：{0}",
     "missing": "已丢失",
     "fileMissing": "这个文件在原始路径中已不存在。",
     "editingLive": "这里的修改会直接写回原始文件。",

@@ -43,7 +43,7 @@
     "empty": "No external files yet",
     "selectFile": "Open a file with GitMemo to start tracking it here",
     "localOnlyHint": "This list stays on this device and is not synced to Git.",
-    "lastOpened": "Last opened {0}",
+    "lastSaved": "Last saved {0}",
     "missing": "Missing",
     "fileMissing": "This file is no longer available at its original path.",
     "editingLive": "Edits here write directly to the original file.",

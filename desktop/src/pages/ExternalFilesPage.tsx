@@ -287,7 +287,7 @@ export default function ExternalFilesPage({
                     {entry.parent_dir}
                   </div>
                   <div style={{ marginTop: 6, fontSize: 10, opacity: 0.62 }}>
-                    {t("externalFiles.lastOpened", relativeTime(entry.last_opened_at, t))}
+                    {t("externalFiles.lastSaved", relativeTime(entry.last_modified_at || entry.last_opened_at, t))}
                   </div>
                 </button>
               );
