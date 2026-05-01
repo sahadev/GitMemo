@@ -192,15 +192,16 @@ fn import_single_file(
                 FileCategory::Document => "document",
                 _ => "file",
             };
+            let actual_name = dest_full.file_name().unwrap_or_default().to_string_lossy().to_string();
             let md = if matches!(&category, FileCategory::Image) {
                 format!(
                     "---\ndate: {}\nsource: import\ntype: {}\noriginal: {}\n---\n\n![{}]({})\n",
-                    local_timestamp(&now), type_label, filename, filename, filename
+                    local_timestamp(&now), type_label, filename, filename, actual_name
                 )
             } else {
                 format!(
                     "---\ntitle: {}\ndate: {}\nsource: import\ntype: {}\noriginal: {}\n---\n\n[{}]({})\n",
-                    filename, local_timestamp(&now), type_label, filename, filename, filename
+                    filename, local_timestamp(&now), type_label, filename, filename, actual_name
                 )
             };
             let _ = std::fs::write(&md_full, &md);
