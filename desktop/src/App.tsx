@@ -16,13 +16,14 @@ import PlansPage from "./pages/PlansPage";
 import ClaudeConfigPage from "./pages/ClaudeConfigPage";
 import EditorHomePage from "./pages/EditorHomePage";
 import ExternalFilesPage from "./pages/ExternalFilesPage";
+import ImportsPage from "./pages/ImportsPage";
 import { SetupWizard } from "./components/SetupWizard";
 import { useSync } from "./hooks/useSync";
 import { usePlatform } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 import { useI18n } from "./hooks/useI18n";
 
-export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "claude-config" | "editor-home" | "external-files" | "settings";
+export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
 
 type EditorRoot = "claude" | "cursor" | "anonymous";
@@ -249,21 +250,7 @@ function App() {
     setExternalFileOpenTarget(null);
     setOpenFilePath(null);
     setPendingOpenPath(first.dest_path);
-
-    if (first.dest_path.startsWith("clips/")) {
-      setCurrentPage("clipboard");
-      return;
-    }
-
-    if (first.dest_path.startsWith("notes/")) {
-      setCurrentPage("notes");
-      return;
-    }
-
-    if (first.dest_path.startsWith("plans/")) {
-      setCurrentPage("plans");
-      return;
-    }
+    setCurrentPage("imports");
   }, [setPendingOpenPath]);
 
   const handleSetupComplete = useCallback((needsRemoteSync?: boolean) => {
@@ -282,9 +269,13 @@ function App() {
     return routeExternalFile(paths[0]);
   }, [routeExternalFile, t]);
 
+  const handleDropImportNavigate = useCallback(() => {
+    setCurrentPage("imports");
+  }, []);
+
   const dropZone = useMemo(
-    () => (!isMobile ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} /> : null),
-    [isMobile, handleOpenDroppedFiles],
+    () => (!isMobile ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} onNavigateAfterImport={handleDropImportNavigate} /> : null),
+    [isMobile, handleOpenDroppedFiles, handleDropImportNavigate],
   );
 
   const pageContent = initialized === false && currentPage !== "settings" ? (
@@ -297,6 +288,7 @@ function App() {
       {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
       {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
       {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}

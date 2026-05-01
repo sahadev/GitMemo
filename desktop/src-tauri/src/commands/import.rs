@@ -31,29 +31,24 @@ pub struct ImportedFile {
     pub size: u64,
 }
 
-/// Route a file to the correct gitmemo directory based on its type
+/// Route a file to the correct gitmemo directory based on its type.
+/// All imports land under `imports/` — file type only affects processing, not destination.
 fn route_file(_filename: &str, ext: &str) -> (&'static str, FileCategory) {
     match ext.to_lowercase().as_str() {
-        // Markdown → notes/imports/
-        "md" | "markdown" | "mdx" => ("notes/imports", FileCategory::Markdown),
-        // Images → clips/{date}/
+        "md" | "markdown" | "mdx" => ("imports", FileCategory::Markdown),
         "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "bmp" | "ico" | "avif" => {
-            ("clips", FileCategory::Image)
+            ("imports", FileCategory::Image)
         }
-        // Documents → imports/docs/
         "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx" | "csv" | "tsv" | "rtf"
-        | "odt" | "ods" | "odp" => ("imports/docs", FileCategory::Document),
-        // Code → imports/code/
+        | "odt" | "ods" | "odp" => ("imports", FileCategory::Document),
         "rs" | "py" | "js" | "ts" | "tsx" | "jsx" | "go" | "java" | "kt" | "swift" | "c"
         | "cpp" | "h" | "hpp" | "rb" | "php" | "sh" | "bash" | "zsh" | "fish" | "sql"
         | "yaml" | "yml" | "toml" | "json" | "xml" | "html" | "css" | "scss" | "sass"
-        | "less" | "vue" | "svelte" => ("imports/code", FileCategory::Code),
-        // Text files → notes/imports/
+        | "less" | "vue" | "svelte" => ("imports", FileCategory::Code),
         "txt" | "log" | "text" | "conf" | "cfg" | "ini" | "env" => {
-            ("notes/imports", FileCategory::Markdown)
+            ("imports", FileCategory::Markdown)
         }
-        // Everything else → imports/other/
-        _ => ("imports/other", FileCategory::Other),
+        _ => ("imports", FileCategory::Other),
     }
 }
 
@@ -86,20 +81,13 @@ fn import_single_file(
     let (base_dir, category) = route_file(&filename, &ext);
     let now = chrono::Local::now();
 
-    // Build destination path
+    // Build destination path — all types use {date}-{filename} under imports/
+    let prefix = now.format("%Y%m%d").to_string();
     let dest_rel = match &category {
-        FileCategory::Image => {
-            // Images go to clips/{date}/{filename}
-            let date_dir = now.format("%Y-%m-%d").to_string();
-            format!("{}/{}/{}", base_dir, date_dir, filename)
-        }
         FileCategory::Markdown => {
-            // Markdown/text files → wrap content or copy directly
             format!("{}/{}", base_dir, filename)
         }
         _ => {
-            // Other files: {base_dir}/{date}-{filename}
-            let prefix = now.format("%Y%m%d").to_string();
             format!("{}/{}-{}", base_dir, prefix, filename)
         }
     };
@@ -196,18 +184,26 @@ fn import_single_file(
             std::fs::copy(source, &dest_full)
                 .map_err(|e| format!("Failed to copy file: {}", e))?;
 
-            // For images, also create a markdown reference
-            if matches!(&category, FileCategory::Image) {
-                let md_path = format!("{}.md", dest_rel);
-                let md_full = sync_dir.join(&md_path);
-                let md = format!(
-                    "---\ndate: {}\nsource: import\ntype: image\n---\n\n![{}]({})\n",
-                    local_timestamp(&now),
-                    filename,
-                    filename
-                );
-                let _ = std::fs::write(&md_full, &md);
-            }
+            // Create a companion .md so list_files can discover this import
+            let md_path = format!("{}.md", dest_rel);
+            let md_full = sync_dir.join(&md_path);
+            let type_label = match &category {
+                FileCategory::Image => "image",
+                FileCategory::Document => "document",
+                _ => "file",
+            };
+            let md = if matches!(&category, FileCategory::Image) {
+                format!(
+                    "---\ndate: {}\nsource: import\ntype: {}\noriginal: {}\n---\n\n![{}]({})\n",
+                    local_timestamp(&now), type_label, filename, filename, filename
+                )
+            } else {
+                format!(
+                    "---\ntitle: {}\ndate: {}\nsource: import\ntype: {}\noriginal: {}\n---\n\n[{}]({})\n",
+                    filename, local_timestamp(&now), type_label, filename, filename, filename
+                )
+            };
+            let _ = std::fs::write(&md_full, &md);
         }
     }
 

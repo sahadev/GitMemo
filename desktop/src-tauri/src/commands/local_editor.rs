@@ -132,6 +132,8 @@ fn sync_page_for_rel(rel_path: &str) -> Option<&'static str> {
         Some("clipboard")
     } else if rel_path.starts_with("plans/") {
         Some("plans")
+    } else if rel_path.starts_with("imports/") {
+        Some("imports")
     } else {
         None
     }

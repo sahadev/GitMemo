@@ -6,6 +6,7 @@
     "notes": "笔记",
     "clipboard": "剪贴板",
     "plans": "计划",
+    "imports": "导入",
     "claudeConfig": "AI 配置",
     "editorHome": "本机目录",
     "externalFiles": "外部文件",
@@ -36,6 +37,13 @@
     "deleted": "已删除",
     "editableWarning": "此处的修改会直接写入本机文件。",
     "untitled": "untitled"
+  },
+  "imports": {
+    "title": "导入文件",
+    "empty": "拖拽文件到窗口即可导入",
+    "selectOrDrop": "选择一个文件或将文件拖入窗口",
+    "deleted": "已删除导入文件",
+    "deleteConfirm": "删除这个导入文件？"
   },
   "externalFiles": {
     "title": "外部文件",

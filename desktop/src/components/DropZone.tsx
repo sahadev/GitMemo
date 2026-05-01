@@ -24,6 +24,7 @@ interface DragDropPayload {
 
 interface DropZoneProps {
   onOpenDroppedFiles?: (paths: string[]) => Promise<boolean>;
+  onNavigateAfterImport?: () => void;
 }
 
 interface PendingDrop {
@@ -70,7 +71,7 @@ function describeDrop(paths: string[], t: (key: string, ...args: (string | numbe
   };
 }
 
-export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
+export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: DropZoneProps) {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
@@ -93,6 +94,7 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
       const res = await invoke<ImportResult>("import_files", { paths });
       setResult(res);
       dismissResultLater();
+      if (res.imported.length > 0) onNavigateAfterImport?.();
     } catch (e) {
       setResult({ success: false, imported: [], errors: [`${e}`] });
       dismissResultLater();
@@ -100,7 +102,7 @@ export default function DropZone({ onOpenDroppedFiles }: DropZoneProps) {
       setImporting(false);
       setPendingDrop(null);
     }
-  }, [dismissResultLater]);
+  }, [dismissResultLater, onNavigateAfterImport]);
 
   const handleOpen = useCallback(async (paths: string[]) => {
     if (!onOpenDroppedFiles) return;

@@ -6,6 +6,7 @@
     "notes": "Notes",
     "clipboard": "Clipboard",
     "plans": "Plans",
+    "imports": "Imports",
     "claudeConfig": "AI Config",
     "editorHome": "Local dirs",
     "externalFiles": "External Files",
@@ -36,6 +37,13 @@
     "deleted": "Deleted",
     "editableWarning": "Edits here change local files directly.",
     "untitled": "untitled"
+  },
+  "imports": {
+    "title": "Imports",
+    "empty": "Drag files to the window to import",
+    "selectOrDrop": "Select a file or drag one into the window",
+    "deleted": "Import deleted",
+    "deleteConfirm": "Delete this imported file?"
   },
   "externalFiles": {
     "title": "External Files",
