@@ -12,6 +12,7 @@ const ThemeContext = createContext<ThemeContextType>(null!)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark'
     const saved = localStorage.getItem('gitmemo-theme')
     if (saved === 'light' || saved === 'dark') return saved
     if (window.matchMedia?.('(prefers-color-scheme: light)').matches) return 'light'

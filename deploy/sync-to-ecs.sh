@@ -91,7 +91,7 @@ build_website() {
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"
     mkdir -p "$SCRIPT_DIR/dist"
-    cp -r "$WEBSITE_DIR/dist" "$SCRIPT_DIR/dist/gitmemo"
+    cp -r "$WEBSITE_DIR/dist/client" "$SCRIPT_DIR/dist/gitmemo"
 
     fix_for_china
     log "构建完成"
