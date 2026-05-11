@@ -73,7 +73,7 @@ fn get_stats_sync() -> Result<AppStats, String> {
     let total_size: u64 = walkdir::WalkDir::new(&sync_dir)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
+        .filter(|e| e.file_type().is_file())
         .filter_map(|e| e.metadata().ok())
         .map(|m| m.len())
         .sum();
