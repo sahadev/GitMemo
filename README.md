@@ -15,18 +15,18 @@ Available as both a CLI and a Desktop app, with a local-first workflow for Claud
 ## Features
 
 - **Git-backed knowledge repo** — AI conversations, notes, and everyday work flow into one directory managed by Git; remote sync stays optional
-- **Auto-save for supported editor workflows** — Claude Code, Cursor, and Codex conversations can be saved as Markdown with GitMemo’s configured rules and skills
+- **Conversation capture for supported AI tools** — Claude Code and Cursor use rules, skills, hooks, and MCP where available; Codex sessions are imported from native local logs with `gitmemo capture`
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
 - **Multi-editor** — Supports Claude Code, Cursor, and Codex
 - **Notes** — Scratch notes, daily journal, manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
-- **No always-on sync daemon for editor capture** — Editor-side capture relies on native hooks and integrations rather than a separate sync service
+- **No always-on sync daemon for editor capture** — Capture relies on native hooks, integrations, or local session logs rather than a separate sync service
 - **Data ownership** — Your content lives in **your** Git repo; local indexes and helpers are explained in the [Data & storage statement](docs/DATA-STATEMENT.md)
 
 ## Environment & dependencies
 
 - **Git (local CLI)**: Required to initialize the sync repo and run `commit` / `push` workflows. A **remote** is **not** required—you can stay local-only until you want to sync copies to another machine or a cloud Git host.
-- **Claude Code / Cursor / Codex**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want **automatic capture from the editor**, hooks, and MCP where supported. You can start with CLI notes and sync, then run `init` again later to add an editor.
+- **Claude Code / Cursor / Codex**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want conversation capture, hooks, MCP, or Codex log import where supported. Codex support reads existing `~/.codex` logs; it does not modify Codex config or install a Codex `/save` skill.
 - **Hosted Git remote** (GitHub / GitLab / Gitee / self-hosted): **Always optional**.
 
 ## Quick Start
@@ -39,7 +39,7 @@ Available as both a CLI and a Desktop app, with a local-first workflow for Claud
    - Prefer **`.dmg`** (drag into Applications), or  
    - **`.app.tar.gz`** (extract to get `.app`; filenames change each release — look for **desktop** / **GitMemo** in the asset name).  
    **Linux / Windows**: this repository does **not** ship Desktop installers yet; use **CLI install** below (Linux CLI binaries are published).
-2. **First-time setup**: finish initialization once—**use the guided setup inside GitMemo Desktop**, or install the **CLI** below and run **`gitmemo init`** in a terminal if you prefer. This creates `~/.gitmemo` and optionally wires Claude / Cursor. After that you can stay mostly in Desktop for browsing, search, and clipboard.
+2. **First-time setup**: finish initialization once—**use the guided setup inside GitMemo Desktop**, or install the **CLI** below and run **`gitmemo init`** in a terminal if you prefer. This creates `~/.gitmemo` and optionally wires Claude / Cursor or enables Codex log capture. After that you can stay mostly in Desktop for browsing, search, and clipboard.
 
 > **macOS Desktop note**: current Desktop releases are signed and intended for normal installation via the published `.dmg` or `.app.tar.gz` assets. If macOS still blocks launch on your machine, treat that as an unexpected environment-specific issue rather than the standard install path.
 
@@ -96,7 +96,7 @@ Follow the prompts: choose your editor, enter your Git remote URL (or press Ente
 
 ### After setup
 
-After initialization, conversations, notes, and other supported sources flow into your sync directory and into Git. In **Claude** or **Cursor**, type **`/save`** to save the current session manually (after `init` installed the save skill for that editor); auto-save also runs for supported workflows under your configured rules. If nothing happens, restart the editor session.
+After initialization, conversations, notes, and other supported sources flow into your sync directory and into Git. In **Claude** or **Cursor**, type **`/save`** to save the current session manually (after `init` installed the save skill for that editor); auto-save also runs for supported workflows under your configured rules. For **Codex**, run `gitmemo capture` or use Desktop's capture action after a Codex session; GitMemo reads Codex's local `~/.codex/history.jsonl` and session JSONL files.
 
 ### Desktop App
 
@@ -115,7 +115,13 @@ After initialization, conversations, notes, and other supported sources flow int
 
 ### How Conversations Are Saved
 
-In **Claude** or **Cursor**, type **`/save`** to save the current session when the save skill from `gitmemo init` is present. Claude Code and Codex session logs are also captured by `gitmemo capture`; Cursor relies on rules, skills, and MCP sync. If a session was missed, **`/save`** catches it where slash-command skills are available.
+There are three supported capture paths:
+
+- **Claude Code**: GitMemo injects instructions, a PostToolUse hook, `/save`, and MCP. Claude sessions can be saved by the hook or by running `gitmemo capture`.
+- **Cursor**: GitMemo uses Cursor rules, skills, and MCP sync. Use `/save` when the save skill is present.
+- **Codex**: GitMemo does not inject a Codex hook or `/save` skill. Codex already writes local logs under `~/.codex`; `gitmemo capture` imports new Codex sessions from those logs into `conversations/YYYY-MM/*.md`.
+
+To verify Codex capture without writing files, run `gitmemo capture --dry-run` after using Codex.
 
 ### Verify It Works
 
@@ -145,6 +151,7 @@ gitmemo daily              # Open/append daily journal
 gitmemo manual "Title"     # Create a manual
 gitmemo search "docker"    # Full-text search conversations and notes
 gitmemo recent             # List recent conversations
+gitmemo capture            # Import Claude Code and Codex session logs
 gitmemo stats              # Show statistics
 gitmemo unpushed           # Show unpushed commits
 gitmemo reindex            # Rebuild search index
@@ -195,15 +202,15 @@ No manual copying. No export buttons. Supported sources can flow into your sync 
 
 ## Supported Editors
 
-| Editor | System Instruction | Git Sync | MCP |
+| Editor | Capture mechanism | Git sync | MCP |
 |--------|-------------------|----------|-----|
-| **Claude Code** | `CLAUDE.md` | PostToolUse Hook (automatic) | `~/.claude.json` |
-| **Cursor** | Cursor Rules (`.mdc`) | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
-| **Codex** | Native session logs | `gitmemo capture` | — |
+| **Claude Code** | `CLAUDE.md`, hooks, `/save`, native logs | PostToolUse Hook + `gitmemo capture` | `~/.claude.json` |
+| **Cursor** | Cursor Rules (`.mdc`) and skills | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
+| **Codex** | Native local logs under `~/.codex` | `gitmemo capture` | — |
 
 ## How It Works
 
-For Claude Code, Cursor, and Codex capture flows, GitMemo avoids an extra sync daemon and instead integrates with each editor's native mechanisms:
+For Claude Code, Cursor, and Codex capture flows, GitMemo avoids an extra sync daemon and instead uses each tool's native mechanisms: hooks/rules/MCP where available, and local session logs for Codex.
 
 **Claude Code:**
 
@@ -232,6 +239,7 @@ For Claude Code, Cursor, and Codex capture flows, GitMemo avoids an extra sync d
 | `~/.codex/history.jsonl` | Discovers Codex sessions with new user activity |
 | `~/.codex/sessions/YYYY/MM/DD/*.jsonl` | Converts user and assistant messages into GitMemo conversation Markdown |
 | `gitmemo capture` | Imports Codex sessions alongside Claude Code sessions and commits them to Git |
+| No Codex config injection | Codex support is read-only against Codex logs; GitMemo does not install a Codex `/save` skill |
 
 ## Uninstall
 

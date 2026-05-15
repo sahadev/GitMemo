@@ -7,21 +7,21 @@ const steps = [
     num: '01',
     titleKey: 'how.step1.title',
     descKey: 'how.step1.desc',
-    code: '# CLAUDE.md\nAfter each conversation, save it as:\n~/.gitmemo/conversations/{date}-{topic}.md',
+    code: '$ gitmemo init --editor all\n\nClaude: hooks + /save\nCursor: rules + MCP\nCodex: ~/.codex log capture',
   },
   {
     icon: <GitCommit size={24} />,
     num: '02',
     titleKey: 'how.step2.title',
     descKey: 'how.step2.desc',
-    code: '// settings.json → hooks\n"PostToolUse": [{\n  "command": "gitmemo sync"\n}]',
+    code: '$ gitmemo capture --dry-run\n\nreads ~/.codex/history.jsonl\nfinds ~/.codex/sessions/.../*.jsonl\nwrites conversations/YYYY-MM/*.md',
   },
   {
     icon: <Search size={24} />,
     num: '03',
     titleKey: 'how.step3.title',
     descKey: 'how.step3.desc',
-    code: '> Claude, search my conversations\n  about "async Rust"\n\n  Found 3 results...',
+    code: '$ gitmemo search "async Rust"\n\nconversations/2026-05/...\nsource: codex-capture',
   },
 ]
 

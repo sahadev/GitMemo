@@ -4,14 +4,15 @@ const lines = [
   { text: '$ gitmemo init', color: '#fdfcfc', delay: 0 },
   { text: '', color: '', delay: 600 },
   { text: '  Setting up GitMemo...', color: '#007aff', delay: 800 },
-  { text: '  Editor: Claude Code + Cursor', color: '#9a9898', delay: 1200 },
+  { text: '  Editor: Claude Code + Cursor + Codex', color: '#9a9898', delay: 1200 },
   { text: '  Language: English', color: '#9a9898', delay: 1500 },
   { text: '', color: '', delay: 1700 },
-  { text: '  [1/3] Injecting CLAUDE.md instruction...    done', color: '#30d158', delay: 1900 },
-  { text: '  [2/3] Registering PostToolUse hook...       done', color: '#30d158', delay: 2400 },
-  { text: '  [3/3] Configuring MCP server...             done', color: '#30d158', delay: 2900 },
-  { text: '', color: '', delay: 3100 },
-  { text: '  GitMemo is ready! Your AI conversations will auto-sync to Git.', color: '#007aff', delay: 3300 },
+  { text: '  [1/4] Injecting CLAUDE.md instruction...    done', color: '#30d158', delay: 1900 },
+  { text: '  [2/4] Writing Cursor rules...               done', color: '#30d158', delay: 2400 },
+  { text: '  [3/4] Enabling Codex log capture...         done', color: '#30d158', delay: 2900 },
+  { text: '  [4/4] Configuring MCP server...             done', color: '#30d158', delay: 3400 },
+  { text: '', color: '', delay: 3600 },
+  { text: '  GitMemo is ready! Your AI conversations will sync to Git.', color: '#007aff', delay: 3800 },
 ]
 
 export default function Terminal() {
