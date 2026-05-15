@@ -38,7 +38,7 @@ pub enum Commands {
         #[arg(long)]
         no_mcp: bool,
 
-        /// Target editor: claude, cursor, or all (interactive if omitted)
+        /// Target editor: claude, cursor, codex, or all (interactive if omitted)
         #[arg(long)]
         editor: Option<String>,
 
@@ -139,7 +139,7 @@ pub enum Commands {
         remove: bool,
     },
 
-    /// Capture conversations from Claude Code session logs
+    /// Capture conversations from Claude Code and Codex session logs
     #[command(version)]
     Capture {
         /// Only capture sessions from a specific project path

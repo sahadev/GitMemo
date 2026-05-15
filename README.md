@@ -10,14 +10,14 @@
 
 > **Your AI chats and notes sync automatically to Git.** GitMemo helps you turn AI conversations, notes, and everyday work into a Git-backed personal knowledge repo.
 
-Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code and Cursor users.
+Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, and Codex users.
 
 ## Features
 
 - **Git-backed knowledge repo** — AI conversations, notes, and everyday work flow into one directory managed by Git; remote sync stays optional
-- **Auto-save for supported editor workflows** — Claude Code and Cursor conversations can be saved as Markdown with GitMemo’s configured rules and skills
+- **Auto-save for supported editor workflows** — Claude Code, Cursor, and Codex conversations can be saved as Markdown with GitMemo’s configured rules and skills
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
-- **Multi-editor** — Supports both Claude Code and Cursor
+- **Multi-editor** — Supports Claude Code, Cursor, and Codex
 - **Notes** — Scratch notes, daily journal, manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
 - **No always-on sync daemon for editor capture** — Editor-side capture relies on native hooks and integrations rather than a separate sync service
@@ -26,7 +26,7 @@ Available as both a CLI and a Desktop app, with a local-first workflow for Claud
 ## Environment & dependencies
 
 - **Git (local CLI)**: Required to initialize the sync repo and run `commit` / `push` workflows. A **remote** is **not** required—you can stay local-only until you want to sync copies to another machine or a cloud Git host.
-- **Claude Code / Cursor**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want **automatic capture from the editor**, hooks, and MCP. You can start with CLI notes and sync, then run `init` again later to add an editor.
+- **Claude Code / Cursor / Codex**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want **automatic capture from the editor**, hooks, and MCP where supported. You can start with CLI notes and sync, then run `init` again later to add an editor.
 - **Hosted Git remote** (GitHub / GitLab / Gitee / self-hosted): **Always optional**.
 
 ## Quick Start
@@ -75,13 +75,14 @@ cargo install --path .
 ### Initialize
 
 ```bash
-# New setup — interactive editor selection (Claude Code / Cursor / both)
+# New setup — interactive editor selection (Claude Code / Cursor / Codex / all)
 gitmemo init
 
 # Or specify the editor directly
 gitmemo init --editor claude    # Claude Code only
 gitmemo init --editor cursor    # Cursor only
-gitmemo init --editor all       # Both
+gitmemo init --editor codex     # Codex capture only
+gitmemo init --editor all       # All supported editors
 
 # Specify language (default: English)
 gitmemo init --lang zh          # Chinese interface
@@ -114,7 +115,7 @@ After initialization, conversations, notes, and other supported sources flow int
 
 ### How Conversations Are Saved
 
-In **Claude** or **Cursor**, type **`/save`** to save the current session (when the save skill from `gitmemo init` is present). On the Claude side, many turns also auto-save under your rules. If a session was missed, **`/save`** catches it.
+In **Claude** or **Cursor**, type **`/save`** to save the current session when the save skill from `gitmemo init` is present. Claude Code and Codex session logs are also captured by `gitmemo capture`; Cursor relies on rules, skills, and MCP sync. If a session was missed, **`/save`** catches it where slash-command skills are available.
 
 ### Verify It Works
 
@@ -198,10 +199,11 @@ No manual copying. No export buttons. Supported sources can flow into your sync 
 |--------|-------------------|----------|-----|
 | **Claude Code** | `CLAUDE.md` | PostToolUse Hook (automatic) | `~/.claude.json` |
 | **Cursor** | Cursor Rules (`.mdc`) | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
+| **Codex** | Native session logs | `gitmemo capture` | — |
 
 ## How It Works
 
-For Claude Code and Cursor capture flows, GitMemo avoids an extra sync daemon and instead integrates with each editor's native mechanisms:
+For Claude Code, Cursor, and Codex capture flows, GitMemo avoids an extra sync daemon and instead integrates with each editor's native mechanisms:
 
 **Claude Code:**
 
@@ -222,6 +224,14 @@ For Claude Code and Cursor capture flows, GitMemo avoids an extra sync daemon an
 | `~/.cursor/skills/gitmemo-session-log` | Optional-style skill: save substantive Q&A summaries under `<sync>/conversations/YYYY-MM/` (same path rule as chats, not the open project repo) |
 | `cds_sync` MCP tool | AI calls this after saving to trigger git sync (only when you pick Cursor at init and omit `--no-mcp`) |
 | MCP Server | Enables AI to search history and create notes |
+
+**Codex:**
+
+| Injection Point | What It Does |
+|----------------|--------------|
+| `~/.codex/history.jsonl` | Discovers Codex sessions with new user activity |
+| `~/.codex/sessions/YYYY/MM/DD/*.jsonl` | Converts user and assistant messages into GitMemo conversation Markdown |
+| `gitmemo capture` | Imports Codex sessions alongside Claude Code sessions and commits them to Git |
 
 ## Uninstall
 

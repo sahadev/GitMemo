@@ -13,17 +13,18 @@
     "settings": "设置"
   },
   "editorHome": {
-    "title": "本机 Claude / Cursor",
-    "subtitle": "可浏览并编辑本机 Claude / Cursor 文件，并在独立工作区中保存匿名草稿。",
+    "title": "本机 Claude / Cursor / Codex",
+    "subtitle": "可浏览并编辑本机 Claude / Cursor / Codex 文件，并在独立工作区中保存匿名草稿。",
     "up": "上级",
     "selectFile": "点选左侧文件进行预览或编辑",
     "selectOrCreate": "选择一个文件，或新建匿名草稿",
     "emptyDir": "此文件夹为空",
     "emptyAnonymous": "暂无匿名文件",
     "missingDir": "该目录不存在（可能尚未安装或运行过对应工具）",
-    "missingBoth": "未找到 ~/.claude 与 ~/.cursor（本页无法浏览）。",
+    "missingBoth": "未找到 ~/.claude、~/.cursor 或 ~/.codex（本页无法浏览）。",
     "claude": "Claude",
     "cursor": "Cursor",
+    "codex": "Codex",
     "anonymous": "匿名",
     "newFile": "新建文件",
     "newFolder": "新建文件夹",
@@ -102,7 +103,7 @@
     "todayReview": "知识回顾",
     "shuffle": "换一条",
     "emptyGuideTitle": "开始积累你的知识库",
-    "emptyGuideDesc": "写一条笔记、或在 Claude Code / Cursor 中对话，内容会自动出现在这里。"
+    "emptyGuideDesc": "写一条笔记、或在 Claude Code / Cursor / Codex 中对话，内容会自动出现在这里。"
   },
   "conversations": {
     "title": "对话",
@@ -205,8 +206,8 @@
     "cursorIntegration": "Cursor IDE 集成",
     "cursorIntegrationDesc": "自动保存对话记录 & 通过 ~/.cursor/ 注入规则",
     "updateSkills": "更新 Skills",
-    "localDirs": "本机 Claude / Cursor 目录",
-    "localDirsDesc": "浏览并编辑本机 Claude / Cursor 目录，并在独立工作区中管理匿名草稿",
+    "localDirs": "本机 Claude / Cursor / Codex 目录",
+    "localDirsDesc": "浏览并编辑本机 Claude / Cursor / Codex 目录，并在独立工作区中管理匿名草稿",
     "open": "打开",
     "shortcuts": "快捷键",
     "shortcutGlobalSearch": "Cmd+Shift+G：唤起 GitMemo 并聚焦搜索",
@@ -307,8 +308,8 @@
     "installDone": "安装完成",
     "installDoneDesc": "GitMemo 已设置就绪",
     "firstSave": "完成第一次 /save",
-    "firstSaveDesc": "先和 Claude Code 或 Cursor 对话，再输入 /save。这次会话就会出现在 GitMemo 里。",
-    "firstSaveNeedEditorDesc": "请先配置 Claude Code 或 Cursor，然后先聊一句，再执行 /save 保存到 GitMemo。",
+    "firstSaveDesc": "先和 Claude Code、Cursor 或 Codex 对话，再在支持的位置输入 /save。捕获后的会话会出现在 GitMemo 里。",
+    "firstSaveNeedEditorDesc": "请先配置 Claude Code、Cursor 或 Codex，然后先聊一句，再把会话捕获到 GitMemo。",
     "enableClipboard": "开启剪贴板捕获",
     "enableClipboardDesc": "自动保存复制的文本（20 字以上）到 Git",
     "enable": "开启",
@@ -316,7 +317,7 @@
     "connectRemoteDesc": "同步知识到 GitHub/GitLab 进行备份",
     "goToSettings": "去设置",
     "configureEditor": "配置编辑器集成",
-    "configureEditorDesc": "自动保存 Claude Code 或 Cursor 的 AI 对话"
+    "configureEditorDesc": "自动保存 Claude Code、Cursor 或 Codex 的 AI 对话"
   },
   "setup": {
     "next": "继续",
@@ -343,6 +344,7 @@
     "editorsDesc": "选择要自动保存 AI 对话的编辑器，稍后也可在设置中更改。",
     "claudeDesc": "通过 CLAUDE.md + MCP 自动保存对话",
     "cursorDesc": "通过 Cursor 规则 + MCP 自动保存对话",
+    "codexDesc": "通过 gitmemo capture 捕获 Codex 原生日志",
     "skipEditorsHint": "未选择编辑器 — 稍后可在设置中启用",
     "startSetup": "开始设置",
     "settingUp": "正在设置 GitMemo...",

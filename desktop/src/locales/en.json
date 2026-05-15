@@ -13,17 +13,18 @@
     "settings": "Settings"
   },
   "editorHome": {
-    "title": "Local Claude & Cursor",
-    "subtitle": "Browse and edit local Claude/Cursor files, plus keep anonymous drafts in a separate workspace.",
+    "title": "Local Claude, Cursor & Codex",
+    "subtitle": "Browse and edit local Claude/Cursor/Codex files, plus keep anonymous drafts in a separate workspace.",
     "up": "Up",
     "selectFile": "Pick a file on the left to preview or edit",
     "selectOrCreate": "Select a file or create a new anonymous draft",
     "emptyDir": "This folder is empty",
     "emptyAnonymous": "No anonymous files yet",
     "missingDir": "This directory does not exist yet (install or run the tool once).",
-    "missingBoth": "Neither ~/.claude nor ~/.cursor was found.",
+    "missingBoth": "None of ~/.claude, ~/.cursor, or ~/.codex was found.",
     "claude": "Claude",
     "cursor": "Cursor",
+    "codex": "Codex",
     "anonymous": "Anonymous",
     "newFile": "New File",
     "newFolder": "New Folder",
@@ -102,7 +103,7 @@
     "todayReview": "Revisit",
     "shuffle": "Shuffle",
     "emptyGuideTitle": "Start building your knowledge base",
-    "emptyGuideDesc": "Write a note or chat with Claude Code / Cursor — content will appear here automatically."
+    "emptyGuideDesc": "Write a note or chat with Claude Code / Cursor / Codex — content will appear here automatically."
   },
   "conversations": {
     "title": "Conversations",
@@ -205,8 +206,8 @@
     "cursorIntegration": "Cursor IDE integration",
     "cursorIntegrationDesc": "Auto-save conversations & inject rules via ~/.cursor/",
     "updateSkills": "Update Skills",
-    "localDirs": "Local Claude / Cursor dirs",
-    "localDirsDesc": "Browse and edit local Claude/Cursor folders, plus manage anonymous drafts in a separate workspace.",
+    "localDirs": "Local Claude / Cursor / Codex dirs",
+    "localDirsDesc": "Browse and edit local Claude/Cursor/Codex folders, plus manage anonymous drafts in a separate workspace.",
     "open": "Open",
     "shortcuts": "Keyboard shortcuts",
     "shortcutGlobalSearch": "Cmd+Shift+G: Show GitMemo and focus search",
@@ -307,8 +308,8 @@
     "installDone": "Installation complete",
     "installDoneDesc": "GitMemo is set up and ready to use",
     "firstSave": "Do your first /save",
-    "firstSaveDesc": "Talk to Claude Code or Cursor first, then type /save. The session will appear in GitMemo.",
-    "firstSaveNeedEditorDesc": "Set up Claude Code or Cursor first. Then chat once and run /save to send the session into GitMemo.",
+    "firstSaveDesc": "Talk to Claude Code, Cursor, or Codex first, then type /save where available. Captured sessions will appear in GitMemo.",
+    "firstSaveNeedEditorDesc": "Set up Claude Code, Cursor, or Codex first. Then chat once and capture the session into GitMemo.",
     "enableClipboard": "Enable clipboard capture",
     "enableClipboardDesc": "Auto-save copied text (20+ chars) to Git",
     "enable": "Enable",
@@ -316,7 +317,7 @@
     "connectRemoteDesc": "Sync your knowledge to GitHub/GitLab for backup",
     "goToSettings": "Settings",
     "configureEditor": "Set up editor integration",
-    "configureEditorDesc": "Auto-save AI conversations from Claude Code or Cursor"
+    "configureEditorDesc": "Auto-save AI conversations from Claude Code, Cursor, or Codex"
   },
   "setup": {
     "next": "Continue",
@@ -343,6 +344,7 @@
     "editorsDesc": "Select editors to auto-save AI conversations. You can change this later.",
     "claudeDesc": "Auto-save conversations via CLAUDE.md + MCP",
     "cursorDesc": "Auto-save conversations via Cursor rules + MCP",
+    "codexDesc": "Capture native Codex session logs with gitmemo capture",
     "skipEditorsHint": "No editor selected — you can enable integrations later in Settings",
     "startSetup": "Set Up GitMemo",
     "settingUp": "Setting up GitMemo...",

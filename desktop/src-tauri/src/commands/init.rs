@@ -15,7 +15,7 @@ pub struct InitRequest {
     pub lang: String,           // "en" or "zh"
     pub git_url: String,        // empty = local-only
     pub ssh_key_path: Option<String>,
-    pub editors: Vec<String>,   // ["claude", "cursor"]
+    pub editors: Vec<String>,   // ["claude", "cursor", "codex"]
 }
 
 #[derive(Debug, Serialize)]
@@ -175,6 +175,7 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     // 5. Editor integrations
     let install_claude = request.editors.contains(&"claude".to_string());
     let install_cursor = request.editors.contains(&"cursor".to_string());
+    let install_codex = request.editors.contains(&"codex".to_string());
     let sync_dir_str = sync_dir.to_string_lossy().to_string();
 
     if install_claude {
@@ -189,6 +190,10 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
             Ok(()) => result.add_ok("cursor", "Cursor integration enabled"),
             Err(e) => result.add_err("cursor", &format!("Cursor setup failed: {e}")),
         }
+    }
+
+    if install_codex {
+        result.add_ok("codex", "Codex capture enabled");
     }
 
     // 6. Initial commit

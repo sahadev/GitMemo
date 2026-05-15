@@ -1,8 +1,11 @@
-//! Capture conversations from Claude Code's native session logs.
+//! Capture conversations from Claude Code and Codex native session logs.
 //!
 //! Claude Code writes two data sources automatically:
 //! 1. `~/.claude/history.jsonl` — global index (sessionId, project, timestamp, display)
 //! 2. `~/.claude/projects/{slug}/{sessionId}.jsonl` — full conversation (user + assistant messages)
+//!
+//! Codex writes `~/.codex/history.jsonl` plus per-session JSONL files under
+//! `~/.codex/sessions/{YYYY}/{MM}/{DD}/`.
 //!
 //! This module reads those files, converts to GitMemo markdown, and writes to the conversations directory.
 
@@ -16,8 +19,11 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CaptureState {
-    /// Byte offset into history.jsonl (for incremental reads)
+    /// Byte offset into Claude Code history.jsonl (for incremental reads)
     pub history_byte_offset: u64,
+    /// Byte offset into Codex history.jsonl (for incremental reads)
+    #[serde(default)]
+    pub codex_history_byte_offset: u64,
     /// Per-session capture state
     #[serde(default)]
     pub captured_sessions: HashMap<String, SessionState>,
@@ -61,11 +67,27 @@ pub struct SessionInfo {
     pub first_ts: u64,
     pub last_ts: u64,
     pub display_texts: Vec<String>,
+    pub source: CaptureSource,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaptureSource {
+    ClaudeCode,
+    Codex,
+}
+
+impl CaptureSource {
+    fn label(self) -> &'static str {
+        match self {
+            CaptureSource::ClaudeCode => "claude-code-capture",
+            CaptureSource::Codex => "codex-capture",
+        }
+    }
 }
 
 #[derive(Debug)]
 struct ConversationMessage {
-    role: String,      // "user" or "assistant"
+    role: String, // "user" or "assistant"
     text: String,
     timestamp: String, // HH:MM:SS
 }
@@ -76,6 +98,7 @@ struct ConversationContent {
     date_iso: String,
     session_id: String,
     project: String,
+    source: CaptureSource,
     messages: Vec<ConversationMessage>,
     total_lines: usize,
 }
@@ -89,6 +112,13 @@ struct HistoryEntry {
     project: String,
     #[serde(rename = "sessionId")]
     session_id: String,
+}
+
+#[derive(Deserialize)]
+struct CodexHistoryEntry {
+    session_id: String,
+    ts: u64,
+    text: String,
 }
 
 /// Discover sessions with new activity since last capture.
@@ -123,6 +153,7 @@ fn discover_sessions(history_path: &Path, state: &mut CaptureState) -> Result<Ve
                 first_ts: entry.timestamp,
                 last_ts: entry.timestamp,
                 display_texts: Vec::new(),
+                source: CaptureSource::ClaudeCode,
             });
             if entry.timestamp < info.first_ts {
                 info.first_ts = entry.timestamp;
@@ -141,11 +172,70 @@ fn discover_sessions(history_path: &Path, state: &mut CaptureState) -> Result<Ve
     // Only return sessions with new activity
     let result: Vec<SessionInfo> = sessions
         .into_values()
-        .filter(|s| {
-            match state.captured_sessions.get(&s.session_id) {
-                Some(prev) => s.last_ts > prev.last_capture_ts,
-                None => true,
+        .filter(|s| match state.captured_sessions.get(&s.session_id) {
+            Some(prev) => s.last_ts > prev.last_capture_ts,
+            None => true,
+        })
+        .collect();
+
+    Ok(result)
+}
+
+fn discover_codex_sessions(
+    history_path: &Path,
+    state: &mut CaptureState,
+) -> Result<Vec<SessionInfo>> {
+    if !history_path.exists() {
+        return Ok(vec![]);
+    }
+
+    let file = std::fs::File::open(history_path)?;
+    let file_len = file.metadata()?.len();
+
+    if file_len < state.codex_history_byte_offset {
+        state.codex_history_byte_offset = 0;
+    }
+
+    let mut reader = std::io::BufReader::new(file);
+    reader.seek(SeekFrom::Start(state.codex_history_byte_offset))?;
+
+    let mut sessions: HashMap<String, SessionInfo> = HashMap::new();
+
+    for line in reader.lines() {
+        let line = line?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        if let Ok(entry) = serde_json::from_str::<CodexHistoryEntry>(&line) {
+            let sid = format!("codex:{}", entry.session_id);
+            let ts = entry.ts.saturating_mul(1000);
+            let info = sessions.entry(sid.clone()).or_insert(SessionInfo {
+                session_id: sid,
+                project: "Codex".to_string(),
+                first_ts: ts,
+                last_ts: ts,
+                display_texts: Vec::new(),
+                source: CaptureSource::Codex,
+            });
+            if ts < info.first_ts {
+                info.first_ts = ts;
             }
+            if ts > info.last_ts {
+                info.last_ts = ts;
+            }
+            if !entry.text.is_empty() && entry.text.len() < 200 {
+                info.display_texts.push(entry.text);
+            }
+        }
+    }
+
+    state.codex_history_byte_offset = file_len;
+
+    let result: Vec<SessionInfo> = sessions
+        .into_values()
+        .filter(|s| match state.captured_sessions.get(&s.session_id) {
+            Some(prev) => s.last_ts > prev.last_capture_ts,
+            None => true,
         })
         .collect();
 
@@ -159,12 +249,64 @@ fn project_slug(project: &str) -> String {
 }
 
 fn session_jsonl_path(session: &SessionInfo) -> PathBuf {
+    match session.source {
+        CaptureSource::ClaudeCode => claude_session_jsonl_path(session),
+        CaptureSource::Codex => codex_session_jsonl_path(session),
+    }
+}
+
+fn claude_session_jsonl_path(session: &SessionInfo) -> PathBuf {
     let home = dirs::home_dir().unwrap_or_default();
     let slug = project_slug(&session.project);
     home.join(".claude")
         .join("projects")
         .join(&slug)
         .join(format!("{}.jsonl", session.session_id))
+}
+
+fn codex_session_jsonl_path(session: &SessionInfo) -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_default();
+    let session_id = session
+        .session_id
+        .strip_prefix("codex:")
+        .unwrap_or(&session.session_id);
+    let mut path = home.join(".codex").join("sessions");
+    if let Ok(entries) = std::fs::read_dir(&path) {
+        for year in entries.filter_map(|entry| entry.ok()) {
+            if !year.path().is_dir() {
+                continue;
+            }
+            if let Ok(months) = std::fs::read_dir(year.path()) {
+                for month in months.filter_map(|entry| entry.ok()) {
+                    if !month.path().is_dir() {
+                        continue;
+                    }
+                    if let Ok(days) = std::fs::read_dir(month.path()) {
+                        for day in days.filter_map(|entry| entry.ok()) {
+                            if !day.path().is_dir() {
+                                continue;
+                            }
+                            if let Ok(files) = std::fs::read_dir(day.path()) {
+                                for file in files.filter_map(|entry| entry.ok()) {
+                                    let file_path = file.path();
+                                    if file_path.extension().is_some_and(|ext| ext == "jsonl")
+                                        && file_path
+                                            .file_name()
+                                            .and_then(|name| name.to_str())
+                                            .is_some_and(|name| name.contains(session_id))
+                                    {
+                                        return file_path;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    path.push(format!("{}.jsonl", session_id));
+    path
 }
 
 #[derive(Deserialize)]
@@ -179,9 +321,95 @@ struct SessionEntry {
     is_meta: Option<bool>,
     #[serde(rename = "isSnapshotUpdate")]
     is_snapshot_update: Option<bool>,
+    payload: Option<serde_json::Value>,
 }
 
-fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<ConversationContent> {
+fn content_value_to_text(content: Option<&serde_json::Value>) -> Option<String> {
+    match content {
+        Some(serde_json::Value::String(s)) => {
+            if s.starts_with("<command-name>") || s.starts_with("<local-command-caveat>") {
+                return None;
+            }
+            Some(s.clone())
+        }
+        Some(serde_json::Value::Array(arr)) => {
+            let texts: Vec<String> = arr
+                .iter()
+                .filter_map(|block| {
+                    let block_type = block.get("type")?.as_str()?;
+                    if block_type == "text"
+                        || block_type == "input_text"
+                        || block_type == "output_text"
+                    {
+                        Some(block.get("text")?.as_str()?.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if texts.is_empty() {
+                None
+            } else {
+                Some(texts.join("\n"))
+            }
+        }
+        _ => None,
+    }
+}
+
+fn codex_payload_message(entry: &SessionEntry) -> Option<ConversationMessage> {
+    let payload = entry.payload.as_ref()?;
+    let ts = entry
+        .timestamp
+        .as_deref()
+        .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
+        .map(|dt| {
+            let local: chrono::DateTime<chrono::Local> = dt.into();
+            local.format("%H:%M:%S").to_string()
+        })
+        .unwrap_or_default();
+
+    if entry.entry_type == "event_msg" {
+        let payload_type = payload.get("type")?.as_str()?;
+        let role = match payload_type {
+            "user_message" => "user",
+            "agent_message" => "assistant",
+            _ => return None,
+        };
+        let text = payload.get("message")?.as_str()?.to_string();
+        if text.trim().is_empty() {
+            return None;
+        }
+        return Some(ConversationMessage {
+            role: role.to_string(),
+            text,
+            timestamp: ts,
+        });
+    }
+
+    if entry.entry_type == "response_item" && payload.get("type")?.as_str()? == "message" {
+        let role = payload.get("role")?.as_str()?;
+        if role != "user" && role != "assistant" {
+            return None;
+        }
+        let text = content_value_to_text(payload.get("content"))?;
+        if text.trim().is_empty() {
+            return None;
+        }
+        return Some(ConversationMessage {
+            role: role.to_string(),
+            text,
+            timestamp: ts,
+        });
+    }
+
+    None
+}
+
+fn extract_conversation(
+    session: &SessionInfo,
+    state: &CaptureState,
+) -> Result<ConversationContent> {
     let jsonl_path = session_jsonl_path(session);
     let skip_lines = state
         .captured_sessions
@@ -209,7 +437,6 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
                 Err(_) => continue,
             };
 
-            // Extract custom title if available
             if entry.entry_type == "custom-title" {
                 if let Some(t) = entry.custom_title {
                     title = t;
@@ -217,7 +444,6 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
                 continue;
             }
 
-            // Skip snapshot updates and system entries
             if entry.is_snapshot_update.unwrap_or(false)
                 || entry.entry_type == "file-history-snapshot"
                 || entry.entry_type == "system"
@@ -227,13 +453,20 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
                 continue;
             }
 
-            // Skip already-captured lines (for incremental capture)
             if i < skip_lines {
                 continue;
             }
 
-            // Skip meta commands (/clear, /help, etc.)
             if entry.is_meta.unwrap_or(false) {
+                continue;
+            }
+
+            if session.source == CaptureSource::Codex {
+                if entry.entry_type == "event_msg" {
+                    if let Some(msg) = codex_payload_message(&entry) {
+                        messages.push(msg);
+                    }
+                }
                 continue;
             }
 
@@ -255,32 +488,9 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
                     .to_string();
                 let content = msg.get("content");
 
-                let text = match content {
-                    Some(serde_json::Value::String(s)) => {
-                        // Filter command tags
-                        if s.starts_with("<command-name>") || s.starts_with("<local-command-caveat>") {
-                            continue;
-                        }
-                        s.clone()
-                    }
-                    Some(serde_json::Value::Array(arr)) => {
-                        // Extract text blocks only (skip tool_use/tool_result)
-                        let texts: Vec<String> = arr
-                            .iter()
-                            .filter_map(|block| {
-                                if block.get("type")?.as_str()? == "text" {
-                                    Some(block.get("text")?.as_str()?.to_string())
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
-                        if texts.is_empty() {
-                            continue;
-                        }
-                        texts.join("\n")
-                    }
-                    _ => continue,
+                let text = match content_value_to_text(content) {
+                    Some(text) => text,
+                    None => continue,
                 };
 
                 if text.trim().is_empty() {
@@ -297,7 +507,6 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
             }
         }
     } else {
-        // Fallback: use display texts from history.jsonl
         for display in &session.display_texts {
             messages.push(ConversationMessage {
                 role: "user".to_string(),
@@ -307,7 +516,6 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
         }
     }
 
-    // Generate title if not found
     if title.is_empty() {
         title = messages
             .iter()
@@ -319,19 +527,21 @@ fn extract_conversation(session: &SessionInfo, state: &CaptureState) -> Result<C
             .unwrap_or_else(|| "Untitled session".to_string());
     }
 
-    // Generate ISO date
     let date_iso = chrono::DateTime::from_timestamp_millis(session.first_ts as i64)
         .map(|dt| {
             let local: chrono::DateTime<chrono::Local> = dt.into();
             local.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
         })
-        .unwrap_or_else(|| chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+        .unwrap_or_else(|| {
+            chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+        });
 
     Ok(ConversationContent {
         title,
         date_iso,
         session_id: session.session_id.clone(),
         project: session.project.clone(),
+        source: session.source,
         messages,
         total_lines,
     })
@@ -367,7 +577,7 @@ fn to_markdown(content: &ConversationContent) -> String {
     md.push_str(&format!("date: {}\n", content.date_iso));
     md.push_str(&format!("session_id: {}\n", content.session_id));
     md.push_str(&format!("project: {}\n", content.project));
-    md.push_str("source: claude-code-capture\n");
+    md.push_str(&format!("source: {}\n", content.source.label()));
     md.push_str(&format!(
         "messages: {}\n",
         content.messages.iter().filter(|m| m.role == "user").count()
@@ -380,7 +590,11 @@ fn to_markdown(content: &ConversationContent) -> String {
     // Messages (limit to ~300 lines)
     let mut line_count = 0;
     for msg in &content.messages {
-        let role_label = if msg.role == "user" { "User" } else { "Assistant" };
+        let role_label = if msg.role == "user" {
+            "User"
+        } else {
+            "Assistant"
+        };
         let header = if msg.timestamp.is_empty() {
             format!("### {}\n\n", role_label)
         } else {
@@ -423,7 +637,10 @@ fn output_rel_path(content: &ConversationContent) -> String {
     let date_prefix = dt.format("%m-%d").to_string();
     let safe_title = sanitize_title(&content.title);
 
-    format!("conversations/{}/{}-{}.md", month_dir, date_prefix, safe_title)
+    format!(
+        "conversations/{}/{}-{}.md",
+        month_dir, date_prefix, safe_title
+    )
 }
 
 // ── Check for existing captures ─────────────────────────────────────────────
@@ -463,7 +680,11 @@ pub struct CaptureResult {
 }
 
 /// Run capture: discover new sessions, extract conversations, write markdown.
-pub fn run_capture(sync_dir: &Path, project_filter: Option<&str>, dry_run: bool) -> Result<CaptureResult> {
+pub fn run_capture(
+    sync_dir: &Path,
+    project_filter: Option<&str>,
+    dry_run: bool,
+) -> Result<CaptureResult> {
     let state_path = sync_dir.join(".metadata").join("capture_state.json");
     let mut state = CaptureState::load(&state_path);
 
@@ -471,8 +692,13 @@ pub fn run_capture(sync_dir: &Path, project_filter: Option<&str>, dry_run: bool)
         .unwrap_or_default()
         .join(".claude")
         .join("history.jsonl");
+    let codex_history_path = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".codex")
+        .join("history.jsonl");
 
-    let sessions = discover_sessions(&history_path, &mut state)?;
+    let mut sessions = discover_sessions(&history_path, &mut state)?;
+    sessions.extend(discover_codex_sessions(&codex_history_path, &mut state)?);
 
     let mut result = CaptureResult {
         new_sessions: 0,
@@ -499,11 +725,14 @@ pub fn run_capture(sync_dir: &Path, project_filter: Option<&str>, dry_run: bool)
                 }
             }
             // Update path to match existing file
-            state.captured_sessions.entry(session.session_id.clone()).or_insert(SessionState {
-                last_line_count: 0,
-                output_path: existing,
-                last_capture_ts: 0,
-            });
+            state
+                .captured_sessions
+                .entry(session.session_id.clone())
+                .or_insert(SessionState {
+                    last_line_count: 0,
+                    output_path: existing,
+                    last_capture_ts: 0,
+                });
         }
 
         let content = extract_conversation(session, &state)?;
@@ -553,4 +782,117 @@ pub fn run_capture(sync_dir: &Path, project_filter: Option<&str>, dry_run: bool)
     }
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::OsString;
+    use std::sync::Mutex;
+
+    static HOME_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct HomeOverride {
+        original: Option<OsString>,
+    }
+
+    impl HomeOverride {
+        fn set(path: &Path) -> Self {
+            let original = std::env::var_os("HOME");
+            std::env::set_var("HOME", path);
+            Self { original }
+        }
+    }
+
+    impl Drop for HomeOverride {
+        fn drop(&mut self) {
+            if let Some(original) = self.original.take() {
+                std::env::set_var("HOME", original);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+    }
+
+    #[test]
+    fn codex_history_discovery_uses_prefixed_session_ids_and_epoch_ms() {
+        let dir = tempfile::tempdir().unwrap();
+        let history_path = dir.path().join("history.jsonl");
+        std::fs::write(
+            &history_path,
+            concat!(
+                r#"{"session_id":"abc123","ts":1715000000,"text":"first prompt"}"#,
+                "\n",
+                r#"{"session_id":"abc123","ts":1715000060,"text":"follow up"}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+
+        let mut state = CaptureState::default();
+        let sessions = discover_codex_sessions(&history_path, &mut state).unwrap();
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].session_id, "codex:abc123");
+        assert_eq!(sessions[0].project, "Codex");
+        assert_eq!(sessions[0].source, CaptureSource::Codex);
+        assert_eq!(sessions[0].first_ts, 1_715_000_000_000);
+        assert_eq!(sessions[0].last_ts, 1_715_000_060_000);
+        assert_eq!(sessions[0].display_texts, vec!["first prompt", "follow up"]);
+        assert!(state.codex_history_byte_offset > 0);
+
+        let sessions = discover_codex_sessions(&history_path, &mut state).unwrap();
+        assert!(sessions.is_empty());
+    }
+
+    #[test]
+    fn codex_extraction_uses_event_messages_without_response_item_duplicates() {
+        let _guard = HOME_ENV_LOCK.lock().unwrap();
+        let home = tempfile::tempdir().unwrap();
+        let _home_override = HomeOverride::set(home.path());
+
+        let session_id = "019e2b97-70c0-7331-8522-04aca9e8055f";
+        let session_dir = home.path().join(".codex/sessions/2026/05/15");
+        std::fs::create_dir_all(&session_dir).unwrap();
+        std::fs::write(
+            session_dir.join(format!("rollout-2026-05-15T20-23-25-{session_id}.jsonl")),
+            concat!(
+                r#"{"timestamp":"2026-05-15T12:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"hello codex"}}"#,
+                "\n",
+                r#"{"timestamp":"2026-05-15T12:00:01Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"hello codex"}]}}"#,
+                "\n",
+                r#"{"timestamp":"2026-05-15T12:00:02Z","type":"event_msg","payload":{"type":"agent_message","message":"hi back"}}"#,
+                "\n",
+                r#"{"timestamp":"2026-05-15T12:00:03Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"hi back"}]}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+
+        let session = SessionInfo {
+            session_id: format!("codex:{session_id}"),
+            project: "Codex".to_string(),
+            first_ts: 1_715_774_400_000,
+            last_ts: 1_715_774_400_000,
+            display_texts: vec!["hello codex".to_string()],
+            source: CaptureSource::Codex,
+        };
+
+        let content = extract_conversation(&session, &CaptureState::default()).unwrap();
+
+        assert_eq!(content.messages.len(), 2);
+        assert_eq!(content.title, "hello codex");
+        assert_eq!(content.project, "Codex");
+        assert_eq!(content.source, CaptureSource::Codex);
+        assert_eq!(content.total_lines, 4);
+        assert_eq!(content.messages[0].role, "user");
+        assert_eq!(content.messages[0].text, "hello codex");
+        assert_eq!(content.messages[1].role, "assistant");
+        assert_eq!(content.messages[1].text, "hi back");
+
+        let markdown = to_markdown(&content);
+        assert!(markdown.contains("source: codex-capture"));
+        assert!(markdown.contains(&format!("session_id: codex:{session_id}")));
+        assert!(markdown.contains("project: Codex"));
+    }
 }

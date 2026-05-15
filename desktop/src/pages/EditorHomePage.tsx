@@ -9,13 +9,15 @@ import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
-type EditorRoot = "claude" | "cursor" | "anonymous";
+type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
 interface EditorRootsStatus {
   claude_path: string;
   claude_exists: boolean;
   cursor_path: string;
   cursor_exists: boolean;
+  codex_path: string;
+  codex_exists: boolean;
   anonymous_path: string;
   anonymous_exists: boolean;
 }
@@ -78,7 +80,8 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
       const r = await invoke<EditorRootsStatus>("get_editor_data_roots");
       setRoots(r);
       if (!r.claude_exists && r.cursor_exists) setRoot("cursor");
-      if (!r.claude_exists && !r.cursor_exists) setRoot("anonymous");
+      if (!r.claude_exists && !r.cursor_exists && r.codex_exists) setRoot("codex");
+      if (!r.claude_exists && !r.cursor_exists && !r.codex_exists) setRoot("anonymous");
     } catch {
       setRoots(null);
     }
@@ -119,6 +122,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
     if (!roots) return false;
     if (root === "claude") return roots.claude_exists;
     if (root === "cursor") return roots.cursor_exists;
+    if (root === "codex") return roots.codex_exists;
     return roots.anonymous_exists;
   }, [root, roots]);
 
@@ -126,6 +130,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
     if (!roots) return "";
     if (root === "claude") return roots.claude_path;
     if (root === "cursor") return roots.cursor_path;
+    if (root === "codex") return roots.codex_path;
     return roots.anonymous_path;
   }, [root, roots]);
 
@@ -316,12 +321,14 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
             display: "flex", flexDirection: "column", flexShrink: 0,
           }}>
             <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
-              {(["claude", "cursor", "anonymous"] as EditorRoot[]).map((r) => {
+              {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
                 const exists = r === "claude"
                   ? roots?.claude_exists
                   : r === "cursor"
                     ? roots?.cursor_exists
-                    : roots?.anonymous_exists;
+                    : r === "codex"
+                      ? roots?.codex_exists
+                      : roots?.anonymous_exists;
                 return (
                   <button
                     key={r}
@@ -335,7 +342,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       color: root === r ? "#fff" : "var(--text-secondary)",
                     }}
                   >
-                    {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : t("editorHome.anonymous")}
+                    {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
                   </button>
                 );
               })}

@@ -150,6 +150,7 @@ impl I18n {
     pub fn cursor_save_skill_installed(&self) -> &str { self.s("cursor_save_skill_installed") }
     pub fn cursor_session_log_skill_installed(&self) -> &str { self.s("cursor_session_log_skill_installed") }
     pub fn cursor_mcp_registered(&self) -> &str { self.s("cursor_mcp_registered") }
+    pub fn codex_capture_enabled(&self) -> &str { self.s("codex_capture_enabled") }
     pub fn deploy_key_hint(&self) -> &str { self.s("deploy_key_hint") }
     pub fn all_set(&self) -> &str { self.s("all_set") }
     pub fn next_steps(&self) -> &str { self.s("next_steps") }
@@ -342,13 +343,13 @@ mod tests {
     fn test_editor_options_array() {
         let en = I18n::new(Lang::En);
         let opts = en.editor_options();
-        assert_eq!(opts.len(), 3);
+        assert_eq!(opts.len(), 4);
         assert_eq!(opts[0], "Claude Code");
 
         let zh = I18n::new(Lang::Zh);
         let opts_zh = zh.editor_options();
-        assert_eq!(opts_zh.len(), 3);
-        assert_eq!(opts_zh[2], "两者都安装");
+        assert_eq!(opts_zh.len(), 4);
+        assert_eq!(opts_zh[2], "Codex");
     }
 
     #[test]

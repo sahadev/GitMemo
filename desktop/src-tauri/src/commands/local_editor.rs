@@ -60,11 +60,12 @@ fn ensure_dir(path: &Path) -> Result<PathBuf, String> {
 fn editor_root_dir(root: &str) -> Result<PathBuf, String> {
     let root_name = root.trim();
     match root_name {
-        "claude" | "cursor" => {
+        "claude" | "cursor" | "codex" => {
             let home = home_dir().ok_or_else(|| "HOME/USERPROFILE not set".to_string())?;
             let p = match root_name {
                 "claude" => home.join(".claude"),
                 "cursor" => home.join(".cursor"),
+                "codex" => home.join(".codex"),
                 _ => unreachable!(),
             };
             if !p.is_dir() {
@@ -74,7 +75,7 @@ fn editor_root_dir(root: &str) -> Result<PathBuf, String> {
                 .map_err(|e| format!("{}: {}", p.display(), e))
         }
         "anonymous" => ensure_dir(&anonymous_root_dir()?),
-        _ => Err("root must be \"claude\", \"cursor\", or \"anonymous\"".into()),
+        _ => Err("root must be \"claude\", \"cursor\", \"codex\", or \"anonymous\"".into()),
     }
 }
 
@@ -111,7 +112,7 @@ fn normalize_rel(rel: &str) -> Result<String, String> {
 }
 
 fn detect_editor_root(abs_path: &Path) -> Result<Option<(EditorRootKind, PathBuf)>, String> {
-    for root_name in ["claude", "cursor", "anonymous"] {
+    for root_name in ["claude", "cursor", "codex", "anonymous"] {
         let root = match editor_root_dir(root_name) {
             Ok(root) => root,
             Err(_) => continue,
@@ -368,6 +369,8 @@ pub struct EditorRootsStatus {
     pub claude_exists: bool,
     pub cursor_path: String,
     pub cursor_exists: bool,
+    pub codex_path: String,
+    pub codex_exists: bool,
     pub anonymous_path: String,
     pub anonymous_exists: bool,
 }
@@ -404,20 +407,26 @@ pub fn get_editor_data_roots() -> Result<EditorRootsStatus, String> {
             claude_exists: false,
             cursor_path: String::new(),
             cursor_exists: false,
+            codex_path: String::new(),
+            codex_exists: false,
             anonymous_path: anonymous.to_string_lossy().into(),
             anonymous_exists: true,
         });
     };
     let claude = home.join(".claude");
     let cursor = home.join(".cursor");
+    let codex = home.join(".codex");
     let claude_exists = claude.is_dir();
     let cursor_exists = cursor.is_dir();
+    let codex_exists = codex.is_dir();
     let anonymous = ensure_dir(&anonymous_root_dir()?)?;
     Ok(EditorRootsStatus {
         claude_path: claude.to_string_lossy().into(),
         claude_exists,
         cursor_path: cursor.to_string_lossy().into(),
         cursor_exists,
+        codex_path: codex.to_string_lossy().into(),
+        codex_exists,
         anonymous_path: anonymous.to_string_lossy().into(),
         anonymous_exists: true,
     })

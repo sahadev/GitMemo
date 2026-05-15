@@ -727,6 +727,25 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.cursorDesc")}</div>
                   </div>
                 </button>
+                <button style={optionCard(editors.includes("codex"))} onClick={() => toggleEditor("codex")}>
+                  <div style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 4,
+                    border: `2px solid ${editors.includes("codex") ? "var(--accent)" : "var(--border)"}`,
+                    background: editors.includes("codex") ? "var(--accent)" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    {editors.includes("codex") && <Check size={12} color="#fff" />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>Codex</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.codexDesc")}</div>
+                  </div>
+                </button>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button style={{ ...btnSecondary, width: "auto", padding: "10px 20px" }} onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>

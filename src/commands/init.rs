@@ -6,6 +6,7 @@ use crate::{inject, storage, utils};
 enum EditorChoice {
     Claude,
     Cursor,
+    Codex,
     All,
 }
 
@@ -42,6 +43,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
     let editor_choice = match editor.as_deref() {
         Some("claude") => EditorChoice::Claude,
         Some("cursor") => EditorChoice::Cursor,
+        Some("codex") => EditorChoice::Codex,
         Some("all") => EditorChoice::All,
         Some(other) => anyhow::bail!(t.unsupported_editor(other)),
         None => {
@@ -54,6 +56,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
             match selection {
                 0 => EditorChoice::Claude,
                 1 => EditorChoice::Cursor,
+                2 => EditorChoice::Codex,
                 _ => EditorChoice::All,
             }
         }
@@ -61,6 +64,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
 
     let install_claude = matches!(editor_choice, EditorChoice::Claude | EditorChoice::All);
     let install_cursor = matches!(editor_choice, EditorChoice::Cursor | EditorChoice::All);
+    let install_codex = matches!(editor_choice, EditorChoice::Codex | EditorChoice::All);
 
     // 1. Handle --path: symlink existing repo
     let sync_dir = if let Some(ref repo_path) = path {
@@ -277,6 +281,10 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         let binary = std::env::current_exe()?.to_string_lossy().to_string();
         inject::cursor_mcp::register(&cursor_mcp_path, &binary)?;
         println!("  {} {}", style("✓").green(), t.cursor_mcp_registered());
+    }
+
+    if install_codex {
+        println!("  {} {}", style("✓").green(), t.codex_capture_enabled());
     }
 
     // 8. Detect remote default branch (or default to "main") and save config
