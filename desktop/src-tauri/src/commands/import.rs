@@ -2,6 +2,23 @@ use gitmemo_core::storage::{files, git};
 use serde::Serialize;
 use std::path::Path;
 
+const SKIP_DIRECTORY_NAMES: &[&str] = &[
+    ".git",
+    ".hg",
+    ".svn",
+    ".metadata",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    ".svelte-kit",
+    ".vite",
+    "coverage",
+    ".cache",
+];
+
 fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
 }
@@ -50,6 +67,34 @@ fn route_file(_filename: &str, ext: &str) -> (&'static str, FileCategory) {
         }
         _ => ("imports", FileCategory::Other),
     }
+}
+
+fn should_skip_directory_entry(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+        return false;
+    };
+    name.starts_with('.') || SKIP_DIRECTORY_NAMES.contains(&name)
+}
+
+fn is_supported_directory_import_file(path: &Path) -> bool {
+    let ext = path
+        .extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    matches!(
+        ext.as_str(),
+        "md" | "markdown" | "mdx"
+            | "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "bmp" | "ico" | "avif"
+            | "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx" | "csv" | "tsv" | "rtf"
+            | "odt" | "ods" | "odp"
+            | "rs" | "py" | "js" | "ts" | "tsx" | "jsx" | "go" | "java" | "kt" | "swift"
+            | "c" | "cpp" | "h" | "hpp" | "rb" | "php" | "sh" | "bash" | "zsh" | "fish"
+            | "sql" | "yaml" | "yml" | "toml" | "json" | "xml" | "html" | "css" | "scss"
+            | "sass" | "less" | "vue" | "svelte"
+            | "txt" | "log" | "text" | "conf" | "cfg" | "ini" | "env"
+    )
 }
 
 /// Process a single dropped file: copy to correct location, optionally wrap in markdown
@@ -229,12 +274,20 @@ pub fn import_paths(paths: Vec<String>) -> Result<ImportResult, String> {
         let path = Path::new(path_str);
 
         if path.is_dir() {
-            // Recursively import directory
+            // Recursively import user-authored files. Skip generated/dependency trees so
+            // dropping a project folder does not import build artifacts into GitMemo.
             for entry in walkdir::WalkDir::new(path)
                 .into_iter()
+                .filter_entry(|e| {
+                    if e.depth() == 0 {
+                        return true;
+                    }
+                    !e.file_type().is_dir() || !should_skip_directory_entry(e.path())
+                })
                 .filter_map(|e| e.ok())
                 .filter(|e| e.path().is_file())
-                // Skip hidden files
+                .filter(|e| is_supported_directory_import_file(e.path()))
+                // Skip hidden files in non-skipped directory trees too.
                 .filter(|e| {
                     !e.path()
                         .components()

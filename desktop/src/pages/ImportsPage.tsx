@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -62,48 +62,10 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const loadInFlight = useRef<Promise<void> | null>(null);
+  const watchedFolders = useMemo(() => ["imports"], []);
 
-  const navPrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) openFile(files[idx - 1].path);
-  }, [selectedFile, files]);
-
-  const navNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < files.length - 1) openFile(files[idx + 1].path);
-  }, [selectedFile, files]);
-
-  useEffect(() => { loadFiles(); }, []);
-
-  useEffect(() => {
-    if (active) loadFiles();
-  }, [active]);
-
-  useEffect(() => {
-    if (!pendingOpenPath?.startsWith("imports/")) return;
-    void loadFiles().then(() => openFile(pendingOpenPath));
-    consumePendingOpenPath();
-  }, [pendingOpenPath, consumePendingOpenPath]);
-
-  const loadFiles = async () => {
-    setLoading(true);
-    try {
-      const result = await invoke<FileEntry[]>("list_files", { folder: "imports" });
-      setFiles(result);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  const handleRefresh = useCallback(() => {
-    void loadFiles();
-    if (selectedFile) void openFile(selectedFile);
-  }, [selectedFile]);
-
-  useFileWatcher(["imports"], loadFiles);
-
-  const openFile = async (path: string) => {
+  const openFile = useCallback(async (path: string) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
@@ -114,9 +76,58 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
         itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 50);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleDelete = async () => {
+  const loadFiles = useCallback(() => {
+    if (loadInFlight.current) return loadInFlight.current;
+
+    const task = (async () => {
+      setLoading(true);
+      try {
+        const result = await invoke<FileEntry[]>("list_files", { folder: "imports" });
+        setFiles(result);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+        loadInFlight.current = null;
+      }
+    })();
+
+    loadInFlight.current = task;
+    return task;
+  }, []);
+
+  const navPrev = useCallback(() => {
+    if (!selectedFile || files.length === 0) return;
+    const idx = files.findIndex((f) => f.path === selectedFile);
+    if (idx > 0) openFile(files[idx - 1].path);
+  }, [selectedFile, files, openFile]);
+
+  const navNext = useCallback(() => {
+    if (!selectedFile || files.length === 0) return;
+    const idx = files.findIndex((f) => f.path === selectedFile);
+    if (idx < files.length - 1) openFile(files[idx + 1].path);
+  }, [selectedFile, files, openFile]);
+
+  useEffect(() => {
+    if (active !== false) void loadFiles();
+  }, [active, loadFiles]);
+
+  useEffect(() => {
+    if (!pendingOpenPath?.startsWith("imports/")) return;
+    void loadFiles().then(() => openFile(pendingOpenPath));
+    consumePendingOpenPath();
+  }, [pendingOpenPath, consumePendingOpenPath, loadFiles, openFile]);
+
+  const handleRefresh = useCallback(() => {
+    void loadFiles();
+    if (selectedFile) void openFile(selectedFile);
+  }, [selectedFile, loadFiles, openFile]);
+
+  useFileWatcher(watchedFolders, loadFiles);
+
+  const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
     const confirmed = await ask(t("imports.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
@@ -127,9 +138,9 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
       setEditContent("");
       setEditing(false);
       showToast(t("imports.deleted"));
-      loadFiles();
+      void loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
-  };
+  }, [selectedFile, t, showToast, loadFiles]);
 
   const handleSave = useCallback(async () => {
     if (!selectedFile) return;

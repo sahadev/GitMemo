@@ -279,7 +279,8 @@
     "copyPath": "复制本机完整路径",
     "pathCopied": "路径已复制",
     "preview": "预览",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "loading": "加载中..."
   },
   "claudeConfig": {
     "memory": "记忆",

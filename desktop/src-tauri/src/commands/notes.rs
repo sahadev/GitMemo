@@ -2,16 +2,22 @@ use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::time::SystemTime;
 use tauri::{AppHandle, Emitter};
 
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 /// Content folders that the frontend watches for changes.
 const CONTENT_FOLDERS: &[&str] = &[
-    "conversations", "notes", "clips", "plans", "claude-config", "cursor-config",
+    "conversations", "notes", "clips", "plans", "claude-config", "cursor-config", "imports",
 ];
+
+const IMPORTS_LIST_LIMIT: usize = 1000;
+const LIST_PREVIEW_BYTES: usize = 64 * 1024;
 
 pub fn set_app_handle(handle: AppHandle) {
     let _ = APP_HANDLE.set(handle);
@@ -101,6 +107,29 @@ fn preview_from_body(body: &str) -> String {
         .chars()
         .take(200)
         .collect::<String>()
+}
+
+fn read_file_head(path: &Path) -> String {
+    let Ok(file) = File::open(path) else {
+        return String::new();
+    };
+    let mut limited = file.take(LIST_PREVIEW_BYTES as u64);
+    let mut buf = Vec::new();
+    if limited.read_to_end(&mut buf).is_err() {
+        return String::new();
+    }
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
+fn is_listed_file(path: &Path, folder: &str) -> bool {
+    let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
+    ext == "md" || ((ext == "mdc" || ext == "json") && folder.starts_with("cursor-config"))
+}
+
+struct FileCandidate {
+    path: PathBuf,
+    modified_time: SystemTime,
+    size: u64,
 }
 
 /// Notify the frontend that content folders may have changed.
@@ -311,24 +340,41 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
         return Ok(vec![]);
     }
 
-    let mut entries: Vec<FileEntry> = Vec::new();
+    let mut candidates: Vec<FileCandidate> = Vec::new();
 
     for entry in walkdir::WalkDir::new(&target)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            let ext = e.path().extension().and_then(|x| x.to_str()).unwrap_or("");
-            ext == "md" || ((ext == "mdc" || ext == "json") && folder.starts_with("cursor-config"))
-        })
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| is_listed_file(e.path(), &folder))
     {
-        let path = entry.path();
+        let meta = match entry.path().metadata() {
+            Ok(meta) => meta,
+            Err(_) => continue,
+        };
+        candidates.push(FileCandidate {
+            path: entry.path().to_path_buf(),
+            modified_time: meta.modified().unwrap_or(std::time::UNIX_EPOCH),
+            size: meta.len(),
+        });
+    }
+
+    if folder == "imports" && candidates.len() > IMPORTS_LIST_LIMIT {
+        candidates.sort_by(|a, b| b.modified_time.cmp(&a.modified_time));
+        candidates.truncate(IMPORTS_LIST_LIMIT);
+    }
+
+    let mut entries: Vec<FileEntry> = Vec::with_capacity(candidates.len());
+
+    for candidate in candidates {
+        let path = candidate.path.as_path();
         let rel_path = path
             .strip_prefix(&dir)
             .unwrap_or(path)
             .to_string_lossy()
             .to_string();
 
-        let content = std::fs::read_to_string(path).unwrap_or_default();
+        let content = read_file_head(path);
         // Strip frontmatter block then take first meaningful lines as preview
         let body = if content.starts_with("---") {
             if let Some(end) = content[3..].find("---") {
@@ -370,19 +416,16 @@ pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
                     .to_string()
             });
 
-        let meta = path.metadata().ok();
-        let modified_time = meta
-            .as_ref()
-            .and_then(|m| m.modified().ok())
-            .unwrap_or(std::time::UNIX_EPOCH);
         let (modified, modified_ts) =
-            record_timestamp_for_markdown(&content, modified_time);
-        let size = meta.map(|m| m.len()).unwrap_or(0);
+            record_timestamp_for_markdown(&content, candidate.modified_time);
+        let size = candidate.size;
 
         let source_type = if rel_path.starts_with("conversations") {
             "conversation"
         } else if rel_path.starts_with("clips") {
             "clip"
+        } else if rel_path.starts_with("imports") {
+            "import"
         } else {
             "note"
         };
