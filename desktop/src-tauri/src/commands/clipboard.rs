@@ -261,8 +261,6 @@ pub(crate) mod desktop_poll {
     use std::sync::{Arc, Mutex};
     use tauri::{AppHandle, Emitter};
 
-    use super::super::import;
-
     const MIN_LENGTH: usize = 10;
     const POLL_INTERVAL_MS: u64 = 300;
 
@@ -272,7 +270,6 @@ pub(crate) mod desktop_poll {
 
     enum PendingClip {
         Text(String),
-        Files(Vec<String>),
         Image { width: usize, height: usize, bytes: Vec<u8> },
     }
 
@@ -281,15 +278,15 @@ pub(crate) mod desktop_poll {
         t.starts_with("data:image/") && t.contains(";base64,")
     }
 
-    fn clipboard_file_paths(text: &str) -> Vec<String> {
-        let mut paths = Vec::new();
+    fn is_clipboard_file_list(text: &str) -> bool {
+        let mut saw_path = false;
         for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
             if let Some(url) = line.strip_prefix("file://") {
                 let candidate = format!("file://{}", url);
                 if let Ok(parsed) = url::Url::parse(&candidate) {
                     if let Ok(path) = parsed.to_file_path() {
                         if path.exists() {
-                            paths.push(path.to_string_lossy().to_string());
+                            saw_path = true;
                             continue;
                         }
                     }
@@ -297,12 +294,12 @@ pub(crate) mod desktop_poll {
             }
             let path = Path::new(line);
             if path.is_absolute() && path.exists() {
-                paths.push(path.to_string_lossy().to_string());
+                saw_path = true;
+                continue;
             }
+            return false;
         }
-        paths.sort();
-        paths.dedup();
-        paths
+        saw_path
     }
 
     fn collect_pending_clips(
@@ -321,10 +318,11 @@ pub(crate) mod desktop_poll {
                     if has_raster_image && is_redundant_image_data_url(&text) {
                         *last_text_hash = hash;
                     } else {
-                        let file_paths = clipboard_file_paths(&text);
-                        if !file_paths.is_empty() {
+                        if is_clipboard_file_list(&text) {
+                            // Finder and many tools place copied files on the clipboard as
+                            // file:// or absolute paths. Treat that as a system clipboard
+                            // artifact, not as an implicit request to import files.
                             *last_text_hash = hash;
-                            pending.push(PendingClip::Files(file_paths));
                         } else if text.len() >= MIN_LENGTH {
                             *last_text_hash = hash;
                             pending.push(PendingClip::Text(text));
@@ -358,24 +356,6 @@ pub(crate) mod desktop_poll {
                 PendingClip::Text(text) => {
                     if let Ok(event) = save_clip_content(&text) {
                         events.push(event);
-                    }
-                }
-                PendingClip::Files(paths) => {
-                    if let Ok(result) = import::import_paths(paths) {
-                        if let Some(first) = result.imported.first() {
-                            let now = chrono::Local::now();
-                            let preview = if result.imported.len() == 1 {
-                                format!("Imported {}", first.original_name)
-                            } else {
-                                format!("Imported {} files", result.imported.len())
-                            };
-                            events.push(ClipboardEvent {
-                                saved: true,
-                                path: first.dest_path.clone(),
-                                preview,
-                                timestamp: now.format("%H:%M:%S").to_string(),
-                            });
-                        }
                     }
                 }
                 PendingClip::Image { width, height, bytes } => {
