@@ -40,7 +40,9 @@ pub struct AppStats {
     pub scratch_notes: usize,
     pub clips: usize,
     pub plans: usize,
+    pub tracked_files: usize,
     pub total_size_kb: f64,
+    pub repository_size_kb: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -71,6 +73,8 @@ fn get_stats_sync() -> Result<AppStats, String> {
     }
 
     let total_size = git::worktree_content_size(&sync_dir);
+    let tracked_files = git::tracked_file_count(&sync_dir);
+    let repository_size = git::repository_storage_size(&sync_dir);
 
     Ok(AppStats {
         conversations: count_md_files(&sync_dir.join("conversations")),
@@ -79,7 +83,9 @@ fn get_stats_sync() -> Result<AppStats, String> {
         scratch_notes: count_md_files(&sync_dir.join("notes").join("scratch")),
         clips: count_md_files(&sync_dir.join("clips")),
         plans: count_md_files(&sync_dir.join("plans")),
+        tracked_files,
         total_size_kb: total_size as f64 / 1024.0,
+        repository_size_kb: repository_size as f64 / 1024.0,
     })
 }
 

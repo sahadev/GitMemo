@@ -22,7 +22,9 @@ interface AppStats {
   scratch_notes: number;
   clips: number;
   plans: number;
+  tracked_files?: number;
   total_size_kb: number;
+  repository_size_kb?: number;
 }
 
 interface RecentItem {
@@ -46,6 +48,10 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
+
+const formatSize = (sizeKb: number) => (
+  sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`
+);
 
 interface DashboardCache {
   stats: AppStats | null;
@@ -163,6 +169,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   if (!stats) {
     return <Loading text={t("dashboard.loading")} />;
   }
+
+  const contentFileCount = stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips + stats.plans;
+  const displayedFileCount = stats.tracked_files ?? contentFileCount;
+  const displayedRepoSizeKb = stats.repository_size_kb ?? stats.total_size_kb;
 
   const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page; notesTab?: NotesTab }[] = [
     { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" },
@@ -478,13 +488,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-              {t("dashboard.totalFiles", String(stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips))}
+              {t("dashboard.totalFiles", String(displayedFileCount))}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <HardDrive size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-              {stats.total_size_kb >= 1024 ? `${(stats.total_size_kb / 1024).toFixed(1)} MB` : `${stats.total_size_kb.toFixed(1)} KB`}
+              {formatSize(displayedRepoSizeKb)}
             </span>
           </div>
         </div>

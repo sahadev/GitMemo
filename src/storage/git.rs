@@ -104,6 +104,17 @@ pub fn worktree_content_size(repo_path: &Path) -> u64 {
     git_ls_files_size(repo_path).unwrap_or_else(|| fallback_content_size(repo_path))
 }
 
+/// Count files tracked in the Git index for the current branch checkout.
+pub fn tracked_file_count(repo_path: &Path) -> usize {
+    git_ls_files_count(repo_path).unwrap_or_else(|| fallback_content_file_count(repo_path))
+}
+
+/// Size of the Git object database, matching repository-host "repo size" more
+/// closely than summing checked-out working tree files.
+pub fn repository_storage_size(repo_path: &Path) -> u64 {
+    git_count_objects_size(repo_path).unwrap_or_else(|| worktree_content_size(repo_path))
+}
+
 fn git_ls_files_size(repo_path: &Path) -> Option<u64> {
     let output = git_command(
         repo_path,
@@ -133,6 +144,41 @@ fn git_ls_files_size(repo_path: &Path) -> Option<u64> {
     )
 }
 
+fn git_ls_files_count(repo_path: &Path) -> Option<usize> {
+    let output = git_command(repo_path, &["ls-files", "-z"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    Some(
+        output
+            .stdout
+            .split(|b| *b == 0)
+            .filter(|path| !path.is_empty())
+            .count(),
+    )
+}
+
+fn git_count_objects_size(repo_path: &Path) -> Option<u64> {
+    let stdout = git_cmd(repo_path, &["count-objects", "-v"]).ok()?;
+    let mut total_kib = 0u64;
+
+    for line in stdout.lines() {
+        if let Some(value) = line.strip_prefix("size: ") {
+            total_kib = total_kib.checked_add(value.trim().parse::<u64>().ok()?)?;
+        } else if let Some(value) = line.strip_prefix("size-pack: ") {
+            total_kib = total_kib.checked_add(value.trim().parse::<u64>().ok()?)?;
+        }
+    }
+
+    Some(total_kib.saturating_mul(1024))
+}
+
 fn fallback_content_size(repo_path: &Path) -> u64 {
     walkdir::WalkDir::new(repo_path)
         .into_iter()
@@ -148,6 +194,21 @@ fn fallback_content_size(repo_path: &Path) -> u64 {
         .filter_map(|entry| entry.metadata().ok())
         .map(|meta| meta.len())
         .sum()
+}
+
+fn fallback_content_file_count(repo_path: &Path) -> usize {
+    walkdir::WalkDir::new(repo_path)
+        .into_iter()
+        .filter_entry(|entry| {
+            let name = entry.file_name().to_string_lossy();
+            !matches!(
+                name.as_ref(),
+                ".git" | ".metadata" | ".ssh" | ".backups" | "imports"
+            )
+        })
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .count()
 }
 
 // ── Cross-process git network serialization ─────────────────────────────
@@ -848,5 +909,7 @@ mod tests {
 
         let expected = (gitignore.len() + "tracked".len() + "untracked".len()) as u64;
         assert_eq!(worktree_content_size(repo), expected);
+        assert_eq!(tracked_file_count(repo), 2);
+        assert!(repository_storage_size(repo) > 0);
     }
 }
