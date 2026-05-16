@@ -198,6 +198,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     justifyContent: "stretch",
     minHeight: "100%",
     height: "100%",
+    flex: 1,
+    width: "100%",
+    minWidth: 0,
     boxSizing: "border-box",
   };
 
