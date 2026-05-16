@@ -13,15 +13,8 @@ import { formatDateOnly, relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-}
+import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
+import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 
 interface ConversationMeta {
   title: string;
@@ -118,33 +111,54 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   const [editContent, setEditContent] = useState("");
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const filesLengthRef = useRef(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalFiles, setTotalFiles] = useState(0);
 
   useEffect(() => { loadFiles(); }, []);
+  useEffect(() => {
+    filesLengthRef.current = files.length;
+  }, [files.length]);
 
-  const loadFiles = async () => {
-    setLoading(true);
+  const metaFromEntry = (f: FileEntry): ConversationMeta => ({
+    title: f.title || "",
+    date: "",
+    model: f.model || "",
+    messages: f.messages || "",
+  });
+
+  const loadFiles = async (reset = true) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
     try {
-      const list = await invoke<FileEntry[]>("list_files", { folder: "conversations" });
-      setFiles(list);
-      // Enrich metadata
-      const cache = new Map<string, ConversationMeta>();
-      await Promise.all(
-        list.map(async (f) => {
-          try {
-            const raw = await invoke<string>("read_file", { filePath: f.path });
-            const { meta } = parseFrontmatter(raw);
-            cache.set(f.path, meta);
-          } catch { /* skip */ }
-        })
-      );
-      setMetaCache(cache);
+      const page = await invoke<FilePage>("list_files_page", {
+        folder: "conversations",
+        offset: reset ? 0 : filesLengthRef.current,
+        limit: FILE_PAGE_SIZE,
+      });
+      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
+      setMetaCache((prev) => {
+        const cache = reset ? new Map<string, ConversationMeta>() : new Map(prev);
+        page.entries.forEach((f) => cache.set(f.path, metaFromEntry(f)));
+        return cache;
+      });
+      setHasMore(page.has_more);
+      setTotalFiles(page.total);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false);
+      else setLoadingMore(false);
     }
   };
   useFileWatcher(["conversations"], loadFiles);
+  const { sentinelRef, loadMore } = useAutoLoadMore({
+    hasMore,
+    loading,
+    loadingMore,
+    onLoadMore: () => loadFiles(false),
+  });
 
   const applyConversationRaw = useCallback((path: string, raw: string) => {
     const { meta, body } = parseFrontmatter(raw);
@@ -285,6 +299,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
       <div style={{
         display: "flex", flexDirection: "column",
         flexShrink: 0, background: "var(--bg)",
+        height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
@@ -310,11 +325,12 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
             padding: "2px 8px", borderRadius: 10,
           }}>
             {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
+            {hasMore ? ` / ${totalFiles}` : ""}
           </span>
         </div>
 
         {/* List */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
             <Loading compact text={t("conversations.loading")} />
           ) : files.length === 0 ? (
@@ -323,7 +339,8 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
               <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("conversations.empty")}</p>
             </div>
           ) : (
-            files.map((f) => {
+            <>
+            {files.map((f) => {
               const meta = metaCache.get(f.path);
               const selected = selectedFile === f.path;
               return (
@@ -363,14 +380,32 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   </div>
                 </button>
               );
-            })
+            })}
+            {hasMore && (
+              <div ref={sentinelRef}>
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                style={{
+                  width: "100%", padding: "12px 16px", border: "none",
+                  borderBottom: "1px solid var(--border)", background: "transparent",
+                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
+                  fontSize: 12, fontWeight: 600,
+                }}
+              >
+                {loadingMore ? t("common.loading") : t("common.loadMore")}
+              </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>

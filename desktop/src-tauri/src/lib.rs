@@ -89,6 +89,7 @@ pub fn run() {
             notes::read_file_base64,
             notes::resolve_sync_path,
             notes::list_files,
+            notes::list_files_page,
             notes::update_note,
             notes::delete_note,
             notes::delete_clip,

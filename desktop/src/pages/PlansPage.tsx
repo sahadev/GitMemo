@@ -13,15 +13,8 @@ import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-}
+import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
+import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 
 export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
@@ -33,18 +26,42 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalFiles, setTotalFiles] = useState(0);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const filesLengthRef = useRef(0);
 
   useEffect(() => { loadFiles(); }, []);
+  useEffect(() => {
+    filesLengthRef.current = files.length;
+  }, [files.length]);
 
-  const loadFiles = async () => {
-    setLoading(true);
+  const loadFiles = async (reset = true) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
     try {
-      setFiles(await invoke<FileEntry[]>("list_files", { folder: "plans" }));
+      const page = await invoke<FilePage>("list_files_page", {
+        folder: "plans",
+        offset: reset ? 0 : filesLengthRef.current,
+        limit: FILE_PAGE_SIZE,
+      });
+      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
+      setHasMore(page.has_more);
+      setTotalFiles(page.total);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally {
+      if (reset) setLoading(false);
+      else setLoadingMore(false);
+    }
   };
   useFileWatcher(["plans"], loadFiles);
+  const { sentinelRef, loadMore } = useAutoLoadMore({
+    hasMore,
+    loading,
+    loadingMore,
+    onLoadMore: () => loadFiles(false),
+  });
 
   const openFile = async (path: string) => {
     try {
@@ -93,6 +110,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
         const next = remaining[0];
         void openFile(next.path);
       }
+      void loadFiles();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -123,6 +141,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 12px",
@@ -146,11 +165,11 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
             fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
             padding: "2px 8px", borderRadius: 10,
           }}>
-            {files.length}
+            {hasMore ? `${files.length} / ${totalFiles}` : files.length}
           </span>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
             <Loading compact text="Loading..." />
           ) : files.length === 0 ? (
@@ -162,7 +181,8 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
               </p>
             </div>
           ) : (
-            files.map((f) => {
+            <>
+            {files.map((f) => {
               const selected = selectedFile === f.path;
               return (
                 <button
@@ -185,14 +205,32 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
                   </p>
                 </button>
               );
-            })
+            })}
+            {hasMore && (
+              <div ref={sentinelRef}>
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                style={{
+                  width: "100%", padding: "12px 16px", border: "none",
+                  borderBottom: "1px solid var(--border)", background: "transparent",
+                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
+                  fontSize: 12, fontWeight: 600,
+                }}
+              >
+                {loadingMore ? t("common.loading") : t("common.loadMore")}
+              </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>

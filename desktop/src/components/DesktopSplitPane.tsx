@@ -34,14 +34,14 @@ export function DesktopSplitPane({
 
   return (
     <div style={desktopPaneStyle}>
-      <div style={{ width: panel.width, display: "flex", flexDirection: "column", flexShrink: 0, minWidth: 0, minHeight: 0 }}>
+      <div style={{ width: panel.width, height: "100%", display: "flex", flexDirection: "column", flexShrink: 0, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {left}
       </div>
       <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
         <div style={panel.handleLineStyle} />
         <div style={panel.handleHoverStyle} />
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {right}
       </div>
     </div>

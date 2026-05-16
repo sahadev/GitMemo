@@ -18,6 +18,8 @@ const CONTENT_FOLDERS: &[&str] = &[
 
 const IMPORTS_LIST_LIMIT: usize = 1000;
 const LIST_PREVIEW_BYTES: usize = 64 * 1024;
+const DEFAULT_LIST_PAGE_SIZE: usize = 10;
+const MAX_LIST_PAGE_SIZE: usize = 100;
 
 pub fn set_app_handle(handle: AppHandle) {
     let _ = APP_HANDLE.set(handle);
@@ -59,6 +61,21 @@ pub struct FileEntry {
     pub modified_ts: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preview_image: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub messages: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FilePage {
+    pub entries: Vec<FileEntry>,
+    pub total: usize,
+    pub offset: usize,
+    pub limit: usize,
+    pub has_more: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -130,6 +147,146 @@ struct FileCandidate {
     path: PathBuf,
     modified_time: SystemTime,
     size: u64,
+}
+
+fn prepare_list_folder(dir: &Path, folder: &str) {
+    if folder == "plans" {
+        sync_external_plans_to_gitmemo(dir);
+    }
+    if folder.starts_with("claude-config") {
+        sync_claude_config(dir);
+    }
+    if folder.starts_with("cursor-config") {
+        sync_cursor_config(dir);
+    }
+}
+
+fn collect_file_candidates(dir: &Path, folder: &str) -> Vec<FileCandidate> {
+    let target = dir.join(folder);
+
+    if !target.exists() {
+        return vec![];
+    }
+
+    let mut candidates: Vec<FileCandidate> = Vec::new();
+
+    for entry in walkdir::WalkDir::new(&target)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| is_listed_file(e.path(), folder))
+    {
+        let meta = match entry.path().metadata() {
+            Ok(meta) => meta,
+            Err(_) => continue,
+        };
+        candidates.push(FileCandidate {
+            path: entry.path().to_path_buf(),
+            modified_time: meta.modified().unwrap_or(std::time::UNIX_EPOCH),
+            size: meta.len(),
+        });
+    }
+
+    if folder == "imports" && candidates.len() > IMPORTS_LIST_LIMIT {
+        candidates.sort_by(|a, b| b.modified_time.cmp(&a.modified_time));
+        candidates.truncate(IMPORTS_LIST_LIMIT);
+    }
+
+    candidates
+}
+
+fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
+    let path = candidate.path.as_path();
+    let rel_path = path
+        .strip_prefix(dir)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .to_string();
+
+    let content = read_file_head(path);
+    // Strip frontmatter block then take first meaningful lines as preview
+    let body = if content.starts_with("---") {
+        if let Some(end) = content[3..].find("---") {
+            content[3 + end + 3..].trim_start()
+        } else {
+            content.as_str()
+        }
+    } else {
+        content.as_str()
+    };
+
+    let is_clipboard_image = frontmatter_value(&content, "source") == Some("clipboard-image");
+    let (preview, preview_image) = if is_clipboard_image {
+        if let Some(img_file) = extract_markdown_image_path(body) {
+            let parent = Path::new(&rel_path)
+                .parent()
+                .map(|p| p.to_string_lossy().to_string())
+                .filter(|s| !s.is_empty());
+            let img_rel = match parent {
+                Some(p) => format!("{}/{}", p, img_file),
+                None => img_file,
+            };
+            (String::new(), Some(img_rel.replace('\\', "/")))
+        } else {
+            (preview_from_body(body), None)
+        }
+    } else {
+        (preview_from_body(body), None)
+    };
+
+    let title = frontmatter_value(&content, "title").map(|s| s.to_string());
+    let model = frontmatter_value(&content, "model").map(|s| s.to_string());
+    let messages = frontmatter_value(&content, "messages").map(|s| s.to_string());
+
+    let name = content
+        .lines()
+        .find(|l| l.starts_with("# "))
+        .map(|l| l.trim_start_matches("# ").to_string())
+        .unwrap_or_else(|| {
+            path.file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        });
+
+    let (modified, modified_ts) =
+        record_timestamp_for_markdown(&content, candidate.modified_time);
+    let size = candidate.size;
+
+    let source_type = if rel_path.starts_with("conversations") {
+        "conversation"
+    } else if rel_path.starts_with("clips") {
+        "clip"
+    } else if rel_path.starts_with("imports") {
+        "import"
+    } else {
+        "note"
+    };
+
+    FileEntry {
+        name,
+        path: rel_path,
+        source_type: source_type.to_string(),
+        modified,
+        size,
+        preview,
+        modified_ts,
+        preview_image,
+        title,
+        model,
+        messages,
+    }
+}
+
+fn build_file_entries(dir: &Path, candidates: Vec<FileCandidate>) -> Vec<FileEntry> {
+    let mut entries: Vec<FileEntry> = candidates
+        .into_iter()
+        .map(|candidate| build_file_entry(dir, candidate))
+        .collect();
+
+    // Sort by timestamp desc (millisecond precision)
+    entries.sort_by(|a, b| b.modified_ts.cmp(&a.modified_ts));
+    entries
 }
 
 /// Notify the frontend that content folders may have changed.
@@ -325,127 +482,41 @@ pub fn resolve_sync_path(rel_path: String) -> Result<String, String> {
 #[tauri::command]
 pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
     let dir = sync_dir();
-    if folder == "plans" {
-        sync_external_plans_to_gitmemo(&dir);
-    }
-    if folder.starts_with("claude-config") {
-        sync_claude_config(&dir);
-    }
-    if folder.starts_with("cursor-config") {
-        sync_cursor_config(&dir);
-    }
-    let target = dir.join(&folder);
+    prepare_list_folder(&dir, &folder);
+    Ok(build_file_entries(&dir, collect_file_candidates(&dir, &folder)))
+}
 
-    if !target.exists() {
-        return Ok(vec![]);
-    }
+#[tauri::command]
+pub fn list_files_page(
+    folder: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<FilePage, String> {
+    let dir = sync_dir();
+    prepare_list_folder(&dir, &folder);
 
-    let mut candidates: Vec<FileCandidate> = Vec::new();
+    let mut candidates = collect_file_candidates(&dir, &folder);
+    candidates.sort_by(|a, b| b.modified_time.cmp(&a.modified_time));
 
-    for entry in walkdir::WalkDir::new(&target)
+    let total = candidates.len();
+    let offset = offset.unwrap_or(0).min(total);
+    let limit = limit
+        .unwrap_or(DEFAULT_LIST_PAGE_SIZE)
+        .clamp(1, MAX_LIST_PAGE_SIZE);
+    let end = offset.saturating_add(limit).min(total);
+    let page_candidates: Vec<FileCandidate> = candidates
         .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .filter(|e| is_listed_file(e.path(), &folder))
-    {
-        let meta = match entry.path().metadata() {
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
-        candidates.push(FileCandidate {
-            path: entry.path().to_path_buf(),
-            modified_time: meta.modified().unwrap_or(std::time::UNIX_EPOCH),
-            size: meta.len(),
-        });
-    }
+        .skip(offset)
+        .take(end.saturating_sub(offset))
+        .collect();
 
-    if folder == "imports" && candidates.len() > IMPORTS_LIST_LIMIT {
-        candidates.sort_by(|a, b| b.modified_time.cmp(&a.modified_time));
-        candidates.truncate(IMPORTS_LIST_LIMIT);
-    }
-
-    let mut entries: Vec<FileEntry> = Vec::with_capacity(candidates.len());
-
-    for candidate in candidates {
-        let path = candidate.path.as_path();
-        let rel_path = path
-            .strip_prefix(&dir)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .to_string();
-
-        let content = read_file_head(path);
-        // Strip frontmatter block then take first meaningful lines as preview
-        let body = if content.starts_with("---") {
-            if let Some(end) = content[3..].find("---") {
-                content[3 + end + 3..].trim_start()
-            } else {
-                content.as_str()
-            }
-        } else {
-            content.as_str()
-        };
-
-        let is_clipboard_image = frontmatter_value(&content, "source") == Some("clipboard-image");
-        let (preview, preview_image) = if is_clipboard_image {
-            if let Some(img_file) = extract_markdown_image_path(body) {
-                let parent = Path::new(&rel_path)
-                    .parent()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .filter(|s| !s.is_empty());
-                let img_rel = match parent {
-                    Some(p) => format!("{}/{}", p, img_file),
-                    None => img_file,
-                };
-                (String::new(), Some(img_rel.replace('\\', "/")))
-            } else {
-                (preview_from_body(body), None)
-            }
-        } else {
-            (preview_from_body(body), None)
-        };
-
-        let name = content
-            .lines()
-            .find(|l| l.starts_with("# "))
-            .map(|l| l.trim_start_matches("# ").to_string())
-            .unwrap_or_else(|| {
-                path.file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string()
-            });
-
-        let (modified, modified_ts) =
-            record_timestamp_for_markdown(&content, candidate.modified_time);
-        let size = candidate.size;
-
-        let source_type = if rel_path.starts_with("conversations") {
-            "conversation"
-        } else if rel_path.starts_with("clips") {
-            "clip"
-        } else if rel_path.starts_with("imports") {
-            "import"
-        } else {
-            "note"
-        };
-
-        entries.push(FileEntry {
-            name,
-            path: rel_path,
-            source_type: source_type.to_string(),
-            modified,
-            size,
-            preview,
-            modified_ts,
-            preview_image,
-        });
-    }
-
-    // Sort by timestamp desc (millisecond precision)
-    entries.sort_by(|a, b| b.modified_ts.cmp(&a.modified_ts));
-
-    Ok(entries)
+    Ok(FilePage {
+        entries: build_file_entries(&dir, page_candidates),
+        total,
+        offset,
+        limit,
+        has_more: end < total,
+    })
 }
 
 #[tauri::command]

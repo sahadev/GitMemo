@@ -13,15 +13,8 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore, type NotesTab } from "../hooks/useAppStore";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-}
+import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
+import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 
 interface NoteResult {
   success: boolean;
@@ -53,14 +46,21 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   const [newNote, setNewNote] = useState("");
   const [manualTitle, setManualTitle] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const filesLengthRef = useRef(0);
   /** True while IME composition is active (more reliable than keydown.isComposing alone in some WebViews). */
   const imeComposingRef = useRef(false);
+
+  useEffect(() => {
+    filesLengthRef.current = files.length;
+  }, [files.length]);
 
   // Keyboard nav for file list
   const navPrev = useCallback(() => {
@@ -151,20 +151,35 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
     consumePendingOpenPath();
   }, [pendingOpenPath, setNotesTab, consumePendingOpenPath]);
 
-  const loadFiles = async () => {
-    setLoading(true);
+  const loadFiles = async (reset = true) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
     try {
       const folder = tabs.find((tb) => tb.id === activeTab)!.folder;
-      const result = await invoke<FileEntry[]>("list_files", { folder });
-      setFiles(result);
+      const page = await invoke<FilePage>("list_files_page", {
+        folder,
+        offset: reset ? 0 : filesLengthRef.current,
+        limit: FILE_PAGE_SIZE,
+      });
+      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
+      setHasMore(page.has_more);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally {
+      if (reset) setLoading(false);
+      else setLoadingMore(false);
+    }
   };
   const handleRefresh = useCallback(() => {
     void loadFiles();
     if (selectedFile) void openFile(selectedFile);
   }, [selectedFile, activeTab, files]);
   useFileWatcher(["notes"], loadFiles);
+  const { sentinelRef, loadMore } = useAutoLoadMore({
+    hasMore,
+    loading,
+    loadingMore,
+    onLoadMore: () => loadFiles(false),
+  });
 
   const openFile = async (path: string) => {
     try {
@@ -259,6 +274,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", height: "100%",
+        minHeight: 0, overflow: "hidden",
       }}>
         {/* Tabs */}
         <div style={{
@@ -360,7 +376,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
         </div>
 
         {/* File list */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
             <Loading compact text={t("notes.loading")} />
           ) : files.length === 0 ? (
@@ -378,7 +394,8 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               </p>
             </div>
           ) : (
-            files.map((file) => {
+            <>
+            {files.map((file) => {
               const isDateName = /^\d{4}-\d{2}-\d{2}/.test(file.name);
               const title = isDateName && file.preview ? file.preview : file.name;
               const selected = selectedFile === file.path;
@@ -403,14 +420,32 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 </p>
               </button>
               );
-            })
+            })}
+            {hasMore && (
+              <div ref={sentinelRef}>
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                style={{
+                  width: "100%", padding: "12px 16px", border: "none",
+                  borderBottom: "1px solid var(--border)", background: "transparent",
+                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
+                  fontSize: 12, fontWeight: 600,
+                }}
+              >
+                {loadingMore ? t("common.loading") : t("common.loadMore")}
+              </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
         {selectedFile ? (
           <>
             <div style={{

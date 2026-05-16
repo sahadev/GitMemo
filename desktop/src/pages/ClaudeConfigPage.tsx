@@ -165,6 +165,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
         left={(
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
@@ -243,7 +244,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
         </div>
 
         {/* File list */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
             <Loading compact text="Loading..." />
           ) : files.length === 0 ? (
@@ -291,7 +292,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
       )}
 
         right={(
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
@@ -316,7 +317,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
               </span>
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>
           </>

@@ -16,22 +16,14 @@ import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "../components/ClipboardPrivacyDialog";
 import { useAppStore, type ClipboardStatus } from "../hooks/useAppStore";
+import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
+import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 
 interface ClipboardEvent {
   saved: boolean;
   path: string;
   preview: string;
   timestamp: string;
-}
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-  preview_image?: string | null;
 }
 
 interface NoteResult {
@@ -84,13 +76,20 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const { clipboardStatus: status, refreshClipboardStatus, pendingOpenPath, consumePendingOpenPath } = useAppStore();
   const [savedClips, setSavedClips] = useState<FileEntry[]>([]);
   const [clipsLoading, setClipsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const savedClipsLengthRef = useRef(0);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
+
+  useEffect(() => {
+    savedClipsLengthRef.current = savedClips.length;
+  }, [savedClips.length]);
 
   // State-driven data loading
   useEffect(() => {
@@ -108,11 +107,30 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
     return () => { unlisten.then((fn) => fn()); window.removeEventListener("focus", onFocus); };
   }, []);
 
-  const loadSavedClips = async () => {
-    try { setSavedClips(await invoke<FileEntry[]>("list_files", { folder: "clips" })); }
+  const loadSavedClips = async (reset = true) => {
+    if (reset) setClipsLoading(true);
+    else setLoadingMore(true);
+    try {
+      const page = await invoke<FilePage>("list_files_page", {
+        folder: "clips",
+        offset: reset ? 0 : savedClipsLengthRef.current,
+        limit: FILE_PAGE_SIZE,
+      });
+      setSavedClips((prev) => reset ? page.entries : [...prev, ...page.entries]);
+      setHasMore(page.has_more);
+    }
     catch (e) { console.error(e); }
-    finally { setClipsLoading(false); }
+    finally {
+      if (reset) setClipsLoading(false);
+      else setLoadingMore(false);
+    }
   };
+  const { sentinelRef, loadMore } = useAutoLoadMore({
+    hasMore,
+    loading: clipsLoading,
+    loadingMore,
+    onLoadMore: () => loadSavedClips(false),
+  });
 
   const doStartWatch = async () => {
     try {
@@ -245,6 +263,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
@@ -291,7 +310,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
         </div>
 
         {/* Clip list */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {clipsLoading ? (
             <div
               style={{
@@ -310,7 +329,8 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
               <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>
             </div>
           ) : (
-            savedClips.map((file) => {
+            <>
+            {savedClips.map((file) => {
               const selected = selectedFile === file.path;
               return (
                 <div
@@ -381,7 +401,25 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
                   </button>
                 </div>
               );
-            })
+            })}
+            {hasMore && (
+              <div ref={sentinelRef}>
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                style={{
+                  width: "100%", padding: "12px 16px", border: "none",
+                  borderBottom: "1px solid var(--border)", background: "transparent",
+                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
+                  fontSize: 12, fontWeight: 600,
+                }}
+              >
+                {loadingMore ? t("common.loading") : t("common.loadMore")}
+              </button>
+              </div>
+            )}
+            </>
           )}
         </div>
 
@@ -396,7 +434,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>

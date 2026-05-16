@@ -13,16 +13,8 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-  preview_image?: string | null;
-}
+import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
+import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 
 interface NoteResult {
   success: boolean;
@@ -61,9 +53,16 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const loadInFlight = useRef<Promise<void> | null>(null);
+  const filesLengthRef = useRef(0);
   const watchedFolders = useMemo(() => ["imports"], []);
+
+  useEffect(() => {
+    filesLengthRef.current = files.length;
+  }, [files.length]);
 
   const openFile = useCallback(async (path: string) => {
     try {
@@ -78,18 +77,25 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
     } catch (e) { console.error(e); }
   }, []);
 
-  const loadFiles = useCallback(() => {
+  const loadFiles = useCallback((reset = true) => {
     if (loadInFlight.current) return loadInFlight.current;
 
     const task = (async () => {
-      setLoading(true);
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
       try {
-        const result = await invoke<FileEntry[]>("list_files", { folder: "imports" });
-        setFiles(result);
+        const page = await invoke<FilePage>("list_files_page", {
+          folder: "imports",
+          offset: reset ? 0 : filesLengthRef.current,
+          limit: FILE_PAGE_SIZE,
+        });
+        setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
+        setHasMore(page.has_more);
       } catch (e) {
         console.error(e);
       } finally {
-        setLoading(false);
+        if (reset) setLoading(false);
+        else setLoadingMore(false);
         loadInFlight.current = null;
       }
     })();
@@ -97,6 +103,12 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
     loadInFlight.current = task;
     return task;
   }, []);
+  const { sentinelRef, loadMore } = useAutoLoadMore({
+    hasMore,
+    loading,
+    loadingMore,
+    onLoadMore: () => loadFiles(false),
+  });
 
   const navPrev = useCallback(() => {
     if (!selectedFile || files.length === 0) return;
@@ -179,7 +191,7 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
         panelKey="imports"
         defaultWidth={300}
         left={showList && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
             <div style={{
               display: "flex", alignItems: "center", padding: "14px 16px",
               borderBottom: "1px solid var(--border)", gap: 8,
@@ -201,7 +213,7 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
               </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto" }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
               {loading ? (
                 <Loading compact text={t("common.loading")} />
               ) : files.length === 0 ? (
@@ -212,7 +224,8 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                   </p>
                 </div>
               ) : (
-                files.map((file) => {
+                <>
+                {files.map((file) => {
                   const selected = selectedFile === file.path;
                   const hasImage = !!file.preview_image;
                   return (
@@ -245,14 +258,32 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                       </div>
                     </button>
                   );
-                })
+                })}
+                {hasMore && (
+                  <div ref={sentinelRef}>
+                  <button
+                    type="button"
+                    disabled={loadingMore}
+                    onClick={() => void loadMore()}
+                    style={{
+                      width: "100%", padding: "12px 16px", border: "none",
+                      borderBottom: "1px solid var(--border)", background: "transparent",
+                      color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
+                      fontSize: 12, fontWeight: 600,
+                    }}
+                  >
+                    {loadingMore ? t("common.loading") : t("common.loadMore")}
+                  </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>
         )}
 
         right={showDetail && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
             {selectedFile ? (
               <>
                 <div style={{

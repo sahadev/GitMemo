@@ -280,7 +280,8 @@
     "pathCopied": "Path copied",
     "preview": "Preview",
     "refresh": "Refresh",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "loadMore": "Load more"
   },
   "claudeConfig": {
     "memory": "Memory",

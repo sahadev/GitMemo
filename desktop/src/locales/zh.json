@@ -280,7 +280,8 @@
     "pathCopied": "路径已复制",
     "preview": "预览",
     "refresh": "刷新",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "loadMore": "加载更多"
   },
   "claudeConfig": {
     "memory": "记忆",
