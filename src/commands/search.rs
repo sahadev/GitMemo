@@ -79,14 +79,7 @@ pub fn cmd_stats(sync_dir: &Path) -> Result<()> {
 
     let stats = storage::database::get_stats(&conn)?;
 
-    // Calculate storage size
-    let total_size: u64 = walkdir::WalkDir::new(sync_dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
-        .filter_map(|e| e.metadata().ok())
-        .map(|m| m.len())
-        .sum();
+    let total_size = storage::git::worktree_content_size(sync_dir);
 
     println!("\n{}", style(t.stats_title()).bold().cyan());
     println!();

@@ -95,6 +95,61 @@ fn git_raw(repo_path: &Path, args: &[&str]) -> Result<(bool, String, String)> {
     ))
 }
 
+/// Sum the size of files that belong to the GitMemo working tree.
+///
+/// This intentionally excludes Git internals and ignored local state such as
+/// `.metadata/`, `.ssh/`, `.backups/`, and any other paths covered by the
+/// repository's ignore rules.
+pub fn worktree_content_size(repo_path: &Path) -> u64 {
+    git_ls_files_size(repo_path).unwrap_or_else(|| fallback_content_size(repo_path))
+}
+
+fn git_ls_files_size(repo_path: &Path) -> Option<u64> {
+    let output = git_command(
+        repo_path,
+        &["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    )
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::null())
+    .output()
+    .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    Some(
+        output
+            .stdout
+            .split(|b| *b == 0)
+            .filter(|path| !path.is_empty())
+            .filter_map(|path| {
+                let rel = String::from_utf8_lossy(path);
+                repo_path.join(rel.as_ref()).metadata().ok()
+            })
+            .filter(|meta| meta.is_file())
+            .map(|meta| meta.len())
+            .sum(),
+    )
+}
+
+fn fallback_content_size(repo_path: &Path) -> u64 {
+    walkdir::WalkDir::new(repo_path)
+        .into_iter()
+        .filter_entry(|entry| {
+            let name = entry.file_name().to_string_lossy();
+            !matches!(
+                name.as_ref(),
+                ".git" | ".metadata" | ".ssh" | ".backups" | "imports"
+            )
+        })
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .filter_map(|entry| entry.metadata().ok())
+        .map(|meta| meta.len())
+        .sum()
+}
+
 // ── Cross-process git network serialization ─────────────────────────────
 //
 // Hosts that tunnel Git over gRPC sometimes return errors like "More than 5
@@ -753,4 +808,45 @@ pub fn test_remote(repo_path: &Path) -> Result<()> {
     remote.connect(git2::Direction::Fetch)?;
     remote.disconnect()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn worktree_content_size_uses_git_visible_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path();
+
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        let gitignore = ".metadata/\nimports/\n";
+        std::fs::write(repo.join(".gitignore"), gitignore).unwrap();
+        std::fs::write(repo.join("tracked.md"), "tracked").unwrap();
+        std::fs::write(repo.join("untracked.md"), "untracked").unwrap();
+
+        std::fs::create_dir_all(repo.join(".metadata")).unwrap();
+        std::fs::write(repo.join(".metadata").join("index.db"), "local index").unwrap();
+
+        std::fs::create_dir_all(repo.join("imports")).unwrap();
+        std::fs::write(repo.join("imports").join("ignored.md"), "ignored import").unwrap();
+
+        Command::new("git")
+            .args(["add", ".gitignore", "tracked.md"])
+            .current_dir(repo)
+            .status()
+            .unwrap();
+
+        let expected = (gitignore.len() + "tracked".len() + "untracked".len()) as u64;
+        assert_eq!(worktree_content_size(repo), expected);
+    }
 }

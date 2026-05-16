@@ -70,13 +70,7 @@ fn get_stats_sync() -> Result<AppStats, String> {
         return Err("GitMemo not initialized".into());
     }
 
-    let total_size: u64 = walkdir::WalkDir::new(&sync_dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .filter_map(|e| e.metadata().ok())
-        .map(|m| m.len())
-        .sum();
+    let total_size = git::worktree_content_size(&sync_dir);
 
     Ok(AppStats {
         conversations: count_md_files(&sync_dir.join("conversations")),
