@@ -105,12 +105,14 @@ pub fn worktree_content_size(repo_path: &Path) -> u64 {
 }
 
 /// Count files tracked in the Git index for the current branch checkout.
+#[allow(dead_code)]
 pub fn tracked_file_count(repo_path: &Path) -> usize {
     git_ls_files_count(repo_path).unwrap_or_else(|| fallback_content_file_count(repo_path))
 }
 
 /// Size of the Git object database, matching repository-host "repo size" more
 /// closely than summing checked-out working tree files.
+#[allow(dead_code)]
 pub fn repository_storage_size(repo_path: &Path) -> u64 {
     git_count_objects_size(repo_path).unwrap_or_else(|| worktree_content_size(repo_path))
 }
@@ -144,6 +146,7 @@ fn git_ls_files_size(repo_path: &Path) -> Option<u64> {
     )
 }
 
+#[allow(dead_code)]
 fn git_ls_files_count(repo_path: &Path) -> Option<usize> {
     let output = git_command(repo_path, &["ls-files", "-z"])
         .stdout(std::process::Stdio::piped())
@@ -164,6 +167,7 @@ fn git_ls_files_count(repo_path: &Path) -> Option<usize> {
     )
 }
 
+#[allow(dead_code)]
 fn git_count_objects_size(repo_path: &Path) -> Option<u64> {
     let stdout = git_cmd(repo_path, &["count-objects", "-v"]).ok()?;
     let mut total_kib = 0u64;
@@ -196,6 +200,7 @@ fn fallback_content_size(repo_path: &Path) -> u64 {
         .sum()
 }
 
+#[allow(dead_code)]
 fn fallback_content_file_count(repo_path: &Path) -> usize {
     walkdir::WalkDir::new(repo_path)
         .into_iter()
