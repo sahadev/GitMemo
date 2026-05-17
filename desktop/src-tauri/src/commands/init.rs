@@ -142,11 +142,7 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     }
 
     // 4. Save config
-    let branch = if has_remote {
-        git::detect_remote_branch(&sync_dir)
-    } else {
-        "main".to_string()
-    };
+    let branch = "main".to_string();
 
     let config = Config {
         git: GitConfig {
@@ -164,41 +160,8 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
         }
     }
 
-    let mut adopted_remote = false;
     if has_remote {
-        match git::remote_branch_exists(&sync_dir, &branch) {
-            Ok(true) => match git::fetch_branch(&sync_dir, &branch) {
-                Ok((true, _, _)) => {
-                    match git::checkout_remote_branch(&sync_dir, &branch) {
-                        Ok(()) => {
-                            git::setup_tracking(&sync_dir, &branch);
-                            adopted_remote = true;
-                            result.add_ok("remote", "Existing remote repository adopted");
-                        }
-                        Err(e) => {
-                            result.add_err("remote", &format!("Remote checkout failed: {e}"));
-                            return Ok(result);
-                        }
-                    }
-                }
-                Ok((false, stdout, stderr)) => {
-                    let msg = if stderr.trim().is_empty() { stdout } else { stderr };
-                    result.add_err("remote", &format!("Remote fetch failed: {}", msg.trim()));
-                    return Ok(result);
-                }
-                Err(e) => {
-                    result.add_err("remote", &format!("Remote fetch failed: {e}"));
-                    return Ok(result);
-                }
-            },
-            Ok(false) => {
-                result.add_ok("remote", "Remote is empty");
-            }
-            Err(e) => {
-                result.add_err("remote", &format!("Remote check failed: {e}"));
-                return Ok(result);
-            }
-        }
+        result.add_ok("remote", "Remote configured");
     }
 
     // 5. Create directory structure
@@ -248,7 +211,7 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     if has_remote {
         git::setup_tracking(&sync_dir, &branch);
         result.add_ok("tracking", "Branch tracking configured");
-        result.needs_remote_sync = !adopted_remote;
+        result.needs_remote_sync = true;
     }
 
     Ok(result)
@@ -362,22 +325,30 @@ pub fn sync_remote_init(app_handle: AppHandle) {
 
 fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
     let config_path = Config::config_path();
-    let branch = if config_path.exists() {
-        Config::load(&config_path).map(|c| c.git.branch).unwrap_or_else(|_| "main".to_string())
+    let mut branch = if config_path.exists() {
+        Config::load(&config_path)
+            .map(|c| c.git.branch)
+            .unwrap_or_else(|_| "main".to_string())
     } else {
         "main".to_string()
     };
 
-    // Step 1: fetch remote
-    let fetch = git::fetch_branch(sync_dir, &branch)
-        .map_err(|e| format!("fetch failed: {e}"))?;
-
-    if !fetch.0 {
-        return Err(format!("Fetch failed (SSH key may not be configured yet): {}", fetch.2.trim()));
+    let detected_branch = git::detect_remote_branch(sync_dir);
+    if !detected_branch.is_empty() {
+        branch = detected_branch;
+        if config_path.exists() {
+            if let Ok(mut config) = Config::load(&config_path) {
+                if config.git.branch != branch {
+                    config.git.branch = branch.clone();
+                    let _ = config.save(&config_path);
+                }
+            }
+        }
     }
 
-    // Step 2: check if remote has history
-    let has_remote_commits = git::remote_ref_exists(sync_dir, &format!("origin/{}", branch));
+    // Step 1: check if remote has history
+    let has_remote_commits = git::remote_branch_exists(sync_dir, &branch)
+        .map_err(|e| format!("remote check failed: {e}"))?;
 
     if !has_remote_commits {
         let (pushed, push_err) = push_to_remote(sync_dir, &branch);
@@ -386,6 +357,14 @@ fn do_remote_init_sync(sync_dir: &std::path::Path) -> Result<String, String> {
         } else {
             Err(format!("Push failed: {}", push_err.unwrap_or_default()))
         };
+    }
+
+    // Step 2: fetch remote
+    let fetch = git::fetch_branch(sync_dir, &branch)
+        .map_err(|e| format!("fetch failed: {e}"))?;
+
+    if !fetch.0 {
+        return Err(format!("Fetch failed (SSH key may not be configured yet): {}", fetch.2.trim()));
     }
 
     // Step 3: rebase local init commit(s) on top of remote history

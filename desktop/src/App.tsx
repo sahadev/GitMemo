@@ -257,9 +257,9 @@ function App() {
     setInitialized(true);
     setCurrentPage("dashboard");
     if (needsRemoteSync) {
-      sync.triggerSync();
+      void invoke("sync_remote_init").catch(() => {});
     }
-  }, [sync]);
+  }, []);
 
   const handleOpenDroppedFiles = useCallback(async (paths: string[]) => {
     if (paths.length !== 1) {

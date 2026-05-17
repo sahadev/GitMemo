@@ -68,6 +68,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [editingProxy, setEditingProxy] = useState(false);
   const [updatingClaudeSkills, setUpdatingClaudeSkills] = useState(false);
   const [updatingCursorSkills, setUpdatingCursorSkills] = useState(false);
+  const [testingRemote, setTestingRemote] = useState(false);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -221,6 +222,19 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       showToast(`Error: ${e}`, true);
     } finally {
       setSavingRemote(false);
+    }
+  };
+
+  const testRemoteSync = async () => {
+    if (testingRemote) return;
+    setTestingRemote(true);
+    try {
+      const msg = await invoke<string>("test_remote_sync");
+      showToast(msg);
+    } catch (e) {
+      showToast(`${e}`, true);
+    } finally {
+      setTestingRemote(false);
     }
   };
 
@@ -682,17 +696,15 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     {t("conversations.edit")}
                   </button>
                   <button
-                    onClick={() => {
-                      invoke<string>("test_remote_sync")
-                        .then(msg => showToast(msg))
-                        .catch(e => showToast(`${e}`, true));
-                    }}
+                    onClick={() => void testRemoteSync()}
+                    disabled={testingRemote}
                     style={{
                       padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--green)",
+                      opacity: testingRemote ? 0.7 : 1,
                     }}
                   >
-                    {t("settings.testSync")}
+                    {testingRemote ? t("settings.checking") : t("settings.testSync")}
                   </button>
                 </div>
               ) : (

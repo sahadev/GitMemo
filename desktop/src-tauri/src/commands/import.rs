@@ -328,6 +328,8 @@ pub fn import_paths(paths: Vec<String>) -> Result<ImportResult, String> {
 }
 
 #[tauri::command]
-pub fn import_files(paths: Vec<String>) -> Result<ImportResult, String> {
-    import_paths(paths)
+pub async fn import_files(paths: Vec<String>) -> Result<ImportResult, String> {
+    tokio::task::spawn_blocking(move || import_paths(paths))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
 }

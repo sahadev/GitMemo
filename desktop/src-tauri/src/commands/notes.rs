@@ -36,6 +36,10 @@ fn refresh_index(dir: &Path) {
     }
 }
 
+fn bg_refresh_index(dir: PathBuf) {
+    std::thread::spawn(move || refresh_index(&dir));
+}
+
 #[derive(Debug, Serialize)]
 pub struct NoteResult {
     pub success: bool,
@@ -392,7 +396,7 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::create_scratch(&dir, &content).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
     bg_commit_and_push(format!("note: {}", content.chars().take(50).collect::<String>()));
 
     Ok(NoteResult {
@@ -410,7 +414,7 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
     bg_commit_and_push(format!("daily: {}", content.chars().take(50).collect::<String>()));
 
     Ok(NoteResult {
@@ -429,7 +433,7 @@ pub fn create_manual(title: String, content: String, append: bool) -> Result<Not
 
     let rel_path =
         files::write_manual(&dir, &title, &content, append).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
 
     let action = if append { "update" } else { "create" };
     bg_commit_and_push(format!("manual: {} {}", action, title));
@@ -480,14 +484,30 @@ pub fn resolve_sync_path(rel_path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
+pub async fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
+    tokio::task::spawn_blocking(move || list_files_sync(folder))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn list_files_sync(folder: String) -> Result<Vec<FileEntry>, String> {
     let dir = sync_dir();
     prepare_list_folder(&dir, &folder);
     Ok(build_file_entries(&dir, collect_file_candidates(&dir, &folder)))
 }
 
 #[tauri::command]
-pub fn list_files_page(
+pub async fn list_files_page(
+    folder: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<FilePage, String> {
+    tokio::task::spawn_blocking(move || list_files_page_sync(folder, offset, limit))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn list_files_page_sync(
     folder: String,
     offset: Option<usize>,
     limit: Option<usize>,
@@ -530,7 +550,7 @@ pub fn update_note(file_path: String, content: String) -> Result<NoteResult, Str
     let now = chrono::Local::now();
     let content = refresh_updated_frontmatter(&content, &now);
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
     bg_commit_and_push(format!("edit: {}", file_path));
 
     Ok(NoteResult {
@@ -562,7 +582,7 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
     bg_commit_and_push(format!("delete: {}", file_path));
 
     Ok(NoteResult {
@@ -614,7 +634,7 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
     bg_commit_and_push(format!("delete clip: {}", norm));
 
     Ok(NoteResult {
@@ -669,7 +689,7 @@ pub fn delete_plan(file_path: String, delete_source: Option<bool>) -> Result<Not
     }
 
     bg_commit_and_push(format!("delete plan: {}", norm));
-    refresh_index(&dir);
+    bg_refresh_index(dir.clone());
 
     Ok(NoteResult {
         success: true,

@@ -58,7 +58,17 @@ fn map_results(sync_dir: &Path, results: Vec<database::SearchResult>) -> Vec<Sea
 }
 
 #[tauri::command]
-pub fn search_all(
+pub async fn search_all(
+    query: String,
+    type_filter: Option<String>,
+    limit: Option<usize>,
+) -> Result<Vec<SearchResultItem>, String> {
+    tokio::task::spawn_blocking(move || search_all_sync(query, type_filter, limit))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn search_all_sync(
     query: String,
     type_filter: Option<String>,
     limit: Option<usize>,
@@ -85,7 +95,16 @@ pub fn search_all(
 }
 
 #[tauri::command]
-pub fn recent_conversations(
+pub async fn recent_conversations(
+    limit: Option<usize>,
+    days: Option<u32>,
+) -> Result<Vec<SearchResultItem>, String> {
+    tokio::task::spawn_blocking(move || recent_conversations_sync(limit, days))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn recent_conversations_sync(
     limit: Option<usize>,
     days: Option<u32>,
 ) -> Result<Vec<SearchResultItem>, String> {
@@ -108,7 +127,13 @@ pub fn recent_conversations(
 }
 
 #[tauri::command]
-pub fn reindex() -> Result<u32, String> {
+pub async fn reindex() -> Result<u32, String> {
+    tokio::task::spawn_blocking(reindex_sync)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn reindex_sync() -> Result<u32, String> {
     catch(|| {
         let sync_dir = files::sync_dir();
         if !sync_dir.exists() {
@@ -129,7 +154,16 @@ pub fn reindex() -> Result<u32, String> {
 
 /// Fuzzy search files by name/title (not full-text content)
 #[tauri::command]
-pub fn fuzzy_search_files(
+pub async fn fuzzy_search_files(
+    query: String,
+    limit: Option<usize>,
+) -> Result<Vec<SearchResultItem>, String> {
+    tokio::task::spawn_blocking(move || fuzzy_search_files_sync(query, limit))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn fuzzy_search_files_sync(
     query: String,
     limit: Option<usize>,
 ) -> Result<Vec<SearchResultItem>, String> {

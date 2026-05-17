@@ -252,7 +252,13 @@ pub fn set_branch(name: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn test_remote_sync() -> Result<String, String> {
+pub async fn test_remote_sync() -> Result<String, String> {
+    tokio::task::spawn_blocking(test_remote_sync_blocking)
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn test_remote_sync_blocking() -> Result<String, String> {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
         return Err("GitMemo not initialized".into());

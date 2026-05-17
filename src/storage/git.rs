@@ -1,8 +1,53 @@
 use anyhow::Result;
 use fs4::fs_std::FileExt;
 use std::fs::OpenOptions;
+use std::io::Read;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
+
+const DEFAULT_GIT_COMMAND_TIMEOUT_SECS: u64 = 60;
+
+#[cfg(unix)]
+mod process_group {
+    use std::io;
+    use std::os::unix::process::CommandExt;
+    use std::process::Command;
+
+    const SIGKILL: i32 = 9;
+
+    unsafe extern "C" {
+        fn setpgid(pid: i32, pgid: i32) -> i32;
+        fn kill(pid: i32, sig: i32) -> i32;
+    }
+
+    pub fn configure(command: &mut Command) {
+        unsafe {
+            command.pre_exec(|| {
+                if setpgid(0, 0) == 0 {
+                    Ok(())
+                } else {
+                    Err(io::Error::last_os_error())
+                }
+            });
+        }
+    }
+
+    pub fn kill_for_child(child_id: u32) {
+        unsafe {
+            let _ = kill(-(child_id as i32), SIGKILL);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+mod process_group {
+    use std::process::Command;
+
+    pub fn configure(_command: &mut Command) {}
+    pub fn kill_for_child(_child_id: u32) {}
+}
 
 fn config_value(repo_path: &Path, key: &str) -> Option<String> {
     let config_path = repo_path.join(".metadata").join("config.toml");
@@ -22,18 +67,86 @@ fn configured_ssh_key_path(repo_path: &Path) -> Option<String> {
 fn git_command(repo_path: &Path, args: &[&str]) -> Command {
     let mut command = Command::new("git");
     command.args(args).current_dir(repo_path);
+    command
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GCM_INTERACTIVE", "Never");
 
-    if let Some(key_path) = configured_ssh_key_path(repo_path) {
-        command.env(
-            "GIT_SSH_COMMAND",
-            format!(
-                "ssh -i '{}' -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
-                key_path.replace('\'', r#"'\''"#)
-            ),
-        );
-    }
+    let ssh_command = if let Some(key_path) = configured_ssh_key_path(repo_path) {
+        format!(
+            "ssh -i '{}' -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=2",
+            key_path.replace('\'', r#"'\''"#)
+        )
+    } else {
+        "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=2".to_string()
+    };
+    command.env("GIT_SSH_COMMAND", ssh_command);
 
     command
+}
+
+fn git_command_timeout() -> Duration {
+    let secs = std::env::var("GITMEMO_GIT_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|secs| *secs > 0)
+        .unwrap_or(DEFAULT_GIT_COMMAND_TIMEOUT_SECS);
+    Duration::from_secs(secs)
+}
+
+fn read_pipe<R: Read + Send + 'static>(mut pipe: R) -> thread::JoinHandle<std::io::Result<Vec<u8>>> {
+    thread::spawn(move || {
+        let mut buf = Vec::new();
+        pipe.read_to_end(&mut buf)?;
+        Ok(buf)
+    })
+}
+
+fn join_pipe(handle: Option<thread::JoinHandle<std::io::Result<Vec<u8>>>>) -> Result<Vec<u8>> {
+    let Some(handle) = handle else {
+        return Ok(Vec::new());
+    };
+
+    match handle.join() {
+        Ok(result) => Ok(result?),
+        Err(_) => anyhow::bail!("failed to read git command output"),
+    }
+}
+
+fn git_output(repo_path: &Path, args: &[&str]) -> Result<Output> {
+    let timeout = git_command_timeout();
+    let mut command = git_command(repo_path, args);
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    process_group::configure(&mut command);
+
+    let mut child = command.spawn()?;
+    let stdout = child.stdout.take().map(read_pipe);
+    let stderr = child.stderr.take().map(read_pipe);
+    let started = Instant::now();
+
+    let status = loop {
+        if let Some(status) = child.try_wait()? {
+            break status;
+        }
+
+        if started.elapsed() >= timeout {
+            process_group::kill_for_child(child.id());
+            let _ = child.kill();
+            let _ = child.wait();
+            anyhow::bail!(
+                "git command timed out after {}s: git {}",
+                timeout.as_secs(),
+                args.join(" ")
+            );
+        }
+
+        thread::sleep(Duration::from_millis(100));
+    };
+
+    Ok(Output {
+        status,
+        stdout: join_pipe(stdout)?,
+        stderr: join_pipe(stderr)?,
+    })
 }
 
 /// Result of a commit_and_push operation
@@ -63,10 +176,7 @@ impl SyncResult {
 
 /// Run a git command and return stdout on success, Err on failure.
 fn git_cmd(repo_path: &Path, args: &[&str]) -> Result<String> {
-    let output = git_command(repo_path, args)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()?;
+    let output = git_output(repo_path, args)?;
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
@@ -84,20 +194,14 @@ fn git_cmd(repo_path: &Path, args: &[&str]) -> Result<String> {
 
 /// Run a git command silently; return true if exit code is 0.
 fn git_ok(repo_path: &Path, args: &[&str]) -> bool {
-    git_command(repo_path, args)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
+    git_output(repo_path, args)
+        .map(|output| output.status.success())
         .unwrap_or(false)
 }
 
 /// Run a git command and return (success, stdout, stderr) regardless of exit code.
 fn git_raw(repo_path: &Path, args: &[&str]) -> Result<(bool, String, String)> {
-    let output = git_command(repo_path, args)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()?;
+    let output = git_output(repo_path, args)?;
     Ok((
         output.status.success(),
         String::from_utf8_lossy(&output.stdout).trim().to_string(),
