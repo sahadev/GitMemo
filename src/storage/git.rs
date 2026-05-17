@@ -36,7 +36,6 @@ fn git_command(repo_path: &Path, args: &[&str]) -> Command {
     command
 }
 
-
 /// Result of a commit_and_push operation
 #[derive(Debug)]
 pub struct SyncResult {
@@ -50,7 +49,11 @@ pub struct SyncResult {
 
 impl SyncResult {
     pub fn nothing() -> Self {
-        Self { committed: false, pushed: false, push_error: None }
+        Self {
+            committed: false,
+            pushed: false,
+            push_error: None,
+        }
     }
 }
 
@@ -68,7 +71,14 @@ fn git_cmd(repo_path: &Path, args: &[&str]) -> Result<String> {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        anyhow::bail!("{}", if stderr.is_empty() { "git command failed".to_string() } else { stderr })
+        anyhow::bail!(
+            "{}",
+            if stderr.is_empty() {
+                "git command failed".to_string()
+            } else {
+                stderr
+            }
+        )
     }
 }
 
@@ -120,7 +130,13 @@ pub fn repository_storage_size(repo_path: &Path) -> u64 {
 fn git_ls_files_size(repo_path: &Path) -> Option<u64> {
     let output = git_command(
         repo_path,
-        &["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        &[
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ],
     )
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::null())
@@ -281,7 +297,10 @@ fn is_transient_git_transport_error(msg: &str) -> bool {
 /// Single `git push` attempt (no lock — caller holds [`with_repo_network_lock`]).
 fn do_push_once(repo_path: &Path) -> (bool, Option<String>) {
     let branch = configured_branch(repo_path);
-    match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {
+    match git_raw(
+        repo_path,
+        &["push", "-u", "origin", &format!("HEAD:{}", branch)],
+    ) {
         Ok((true, _, _)) => (true, None),
         Ok((false, stdout, stderr)) => {
             let combined = format!("{stdout} {stderr}");
@@ -399,7 +418,15 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
             let _ = git_ok(repo_path, &["branch", "-m", &current, branch]);
         }
     }
-    let _ = git_ok(repo_path, &["branch", "--set-upstream-to", &format!("origin/{}", branch), branch]);
+    let _ = git_ok(
+        repo_path,
+        &[
+            "branch",
+            "--set-upstream-to",
+            &format!("origin/{}", branch),
+            branch,
+        ],
+    );
 }
 
 /// Stage all changes, commit, and push. Returns sync result.
@@ -428,7 +455,11 @@ pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
         repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
     }
 
-    Ok(SyncResult { committed: true, pushed: false, push_error: None })
+    Ok(SyncResult {
+        committed: true,
+        pushed: false,
+        push_error: None,
+    })
 }
 
 pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
@@ -469,9 +500,17 @@ pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
             let _ = pull_inner(repo_path);
             do_push_with_retry(repo_path)
         });
-        Ok(SyncResult { committed, pushed, push_error })
+        Ok(SyncResult {
+            committed,
+            pushed,
+            push_error,
+        })
     } else {
-        Ok(SyncResult { committed, pushed: false, push_error: None })
+        Ok(SyncResult {
+            committed,
+            pushed: false,
+            push_error: None,
+        })
     }
 }
 
@@ -497,7 +536,9 @@ pub fn ahead_behind(repo_path: &Path) -> Result<(usize, usize)> {
     }
 
     for target in build_tracking_targets(repo_path) {
-        if let Some((ahead, behind)) = rev_list_left_right_count(repo_path, &format!("HEAD...{}", target)) {
+        if let Some((ahead, behind)) =
+            rev_list_left_right_count(repo_path, &format!("HEAD...{}", target))
+        {
             return Ok((ahead, behind));
         }
     }
@@ -580,12 +621,17 @@ pub fn has_unpushed(repo_path: &Path) -> bool {
 
 /// Get the current branch name
 fn current_branch(repo_path: &Path) -> Option<String> {
-    git_cmd(repo_path, &["branch", "--show-current"]).ok().filter(|b| !b.is_empty())
+    git_cmd(repo_path, &["branch", "--show-current"])
+        .ok()
+        .filter(|b| !b.is_empty())
 }
 
 /// Run `git rev-list --count <refspec>` and return count if command succeeds
 fn rev_list_count(repo_path: &Path, refspec: &str) -> Option<usize> {
-    git_cmd(repo_path, &["rev-list", "--count", refspec]).ok()?.parse().ok()
+    git_cmd(repo_path, &["rev-list", "--count", refspec])
+        .ok()?
+        .parse()
+        .ok()
 }
 
 /// Compare local HEAD with remote using ls-remote (requires network).
@@ -630,7 +676,8 @@ pub fn unpushed_log(repo_path: &Path) -> Result<Vec<String>> {
 
     for refspec in &refspecs {
         if let Ok(stdout) = git_cmd(repo_path, &["log", "--oneline", refspec]) {
-            let lines: Vec<String> = stdout.lines()
+            let lines: Vec<String> = stdout
+                .lines()
                 .map(|l| l.to_string())
                 .filter(|l| !l.is_empty())
                 .collect();
@@ -702,14 +749,42 @@ fn rev_list_left_right_count(repo_path: &Path, refspec: &str) -> Option<(usize, 
 
 /// Push only (no commit)
 pub fn push(repo_path: &Path) -> Result<SyncResult> {
-    let (pushed, push_error) =
-        with_repo_network_lock(repo_path, || do_push_with_retry(repo_path));
-    Ok(SyncResult { committed: false, pushed, push_error })
+    let (pushed, push_error) = with_repo_network_lock(repo_path, || do_push_with_retry(repo_path));
+    Ok(SyncResult {
+        committed: false,
+        pushed,
+        push_error,
+    })
+}
+
+#[allow(dead_code)]
+pub fn remote_branch_exists(repo_path: &Path, branch: &str) -> Result<bool> {
+    let (ok, stdout, stderr) = git_raw(repo_path, &["ls-remote", "--heads", "origin", branch])?;
+    if ok {
+        Ok(!stdout.trim().is_empty())
+    } else {
+        let message = if stderr.trim().is_empty() {
+            "remote branch check failed".to_string()
+        } else {
+            stderr.trim().to_string()
+        };
+        anyhow::bail!(message)
+    }
 }
 
 #[allow(dead_code)]
 pub fn fetch_branch(repo_path: &Path, branch: &str) -> Result<(bool, String, String)> {
-    git_raw(repo_path, &["fetch", "origin", branch])
+    let refspec = format!("{}:refs/remotes/origin/{}", branch, branch);
+    git_raw(repo_path, &["fetch", "origin", &refspec])
+}
+
+#[allow(dead_code)]
+pub fn checkout_remote_branch(repo_path: &Path, branch: &str) -> Result<()> {
+    git_cmd(
+        repo_path,
+        &["checkout", "-B", branch, &format!("origin/{}", branch)],
+    )?;
+    Ok(())
 }
 
 #[allow(dead_code)]
@@ -729,13 +804,19 @@ pub fn abort_rebase(repo_path: &Path) {
 
 #[allow(dead_code)]
 pub fn reset_hard_to_remote(repo_path: &Path, branch: &str) {
-    let _ = git_ok(repo_path, &["reset", "--hard", &format!("origin/{}", branch)]);
+    let _ = git_ok(
+        repo_path,
+        &["reset", "--hard", &format!("origin/{}", branch)],
+    );
 }
 
 #[allow(dead_code)]
 pub fn push_branch(repo_path: &Path, branch: &str) -> Result<(bool, Option<String>)> {
     Ok(with_repo_network_lock(repo_path, || {
-        match git_raw(repo_path, &["push", "-u", "origin", &format!("HEAD:{}", branch)]) {
+        match git_raw(
+            repo_path,
+            &["push", "-u", "origin", &format!("HEAD:{}", branch)],
+        ) {
             Ok((true, _, _)) => (true, None),
             Ok((false, stdout, stderr)) => {
                 let combined = format!("{stdout} {stderr}");
@@ -772,7 +853,10 @@ pub fn ensure_repo_clean(repo_path: &Path) -> Result<bool> {
     let merge_head = git_dir.join("MERGE_HEAD").exists();
 
     if rebase_merge || rebase_apply {
-        eprintln!("[gitmemo] Detected stuck rebase in {}, aborting...", repo_path.display());
+        eprintln!(
+            "[gitmemo] Detected stuck rebase in {}, aborting...",
+            repo_path.display()
+        );
         if git_ok(repo_path, &["rebase", "--abort"]) {
             eprintln!("[gitmemo] Rebase aborted successfully");
         } else {
@@ -783,7 +867,10 @@ pub fn ensure_repo_clean(repo_path: &Path) -> Result<bool> {
     }
 
     if merge_head {
-        eprintln!("[gitmemo] Detected stuck merge in {}, aborting...", repo_path.display());
+        eprintln!(
+            "[gitmemo] Detected stuck merge in {}, aborting...",
+            repo_path.display()
+        );
         let _ = git_ok(repo_path, &["merge", "--abort"]);
         return Ok(true);
     }
@@ -838,7 +925,17 @@ fn pull_inner(repo_path: &Path) -> Result<bool> {
 
     // Strategy 3: fetch + merge -X theirs (auto-resolve, remote wins)
     let _ = git_ok(repo_path, &["fetch", "origin", &branch]);
-    match git_raw(repo_path, &["merge", "-X", "theirs", &format!("origin/{}", branch), "-m", "auto: merge remote (theirs)"]) {
+    match git_raw(
+        repo_path,
+        &[
+            "merge",
+            "-X",
+            "theirs",
+            &format!("origin/{}", branch),
+            "-m",
+            "auto: merge remote (theirs)",
+        ],
+    ) {
         Ok((true, _, _)) => {
             eprintln!("[gitmemo] Merge -X theirs succeeded, sync recovered");
             Ok(true)
@@ -916,5 +1013,70 @@ mod tests {
         assert_eq!(worktree_content_size(repo), expected);
         assert_eq!(tracked_file_count(repo), 2);
         assert!(repository_storage_size(repo) > 0);
+    }
+
+    #[test]
+    fn fetch_branch_creates_origin_tracking_ref() {
+        let remote_tmp = tempfile::tempdir().unwrap();
+        let remote = remote_tmp.path();
+        Command::new("git")
+            .args(["init", "--bare"])
+            .current_dir(remote)
+            .status()
+            .unwrap();
+
+        let source_tmp = tempfile::tempdir().unwrap();
+        let source = source_tmp.path();
+        Command::new("git")
+            .arg("init")
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["branch", "-m", "main"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        std::fs::write(source.join("remote.md"), "remote").unwrap();
+        Command::new("git")
+            .args(["add", "remote.md"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-m", "remote init"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["remote", "add", "origin", remote.to_str().unwrap()])
+            .current_dir(source)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["push", "origin", "main"])
+            .current_dir(source)
+            .status()
+            .unwrap();
+
+        let local_tmp = tempfile::tempdir().unwrap();
+        let local = local_tmp.path();
+        init_repo(local, remote.to_str().unwrap()).unwrap();
+
+        assert!(remote_branch_exists(local, "main").unwrap());
+        assert!(fetch_branch(local, "main").unwrap().0);
+        assert!(remote_ref_exists(local, "origin/main"));
+        checkout_remote_branch(local, "main").unwrap();
+        assert!(local.join("remote.md").exists());
     }
 }

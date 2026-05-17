@@ -101,18 +101,10 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
     let sync_dir = files::sync_dir();
     let has_remote = !request.git_url.is_empty();
 
-    // 1. Create directory structure
-    match files::create_directory_structure(&sync_dir) {
-        Ok(()) => result.add_ok("directories", "Directory structure created"),
-        Err(e) => {
-            result.add_err("directories", &format!("Failed: {e}"));
-            return Ok(result);
-        }
-    }
-
-    // Also create clips, plans, imports directories
-    for dir in ["clips", "plans", "imports", "claude-config"] {
-        let _ = std::fs::create_dir_all(sync_dir.join(dir));
+    // 1. Create local metadata directory needed by config and git locks
+    if let Err(e) = std::fs::create_dir_all(sync_dir.join(".metadata")) {
+        result.add_err("directories", &format!("Failed: {e}"));
+        return Ok(result);
     }
 
     // 2. Init git repo
@@ -172,7 +164,57 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
         }
     }
 
-    // 5. Editor integrations
+    let mut adopted_remote = false;
+    if has_remote {
+        match git::remote_branch_exists(&sync_dir, &branch) {
+            Ok(true) => match git::fetch_branch(&sync_dir, &branch) {
+                Ok((true, _, _)) => {
+                    match git::checkout_remote_branch(&sync_dir, &branch) {
+                        Ok(()) => {
+                            git::setup_tracking(&sync_dir, &branch);
+                            adopted_remote = true;
+                            result.add_ok("remote", "Existing remote repository adopted");
+                        }
+                        Err(e) => {
+                            result.add_err("remote", &format!("Remote checkout failed: {e}"));
+                            return Ok(result);
+                        }
+                    }
+                }
+                Ok((false, stdout, stderr)) => {
+                    let msg = if stderr.trim().is_empty() { stdout } else { stderr };
+                    result.add_err("remote", &format!("Remote fetch failed: {}", msg.trim()));
+                    return Ok(result);
+                }
+                Err(e) => {
+                    result.add_err("remote", &format!("Remote fetch failed: {e}"));
+                    return Ok(result);
+                }
+            },
+            Ok(false) => {
+                result.add_ok("remote", "Remote is empty");
+            }
+            Err(e) => {
+                result.add_err("remote", &format!("Remote check failed: {e}"));
+                return Ok(result);
+            }
+        }
+    }
+
+    // 5. Create directory structure
+    match files::create_directory_structure(&sync_dir) {
+        Ok(()) => result.add_ok("directories", "Directory structure created"),
+        Err(e) => {
+            result.add_err("directories", &format!("Failed: {e}"));
+            return Ok(result);
+        }
+    }
+
+    for dir in ["clips", "plans", "imports", "claude-config"] {
+        let _ = std::fs::create_dir_all(sync_dir.join(dir));
+    }
+
+    // 6. Editor integrations
     let install_claude = request.editors.contains(&"claude".to_string());
     let install_cursor = request.editors.contains(&"cursor".to_string());
     let install_codex = request.editors.contains(&"codex".to_string());
@@ -196,17 +238,17 @@ fn init_gitmemo_sync(request: InitRequest) -> Result<InitResult, String> {
         result.add_ok("codex", "Codex capture enabled");
     }
 
-    // 6. Initial commit
+    // 7. Initial commit
     match git::commit_only(&sync_dir, "init: gitmemo") {
         Ok(_) => result.add_ok("commit", "Initial commit created"),
         Err(e) => result.add_err("commit", &format!("Commit failed: {e}")),
     }
 
-    // 7. Setup tracking if remote
+    // 8. Setup tracking if remote
     if has_remote {
         git::setup_tracking(&sync_dir, &branch);
         result.add_ok("tracking", "Branch tracking configured");
-        result.needs_remote_sync = true;
+        result.needs_remote_sync = !adopted_remote;
     }
 
     Ok(result)
