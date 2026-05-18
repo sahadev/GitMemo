@@ -14,14 +14,28 @@ pub struct SearchResult {
     pub date: String,
 }
 
+#[allow(dead_code)]
 pub struct DocumentListItem {
     pub file_path: String,
     pub activity_ts: i64,
 }
 
+#[allow(dead_code)]
 pub struct DocumentListPage {
     pub items: Vec<DocumentListItem>,
     pub total: usize,
+}
+
+struct DocumentIndexRecord<'a> {
+    file_path: &'a str,
+    source_type: &'a str,
+    title: &'a str,
+    content: &'a str,
+    date: &'a str,
+    activity_at: &'a str,
+    activity_ts: i64,
+    file_mtime_ms: i64,
+    file_size: u64,
 }
 
 pub struct Stats {
@@ -168,6 +182,7 @@ fn frontmatter_tags(content: &str) -> String {
 }
 
 /// Index a single file into the database
+#[allow(dead_code)]
 pub fn index_file(
     conn: &Connection,
     file_path: &str,
@@ -178,32 +193,23 @@ pub fn index_file(
 ) -> Result<()> {
     index_file_with_activity(
         conn,
-        file_path,
-        source_type,
-        title,
-        content,
-        date,
-        date,
-        0,
-        0,
-        0,
+        DocumentIndexRecord {
+            file_path,
+            source_type,
+            title,
+            content,
+            date,
+            activity_at: date,
+            activity_ts: 0,
+            file_mtime_ms: 0,
+            file_size: 0,
+        },
     )
 }
 
-fn index_file_with_activity(
-    conn: &Connection,
-    file_path: &str,
-    source_type: &str,
-    title: &str,
-    content: &str,
-    date: &str,
-    activity_at: &str,
-    activity_ts: i64,
-    file_mtime_ms: i64,
-    file_size: u64,
-) -> Result<()> {
-    let hash = content_hash(content);
-    let id = content_hash(file_path);
+fn index_file_with_activity(conn: &Connection, record: DocumentIndexRecord<'_>) -> Result<()> {
+    let hash = content_hash(record.content);
+    let id = content_hash(record.file_path);
 
     // Check if already indexed with same hash
     let existing: Option<(String, String, i64, i64, u64)> = conn
@@ -223,10 +229,10 @@ fn index_file_with_activity(
             existing_file_size,
         )| {
             existing_hash == &hash
-                && existing_activity_at == activity_at
-                && *existing_activity_ts == activity_ts
-                && *existing_file_mtime_ms == file_mtime_ms
-                && *existing_file_size == file_size
+                && existing_activity_at == record.activity_at
+                && *existing_activity_ts == record.activity_ts
+                && *existing_file_mtime_ms == record.file_mtime_ms
+                && *existing_file_size == record.file_size
         },
     ) {
         return Ok(()); // No change
@@ -235,14 +241,25 @@ fn index_file_with_activity(
     // Upsert document
     conn.execute(
         "INSERT OR REPLACE INTO documents (id, file_path, source_type, title, created_at, activity_at, activity_ts, file_mtime_ms, file_size, content_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        params![id, file_path, source_type, title, date, activity_at, activity_ts, file_mtime_ms, file_size, hash],
+        params![
+            id,
+            record.file_path,
+            record.source_type,
+            record.title,
+            record.date,
+            record.activity_at,
+            record.activity_ts,
+            record.file_mtime_ms,
+            record.file_size,
+            hash
+        ],
     )?;
 
     // Update FTS index
     conn.execute("DELETE FROM search_index WHERE doc_id = ?1", params![id])?;
     conn.execute(
         "INSERT INTO search_index (doc_id, title, content) VALUES (?1, ?2, ?3)",
-        params![id, title, content],
+        params![id, record.title, record.content],
     )?;
 
     Ok(())
@@ -304,15 +321,17 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
 
             index_file_with_activity(
                 conn,
-                &rel_path,
-                source_type,
-                &title,
-                &content,
-                &date,
-                &activity_at,
-                activity_ts,
-                file_mtime_ms,
-                file_size,
+                DocumentIndexRecord {
+                    file_path: &rel_path,
+                    source_type,
+                    title: &title,
+                    content: &content,
+                    date: &date,
+                    activity_at: &activity_at,
+                    activity_ts,
+                    file_mtime_ms,
+                    file_size,
+                },
             )?;
             count += 1;
         }
@@ -403,6 +422,7 @@ pub fn build_index_if_needed(conn: &Connection, sync_dir: &Path) -> Result<u32> 
     }
 }
 
+#[allow(dead_code)]
 fn source_type_for_folder(folder: &str) -> Option<&'static str> {
     if folder.starts_with("conversations") {
         Some("conversation")
@@ -464,6 +484,7 @@ fn extract_record_date(path: &Path, content: &str) -> String {
     })
 }
 
+#[allow(dead_code)]
 fn is_indexed_markdown(path: &Path) -> bool {
     path.extension().and_then(|ext| ext.to_str()) == Some("md") && !skip_index_path(path)
 }
@@ -496,6 +517,7 @@ fn collect_markdown_snapshots(
     Ok(files)
 }
 
+#[allow(dead_code)]
 pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Result<()> {
     let index_was_ready = get_last_index_time(conn).is_some();
     let mut changed = false;
@@ -557,15 +579,17 @@ pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Re
         let date = extract_record_date(&path, &content);
         index_file_with_activity(
             conn,
-            &rel_path,
-            source_type,
-            &title,
-            &content,
-            &date,
-            &activity_at,
-            activity_ts,
-            file_mtime_ms,
-            file_size,
+            DocumentIndexRecord {
+                file_path: &rel_path,
+                source_type,
+                title: &title,
+                content: &content,
+                date: &date,
+                activity_at: &activity_at,
+                activity_ts,
+                file_mtime_ms,
+                file_size,
+            },
         )?;
         changed = true;
     }
@@ -605,15 +629,17 @@ pub fn index_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -
 
     index_file_with_activity(
         conn,
-        rel_path,
-        source_type,
-        &title,
-        &content,
-        &date,
-        &activity_at,
-        activity_ts,
-        file_mtime_ms,
-        file_size,
+        DocumentIndexRecord {
+            file_path: rel_path,
+            source_type,
+            title: &title,
+            content: &content,
+            date: &date,
+            activity_at: &activity_at,
+            activity_ts,
+            file_mtime_ms,
+            file_size,
+        },
     )?;
     if index_was_ready {
         set_last_index_time(conn)?;
@@ -633,6 +659,7 @@ pub fn remove_relative_file(conn: &Connection, rel_path: &str) -> Result<bool> {
     Ok(changed)
 }
 
+#[allow(dead_code)]
 pub fn list_documents_page(
     conn: &Connection,
     folder: &str,
