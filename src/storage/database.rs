@@ -16,8 +16,6 @@ pub struct SearchResult {
 
 pub struct DocumentListItem {
     pub file_path: String,
-    pub activity_at: String,
-    #[allow(dead_code)]
     pub activity_ts: i64,
 }
 
@@ -658,13 +656,13 @@ pub fn list_documents_page(
     let offset = offset.min(total);
 
     let list_sql = if source_type.is_some() {
-        "SELECT file_path, activity_at, activity_ts
+        "SELECT file_path, activity_ts
          FROM documents
          WHERE file_path LIKE ?1 AND source_type = ?2
          ORDER BY activity_ts DESC, file_path ASC
          LIMIT ?3 OFFSET ?4"
     } else {
-        "SELECT file_path, activity_at, activity_ts
+        "SELECT file_path, activity_ts
          FROM documents
          WHERE file_path LIKE ?1
          ORDER BY activity_ts DESC, file_path ASC
@@ -676,8 +674,7 @@ pub fn list_documents_page(
         let rows = stmt.query_map(params![folder_prefix, source_type, limit, offset], |row| {
             Ok(DocumentListItem {
                 file_path: row.get(0)?,
-                activity_at: row.get(1)?,
-                activity_ts: row.get(2)?,
+                activity_ts: row.get(1)?,
             })
         })?;
         rows.filter_map(|r| r.ok()).collect()
@@ -686,8 +683,7 @@ pub fn list_documents_page(
         let rows = stmt.query_map(params![folder_prefix, limit, offset], |row| {
             Ok(DocumentListItem {
                 file_path: row.get(0)?,
-                activity_at: row.get(1)?,
-                activity_ts: row.get(2)?,
+                activity_ts: row.get(1)?,
             })
         })?;
         rows.filter_map(|r| r.ok()).collect()
@@ -1140,6 +1136,10 @@ mod tests {
 
     #[test]
     fn test_list_documents_page_orders_by_activity_time() {
+        let expected_activity_ts =
+            chrono::DateTime::parse_from_rfc3339("2026-05-07T14:09:00+08:00")
+                .unwrap()
+                .timestamp_millis();
         let tmp = tempfile::tempdir().unwrap();
         let base = tmp.path();
         let conv_dir = base.join("conversations/2026-03");
@@ -1161,12 +1161,16 @@ mod tests {
 
         assert_eq!(page.total, 2);
         assert!(page.items[0].file_path.ends_with("03-02-updated.md"));
-        assert!(page.items[0].activity_at.starts_with("2026-05-07T14:09:00"));
+        assert_eq!(page.items[0].activity_ts, expected_activity_ts);
         assert!(page.items[1].file_path.ends_with("03-01-old.md"));
     }
 
     #[test]
     fn test_sync_index_folder_refreshes_changed_file() {
+        let expected_activity_ts =
+            chrono::DateTime::parse_from_rfc3339("2026-05-07T14:09:00+08:00")
+                .unwrap()
+                .timestamp_millis();
         let tmp = tempfile::tempdir().unwrap();
         let base = tmp.path();
         let conv_dir = base.join("conversations/2026-03");
@@ -1191,7 +1195,7 @@ mod tests {
         let page = list_documents_page(&conn, "conversations", 0, 10).unwrap();
 
         assert_eq!(page.total, 1);
-        assert!(page.items[0].activity_at.starts_with("2026-05-07T14:09:00"));
+        assert_eq!(page.items[0].activity_ts, expected_activity_ts);
     }
 
     #[test]
