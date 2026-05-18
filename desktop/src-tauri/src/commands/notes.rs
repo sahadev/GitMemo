@@ -1,5 +1,5 @@
-use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
+use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
 use std::fs::File;
@@ -13,7 +13,13 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 /// Content folders that the frontend watches for changes.
 const CONTENT_FOLDERS: &[&str] = &[
-    "conversations", "notes", "clips", "plans", "claude-config", "cursor-config", "imports",
+    "conversations",
+    "notes",
+    "clips",
+    "plans",
+    "claude-config",
+    "cursor-config",
+    "imports",
 ];
 
 const IMPORTS_LIST_LIMIT: usize = 1000;
@@ -36,8 +42,26 @@ fn refresh_index(dir: &Path) {
     }
 }
 
-fn bg_refresh_index(dir: PathBuf) {
-    std::thread::spawn(move || refresh_index(&dir));
+fn refresh_index_file(dir: &Path, rel_path: &str) {
+    let db_path = dir.join(".metadata").join("index.db");
+    if let Ok(conn) = database::open_or_create(&db_path) {
+        let _ = database::index_relative_file(&conn, dir, rel_path);
+    }
+}
+
+fn bg_refresh_index_file(dir: PathBuf, rel_path: String) {
+    std::thread::spawn(move || refresh_index_file(&dir, &rel_path));
+}
+
+fn remove_index_file(dir: &Path, rel_path: &str) {
+    let db_path = dir.join(".metadata").join("index.db");
+    if let Ok(conn) = database::open_or_create(&db_path) {
+        let _ = database::remove_relative_file(&conn, rel_path);
+    }
+}
+
+fn bg_remove_index_file(dir: PathBuf, rel_path: String) {
+    std::thread::spawn(move || remove_index_file(&dir, &rel_path));
 }
 
 #[derive(Debug, Serialize)]
@@ -253,14 +277,17 @@ fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
                 .to_string()
         });
 
-    let (modified, modified_ts) =
-        record_timestamp_for_markdown(&content, candidate.modified_time);
+    let (modified, modified_ts) = record_timestamp_for_markdown(&content, candidate.modified_time);
     let size = candidate.size;
 
     let source_type = if rel_path.starts_with("conversations") {
         "conversation"
     } else if rel_path.starts_with("clips") {
         "clip"
+    } else if rel_path.starts_with("plans") {
+        "plan"
+    } else if rel_path.starts_with("claude-config") || rel_path.starts_with("cursor-config") {
+        "config"
     } else if rel_path.starts_with("imports") {
         "import"
     } else {
@@ -298,10 +325,7 @@ fn build_file_entries(dir: &Path, candidates: Vec<FileCandidate>) -> Vec<FileEnt
 fn emit_files_changed() {
     if let Some(handle) = APP_HANDLE.get() {
         for folder in CONTENT_FOLDERS {
-            let _ = handle.emit(
-                "files-changed",
-                serde_json::json!({ "folder": folder }),
-            );
+            let _ = handle.emit("files-changed", serde_json::json!({ "folder": folder }));
         }
     }
 }
@@ -321,11 +345,19 @@ fn bg_commit_and_push(msg: String) {
             },
             Ok(result) if !git::has_remote(&dir) => GitSyncEvent {
                 ok: true,
-                message: if result.committed { "Saved locally".into() } else { "No changes".into() },
+                message: if result.committed {
+                    "Saved locally".into()
+                } else {
+                    "No changes".into()
+                },
             },
             Ok(result) => GitSyncEvent {
                 ok: true,
-                message: if result.committed { "Synced".into() } else { "No changes".into() },
+                message: if result.committed {
+                    "Synced".into()
+                } else {
+                    "No changes".into()
+                },
             },
             Err(e) => GitSyncEvent {
                 ok: false,
@@ -358,6 +390,8 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
     // Sync Cursor config (rules, skills, mcp) to cursor-config/
     sync_cursor_config(dir);
 
+    refresh_index(dir);
+
     let result = git::commit_and_push(dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
     if result.committed && result.pushed {
         Ok("Synced to Git".into())
@@ -374,7 +408,10 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
         if git::has_remote(dir) {
             let (ahead, behind) = git::ahead_behind(dir).unwrap_or((0, 0));
             if ahead > 0 && behind > 0 {
-                return Err(format!("Sync conflict: {} ahead, {} behind — manual resolution needed", ahead, behind));
+                return Err(format!(
+                    "Sync conflict: {} ahead, {} behind — manual resolution needed",
+                    ahead, behind
+                ));
             } else if behind > 0 {
                 return Err(format!("Pull failed: {} commits behind", behind));
             } else if ahead > 0 {
@@ -396,8 +433,11 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::create_scratch(&dir, &content).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
-    bg_commit_and_push(format!("note: {}", content.chars().take(50).collect::<String>()));
+    bg_refresh_index_file(dir.clone(), rel_path.clone());
+    bg_commit_and_push(format!(
+        "note: {}",
+        content.chars().take(50).collect::<String>()
+    ));
 
     Ok(NoteResult {
         success: true,
@@ -414,8 +454,11 @@ pub fn append_daily(content: String) -> Result<NoteResult, String> {
     }
 
     let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
-    bg_commit_and_push(format!("daily: {}", content.chars().take(50).collect::<String>()));
+    bg_refresh_index_file(dir.clone(), rel_path.clone());
+    bg_commit_and_push(format!(
+        "daily: {}",
+        content.chars().take(50).collect::<String>()
+    ));
 
     Ok(NoteResult {
         success: true,
@@ -433,7 +476,7 @@ pub fn create_manual(title: String, content: String, append: bool) -> Result<Not
 
     let rel_path =
         files::write_manual(&dir, &title, &content, append).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
+    bg_refresh_index_file(dir.clone(), rel_path.clone());
 
     let action = if append { "update" } else { "create" };
     bg_commit_and_push(format!("manual: {} {}", action, title));
@@ -493,7 +536,10 @@ pub async fn list_files(folder: String) -> Result<Vec<FileEntry>, String> {
 fn list_files_sync(folder: String) -> Result<Vec<FileEntry>, String> {
     let dir = sync_dir();
     prepare_list_folder(&dir, &folder);
-    Ok(build_file_entries(&dir, collect_file_candidates(&dir, &folder)))
+    Ok(build_file_entries(
+        &dir,
+        collect_file_candidates(&dir, &folder),
+    ))
 }
 
 #[tauri::command]
@@ -515,23 +561,42 @@ fn list_files_page_sync(
     let dir = sync_dir();
     prepare_list_folder(&dir, &folder);
 
-    let mut candidates = collect_file_candidates(&dir, &folder);
-    candidates.sort_by(|a, b| b.modified_time.cmp(&a.modified_time));
-
-    let total = candidates.len();
-    let offset = offset.unwrap_or(0).min(total);
     let limit = limit
         .unwrap_or(DEFAULT_LIST_PAGE_SIZE)
         .clamp(1, MAX_LIST_PAGE_SIZE);
+    let db_path = dir.join(".metadata").join("index.db");
+    let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
+    if !database::index_is_ready(&conn).map_err(|e| e.to_string())? {
+        database::build_index(&conn, &dir).map_err(|e| e.to_string())?;
+    } else {
+        database::sync_index_folder(&conn, &dir, &folder).map_err(|e| e.to_string())?;
+    }
+    let requested_offset = offset.unwrap_or(0);
+    let page = database::list_documents_page(&conn, &folder, requested_offset, limit)
+        .map_err(|e| e.to_string())?;
+
+    let total = page.total;
+    let offset = requested_offset.min(total);
     let end = offset.saturating_add(limit).min(total);
-    let page_candidates: Vec<FileCandidate> = candidates
+    let entries = page
+        .items
         .into_iter()
-        .skip(offset)
-        .take(end.saturating_sub(offset))
+        .filter_map(|item| {
+            let path = dir.join(&item.file_path);
+            let meta = path.metadata().ok()?;
+            Some(build_file_entry(
+                &dir,
+                FileCandidate {
+                    path,
+                    modified_time: meta.modified().unwrap_or(std::time::UNIX_EPOCH),
+                    size: meta.len(),
+                },
+            ))
+        })
         .collect();
 
     Ok(FilePage {
-        entries: build_file_entries(&dir, page_candidates),
+        entries,
         total,
         offset,
         limit,
@@ -550,7 +615,7 @@ pub fn update_note(file_path: String, content: String) -> Result<NoteResult, Str
     let now = chrono::Local::now();
     let content = refresh_updated_frontmatter(&content, &now);
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
+    bg_refresh_index_file(dir.clone(), file_path.clone());
     bg_commit_and_push(format!("edit: {}", file_path));
 
     Ok(NoteResult {
@@ -582,7 +647,7 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
+    bg_remove_index_file(dir.clone(), file_path.clone());
     bg_commit_and_push(format!("delete: {}", file_path));
 
     Ok(NoteResult {
@@ -634,7 +699,7 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-    bg_refresh_index(dir.clone());
+    bg_remove_index_file(dir.clone(), norm.clone());
     bg_commit_and_push(format!("delete clip: {}", norm));
 
     Ok(NoteResult {
@@ -677,7 +742,10 @@ pub fn delete_plan(file_path: String, delete_source: Option<bool>) -> Result<Not
                         let _ = std::fs::remove_file(source_plan);
                     }
                 }
-            } else if let Some(name) = Path::new(&norm).file_name().map(|s| s.to_string_lossy().to_string()) {
+            } else if let Some(name) = Path::new(&norm)
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+            {
                 for source_dir in external_plan_dirs(&home) {
                     let source_plan = source_dir.join(&name);
                     if source_plan.is_file() {
@@ -689,7 +757,7 @@ pub fn delete_plan(file_path: String, delete_source: Option<bool>) -> Result<Not
     }
 
     bg_commit_and_push(format!("delete plan: {}", norm));
-    bg_refresh_index(dir.clone());
+    bg_remove_index_file(dir.clone(), norm.clone());
 
     Ok(NoteResult {
         success: true,
@@ -749,12 +817,20 @@ pub fn save_pasted_attachment(
     let now = chrono::Local::now();
     let ext = file_name
         .as_deref()
-        .and_then(|n| Path::new(n).extension().map(|e| e.to_string_lossy().to_string()))
+        .and_then(|n| {
+            Path::new(n)
+                .extension()
+                .map(|e| e.to_string_lossy().to_string())
+        })
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| ext_from_mime(&mime_type).to_string());
     let stem = file_name
         .as_deref()
-        .and_then(|n| Path::new(n).file_stem().map(|s| s.to_string_lossy().to_string()))
+        .and_then(|n| {
+            Path::new(n)
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+        })
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| {
             if mime_type.starts_with("image/") {
@@ -884,7 +960,9 @@ fn cleanup_legacy_flat_plans(plans_dst: &Path) {
             if !path.is_file() || path.extension().and_then(|e| e.to_str()) != Some("md") {
                 continue;
             }
-            let Some(name) = path.file_name().and_then(|s| s.to_str()) else { continue; };
+            let Some(name) = path.file_name().and_then(|s| s.to_str()) else {
+                continue;
+            };
             if canonical_names.contains(name) {
                 let _ = std::fs::remove_file(path);
             }
@@ -901,7 +979,10 @@ pub fn sync_external_plans_to_gitmemo(dir: &std::path::Path) {
     let plans_dst = dir.join("plans");
     let _ = std::fs::create_dir_all(&plans_dst);
 
-    for (source, plans_src) in [("claude", home.join(".claude").join("plans")), ("cursor", home.join(".cursor").join("plans"))] {
+    for (source, plans_src) in [
+        ("claude", home.join(".claude").join("plans")),
+        ("cursor", home.join(".cursor").join("plans")),
+    ] {
         sync_plan_dir_to_gitmemo(&plans_src, &plans_dst.join(source));
     }
     cleanup_legacy_flat_plans(&plans_dst);
@@ -1040,7 +1121,9 @@ fn copy_root_markdown_files(src_root: &Path, dst_root: &Path, exclude_names: &[&
             if !path.is_file() || path.extension().and_then(|e| e.to_str()) != Some("md") {
                 continue;
             }
-            let Some(name) = path.file_name().and_then(|s| s.to_str()) else { continue; };
+            let Some(name) = path.file_name().and_then(|s| s.to_str()) else {
+                continue;
+            };
             if exclude_names.iter().any(|x| *x == name) {
                 continue;
             }
@@ -1057,7 +1140,12 @@ fn copy_project_knowledge_dirs(projects_dir: &Path, dst_projects_root: &Path) {
     if let Ok(entries) = std::fs::read_dir(projects_dir) {
         for entry in entries.flatten() {
             let proj_path = entry.path();
-            let Some(proj_name) = proj_path.file_name().map(|s| s.to_string_lossy().to_string()) else { continue; };
+            let Some(proj_name) = proj_path
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+            else {
+                continue;
+            };
             for doc_dir in DOC_DIRS {
                 let src = proj_path.join(doc_dir);
                 if src.is_dir() {

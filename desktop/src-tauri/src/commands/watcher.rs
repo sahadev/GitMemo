@@ -1,4 +1,4 @@
-use gitmemo_core::storage::files;
+use gitmemo_core::storage::{database, files};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::path::Path;
@@ -22,10 +22,29 @@ fn classify_path(path: &Path, sync_dir: &Path) -> Option<String> {
     let folder = first.as_os_str().to_string_lossy().to_string();
     // Only emit for content folders, skip .git / .metadata
     match folder.as_str() {
-        "conversations" | "notes" | "clips" | "plans" | "claude-config" | "cursor-config" | "imports" => {
-            Some(folder)
-        }
+        "conversations" | "notes" | "clips" | "plans" | "claude-config" | "cursor-config"
+        | "imports" => Some(folder),
         _ => None,
+    }
+}
+
+fn update_index_for_path(path: &Path, sync_dir: &Path, removed: bool) {
+    let Ok(rel) = path.strip_prefix(sync_dir) else {
+        return;
+    };
+    let rel = rel.to_string_lossy().replace('\\', "/");
+    if !rel.ends_with(".md") {
+        return;
+    }
+
+    let db_path = sync_dir.join(".metadata").join("index.db");
+    let Ok(conn) = database::open_or_create(&db_path) else {
+        return;
+    };
+    if removed || !path.is_file() {
+        let _ = database::remove_relative_file(&conn, &rel);
+    } else {
+        let _ = database::index_relative_file(&conn, sync_dir, &rel);
     }
 }
 
@@ -69,7 +88,8 @@ pub fn start_file_watcher(app_handle: AppHandle) {
         }
 
         // Debounce: collect events, emit at most once per folder per 500ms
-        let mut last_emit: std::collections::HashMap<String, Instant> = std::collections::HashMap::new();
+        let mut last_emit: std::collections::HashMap<String, Instant> =
+            std::collections::HashMap::new();
         let debounce = Duration::from_millis(500);
 
         loop {
@@ -92,6 +112,12 @@ pub fn start_file_watcher(app_handle: AppHandle) {
                         }
 
                         if let Some(folder) = classify_path(path, &sync_dir) {
+                            update_index_for_path(
+                                path,
+                                &sync_dir,
+                                matches!(event.kind, EventKind::Remove(_)),
+                            );
+
                             let now = Instant::now();
                             let should_emit = last_emit
                                 .get(&folder)
@@ -100,7 +126,8 @@ pub fn start_file_watcher(app_handle: AppHandle) {
 
                             if should_emit {
                                 last_emit.insert(folder.clone(), now);
-                                let _ = app_handle.emit("files-changed", FilesChangedEvent { folder });
+                                let _ =
+                                    app_handle.emit("files-changed", FilesChangedEvent { folder });
                             }
                         }
                     }

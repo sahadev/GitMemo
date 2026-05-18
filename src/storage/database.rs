@@ -1,9 +1,10 @@
-use crate::utils::datetime::frontmatter_record_datetime_raw;
+use crate::utils::datetime::{frontmatter_record_datetime_raw, record_timestamp_for_markdown};
 use anyhow::Result;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 pub struct SearchResult {
     pub source_type: String, // "conversation" or "note"
@@ -11,6 +12,18 @@ pub struct SearchResult {
     pub file_path: String,
     pub snippet: String,
     pub date: String,
+}
+
+pub struct DocumentListItem {
+    pub file_path: String,
+    pub activity_at: String,
+    #[allow(dead_code)]
+    pub activity_ts: i64,
+}
+
+pub struct DocumentListPage {
+    pub items: Vec<DocumentListItem>,
+    pub total: usize,
 }
 
 pub struct Stats {
@@ -25,6 +38,7 @@ pub fn open_or_create(db_path: &Path) -> Result<Connection> {
         std::fs::create_dir_all(parent)?;
     }
     let conn = Connection::open(db_path)?;
+    conn.busy_timeout(std::time::Duration::from_secs(5))?;
     init_schema(&conn)?;
     Ok(conn)
 }
@@ -38,10 +52,15 @@ fn init_schema(conn: &Connection) -> Result<()> {
             source_type TEXT NOT NULL,
             title       TEXT NOT NULL,
             created_at  TEXT NOT NULL,
+            activity_at TEXT NOT NULL DEFAULT '',
+            activity_ts INTEGER NOT NULL DEFAULT 0,
+            file_mtime_ms INTEGER NOT NULL DEFAULT 0,
+            file_size INTEGER NOT NULL DEFAULT 0,
             content_hash TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_docs_type ON documents(source_type);
         CREATE INDEX IF NOT EXISTS idx_docs_created ON documents(created_at);
+        CREATE INDEX IF NOT EXISTS idx_docs_file_path ON documents(file_path);
 
         CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
             doc_id,
@@ -56,13 +75,74 @@ fn init_schema(conn: &Connection) -> Result<()> {
         );
         ",
     )?;
+    let added_activity_at = ensure_column(
+        conn,
+        "documents",
+        "activity_at",
+        "ALTER TABLE documents ADD COLUMN activity_at TEXT NOT NULL DEFAULT ''",
+    )?;
+    let added_activity_ts = ensure_column(
+        conn,
+        "documents",
+        "activity_ts",
+        "ALTER TABLE documents ADD COLUMN activity_ts INTEGER NOT NULL DEFAULT 0",
+    )?;
+    let added_file_mtime_ms = ensure_column(
+        conn,
+        "documents",
+        "file_mtime_ms",
+        "ALTER TABLE documents ADD COLUMN file_mtime_ms INTEGER NOT NULL DEFAULT 0",
+    )?;
+    let added_file_size = ensure_column(
+        conn,
+        "documents",
+        "file_size",
+        "ALTER TABLE documents ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
+    )?;
+    if added_activity_at || added_activity_ts || added_file_mtime_ms || added_file_size {
+        conn.execute("DELETE FROM metadata WHERE key = 'last_index_time'", [])?;
+    }
+    conn.execute_batch(
+        "
+        CREATE INDEX IF NOT EXISTS idx_docs_activity ON documents(activity_ts);
+        ",
+    )?;
     Ok(())
+}
+
+fn ensure_column(conn: &Connection, table: &str, column: &str, alter_sql: &str) -> Result<bool> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", table))?;
+    let columns = stmt.query_map([], |row| row.get::<_, String>(1))?;
+    for name in columns {
+        if name? == column {
+            return Ok(false);
+        }
+    }
+    conn.execute(alter_sql, [])?;
+    Ok(true)
 }
 
 fn content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
     format!("{:x}", hasher.finalize())
+}
+
+fn system_time_millis(time: SystemTime) -> i64 {
+    time.duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+fn file_metadata_snapshot(path: &Path) -> (SystemTime, i64, u64) {
+    let meta = path.metadata().ok();
+    let modified_time = meta
+        .as_ref()
+        .and_then(|m| m.modified().ok())
+        .unwrap_or(std::time::UNIX_EPOCH);
+    let file_mtime_ms = system_time_millis(modified_time);
+    let file_size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+    (modified_time, file_mtime_ms, file_size)
 }
 
 /// Extract tags from frontmatter (supports "tags: a, b, c" and "tags: [a, b, c]")
@@ -90,27 +170,74 @@ fn frontmatter_tags(content: &str) -> String {
 }
 
 /// Index a single file into the database
-pub fn index_file(conn: &Connection, file_path: &str, source_type: &str, title: &str, content: &str, date: &str) -> Result<()> {
+pub fn index_file(
+    conn: &Connection,
+    file_path: &str,
+    source_type: &str,
+    title: &str,
+    content: &str,
+    date: &str,
+) -> Result<()> {
+    index_file_with_activity(
+        conn,
+        file_path,
+        source_type,
+        title,
+        content,
+        date,
+        date,
+        0,
+        0,
+        0,
+    )
+}
+
+fn index_file_with_activity(
+    conn: &Connection,
+    file_path: &str,
+    source_type: &str,
+    title: &str,
+    content: &str,
+    date: &str,
+    activity_at: &str,
+    activity_ts: i64,
+    file_mtime_ms: i64,
+    file_size: u64,
+) -> Result<()> {
     let hash = content_hash(content);
     let id = content_hash(file_path);
 
     // Check if already indexed with same hash
-    let existing_hash: Option<String> = conn
+    let existing: Option<(String, String, i64, i64, u64)> = conn
         .query_row(
-            "SELECT content_hash FROM documents WHERE id = ?1",
+            "SELECT content_hash, activity_at, activity_ts, file_mtime_ms, file_size FROM documents WHERE id = ?1",
             params![id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )
         .ok();
 
-    if existing_hash.as_deref() == Some(&hash) {
+    if existing.as_ref().is_some_and(
+        |(
+            existing_hash,
+            existing_activity_at,
+            existing_activity_ts,
+            existing_file_mtime_ms,
+            existing_file_size,
+        )| {
+            existing_hash == &hash
+                && existing_activity_at == activity_at
+                && *existing_activity_ts == activity_ts
+                && *existing_file_mtime_ms == file_mtime_ms
+                && *existing_file_size == file_size
+        },
+    ) {
         return Ok(()); // No change
     }
 
     // Upsert document
     conn.execute(
-        "INSERT OR REPLACE INTO documents (id, file_path, source_type, title, created_at, content_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![id, file_path, source_type, title, date, hash],
+        "INSERT OR REPLACE INTO documents (id, file_path, source_type, title, created_at, activity_at, activity_ts, file_mtime_ms, file_size, content_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![id, file_path, source_type, title, date, activity_at, activity_ts, file_mtime_ms, file_size, hash],
     )?;
 
     // Update FTS index
@@ -141,6 +268,7 @@ const INDEX_ROOTS: &[(&str, &str)] = &[
     ("clips", "clip"),
     ("plans", "plan"),
     ("claude-config", "config"),
+    ("cursor-config", "config"),
     ("imports", "import"),
 ];
 
@@ -163,37 +291,31 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
         {
             let path = entry.path();
             let content = std::fs::read_to_string(path)?;
+            let (modified_time, file_mtime_ms, file_size) = file_metadata_snapshot(path);
+            let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
 
-            // Extract title from first # heading or filename
-            let title = content
-                .lines()
-                .find(|l| l.starts_with("# "))
-                .map(|l| l.trim_start_matches("# ").to_string())
-                .unwrap_or_else(|| {
-                    path.file_stem()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string()
-                });
-
-            // Extract date from frontmatter or filename
-            let date = frontmatter_record_datetime_raw(&content).unwrap_or_else(|| {
-                path.file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .chars()
-                    .take(10)
-                    .collect()
-            });
+            let title = extract_title(path, &content);
+            let date = extract_record_date(path, &content);
 
             let rel_path = path
                 .strip_prefix(sync_dir)
                 .unwrap_or(path)
                 .to_string_lossy()
-                .to_string();
+                .replace('\\', "/");
             seen_paths.insert(rel_path.clone());
 
-            index_file(conn, &rel_path, source_type, &title, &content, &date)?;
+            index_file_with_activity(
+                conn,
+                &rel_path,
+                source_type,
+                &title,
+                &content,
+                &date,
+                &activity_at,
+                activity_ts,
+                file_mtime_ms,
+                file_size,
+            )?;
             count += 1;
         }
     }
@@ -201,8 +323,7 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
     let stale_docs: Vec<(String, String)> = {
         let mut stmt = conn.prepare("SELECT id, file_path FROM documents")?;
         let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
-        rows
-            .filter_map(|row| row.ok())
+        rows.filter_map(|row| row.ok())
             .filter(|(_, file_path)| !seen_paths.contains(file_path))
             .collect()
     };
@@ -212,6 +333,7 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
         conn.execute("DELETE FROM search_index WHERE doc_id = ?1", params![id])?;
     }
 
+    set_last_index_time(conn)?;
     Ok(count)
 }
 
@@ -226,6 +348,16 @@ fn get_last_index_time(conn: &Connection) -> Option<std::time::SystemTime> {
         },
     )
     .ok()
+}
+
+#[allow(dead_code)]
+pub fn index_is_ready(conn: &Connection) -> Result<bool> {
+    let exists: u32 = conn.query_row(
+        "SELECT COUNT(*) FROM metadata WHERE key = 'last_index_time'",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(exists > 0)
 }
 
 fn set_last_index_time(conn: &Connection) -> Result<()> {
@@ -267,15 +399,310 @@ pub fn build_index_if_needed(conn: &Connection, sync_dir: &Path) -> Result<u32> 
 
     if needs_rebuild {
         let count = build_index(conn, sync_dir)?;
-        set_last_index_time(conn)?;
         Ok(count)
     } else {
         Ok(0)
     }
 }
 
+fn source_type_for_folder(folder: &str) -> Option<&'static str> {
+    if folder.starts_with("conversations") {
+        Some("conversation")
+    } else if folder.starts_with("clips") {
+        Some("clip")
+    } else if folder.starts_with("plans") {
+        Some("plan")
+    } else if folder.starts_with("claude-config") || folder.starts_with("cursor-config") {
+        Some("config")
+    } else if folder.starts_with("imports") {
+        Some("import")
+    } else if folder.starts_with("notes") {
+        Some("note")
+    } else {
+        None
+    }
+}
+
+#[allow(dead_code)]
+fn source_type_for_rel_path(rel_path: &str) -> Option<&'static str> {
+    if rel_path.starts_with("conversations/") {
+        Some("conversation")
+    } else if rel_path.starts_with("clips/") {
+        Some("clip")
+    } else if rel_path.starts_with("plans/") {
+        Some("plan")
+    } else if rel_path.starts_with("claude-config/") || rel_path.starts_with("cursor-config/") {
+        Some("config")
+    } else if rel_path.starts_with("imports/") {
+        Some("import")
+    } else if rel_path.starts_with("notes/") {
+        Some("note")
+    } else {
+        None
+    }
+}
+
+fn extract_title(path: &Path, content: &str) -> String {
+    content
+        .lines()
+        .find(|l| l.starts_with("# "))
+        .map(|l| l.trim_start_matches("# ").to_string())
+        .unwrap_or_else(|| {
+            path.file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
+}
+
+fn extract_record_date(path: &Path, content: &str) -> String {
+    frontmatter_record_datetime_raw(content).unwrap_or_else(|| {
+        path.file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .chars()
+            .take(10)
+            .collect()
+    })
+}
+
+fn is_indexed_markdown(path: &Path) -> bool {
+    path.extension().and_then(|ext| ext.to_str()) == Some("md") && !skip_index_path(path)
+}
+
+fn collect_markdown_snapshots(
+    sync_dir: &Path,
+    folder: &str,
+) -> Result<Vec<(String, PathBuf, i64, u64)>> {
+    let target = sync_dir.join(folder);
+    if !target.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut files = Vec::new();
+    for entry in walkdir::WalkDir::new(&target)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| is_indexed_markdown(e.path()))
+    {
+        let path = entry.path().to_path_buf();
+        let rel_path = path
+            .strip_prefix(sync_dir)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        let (_, file_mtime_ms, file_size) = file_metadata_snapshot(&path);
+        files.push((rel_path, path, file_mtime_ms, file_size));
+    }
+    Ok(files)
+}
+
+pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Result<()> {
+    let index_was_ready = get_last_index_time(conn).is_some();
+    let mut changed = false;
+    let files = collect_markdown_snapshots(sync_dir, folder)?;
+    let source_type = source_type_for_folder(folder);
+    let folder_prefix = format!("{}/%", folder.trim_matches('/'));
+
+    let existing_rows: Vec<(String, i64, u64)> = if let Some(source_type) = source_type {
+        let mut stmt = conn.prepare(
+            "SELECT file_path, file_mtime_ms, file_size
+             FROM documents
+             WHERE file_path LIKE ?1 AND source_type = ?2",
+        )?;
+        let rows = stmt.query_map(params![folder_prefix, source_type], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+        rows.filter_map(|r| r.ok()).collect()
+    } else {
+        let mut stmt = conn.prepare(
+            "SELECT file_path, file_mtime_ms, file_size
+             FROM documents
+             WHERE file_path LIKE ?1",
+        )?;
+        let rows = stmt.query_map(params![folder_prefix], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+        rows.filter_map(|r| r.ok()).collect()
+    };
+
+    let existing: std::collections::HashMap<String, (i64, u64)> = existing_rows
+        .into_iter()
+        .map(|(path, mtime, size)| (path, (mtime, size)))
+        .collect();
+    let seen: HashSet<String> = files
+        .iter()
+        .map(|(rel_path, _, _, _)| rel_path.clone())
+        .collect();
+
+    for (rel_path, path, file_mtime_ms, file_size) in files {
+        if existing
+            .get(&rel_path)
+            .is_some_and(|(known_mtime, known_size)| {
+                *known_mtime == file_mtime_ms && *known_size == file_size
+            })
+        {
+            continue;
+        }
+        let content = std::fs::read_to_string(&path)?;
+        let modified_time = path
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        let Some(source_type) = source_type_for_rel_path(&rel_path) else {
+            continue;
+        };
+        let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
+        let title = extract_title(&path, &content);
+        let date = extract_record_date(&path, &content);
+        index_file_with_activity(
+            conn,
+            &rel_path,
+            source_type,
+            &title,
+            &content,
+            &date,
+            &activity_at,
+            activity_ts,
+            file_mtime_ms,
+            file_size,
+        )?;
+        changed = true;
+    }
+
+    for rel_path in existing.keys() {
+        if !seen.contains(rel_path) && remove_relative_file(conn, rel_path)? {
+            changed = true;
+        }
+    }
+
+    if changed && index_was_ready {
+        set_last_index_time(conn)?;
+    }
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn index_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -> Result<bool> {
+    let index_was_ready = get_last_index_time(conn).is_some();
+    let Some(source_type) = source_type_for_rel_path(rel_path) else {
+        return Ok(false);
+    };
+    let full_path = sync_dir.join(rel_path);
+    if full_path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+        return Ok(false);
+    }
+    if !full_path.is_file() || skip_index_path(&full_path) {
+        return Ok(false);
+    }
+
+    let content = std::fs::read_to_string(&full_path)?;
+    let (modified_time, file_mtime_ms, file_size) = file_metadata_snapshot(&full_path);
+    let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
+    let title = extract_title(&full_path, &content);
+    let date = extract_record_date(&full_path, &content);
+
+    index_file_with_activity(
+        conn,
+        rel_path,
+        source_type,
+        &title,
+        &content,
+        &date,
+        &activity_at,
+        activity_ts,
+        file_mtime_ms,
+        file_size,
+    )?;
+    if index_was_ready {
+        set_last_index_time(conn)?;
+    }
+    Ok(true)
+}
+
+#[allow(dead_code)]
+pub fn remove_relative_file(conn: &Connection, rel_path: &str) -> Result<bool> {
+    let index_was_ready = get_last_index_time(conn).is_some();
+    let id = content_hash(rel_path);
+    let changed = conn.execute("DELETE FROM documents WHERE id = ?1", params![id.clone()])? > 0;
+    conn.execute("DELETE FROM search_index WHERE doc_id = ?1", params![id])?;
+    if changed && index_was_ready {
+        set_last_index_time(conn)?;
+    }
+    Ok(changed)
+}
+
+pub fn list_documents_page(
+    conn: &Connection,
+    folder: &str,
+    offset: usize,
+    limit: usize,
+) -> Result<DocumentListPage> {
+    let folder_prefix = format!("{}/%", folder.trim_matches('/'));
+    let source_type = source_type_for_folder(folder);
+    let total_sql = if source_type.is_some() {
+        "SELECT COUNT(*) FROM documents WHERE file_path LIKE ?1 AND source_type = ?2"
+    } else {
+        "SELECT COUNT(*) FROM documents WHERE file_path LIKE ?1"
+    };
+    let total: usize = if let Some(source_type) = source_type {
+        conn.query_row(total_sql, params![folder_prefix, source_type], |row| {
+            row.get(0)
+        })?
+    } else {
+        conn.query_row(total_sql, params![folder_prefix], |row| row.get(0))?
+    };
+    let offset = offset.min(total);
+
+    let list_sql = if source_type.is_some() {
+        "SELECT file_path, activity_at, activity_ts
+         FROM documents
+         WHERE file_path LIKE ?1 AND source_type = ?2
+         ORDER BY activity_ts DESC, file_path ASC
+         LIMIT ?3 OFFSET ?4"
+    } else {
+        "SELECT file_path, activity_at, activity_ts
+         FROM documents
+         WHERE file_path LIKE ?1
+         ORDER BY activity_ts DESC, file_path ASC
+         LIMIT ?2 OFFSET ?3"
+    };
+
+    let items = if let Some(source_type) = source_type {
+        let mut stmt = conn.prepare(list_sql)?;
+        let rows = stmt.query_map(params![folder_prefix, source_type, limit, offset], |row| {
+            Ok(DocumentListItem {
+                file_path: row.get(0)?,
+                activity_at: row.get(1)?,
+                activity_ts: row.get(2)?,
+            })
+        })?;
+        rows.filter_map(|r| r.ok()).collect()
+    } else {
+        let mut stmt = conn.prepare(list_sql)?;
+        let rows = stmt.query_map(params![folder_prefix, limit, offset], |row| {
+            Ok(DocumentListItem {
+                file_path: row.get(0)?,
+                activity_at: row.get(1)?,
+                activity_ts: row.get(2)?,
+            })
+        })?;
+        rows.filter_map(|r| r.ok()).collect()
+    };
+
+    Ok(DocumentListPage { items, total })
+}
+
 /// Full-text search
-pub fn search(conn: &Connection, query: &str, type_filter: &str, limit: usize) -> Result<Vec<SearchResult>> {
+pub fn search(
+    conn: &Connection,
+    query: &str,
+    type_filter: &str,
+    limit: usize,
+) -> Result<Vec<SearchResult>> {
     let sql = "SELECT d.source_type, d.title, d.file_path, snippet(search_index, 2, '**', '**', '...', 20) as snip, d.created_at
          FROM search_index si
          JOIN documents d ON d.id = si.doc_id
@@ -302,7 +729,12 @@ pub fn search(conn: &Connection, query: &str, type_filter: &str, limit: usize) -
 
 /// LIKE-based search fallback for CJK and other languages where FTS5 unicode61 tokenizer fails.
 #[allow(dead_code)]
-pub fn search_like(conn: &Connection, query: &str, type_filter: &str, limit: usize) -> Result<Vec<SearchResult>> {
+pub fn search_like(
+    conn: &Connection,
+    query: &str,
+    type_filter: &str,
+    limit: usize,
+) -> Result<Vec<SearchResult>> {
     let pattern = format!("%{}%", query);
 
     let sql = "SELECT d.source_type, d.title, d.file_path, si.content, d.created_at
@@ -351,7 +783,10 @@ pub fn search_smart(
 /// Extract a short snippet around the first occurrence of `needle` in `haystack`.
 #[allow(dead_code)]
 fn extract_snippet(haystack: &str, needle: &str, context_chars: usize) -> String {
-    let flat: String = haystack.chars().map(|c| if c == '\n' || c == '\r' { ' ' } else { c }).collect();
+    let flat: String = haystack
+        .chars()
+        .map(|c| if c == '\n' || c == '\r' { ' ' } else { c })
+        .collect();
     let chars: Vec<char> = flat.chars().collect();
     if let Some(char_pos) = flat.find(needle).and_then(|byte_pos| {
         // Convert byte position to char position
@@ -362,13 +797,21 @@ fn extract_snippet(haystack: &str, needle: &str, context_chars: usize) -> String
         let end = (char_pos + needle_char_len + context_chars).min(chars.len());
         let snippet_chars: String = chars[start..end].iter().collect();
         let mut snippet = String::new();
-        if start > 0 { snippet.push_str("..."); }
+        if start > 0 {
+            snippet.push_str("...");
+        }
         snippet.push_str(snippet_chars.trim());
-        if end < chars.len() { snippet.push_str("..."); }
+        if end < chars.len() {
+            snippet.push_str("...");
+        }
         snippet
     } else {
         let preview: String = chars.iter().take(120).collect();
-        if chars.len() > 120 { format!("{}...", preview.trim()) } else { preview.trim().to_string() }
+        if chars.len() > 120 {
+            format!("{}...", preview.trim())
+        } else {
+            preview.trim().to_string()
+        }
     }
 }
 
@@ -480,7 +923,15 @@ mod tests {
     #[test]
     fn test_index_file_and_search() {
         let conn = in_memory_db();
-        index_file(&conn, "conversations/test.md", "conversation", "Test Title", "Some content about Rust", "2025-01-15").unwrap();
+        index_file(
+            &conn,
+            "conversations/test.md",
+            "conversation",
+            "Test Title",
+            "Some content about Rust",
+            "2025-01-15",
+        )
+        .unwrap();
 
         let results = search(&conn, "Rust", "all", 10).unwrap();
         assert_eq!(results.len(), 1);
@@ -491,8 +942,24 @@ mod tests {
     #[test]
     fn test_search_type_filter() {
         let conn = in_memory_db();
-        index_file(&conn, "conversations/a.md", "conversation", "Conv", "hello world", "2025-01-01").unwrap();
-        index_file(&conn, "notes/scratch/b.md", "note", "Note", "hello world", "2025-01-01").unwrap();
+        index_file(
+            &conn,
+            "conversations/a.md",
+            "conversation",
+            "Conv",
+            "hello world",
+            "2025-01-01",
+        )
+        .unwrap();
+        index_file(
+            &conn,
+            "notes/scratch/b.md",
+            "note",
+            "Note",
+            "hello world",
+            "2025-01-01",
+        )
+        .unwrap();
 
         let all = search(&conn, "hello", "all", 10).unwrap();
         assert_eq!(all.len(), 2);
@@ -516,11 +983,51 @@ mod tests {
     #[test]
     fn test_get_stats() {
         let conn = in_memory_db();
-        index_file(&conn, "conversations/a.md", "conversation", "A", "content", "2025-01-01").unwrap();
-        index_file(&conn, "conversations/b.md", "conversation", "B", "content", "2025-01-02").unwrap();
-        index_file(&conn, "notes/daily/c.md", "note", "C", "content", "2025-01-03").unwrap();
-        index_file(&conn, "notes/manual/d.md", "note", "D", "content", "2025-01-04").unwrap();
-        index_file(&conn, "notes/scratch/e.md", "note", "E", "content", "2025-01-05").unwrap();
+        index_file(
+            &conn,
+            "conversations/a.md",
+            "conversation",
+            "A",
+            "content",
+            "2025-01-01",
+        )
+        .unwrap();
+        index_file(
+            &conn,
+            "conversations/b.md",
+            "conversation",
+            "B",
+            "content",
+            "2025-01-02",
+        )
+        .unwrap();
+        index_file(
+            &conn,
+            "notes/daily/c.md",
+            "note",
+            "C",
+            "content",
+            "2025-01-03",
+        )
+        .unwrap();
+        index_file(
+            &conn,
+            "notes/manual/d.md",
+            "note",
+            "D",
+            "content",
+            "2025-01-04",
+        )
+        .unwrap();
+        index_file(
+            &conn,
+            "notes/scratch/e.md",
+            "note",
+            "E",
+            "content",
+            "2025-01-05",
+        )
+        .unwrap();
 
         let stats = get_stats(&conn).unwrap();
         assert_eq!(stats.conversation_count, 2);
@@ -532,24 +1039,62 @@ mod tests {
     #[test]
     fn test_index_file_dedup_by_hash() {
         let conn = in_memory_db();
-        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+        index_file(
+            &conn,
+            "test.md",
+            "conversation",
+            "T",
+            "content v1",
+            "2025-01-01",
+        )
+        .unwrap();
         // Same content, same hash - should be a no-op
-        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+        index_file(
+            &conn,
+            "test.md",
+            "conversation",
+            "T",
+            "content v1",
+            "2025-01-01",
+        )
+        .unwrap();
 
-        let count: u32 = conn.query_row("SELECT COUNT(*) FROM documents", [], |r| r.get(0)).unwrap();
+        let count: u32 = conn
+            .query_row("SELECT COUNT(*) FROM documents", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(count, 1);
     }
 
     #[test]
     fn test_index_file_updates_on_change() {
         let conn = in_memory_db();
-        index_file(&conn, "test.md", "conversation", "T", "content v1", "2025-01-01").unwrap();
+        index_file(
+            &conn,
+            "test.md",
+            "conversation",
+            "T",
+            "content v1",
+            "2025-01-01",
+        )
+        .unwrap();
         // Different content → different hash → should update
-        index_file(&conn, "test.md", "conversation", "T Updated", "content v2", "2025-01-01").unwrap();
+        index_file(
+            &conn,
+            "test.md",
+            "conversation",
+            "T Updated",
+            "content v2",
+            "2025-01-01",
+        )
+        .unwrap();
 
-        let title: String = conn.query_row(
-            "SELECT title FROM documents WHERE file_path = 'test.md'", [], |r| r.get(0)
-        ).unwrap();
+        let title: String = conn
+            .query_row(
+                "SELECT title FROM documents WHERE file_path = 'test.md'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(title, "T Updated");
     }
 
@@ -572,7 +1117,8 @@ mod tests {
         std::fs::write(
             conv_dir.join("01-15-test.md"),
             "---\ndate: 2025-01-15\n---\n\n# Test Conversation\n\nHello world",
-        ).unwrap();
+        )
+        .unwrap();
 
         // Create a daily note
         let daily_dir = base.join("notes/daily");
@@ -580,7 +1126,8 @@ mod tests {
         std::fs::write(
             daily_dir.join("2025-01-15.md"),
             "---\ndate: 2025-01-15\n---\n\n# 2025-01-15\n\nDaily note content",
-        ).unwrap();
+        )
+        .unwrap();
 
         let conn = in_memory_db();
         let count = build_index(&conn, base).unwrap();
@@ -589,6 +1136,62 @@ mod tests {
         let stats = get_stats(&conn).unwrap();
         assert_eq!(stats.conversation_count, 1);
         assert_eq!(stats.note_daily_count, 1);
+    }
+
+    #[test]
+    fn test_list_documents_page_orders_by_activity_time() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path();
+        let conv_dir = base.join("conversations/2026-03");
+        std::fs::create_dir_all(&conv_dir).unwrap();
+        std::fs::write(
+            conv_dir.join("03-01-old.md"),
+            "---\ntitle: Old\ndate: 2026-03-01T09:00:00+08:00\n---\n\n# Old\n",
+        )
+        .unwrap();
+        std::fs::write(
+            conv_dir.join("03-02-updated.md"),
+            "---\ntitle: Updated\ndate: 2026-03-02T09:00:00+08:00\nupdated: 2026-05-07T14:09:00+08:00\n---\n\n# Updated\n",
+        )
+        .unwrap();
+
+        let conn = in_memory_db();
+        build_index(&conn, base).unwrap();
+        let page = list_documents_page(&conn, "conversations", 0, 10).unwrap();
+
+        assert_eq!(page.total, 2);
+        assert!(page.items[0].file_path.ends_with("03-02-updated.md"));
+        assert!(page.items[0].activity_at.starts_with("2026-05-07T14:09:00"));
+        assert!(page.items[1].file_path.ends_with("03-01-old.md"));
+    }
+
+    #[test]
+    fn test_sync_index_folder_refreshes_changed_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path();
+        let conv_dir = base.join("conversations/2026-03");
+        std::fs::create_dir_all(&conv_dir).unwrap();
+        let path = conv_dir.join("03-01-topic.md");
+        std::fs::write(
+            &path,
+            "---\ntitle: Topic\ndate: 2026-03-01T09:00:00+08:00\n---\n\n# Topic\n",
+        )
+        .unwrap();
+
+        let conn = in_memory_db();
+        build_index(&conn, base).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        std::fs::write(
+            &path,
+            "---\ntitle: Topic\ndate: 2026-03-01T09:00:00+08:00\nupdated: 2026-05-07T14:09:00+08:00\n---\n\n# Topic\n",
+        )
+        .unwrap();
+
+        sync_index_folder(&conn, base, "conversations").unwrap();
+        let page = list_documents_page(&conn, "conversations", 0, 10).unwrap();
+
+        assert_eq!(page.total, 1);
+        assert!(page.items[0].activity_at.starts_with("2026-05-07T14:09:00"));
     }
 
     #[test]
