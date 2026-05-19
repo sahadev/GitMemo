@@ -2,7 +2,8 @@ use anyhow::Result;
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
-use crate::storage::{database, files};
+use crate::services::sync::StartupMode;
+use crate::storage::files;
 use crate::utils::i18n;
 
 /// Run the MCP server (stdio JSON-RPC)
@@ -13,7 +14,7 @@ pub fn run() -> Result<()> {
     // Pull latest from remote on startup
     let sync_dir = files::sync_dir();
     if sync_dir.exists() {
-        let _ = crate::storage::git::pull(&sync_dir);
+        let _ = crate::services::startup::run_startup(&sync_dir, StartupMode::Mcp);
     }
 
     let stdin = io::stdin();
@@ -42,26 +43,29 @@ pub fn run() -> Result<()> {
 
 fn handle_request(request: &Value) -> Value {
     let id = request.get("id").cloned().unwrap_or(json!(null));
-    let method = request
-        .get("method")
-        .and_then(|m| m.as_str())
-        .unwrap_or("");
+    let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
 
     match method {
-        "initialize" => json_rpc_result(id, json!({
-            "protocolVersion": "2024-11-05",
-            "capabilities": {
-                "tools": {}
-            },
-            "serverInfo": {
-                "name": "gitmemo",
-                "version": env!("CARGO_PKG_VERSION")
-            }
-        })),
+        "initialize" => json_rpc_result(
+            id,
+            json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "gitmemo",
+                    "version": env!("CARGO_PKG_VERSION")
+                }
+            }),
+        ),
 
-        "tools/list" => json_rpc_result(id, json!({
-            "tools": get_tool_definitions()
-        })),
+        "tools/list" => json_rpc_result(
+            id,
+            json!({
+                "tools": get_tool_definitions()
+            }),
+        ),
 
         "tools/call" => {
             let params = request.get("params").cloned().unwrap_or(json!({}));
@@ -69,19 +73,25 @@ fn handle_request(request: &Value) -> Value {
             let args = params.get("arguments").cloned().unwrap_or(json!({}));
 
             match call_tool(tool_name, &args) {
-                Ok(result) => json_rpc_result(id, json!({
-                    "content": [{
-                        "type": "text",
-                        "text": result
-                    }]
-                })),
-                Err(e) => json_rpc_result(id, json!({
-                    "content": [{
-                        "type": "text",
-                        "text": format!("Error: {}", e)
-                    }],
-                    "isError": true
-                })),
+                Ok(result) => json_rpc_result(
+                    id,
+                    json!({
+                        "content": [{
+                            "type": "text",
+                            "text": result
+                        }]
+                    }),
+                ),
+                Err(e) => json_rpc_result(
+                    id,
+                    json!({
+                        "content": [{
+                            "type": "text",
+                            "text": format!("Error: {}", e)
+                        }],
+                        "isError": true
+                    }),
+                ),
             }
         }
 
@@ -214,10 +224,6 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
         anyhow::bail!(t.not_init_error_mcp());
     }
 
-    let db_path = sync_dir.join(".metadata").join("index.db");
-    let conn = database::open_or_create(&db_path)?;
-    database::build_index_if_needed(&conn, &sync_dir)?;
-
     match name {
         "cds_search" => {
             let query = args["query"].as_str().unwrap_or("");
@@ -227,7 +233,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             }
             let limit = args["limit"].as_u64().unwrap_or(10) as usize;
 
-            let results = database::search(&conn, query, type_filter, limit)?;
+            let results = crate::services::search::search(&sync_dir, query, type_filter, limit)?;
             let output: Vec<Value> = results
                 .iter()
                 .map(|r| {
@@ -251,7 +257,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             let limit = args["limit"].as_u64().unwrap_or(10) as usize;
             let days = args["days"].as_u64().unwrap_or(7) as u32;
 
-            let results = database::recent(&conn, limit, days)?;
+            let results = crate::services::search::recent(&sync_dir, limit, days)?;
             let output: Vec<Value> = results
                 .iter()
                 .map(|r| {
@@ -282,24 +288,16 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             let content = args["content"]
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("content required"))?;
-            let rel_path = files::create_scratch(&sync_dir, content)?;
-            crate::storage::git::commit_and_push(
-                &sync_dir,
-                &format!("note: {}", &content[..content.len().min(50)]),
-            )?;
-            Ok(t.mcp_note_created(&rel_path))
+            let result = crate::services::notes::create_scratch(&sync_dir, content)?;
+            Ok(t.mcp_note_created(&result.rel_path))
         }
 
         "cds_daily" => {
             let content = args["content"]
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("content required"))?;
-            let rel_path = files::append_daily(&sync_dir, content)?;
-            crate::storage::git::commit_and_push(
-                &sync_dir,
-                &format!("daily: {}", &content[..content.len().min(50)]),
-            )?;
-            Ok(t.mcp_daily_appended(&rel_path))
+            let result = crate::services::notes::append_daily(&sync_dir, content)?;
+            Ok(t.mcp_daily_appended(&result.rel_path))
         }
 
         "cds_manual" => {
@@ -310,17 +308,12 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
                 .as_str()
                 .ok_or_else(|| anyhow::anyhow!("content required"))?;
             let append = args["append"].as_bool().unwrap_or(false);
-            let rel_path = files::write_manual(&sync_dir, title, content, append)?;
-            let action = if append { "update" } else { "create" };
-            crate::storage::git::commit_and_push(
-                &sync_dir,
-                &format!("manual: {} {}", action, title),
-            )?;
-            Ok(t.mcp_manual_saved(&rel_path))
+            let result = crate::services::notes::write_manual(&sync_dir, title, content, append)?;
+            Ok(t.mcp_manual_saved(&result.rel_path))
         }
 
         "cds_stats" => {
-            let stats = database::get_stats(&conn)?;
+            let stats = crate::services::search::stats(&sync_dir)?;
             Ok(serde_json::to_string_pretty(&json!({
                 "conversations": stats.conversation_count,
                 "notes": {
@@ -335,7 +328,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             let message = args["message"]
                 .as_str()
                 .unwrap_or("auto: sync conversations");
-            let result = crate::storage::git::commit_and_push(&sync_dir, message)?;
+            let result = crate::services::sync::commit_and_push(&sync_dir, message)?;
             if result.committed && result.pushed {
                 Ok(t.mcp_sync_done().to_string())
             } else if result.committed {

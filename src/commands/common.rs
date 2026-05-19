@@ -11,14 +11,6 @@ pub fn ensure_init(sync_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn ensure_indexed(sync_dir: &Path) -> Result<rusqlite::Connection> {
-    ensure_init(sync_dir)?;
-    let db_path = sync_dir.join(".metadata").join("index.db");
-    let conn = storage::database::open_or_create(&db_path)?;
-    storage::database::build_index_if_needed(&conn, sync_dir)?;
-    Ok(conn)
-}
-
 pub fn print_sync_status(result: &storage::git::SyncResult) {
     use console::style;
     let t = utils::i18n::get();
@@ -31,7 +23,9 @@ pub fn print_sync_status(result: &storage::git::SyncResult) {
         println!("  {} {}", style("✓").green(), t.synced_to_git());
     } else if let Some(ref err) = result.push_error {
         println!("  {} {}", style("⚠").yellow(), t.committed_push_failed(err));
-        let hint = t.retry_push_hint().replace("{}", &style("gitmemo sync").cyan().to_string());
+        let hint = t
+            .retry_push_hint()
+            .replace("{}", &style("gitmemo sync").cyan().to_string());
         println!("    {}", hint);
     } else {
         // Committed but no push attempted (local-only mode)

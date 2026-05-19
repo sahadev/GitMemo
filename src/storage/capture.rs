@@ -673,6 +673,7 @@ fn find_existing_session_file(sync_dir: &Path, session_id: &str) -> Option<Strin
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
+#[derive(Debug)]
 pub struct CaptureResult {
     pub new_sessions: usize,
     pub updated_sessions: usize,

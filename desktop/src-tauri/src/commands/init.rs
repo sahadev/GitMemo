@@ -1,3 +1,4 @@
+use gitmemo_core::services;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::{Config, GitConfig};
 use gitmemo_core::utils::ssh::{self, SshKeyCandidate};
@@ -419,12 +420,8 @@ pub(crate) fn capture_conversations_sync() -> Result<CaptureResponse, String> {
         return Err("GitMemo not initialized".into());
     }
 
-    let result = gitmemo_core::storage::capture::run_capture(&sync_dir, None, false)
+    let (result, _) = services::capture::capture_and_sync(&sync_dir, None, false)
         .map_err(|e| format!("Capture failed: {e}"))?;
-
-    if result.new_sessions > 0 || result.updated_sessions > 0 {
-        let _ = git::commit_and_push(&sync_dir, "auto: capture conversations");
-    }
 
     Ok(CaptureResponse {
         new_sessions: result.new_sessions,

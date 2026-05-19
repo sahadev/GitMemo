@@ -1,6 +1,7 @@
 mod commands;
 
 use commands::{clipboard, crash_log, import, init, local_editor, notes, search, settings, stats, watcher};
+use gitmemo_core::services::sync::StartupMode;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Listener, Manager, RunEvent, State, WebviewWindow};
 
@@ -178,14 +179,10 @@ pub fn run() {
             std::thread::spawn(|| {
                 let sync_dir = gitmemo_core::storage::files::sync_dir();
                 if sync_dir.exists() {
-                    let _ = gitmemo_core::storage::git::ensure_repo_clean(&sync_dir);
-                    let _ = gitmemo_core::storage::git::pull(&sync_dir);
-                    // Auto-capture Claude Code conversations
-                    if let Ok(result) = gitmemo_core::storage::capture::run_capture(&sync_dir, None, false) {
-                        if result.new_sessions > 0 || result.updated_sessions > 0 {
-                            let _ = gitmemo_core::storage::git::commit_and_push(&sync_dir, "auto: capture conversations");
-                        }
-                    }
+                    let _ = gitmemo_core::services::startup::run_startup(
+                        &sync_dir,
+                        StartupMode::Desktop,
+                    );
                 }
             });
 

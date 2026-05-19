@@ -1,3 +1,4 @@
+use gitmemo_core::services;
 use gitmemo_core::storage::{database, files};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
@@ -80,15 +81,11 @@ fn search_all_sync(
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 
-        let db_path = sync_dir.join(".metadata").join("index.db");
-        let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
-        database::build_index(&conn, &sync_dir).map_err(|e| e.to_string())?;
-
         let filter = type_filter.as_deref().unwrap_or("all");
         let max = limit.unwrap_or(20);
 
-        let results =
-            database::search_smart(&conn, &query, filter, max).map_err(|e| e.to_string())?;
+        let results = services::search::search_smart(&sync_dir, &query, filter, max)
+            .map_err(|e| e.to_string())?;
 
         Ok(map_results(&sync_dir, results))
     })
@@ -115,12 +112,12 @@ fn recent_conversations_sync(
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 
-        let db_path = sync_dir.join(".metadata").join("index.db");
-        let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
-        database::build_index(&conn, &sync_dir).map_err(|e| e.to_string())?;
-
-        let results = database::recent(&conn, limit.unwrap_or(20), days.unwrap_or(30))
-            .map_err(|e| e.to_string())?;
+        let results = services::search::recent_with_full_rebuild(
+            &sync_dir,
+            limit.unwrap_or(20),
+            days.unwrap_or(30),
+        )
+        .map_err(|e| e.to_string())?;
 
         Ok(map_results(&sync_dir, results))
     })
@@ -141,14 +138,7 @@ fn reindex_sync() -> Result<u32, String> {
         }
         notes::sync_external_plans_to_gitmemo(&sync_dir);
 
-        let db_path = sync_dir.join(".metadata").join("index.db");
-        if db_path.exists() {
-            let _ = std::fs::remove_file(&db_path);
-        }
-
-        let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
-        let count = database::build_index(&conn, &sync_dir).map_err(|e| e.to_string())?;
-        Ok(count)
+        services::search::rebuild_index(&sync_dir).map_err(|e| e.to_string())
     })
 }
 
@@ -248,4 +238,93 @@ fn fuzzy_search_files_sync(
 
         Ok(results)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::OsString;
+    use std::path::PathBuf;
+    use std::sync::Mutex;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static HOME_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct HomeOverride {
+        original: Option<OsString>,
+    }
+
+    impl HomeOverride {
+        fn set(path: &Path) -> Self {
+            let original = std::env::var_os("HOME");
+            std::env::set_var("HOME", path);
+            Self { original }
+        }
+    }
+
+    impl Drop for HomeOverride {
+        fn drop(&mut self) {
+            if let Some(original) = self.original.take() {
+                std::env::set_var("HOME", original);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+    }
+
+    struct TempHome {
+        path: PathBuf,
+    }
+
+    impl TempHome {
+        fn new() -> Self {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "gitmemo-desktop-search-test-{}-{}",
+                std::process::id(),
+                nonce
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+
+        fn path(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    impl Drop for TempHome {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn desktop_search_reindex_and_query_note() {
+        let _guard = HOME_ENV_LOCK.lock().unwrap();
+        let home = TempHome::new();
+        let _home = HomeOverride::set(home.path());
+        let sync_dir = files::sync_dir();
+
+        gitmemo_core::storage::files::create_directory_structure(&sync_dir).unwrap();
+        gitmemo_core::storage::files::write_note(
+            &sync_dir,
+            "notes/scratch/desktop-search.md",
+            "---\ndate: 2026-05-19T10:00:00+08:00\n---\n\n# Desktop Search\n\nneedle term\n",
+        )
+        .unwrap();
+
+        let indexed = reindex_sync().unwrap();
+        assert_eq!(indexed, 1);
+
+        let results =
+            search_all_sync("needle".to_string(), Some("all".to_string()), Some(10)).unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Desktop Search");
+        assert_eq!(results[0].file_path, "notes/scratch/desktop-search.md");
+    }
 }
