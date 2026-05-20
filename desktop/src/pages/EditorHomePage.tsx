@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
@@ -461,6 +462,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
                     {selectedFileRel}
                   </span>
+                  <RevealInFinderButton absolutePath={fileAbs || undefined} />
                   {fileAbs ? <CopyPathButton absolutePath={fileAbs} /> : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {editing ? (

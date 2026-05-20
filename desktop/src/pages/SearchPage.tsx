@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
@@ -147,6 +148,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
           <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {selectedFile}
           </span>
+          <RevealInFinderButton relPath={selectedFile} />
           {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {editing ? (

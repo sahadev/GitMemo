@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, FolderOpen, Download, Eraser } from "lucide-react";
+import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, Download, Eraser } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -233,15 +234,6 @@ export default function ExternalFilesPage({
     }
   }, [selectedFilePath, showToast, t, onImportResult]);
 
-  const handleReveal = useCallback(async () => {
-    if (!selectedFilePath) return;
-    try {
-      await invoke("reveal_external_file_in_finder", { filePath: selectedFilePath });
-    } catch (e) {
-      showToast(`Error: ${e}`, true);
-    }
-  }, [selectedFilePath, showToast]);
-
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
@@ -423,20 +415,8 @@ export default function ExternalFilesPage({
                 >
                   <Trash2 size={14} />
                 </button>
+                <RevealInFinderButton absolutePath={selectedEntry.file_path} disabled={!selectedEntry.exists} />
                 <CopyPathButton absolutePath={selectedEntry.file_path} />
-                <button
-                  type="button"
-                  onClick={() => void handleReveal()}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32,
-                    borderRadius: 8, cursor: "pointer",
-                    background: "none", border: "none", color: "var(--text-secondary)"
-                  }}
-                  title={t("externalFiles.reveal")}
-                >
-                  <FolderOpen size={14} />
-                </button>
               </div>
 
               <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>

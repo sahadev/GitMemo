@@ -4,6 +4,7 @@ import { Brain, Wrench, FileText, ChevronLeft, ScrollText, BookOpen, RefreshCw }
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -315,6 +316,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {selectedFile}
               </span>
+              <RevealInFinderButton relPath={selectedFile} />
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
             </div>
             <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>

@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -461,6 +462,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {selectedFile}
               </span>
+              <RevealInFinderButton relPath={selectedFile} />
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>

@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -450,6 +451,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   {currentMeta.messages} {t("conversations.msgs")}
                 </span>
               )}
+              <RevealInFinderButton relPath={selectedFile ?? undefined} />
               {selectedFile && !editing ? <CopyPathButton relPath={selectedFile} /> : null}
               {editing ? (
                 <>

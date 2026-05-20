@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -253,6 +254,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {selectedFile}
               </span>
+              <RevealInFinderButton relPath={selectedFile} />
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
               <button
                 onClick={() => void handleDelete()}

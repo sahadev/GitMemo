@@ -65,6 +65,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState("");
   const findInputRef = useRef<HTMLInputElement>(null);
+  const imeComposingRef = useRef(false);
 
   // Strip YAML frontmatter
   let body = content;
@@ -75,8 +76,8 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
     }
   }
 
-  const runFind = useCallback((backwards = false) => {
-    const query = findQuery.trim();
+  const runFind = useCallback((backwards = false, queryValue = findQuery) => {
+    const query = queryValue.trim();
     if (!query) return;
     (window as FindWindow).find?.(query, false, backwards, true, false, true, false);
   }, [findQuery]);
@@ -116,14 +117,16 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
             value={findQuery}
             onChange={(e) => {
               setFindQuery(e.target.value);
-              window.setTimeout(() => {
-                if (e.target.value.trim()) {
-                  (window as FindWindow).find?.(e.target.value, false, false, true, false, true, false);
-                }
-              }, 0);
+            }}
+            onCompositionStart={() => {
+              imeComposingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              imeComposingRef.current = false;
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+              const ev = e.nativeEvent;
+              if (e.key === "Enter" && !imeComposingRef.current && !ev.isComposing && !("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229)) {
                 e.preventDefault();
                 runFind(e.shiftKey);
               }
