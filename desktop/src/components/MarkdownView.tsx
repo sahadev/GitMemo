@@ -34,26 +34,16 @@ function looksLikeYamlFrontmatter(content: string) {
   return meaningfulLines.length === 0 || meaningfulLines.some((line) => /^[A-Za-z0-9_-]+:\s*/.test(line));
 }
 
-function renderFrontmatterAsMarkdown(markdown: string) {
+function stripFrontmatter(markdown: string) {
   let body = markdown.replace(/^\uFEFF/, "");
-  const renderedBlocks: string[] = [];
 
   while (true) {
     const match = frontmatterPattern.exec(body);
     if (!match || !looksLikeYamlFrontmatter(match[1])) break;
-
-    const lines = match[1]
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length > 0) {
-      renderedBlocks.push(`---\n\n${lines.join("\n")}\n\n---`);
-    }
     body = body.slice(match[0].length);
   }
 
-  return [...renderedBlocks, body.trimStart()].filter(Boolean).join("\n\n");
+  return body.trimStart();
 }
 
 function hasMarkdownBlockSyntax(line: string) {
@@ -119,7 +109,7 @@ function preserveParagraphLineIndents(markdown: string) {
 }
 
 function prepareMarkdown(markdown: string) {
-  return preserveParagraphLineIndents(renderFrontmatterAsMarkdown(markdown));
+  return preserveParagraphLineIndents(stripFrontmatter(markdown));
 }
 
 /**
