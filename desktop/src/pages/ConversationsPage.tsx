@@ -113,6 +113,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement>(null);
   const filesLengthRef = useRef(0);
+  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [totalFiles, setTotalFiles] = useState(0);
@@ -255,8 +256,29 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   const navigateNext = useCallback(() => {
     if (!selectedFile || files.length === 0) return;
     const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < files.length - 1) openFile(files[idx + 1].path);
-  }, [selectedFile, files]);
+    if (idx < 0) return;
+    if (idx < files.length - 1) {
+      void openFile(files[idx + 1].path);
+      return;
+    }
+    if (hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = idx + 1;
+      void loadMore();
+    }
+  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
+
+  useEffect(() => {
+    const pendingIndex = pendingKeyboardNextIndexRef.current;
+    if (pendingIndex === null) return;
+    if (files.length > pendingIndex) {
+      pendingKeyboardNextIndexRef.current = null;
+      void openFile(files[pendingIndex].path);
+      return;
+    }
+    if (!hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = null;
+    }
+  }, [files, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

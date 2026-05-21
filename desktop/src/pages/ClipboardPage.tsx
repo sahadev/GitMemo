@@ -85,6 +85,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const [fileContent, setFileContent] = useState("");
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const savedClipsLengthRef = useRef(0);
+  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
 
@@ -170,7 +171,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
     } catch (e) { showToast(`Error: ${e}`); }
   };
 
-  const openFile = async (path: string) => {
+  const openFile = useCallback(async (path: string) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
@@ -178,7 +179,7 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
       setFileContent(body);
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("clips/")) return;
@@ -195,8 +196,29 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const navNext = useCallback(() => {
     if (!selectedFile || savedClips.length === 0) return;
     const idx = savedClips.findIndex((f) => f.path === selectedFile);
-    if (idx < savedClips.length - 1) openFile(savedClips[idx + 1].path);
-  }, [selectedFile, savedClips]);
+    if (idx < 0) return;
+    if (idx < savedClips.length - 1) {
+      void openFile(savedClips[idx + 1].path);
+      return;
+    }
+    if (hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = idx + 1;
+      void loadMore();
+    }
+  }, [selectedFile, savedClips, hasMore, loadingMore, loadMore, openFile]);
+
+  useEffect(() => {
+    const pendingIndex = pendingKeyboardNextIndexRef.current;
+    if (pendingIndex === null) return;
+    if (savedClips.length > pendingIndex) {
+      pendingKeyboardNextIndexRef.current = null;
+      void openFile(savedClips[pendingIndex].path);
+      return;
+    }
+    if (!hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = null;
+    }
+  }, [savedClips, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

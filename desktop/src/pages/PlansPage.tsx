@@ -32,6 +32,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   const [totalFiles, setTotalFiles] = useState(0);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const filesLengthRef = useRef(0);
+  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
 
   useEffect(() => { loadFiles(); }, []);
   useEffect(() => {
@@ -64,14 +65,14 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
     onLoadMore: () => loadFiles(false),
   });
 
-  const openFile = async (path: string) => {
+  const openFile = useCallback(async (path: string) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("plans/")) return;
@@ -82,14 +83,35 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   const navPrev = useCallback(() => {
     if (!selectedFile || files.length === 0) return;
     const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) openFile(files[idx - 1].path);
-  }, [selectedFile, files]);
+    if (idx > 0) void openFile(files[idx - 1].path);
+  }, [selectedFile, files, openFile]);
 
   const navNext = useCallback(() => {
     if (!selectedFile || files.length === 0) return;
     const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < files.length - 1) openFile(files[idx + 1].path);
-  }, [selectedFile, files]);
+    if (idx < 0) return;
+    if (idx < files.length - 1) {
+      void openFile(files[idx + 1].path);
+      return;
+    }
+    if (hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = idx + 1;
+      void loadMore();
+    }
+  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
+
+  useEffect(() => {
+    const pendingIndex = pendingKeyboardNextIndexRef.current;
+    if (pendingIndex === null) return;
+    if (files.length > pendingIndex) {
+      pendingKeyboardNextIndexRef.current = null;
+      void openFile(files[pendingIndex].path);
+      return;
+    }
+    if (!hasMore && !loadingMore) {
+      pendingKeyboardNextIndexRef.current = null;
+    }
+  }, [files, hasMore, loadingMore, openFile]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
