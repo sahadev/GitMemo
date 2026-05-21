@@ -127,6 +127,7 @@ textarea:focus, input:focus {
 
 .markdown-body p {
   margin-bottom: 0.8em;
+  white-space: pre-wrap;
 }
 
 .markdown-body ul, .markdown-body ol {

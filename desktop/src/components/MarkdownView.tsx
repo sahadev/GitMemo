@@ -23,6 +23,95 @@ type FindWindow = Window & {
   ) => boolean;
 };
 
+const frontmatterPattern = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+function looksLikeYamlFrontmatter(content: string) {
+  const meaningfulLines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+
+  return meaningfulLines.length === 0 || meaningfulLines.some((line) => /^[A-Za-z0-9_-]+:\s*/.test(line));
+}
+
+function stripYamlFrontmatter(markdown: string) {
+  let body = markdown.replace(/^\uFEFF/, "");
+
+  while (true) {
+    const match = frontmatterPattern.exec(body);
+    if (!match || !looksLikeYamlFrontmatter(match[1])) break;
+    body = body.slice(match[0].length);
+  }
+
+  return body.trimStart();
+}
+
+function hasMarkdownBlockSyntax(line: string) {
+  const trimmed = line.trimStart();
+  return (
+    /^(#{1,6}\s|>|[-+*]\s|\d+[.)]\s|```|~~~)/.test(trimmed) ||
+    /^(-{3,}|\*{3,}|_{3,})$/.test(trimmed) ||
+    /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(trimmed)
+  );
+}
+
+function preserveParagraphLineIndents(markdown: string) {
+  // Clipboard/plain-text snippets often use Markdown paragraphs as visual diagrams.
+  // Keep that indentation without changing lists, tables, quotes, or code blocks.
+  const lines = markdown.split(/\r?\n/);
+  const result: string[] = [];
+  let block: string[] = [];
+  let inFence = false;
+
+  const flushBlock = () => {
+    if (block.length === 0) return;
+
+    const hasUnindentedText = block.some((line) => line.trim() && !/^[ \t]/.test(line));
+    const hasBlockSyntax = block.some(hasMarkdownBlockSyntax);
+
+    for (const line of block) {
+      result.push(
+        hasUnindentedText && !hasBlockSyntax
+          ? line.replace(/^([ \t]+)(?=\S)/, (spaces) =>
+              spaces.replace(/ /g, "&nbsp;").replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
+            )
+          : line,
+      );
+    }
+
+    block = [];
+  };
+
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      flushBlock();
+      inFence = !inFence;
+      result.push(line);
+      continue;
+    }
+
+    if (inFence) {
+      result.push(line);
+      continue;
+    }
+
+    if (line.trim() === "") {
+      flushBlock();
+      result.push(line);
+      continue;
+    }
+
+    block.push(line);
+  }
+
+  flushBlock();
+  return result.join("\n");
+}
+
+function prepareMarkdown(markdown: string) {
+  return preserveParagraphLineIndents(stripYamlFrontmatter(markdown));
+}
+
 /**
  * Custom img renderer that loads local images via Tauri's read_file_base64.
  */
@@ -66,15 +155,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const [findQuery, setFindQuery] = useState("");
   const findInputRef = useRef<HTMLInputElement>(null);
   const imeComposingRef = useRef(false);
-
-  // Strip YAML frontmatter
-  let body = content;
-  if (body.startsWith("---")) {
-    const end = body.indexOf("---", 3);
-    if (end !== -1) {
-      body = body.slice(end + 3).trimStart();
-    }
-  }
+  const body = prepareMarkdown(content);
 
   const runFind = useCallback((backwards = false, queryValue = findQuery) => {
     const query = queryValue.trim();
