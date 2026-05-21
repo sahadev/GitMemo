@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -16,6 +16,7 @@ import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface ConversationMeta {
   title: string;
@@ -96,7 +97,8 @@ function parseConversationBody(body: string): ParsedConversationBody {
 export default function ConversationsPage({ onFocusSidebar, enterTrigger, sidebarFocused }: { onFocusSidebar?: () => void; enterTrigger?: number; sidebarFocused?: boolean }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -282,11 +284,12 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (sidebarFocused) return; // App handles up/down when sidebar focused
       if (e.key === "ArrowUp") { e.preventDefault(); navigatePrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navigateNext(); }
-      if (!editing && selectedFile && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
         e.preventDefault();
         startEdit();
       }
@@ -308,7 +311,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigatePrev, navigateNext, selectedFile, files, sidebarFocused, editing, startEdit, onFocusSidebar]);
+  }, [navigatePrev, navigateNext, selectedFile, files, sidebarFocused, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

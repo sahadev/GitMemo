@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
@@ -8,6 +8,8 @@ import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
+import { useAppStore } from "../hooks/useAppStore";
+import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface SearchResultItem {
   source_type: string;
@@ -22,6 +24,8 @@ const SEARCH_STATE_KEY = "gitmemo-search-state";
 export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }: { focusTrigger?: number; openFilePath?: string | null; onFileOpened?: () => void }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const settings = useAppStore((s) => s.settings);
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [searched, setSearched] = useState(false);
@@ -253,7 +257,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
               if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
               handleSearch();
             }}
-            placeholder={t("search.placeholder")}
+            placeholder={t("search.placeholder", formatShortcut(shortcuts.app_search))}
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
               borderRadius: 6, fontSize: 14, fontFamily: "inherit",
@@ -271,7 +275,7 @@ export default function SearchPage({ focusTrigger, openFilePath, onFileOpened }:
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80 }}>
             <Search size={44} style={{ color: "var(--border)", marginBottom: 16 }} />
             <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("search.emptyTitle")}</p>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("search.emptyHint")}</p>
+            <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("search.emptyHint", formatShortcut(shortcuts.global_search))}</p>
           </div>
         ) : results.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--text-secondary)", paddingTop: 16 }}>{t("search.noResults", query)}</p>

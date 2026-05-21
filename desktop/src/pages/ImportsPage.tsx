@@ -16,6 +16,7 @@ import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface NoteResult {
   success: boolean;
@@ -44,7 +45,8 @@ function ImportImagePreview({ relPath }: { relPath: string }) {
 export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger, active }: { onFocusSidebar?: () => void; enterTrigger?: number; active?: boolean } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -193,17 +195,18 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (selectedFile && (e.metaKey || e.ctrlKey) && (e.key === "Backspace" || e.key === "Delete")) {
+      if (selectedFile && shortcutMatches(e, shortcuts.delete_selected)) {
         e.preventDefault();
         void handleDelete();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, selectedFile, handleDelete]);
+  }, [navPrev, navNext, selectedFile, handleDelete, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type ClipboardEvent, type Dispatch, type SetStateAction } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ClipboardEvent, type Dispatch, type SetStateAction } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -16,6 +16,7 @@ import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore, type NotesTab } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { formatShortcut, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface NoteResult {
   success: boolean;
@@ -38,7 +39,8 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
 export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { focusTrigger?: number; onFocusSidebar?: () => void; enterTrigger?: number }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { notesTab: activeTab, setNotesTab, pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const { notesTab: activeTab, setNotesTab, pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -270,21 +272,22 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (!editing && selectedFile && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
         e.preventDefault();
         startEdit();
       }
-      if (!editing && selectedFile && (e.metaKey || e.ctrlKey) && (e.key === "Backspace" || e.key === "Delete")) {
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.delete_selected)) {
         e.preventDefault();
         void handleDelete();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, editing, selectedFile, handleDelete, fileContent]);
+  }, [navPrev, navNext, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
@@ -537,7 +540,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 {t("notes.selectOrCreate")}
               </p>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
-                {t("notes.cmdN")}
+                {t("notes.cmdN", formatShortcut(shortcuts.quick_note))}
               </p>
             </div>
           </div>

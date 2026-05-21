@@ -1,13 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X, Download, RefreshCw, Wifi } from "lucide-react";
+import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X, Download, RefreshCw, Wifi, RotateCcw } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
 import type { Page } from "../App";
+import {
+  DEFAULT_KEYBOARD_SHORTCUTS,
+  findShortcutConflict,
+  formatShortcut,
+  normalizeShortcut,
+  shortcutFromKeyboardEvent,
+  withDefaultShortcuts,
+  type KeyboardShortcuts,
+  type ShortcutId,
+} from "../utils/shortcuts";
+
+const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
+  { id: "global_search", labelKey: "settings.shortcutGlobalSearchLabel", descKey: "settings.shortcutGlobalSearchDesc" },
+  { id: "app_search", labelKey: "settings.shortcutAppSearchLabel", descKey: "settings.shortcutAppSearchDesc" },
+  { id: "quick_note", labelKey: "settings.shortcutQuickNoteLabel", descKey: "settings.shortcutQuickNoteDesc" },
+  { id: "find_in_document", labelKey: "settings.shortcutFindLabel", descKey: "settings.shortcutFindDesc" },
+  { id: "edit_selected", labelKey: "settings.shortcutEditLabel", descKey: "settings.shortcutEditDesc" },
+  { id: "delete_selected", labelKey: "settings.shortcutDeleteLabel", descKey: "settings.shortcutDeleteDesc" },
+];
 
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -69,6 +88,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [updatingClaudeSkills, setUpdatingClaudeSkills] = useState(false);
   const [updatingCursorSkills, setUpdatingCursorSkills] = useState(false);
   const [testingRemote, setTestingRemote] = useState(false);
+  const [shortcutDrafts, setShortcutDrafts] = useState<KeyboardShortcuts>(() => withDefaultShortcuts());
+  const [recordingShortcut, setRecordingShortcut] = useState<ShortcutId | null>(null);
+  const [savingShortcut, setSavingShortcut] = useState<ShortcutId | "all" | null>(null);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -77,6 +99,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   useEffect(() => {
     if (!editingRemote) setRemoteInput(gitRemote);
   }, [gitRemote, editingRemote]);
+
+  useEffect(() => {
+    setShortcutDrafts(withDefaultShortcuts(settings?.shortcuts));
+  }, [settings?.shortcuts]);
 
   const openChangelog = async () => {
     try {
@@ -100,6 +126,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       await invoke<string>("set_clipboard_autostart", { enabled: !settings.clipboard_autostart });
       refreshSettings();
     } catch (e) { console.error(e); }
+  };
+
+  const toggleControlCopyPaste = async () => {
+    if (!settings) return;
+    try {
+      await invoke<string>("set_control_copy_paste", { enabled: !settings.control_copy_paste });
+      refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
   };
 
   const setProxyMode = async (mode: "system" | "none" | "custom") => {
@@ -258,6 +294,61 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     ]);
   };
 
+  const saveShortcuts = async (nextShortcuts: KeyboardShortcuts, changedId: ShortcutId | "all") => {
+    const normalized = Object.fromEntries(
+      Object.entries(nextShortcuts).map(([id, value]) => [id, normalizeShortcut(value) ?? value]),
+    ) as KeyboardShortcuts;
+
+    for (const row of shortcutRows) {
+      if (!normalizeShortcut(normalized[row.id])) {
+        showToast(t("settings.shortcutInvalid"), true);
+        return;
+      }
+      const conflict = findShortcutConflict(normalized, row.id);
+      if (conflict) {
+        const conflictRow = shortcutRows.find((r) => r.id === conflict);
+        showToast(t("settings.shortcutConflict", t(row.labelKey), conflictRow ? t(conflictRow.labelKey) : conflict), true);
+        return;
+      }
+    }
+
+    setSavingShortcut(changedId);
+    try {
+      await invoke<string>("set_shortcuts", { shortcuts: normalized });
+      setShortcutDrafts(normalized);
+      await refreshSettings();
+      showToast(t("conversations.saved"));
+    } catch (e) {
+      showToast(`${e}`, true);
+    } finally {
+      setSavingShortcut(null);
+      setRecordingShortcut(null);
+    }
+  };
+
+  const captureShortcut = (id: ShortcutId, e: KeyboardEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") {
+      setRecordingShortcut(null);
+      return;
+    }
+
+    const captured = shortcutFromKeyboardEvent(e.nativeEvent);
+    const normalized = captured ? normalizeShortcut(captured) : null;
+    if (!normalized) return;
+
+    void saveShortcuts({ ...shortcutDrafts, [id]: normalized }, id);
+  };
+
+  const resetShortcut = (id: ShortcutId) => {
+    void saveShortcuts({ ...shortcutDrafts, [id]: DEFAULT_KEYBOARD_SHORTCUTS[id] }, id);
+  };
+
+  const resetAllShortcuts = () => {
+    void saveShortcuts(DEFAULT_KEYBOARD_SHORTCUTS, "all");
+  };
+
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
@@ -380,6 +471,20 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </div>
             </div>
             <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)" }} />
+
+          {/* Control copy/paste compatibility */}
+          <div style={rowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
+              </div>
+            </div>
+            <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
@@ -767,11 +872,88 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
       <div style={{ ...cardStyle, marginTop: 20 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutGlobalSearch")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutQuickNote")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutFind")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("settings.shortcutEditDelete")}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
+            </div>
+            <button
+              type="button"
+              onClick={resetAllShortcuts}
+              disabled={savingShortcut !== null}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                border: "1px solid var(--border)", background: "transparent",
+                color: "var(--text-secondary)", cursor: savingShortcut ? "default" : "pointer",
+                opacity: savingShortcut ? 0.65 : 1,
+              }}
+            >
+              <RotateCcw size={12} /> {t("settings.resetShortcuts")}
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {shortcutRows.map((row) => {
+              const recording = recordingShortcut === row.id;
+              const saving = savingShortcut === row.id || savingShortcut === "all";
+              return (
+                <div
+                  key={row.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 0",
+                    borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 500 }}>{t(row.labelKey)}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      data-shortcut-recorder="true"
+                      onClick={() => setRecordingShortcut(row.id)}
+                      onKeyDown={(e) => captureShortcut(row.id, e)}
+                      disabled={saving}
+                      style={{
+                        minWidth: 128,
+                        padding: "6px 10px",
+                        borderRadius: 5,
+                        border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
+                        background: recording ? "var(--bg-hover)" : "var(--bg)",
+                        color: recording ? "var(--accent)" : "var(--text)",
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontSize: 12,
+                        cursor: saving ? "default" : "pointer",
+                        opacity: saving ? 0.65 : 1,
+                      }}
+                    >
+                      {recording ? t("settings.pressShortcut") : formatShortcut(shortcutDrafts[row.id])}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resetShortcut(row.id)}
+                      disabled={saving}
+                      title={t("settings.resetShortcut")}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 28, height: 28, borderRadius: 5,
+                        border: "1px solid var(--border)", background: "transparent",
+                        color: "var(--text-secondary)", cursor: saving ? "default" : "pointer",
+                        opacity: saving ? 0.65 : 1,
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

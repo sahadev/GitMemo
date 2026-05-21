@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -16,11 +16,13 @@ import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const isMobile = usePlatform() === "mobile";
   useRelativeTimeTick();
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -141,17 +143,18 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if ((e.metaKey || e.ctrlKey) && (e.key === "Backspace" || e.key === "Delete")) {
+      if (shortcutMatches(e, shortcuts.delete_selected)) {
         e.preventDefault();
         void handleDelete();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, handleDelete]);
+  }, [navPrev, navNext, handleDelete, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

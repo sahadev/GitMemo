@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useCallback, type ComponentProps } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ComponentProps } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { Search, ChevronUp, ChevronDown, X } from "lucide-react";
+import { useAppStore } from "../hooks/useAppStore";
+import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface MarkdownViewProps {
   content: string;
@@ -155,6 +157,8 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const [findQuery, setFindQuery] = useState("");
   const findInputRef = useRef<HTMLInputElement>(null);
   const imeComposingRef = useRef(false);
+  const settings = useAppStore((s) => s.settings);
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const body = prepareMarkdown(content);
 
   const runFind = useCallback((backwards = false, queryValue = findQuery) => {
@@ -165,7 +169,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "f") return;
+      if (e.defaultPrevented || !shortcutMatches(e, shortcuts.find_in_document)) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       e.preventDefault();
       setFindOpen(true);
@@ -174,7 +178,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [shortcuts.find_in_document]);
 
   return (
     <div className="markdown-body">

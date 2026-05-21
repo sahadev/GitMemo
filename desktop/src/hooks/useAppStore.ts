@@ -4,6 +4,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { error as logPluginError, info as logPluginInfo, warn as logPluginWarn } from "@tauri-apps/plugin-log";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import type { KeyboardShortcuts } from "../utils/shortcuts";
+import { notify } from "../utils/notify";
+import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
 const UPDATE_CHECK_TIMEOUT_MS = 15_000;
@@ -57,8 +60,10 @@ export interface ClipboardStatus {
 export interface DesktopSettings {
   autostart: boolean;
   clipboard_autostart: boolean;
+  control_copy_paste: boolean;
   proxy_mode: "system" | "none" | "custom";
   proxy_url: string;
+  shortcuts: KeyboardShortcuts;
 }
 
 export interface AppMeta {
@@ -274,10 +279,17 @@ export function initAppListeners() {
 
   // Load all state on startup
   void useAppStoreInternal.getState().init();
+  configureControlCopyPasteBridge(false);
 
   // Keep clipboard status in sync when backend toggles it (e.g. tray menu)
   void listen("tray-clipboard-update", () => {
     void useAppStoreInternal.getState().refreshClipboardStatus();
+  });
+
+  // System notification for saved clips. Keep this as a singleton listener so
+  // App re-renders and page navigation cannot multiply macOS notifications.
+  void listen<{ preview?: string }>("clipboard-saved", ({ payload }) => {
+    void notify("GitMemo Clipboard", payload?.preview || "Clip saved");
   });
 
   // Apply theme to DOM
@@ -287,5 +299,8 @@ export function initAppListeners() {
   applyTheme(useAppStoreInternal.getState().theme);
   useAppStoreInternal.subscribe((s, prev) => {
     if (s.theme !== prev.theme) applyTheme(s.theme);
+    if (s.settings?.control_copy_paste !== prev.settings?.control_copy_paste) {
+      configureControlCopyPasteBridge(s.settings?.control_copy_paste ?? false);
+    }
   });
 }

@@ -5,6 +5,7 @@ import {
 } from "@tauri-apps/plugin-notification";
 
 let permissionGranted: boolean | null = null;
+let lastNotification: { title: string; body: string; at: number } | null = null;
 
 async function ensurePermission(): Promise<boolean> {
   if (permissionGranted === true) return true;
@@ -25,6 +26,17 @@ async function ensurePermission(): Promise<boolean> {
  */
 export async function notify(title: string, body?: string) {
   if (document.hasFocus()) return;
+  const normalizedBody = body ?? "";
+  const now = Date.now();
+  if (
+    lastNotification &&
+    lastNotification.title === title &&
+    lastNotification.body === normalizedBody &&
+    now - lastNotification.at < 1500
+  ) {
+    return;
+  }
+  lastNotification = { title, body: normalizedBody, at: now };
   const ok = await ensurePermission();
   if (!ok) return;
   sendNotification({ title, body });

@@ -2,7 +2,13 @@ use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
 use serde::{Deserialize, Serialize};
 #[cfg(desktop)]
+use std::str::FromStr;
+#[cfg(desktop)]
+use tauri::{Emitter, Manager};
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
+#[cfg(desktop)]
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 const SETTINGS_FILE: &str = "desktop_settings.toml";
 
@@ -21,20 +27,73 @@ pub struct DesktopSettings {
     #[serde(default = "default_true")]
     pub clipboard_autostart: bool,
     #[serde(default)]
+    pub control_copy_paste: bool,
+    #[serde(default)]
     pub proxy_mode: ProxyMode,
     #[serde(default)]
     pub proxy_url: String,
+    #[serde(default)]
+    pub shortcuts: KeyboardShortcuts,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyboardShortcuts {
+    #[serde(default = "default_global_search_shortcut")]
+    pub global_search: String,
+    #[serde(default = "default_app_search_shortcut")]
+    pub app_search: String,
+    #[serde(default = "default_quick_note_shortcut")]
+    pub quick_note: String,
+    #[serde(default = "default_find_in_document_shortcut")]
+    pub find_in_document: String,
+    #[serde(default = "default_edit_selected_shortcut")]
+    pub edit_selected: String,
+    #[serde(default = "default_delete_selected_shortcut")]
+    pub delete_selected: String,
 }
 
 fn default_true() -> bool { true }
+fn default_global_search_shortcut() -> String {
+    "CmdOrCtrl+Shift+G".into()
+}
+fn default_app_search_shortcut() -> String {
+    "CmdOrCtrl+K".into()
+}
+fn default_quick_note_shortcut() -> String {
+    "CmdOrCtrl+N".into()
+}
+fn default_find_in_document_shortcut() -> String {
+    "CmdOrCtrl+F".into()
+}
+fn default_edit_selected_shortcut() -> String {
+    "CmdOrCtrl+E".into()
+}
+fn default_delete_selected_shortcut() -> String {
+    "CmdOrCtrl+Delete".into()
+}
+
+impl Default for KeyboardShortcuts {
+    fn default() -> Self {
+        Self {
+            global_search: default_global_search_shortcut(),
+            app_search: default_app_search_shortcut(),
+            quick_note: default_quick_note_shortcut(),
+            find_in_document: default_find_in_document_shortcut(),
+            edit_selected: default_edit_selected_shortcut(),
+            delete_selected: default_delete_selected_shortcut(),
+        }
+    }
+}
 
 impl Default for DesktopSettings {
     fn default() -> Self {
         Self {
             autostart: false,
             clipboard_autostart: true,
+            control_copy_paste: false,
             proxy_mode: ProxyMode::default(),
             proxy_url: String::new(),
+            shortcuts: KeyboardShortcuts::default(),
         }
     }
 }
@@ -70,6 +129,83 @@ fn save_settings(settings: &DesktopSettings) -> Result<(), String> {
     }
     let content = toml::to_string_pretty(settings).map_err(|e| e.to_string())?;
     std::fs::write(&path, content).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn shortcut_values(shortcuts: &KeyboardShortcuts) -> [(&'static str, &str); 6] {
+    [
+        ("global_search", &shortcuts.global_search),
+        ("app_search", &shortcuts.app_search),
+        ("quick_note", &shortcuts.quick_note),
+        ("find_in_document", &shortcuts.find_in_document),
+        ("edit_selected", &shortcuts.edit_selected),
+        ("delete_selected", &shortcuts.delete_selected),
+    ]
+}
+
+#[cfg(desktop)]
+fn validate_shortcuts(shortcuts: &KeyboardShortcuts) -> Result<(), String> {
+    let mut seen = std::collections::HashMap::<String, &'static str>::new();
+    for (name, value) in shortcut_values(shortcuts) {
+        Shortcut::from_str(value).map_err(|e| format!("Invalid shortcut {name}: {e}"))?;
+        let normalized = value.to_ascii_lowercase().replace(' ', "");
+        if let Some(existing) = seen.insert(normalized, name) {
+            return Err(format!("Shortcut conflict: {existing} and {name}"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(desktop))]
+fn validate_shortcuts(shortcuts: &KeyboardShortcuts) -> Result<(), String> {
+    for (name, value) in shortcut_values(shortcuts) {
+        if value.trim().is_empty() {
+            return Err(format!("Invalid shortcut {name}: empty"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(desktop)]
+fn show_main_window(window: &tauri::WebviewWindow) {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+}
+
+#[cfg(desktop)]
+fn register_global_shortcuts_for(
+    app: &tauri::AppHandle,
+    shortcuts: &KeyboardShortcuts,
+) -> Result<(), String> {
+    let shortcut = Shortcut::from_str(&shortcuts.global_search)
+        .map_err(|e| format!("Invalid global search shortcut: {e}"))?;
+
+    let global_shortcut = app.global_shortcut();
+    let _ = global_shortcut.unregister_all();
+
+    let app_handle = app.clone();
+    global_shortcut
+        .on_shortcut(shortcut, move |_app, _shortcut, event| {
+            if event.state != ShortcutState::Pressed {
+                return;
+            }
+            if let Some(w) = app_handle.get_webview_window("main") {
+                show_main_window(&w);
+                let _ = app_handle.emit("global-shortcut-search", ());
+            }
+        })
+        .map_err(|e| format!("{e:?}"))?;
+    Ok(())
+}
+
+#[cfg(desktop)]
+pub fn register_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
+    register_global_shortcuts_for(app, &load_settings().shortcuts)
+}
+
+#[cfg(not(desktop))]
+pub fn register_global_shortcuts(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
@@ -141,6 +277,44 @@ pub fn set_clipboard_autostart(enabled: bool) -> Result<String, String> {
     } else {
         "Clipboard auto-start disabled".into()
     })
+}
+
+#[tauri::command]
+pub fn set_control_copy_paste(enabled: bool) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.control_copy_paste = enabled;
+    save_settings(&settings)?;
+
+    Ok(if enabled {
+        "Control copy/paste enabled".into()
+    } else {
+        "Control copy/paste disabled".into()
+    })
+}
+
+#[tauri::command]
+pub fn set_shortcuts(
+    app: tauri::AppHandle,
+    shortcuts: KeyboardShortcuts,
+) -> Result<String, String> {
+    validate_shortcuts(&shortcuts)?;
+    #[cfg(not(desktop))]
+    let _ = &app;
+    let mut settings = load_settings();
+    #[cfg(desktop)]
+    if let Err(e) = register_global_shortcuts_for(&app, &shortcuts) {
+        let _ = register_global_shortcuts_for(&app, &settings.shortcuts);
+        return Err(e);
+    }
+    #[cfg(desktop)]
+    let previous_shortcuts = settings.shortcuts.clone();
+    settings.shortcuts = shortcuts;
+    if let Err(e) = save_settings(&settings) {
+        #[cfg(desktop)]
+        let _ = register_global_shortcuts_for(&app, &previous_shortcuts);
+        return Err(e);
+    }
+    Ok("ok".into())
 }
 
 #[tauri::command]

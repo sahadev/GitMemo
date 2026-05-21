@@ -22,6 +22,7 @@ import { useSync } from "./hooks/useSync";
 import { usePlatform } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 import { useI18n } from "./hooks/useI18n";
+import { shortcutMatches, withDefaultShortcuts } from "./utils/shortcuts";
 
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
@@ -77,7 +78,8 @@ function App() {
   const [deferredSystemFilePath, setDeferredSystemFilePath] = useState<string | null>(null);
   const sync = useSync();
   const { gitStatus } = sync;
-  const { theme, toggleTheme, setPendingOpenPath } = useAppStore();
+  const { theme, toggleTheme, setPendingOpenPath, settings } = useAppStore();
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
 
   useEffect(() => {
     void invoke("app_ready").catch(() => {});
@@ -184,14 +186,12 @@ function App() {
 
     const unlistenSearch = listen("global-shortcut-search", () => navigateAndFocus("search"));
     const unlistenClip = listen("tray-toggle-clipboard", () => setCurrentPage("clipboard"));
-    const unlistenClipSaved = listen<{ preview: string }>("clipboard-saved", ({ payload }) => {
-      void notify("GitMemo Clipboard", payload?.preview || "Clip saved");
-    });
     const unlistenSystemOpen = listen<string>("system-open-file", handleOpenFile);
     const unlistenQuickPasteOpenFile = listen<{ filePath?: string }>("quick-paste-open-file", handleOpenFile);
     const unlistenQuickPasteOpenPage = listen<{ page?: string }>("quick-paste-open-page", handleOpenPage);
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
 
       if (sidebarFocused) {
@@ -210,6 +210,20 @@ function App() {
         return;
       }
 
+      if (shortcutMatches(e, shortcuts.quick_note)) {
+        e.preventDefault();
+        navigateAndFocus("notes");
+        setSidebarFocused(false);
+        return;
+      }
+
+      if (shortcutMatches(e, shortcuts.app_search)) {
+        e.preventDefault();
+        navigateAndFocus("search");
+        setSidebarFocused(false);
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
           case "1": e.preventDefault(); setCurrentPage("dashboard"); setSidebarFocused(false); break;
@@ -220,8 +234,6 @@ function App() {
           case "6": e.preventDefault(); setCurrentPage("plans"); setSidebarFocused(false); break;
           case "7": e.preventDefault(); setCurrentPage("claude-config"); setSidebarFocused(false); break;
           case "8": e.preventDefault(); setCurrentPage("settings"); setSidebarFocused(false); break;
-          case "n": e.preventDefault(); navigateAndFocus("notes"); setSidebarFocused(false); break;
-          case "k": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
         }
       }
     };
@@ -231,12 +243,11 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
       unlistenSearch.then((fn) => fn());
       unlistenClip.then((fn) => fn());
-      unlistenClipSaved.then((fn) => fn());
       unlistenSystemOpen.then((fn) => fn());
       unlistenQuickPasteOpenFile.then((fn) => fn());
       unlistenQuickPasteOpenPage.then((fn) => fn());
     };
-  }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync, initialized, routeExternalFile]);
+  }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync, initialized, routeExternalFile, shortcuts]);
 
   const handleExternalFileTargetConsumed = useCallback(() => {
     setExternalFileOpenTarget(null);

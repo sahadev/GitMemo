@@ -12,8 +12,6 @@ use tauri::{
 };
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
-#[cfg(desktop)]
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 #[derive(Default)]
 struct PendingExternalOpen(Mutex<Vec<String>>);
@@ -120,6 +118,8 @@ pub fn run() {
             settings::get_settings,
             settings::set_autostart,
             settings::set_clipboard_autostart,
+            settings::set_control_copy_paste,
+            settings::set_shortcuts,
             settings::set_proxy,
             settings::set_language,
             settings::get_branch,
@@ -332,18 +332,10 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // --- Global Shortcut: Cmd+Shift+G → show + search ---
-    let shortcut = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyG);
-    let app_handle = app.handle().clone();
-    app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, event| {
-        if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
-            return;
-        }
-        if let Some(w) = app_handle.get_webview_window("main") {
-            show_main_window(&w);
-            let _ = app_handle.emit("global-shortcut-search", ());
-        }
-    })?;
+    // --- Global Shortcut: configurable show + search ---
+    if let Err(e) = settings::register_global_shortcuts(app.handle()) {
+        eprintln!("Failed to register global shortcuts: {e}");
+    }
 
     // --- Auto-start clipboard if configured ---
     let app_handle_clip = app.handle().clone();
