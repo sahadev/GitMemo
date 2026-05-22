@@ -345,7 +345,10 @@ jobs:
             --clobber
 
       - name: Install OSS SDK
-        run: python3 -m pip install --upgrade oss2
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install oss2
 
       - name: Sync release assets to Aliyun OSS
         env:
@@ -357,4 +360,4 @@ jobs:
           ALIYUN_OSS_PUBLIC_BASE_URL: ${{ vars.ALIYUN_OSS_PUBLIC_BASE_URL }}
           ALIYUN_OSS_PREFIX: releases
           ALIYUN_OSS_KEEP_RELEASES: "1"
-        run: python3 scripts/sync_release_assets_to_oss.py
+        run: .venv/bin/python scripts/sync_release_assets_to_oss.py
