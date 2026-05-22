@@ -203,11 +203,33 @@ jobs:
 
       - name: Collect release assets
         run: |
+          rm -rf release-assets
           mkdir -p release-assets
           find downloaded-artifacts -type f -print0 | while IFS= read -r -d '' file; do
-            cp -f "$file" "release-assets/$(basename "$file")"
+            artifact="$(basename "$(dirname "$file")")"
+            name="$(basename "$file")"
+            dest="$name"
+
+            case "$artifact:$name" in
+              gitmemo-desktop-macos-aarch64:GitMemo.app.tar.gz)
+                dest="GitMemo-desktop-macos-aarch64.app.tar.gz"
+                ;;
+              gitmemo-desktop-macos-aarch64:GitMemo.app.tar.gz.sig)
+                dest="GitMemo-desktop-macos-aarch64.app.tar.gz.sig"
+                ;;
+              gitmemo-desktop-macos-x86_64:GitMemo.app.tar.gz)
+                dest="GitMemo-desktop-macos-x86_64.app.tar.gz"
+                ;;
+              gitmemo-desktop-macos-x86_64:GitMemo.app.tar.gz.sig)
+                dest="GitMemo-desktop-macos-x86_64.app.tar.gz.sig"
+                ;;
+            esac
+
+            cp -f "$file" "release-assets/$dest"
           done
           ls -lh release-assets
+          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig
+          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig
 
       - name: Generate updater manifest
         env:

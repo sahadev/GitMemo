@@ -126,7 +126,7 @@ def build_downloads_manifest(version_tag: str, prefix: str, base_url: str) -> di
         return matches[-1]
 
     aarch64_dmg = find_one(r"^GitMemo_v?.+_aarch64\.dmg$")
-    x86_64_dmg = find_one(r"^GitMemo_v?.+_x86_64\.dmg$")
+    x86_64_dmg = find_one(r"^GitMemo_v?.+_(?:x86_64|x64)\.dmg$")
     return {
         "version": version_tag,
         "assets": {

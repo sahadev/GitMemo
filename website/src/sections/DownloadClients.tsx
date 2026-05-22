@@ -46,7 +46,7 @@ const downloads: DownloadItem[] = [
     key: 'macosIntel',
     icon: Cpu,
     fallbackHref: 'https://github.com/sahadev/GitMemo/releases/download/v1.0.65/GitMemo_v1.0.65_x86_64.dmg',
-    assetPattern: /^GitMemo_v?.+_x86_64\.dmg$/,
+    assetPattern: /^GitMemo_v?.+_(?:x86_64|x64)\.dmg$/,
     ext: '.dmg',
   },
 ]
