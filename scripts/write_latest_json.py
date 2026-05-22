@@ -33,6 +33,12 @@ def main() -> None:
 
     aarch64_tar = "GitMemo-desktop-macos-aarch64.app.tar.gz"
     x86_64_tar = "GitMemo-desktop-macos-x86_64.app.tar.gz"
+    generic_tar = "GitMemo.app.tar.gz"
+
+    if not (root / aarch64_tar).is_file() and (root / generic_tar).is_file():
+        aarch64_tar = generic_tar
+    if not (root / x86_64_tar).is_file() and (root / generic_tar).is_file():
+        x86_64_tar = generic_tar
 
     def read_sig(tar_name: str) -> str:
         p = root / f"{tar_name}.sig"

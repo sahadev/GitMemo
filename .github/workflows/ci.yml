@@ -206,30 +206,18 @@ jobs:
           rm -rf release-assets
           mkdir -p release-assets
           find downloaded-artifacts -type f -print0 | while IFS= read -r -d '' file; do
-            artifact="$(basename "$(dirname "$file")")"
             name="$(basename "$file")"
-            dest="$name"
-
-            case "$artifact:$name" in
-              gitmemo-desktop-macos-aarch64:GitMemo.app.tar.gz)
-                dest="GitMemo-desktop-macos-aarch64.app.tar.gz"
-                ;;
-              gitmemo-desktop-macos-aarch64:GitMemo.app.tar.gz.sig)
-                dest="GitMemo-desktop-macos-aarch64.app.tar.gz.sig"
-                ;;
-              gitmemo-desktop-macos-x86_64:GitMemo.app.tar.gz)
-                dest="GitMemo-desktop-macos-x86_64.app.tar.gz"
-                ;;
-              gitmemo-desktop-macos-x86_64:GitMemo.app.tar.gz.sig)
-                dest="GitMemo-desktop-macos-x86_64.app.tar.gz.sig"
+            case "$name" in
+              GitMemo.app.tar.gz|GitMemo.app.tar.gz.sig|GitMemo_*.dmg)
+                cp -f "$file" "release-assets/$name"
                 ;;
             esac
-
-            cp -f "$file" "release-assets/$dest"
           done
           ls -lh release-assets
-          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig
-          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig
+          test -s release-assets/GitMemo.app.tar.gz
+          test -s release-assets/GitMemo.app.tar.gz.sig
+          test -n "$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
+          test -n "$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
 
       - name: Generate updater manifest
         env:
