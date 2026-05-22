@@ -186,7 +186,7 @@ jobs:
             desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz
             desktop/src-tauri/target/**/release/bundle/macos/*.app.tar.gz.sig
 
-  sync-oss:
+  dispatch-release:
     needs: [check-version, build, build-desktop]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
@@ -196,26 +196,85 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Download release artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: downloaded-artifacts
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "${{ needs.check-version.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag ${{ needs.check-version.outputs.version }} already exists"
+          else
+            git tag ${{ needs.check-version.outputs.version }}
+            git push origin ${{ needs.check-version.outputs.version }}
+          fi
 
-      - name: Collect release assets
+      - name: Trigger sign-and-release
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RELEASE_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ secrets.RELEASE_REPO }}/dispatches \
+            -d '{
+              "event_type": "sign-and-release",
+              "client_payload": {
+                "version": "${{ needs.check-version.outputs.version }}",
+                "run_id": "${{ github.run_id }}",
+                "repository": "${{ github.repository }}"
+              }
+            }'
+
+  sync-oss:
+    needs: [check-version, dispatch-release]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download signed release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ needs.check-version.outputs.version }}
         run: |
           rm -rf release-assets
           mkdir -p release-assets
-          find downloaded-artifacts -type f -print0 | while IFS= read -r -d '' file; do
-            name="$(basename "$file")"
+
+          for attempt in $(seq 1 60); do
+            names="$(gh release view "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+            echo "$names"
+
+            if echo "$names" | grep -Eq '^GitMemo_v?.+_aarch64\.dmg$' &&
+               echo "$names" | grep -Eq '^GitMemo_v?.+_(x86_64|x64)\.dmg$' &&
+               echo "$names" | grep -Eq '^GitMemo-desktop-macos-aarch64\.app\.tar\.gz$' &&
+               echo "$names" | grep -Eq '^GitMemo-desktop-macos-aarch64\.app\.tar\.gz\.sig$' &&
+               echo "$names" | grep -Eq '^GitMemo-desktop-macos-x86_64\.app\.tar\.gz$' &&
+               echo "$names" | grep -Eq '^GitMemo-desktop-macos-x86_64\.app\.tar\.gz\.sig$'; then
+              break
+            fi
+
+            if [ "$attempt" -eq 60 ]; then
+              echo "Timed out waiting for signed GitHub release assets" >&2
+              exit 1
+            fi
+
+            echo "Signed release assets not ready yet; retrying in 20s..."
+            sleep 20
+          done
+
+          while IFS= read -r name; do
             case "$name" in
-              GitMemo.app.tar.gz|GitMemo.app.tar.gz.sig|GitMemo_*.dmg)
-                cp -f "$file" "release-assets/$name"
+              GitMemo_v*.dmg|GitMemo_*.dmg|GitMemo-desktop-macos-*.app.tar.gz|GitMemo-desktop-macos-*.app.tar.gz.sig)
+                gh release download "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir release-assets --clobber
                 ;;
             esac
-          done
+          done <<< "$names"
+
           ls -lh release-assets
-          test -s release-assets/GitMemo.app.tar.gz
-          test -s release-assets/GitMemo.app.tar.gz.sig
+          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz
+          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig
+          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz
+          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig
           test -n "$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
           test -n "$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
 
@@ -239,35 +298,3 @@ jobs:
           ALIYUN_OSS_PREFIX: releases
           ALIYUN_OSS_KEEP_RELEASES: "1"
         run: python3 scripts/sync_release_assets_to_oss.py
-
-  dispatch-release:
-    needs: [check-version, build, build-desktop, sync-oss]
-    if: needs.check-version.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Create tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ needs.check-version.outputs.version }}
-          git push origin ${{ needs.check-version.outputs.version }}
-
-      - name: Trigger sign-and-release
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.RELEASE_DISPATCH_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ secrets.RELEASE_REPO }}/dispatches \
-            -d '{
-              "event_type": "sign-and-release",
-              "client_payload": {
-                "version": "${{ needs.check-version.outputs.version }}",
-                "run_id": "${{ github.run_id }}",
-                "repository": "${{ github.repository }}"
-              }
-            }'

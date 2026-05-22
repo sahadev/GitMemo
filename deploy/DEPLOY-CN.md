@@ -85,7 +85,7 @@ VITE_DOWNLOAD_MANIFEST_URL=https://你的bucket.oss-cn-hangzhou.aliyuncs.com/dow
 
 `VITE_DOWNLOAD_MANIFEST_URL` 是 Vite 构建期变量，必须在执行 `npm run build` 时存在。部署脚本会读取 `deploy/.env.local` 并注入到构建命令；未配置时下载区会回退 GitHub Releases。
 
-Release 下载包不在本地官网部署脚本中同步。构建产物同步 OSS 的逻辑在 GitHub Actions 的 `sync-oss` job 中，构建完成后会自动收集 `.dmg`、`.app.tar.gz`、签名文件和 CLI 二进制，生成 `downloads.json` / `latest.json`，上传到 OSS，并按保留策略删除旧版本目录。
+Release 下载包不在本地官网部署脚本中同步。构建产物同步 OSS 的逻辑在 GitHub Actions 的 `sync-oss` job 中，`dispatch-release` 触发最终签名发布后会等待 GitHub Release 出现签名后的 `.dmg`、`.app.tar.gz` 和 `.sig`，再生成 `downloads.json` / `latest.json`，上传到 OSS，并按保留策略删除旧版本目录。
 
 需要在 GitHub 仓库中配置这些 Secrets：
 
