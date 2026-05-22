@@ -225,14 +225,14 @@ jobs:
   sync-oss:
     needs: [check-version, dispatch-release]
     if: needs.check-version.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Download signed release assets
+      - name: Download signed DMGs
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION_TAG: ${{ needs.check-version.outputs.version }}
@@ -245,44 +245,104 @@ jobs:
             echo "$names"
 
             if echo "$names" | grep -Eq '^GitMemo_v?.+_aarch64\.dmg$' &&
-               echo "$names" | grep -Eq '^GitMemo_v?.+_(x86_64|x64)\.dmg$' &&
-               echo "$names" | grep -Eq '^GitMemo-desktop-macos-aarch64\.app\.tar\.gz$' &&
-               echo "$names" | grep -Eq '^GitMemo-desktop-macos-aarch64\.app\.tar\.gz\.sig$' &&
-               echo "$names" | grep -Eq '^GitMemo-desktop-macos-x86_64\.app\.tar\.gz$' &&
-               echo "$names" | grep -Eq '^GitMemo-desktop-macos-x86_64\.app\.tar\.gz\.sig$'; then
+               echo "$names" | grep -Eq '^GitMemo_v?.+_(x86_64|x64)\.dmg$'; then
               break
             fi
 
             if [ "$attempt" -eq 60 ]; then
-              echo "Timed out waiting for signed GitHub release assets" >&2
+              echo "Timed out waiting for signed GitHub release DMGs" >&2
               exit 1
             fi
 
-            echo "Signed release assets not ready yet; retrying in 20s..."
+            echo "Signed release DMGs not ready yet; retrying in 20s..."
             sleep 20
           done
 
           while IFS= read -r name; do
             case "$name" in
-              GitMemo_v*.dmg|GitMemo_*.dmg|GitMemo-desktop-macos-*.app.tar.gz|GitMemo-desktop-macos-*.app.tar.gz.sig)
+              GitMemo_v*.dmg|GitMemo_*.dmg)
                 gh release download "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir release-assets --clobber
                 ;;
             esac
           done <<< "$names"
 
           ls -lh release-assets
-          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz
-          test -s release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig
-          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz
-          test -s release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig
           test -n "$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
           test -n "$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: Install Tauri CLI dependencies
+        working-directory: desktop
+        run: pnpm install
+
+      - name: Repack updater archives from signed DMGs
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          repack_updater_archive() {
+            local arch="$1"
+            local dmg="$2"
+            local archive="$PWD/release-assets/GitMemo-desktop-macos-${arch}.app.tar.gz"
+            local mount_dir
+            local app_dir
+            mount_dir="$(mktemp -d)"
+            app_dir="$(mktemp -d)"
+
+            hdiutil attach "$dmg" -mountpoint "$mount_dir" -nobrowse -readonly
+            ditto "$mount_dir/GitMemo.app" "$app_dir/GitMemo.app"
+            hdiutil detach "$mount_dir"
+
+            codesign -dv --verbose=4 "$app_dir/GitMemo.app" 2>&1 | grep -E 'Authority=|TeamIdentifier='
+            spctl -a -vv -t exec "$app_dir/GitMemo.app"
+
+            rm -f "$archive" "$archive.sig"
+            tar -C "$app_dir" -czf "$archive" GitMemo.app
+            pnpm --dir desktop exec tauri signer sign "$archive"
+            test -s "$archive.sig"
+          }
+
+          aarch64_dmg="$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
+          x86_64_dmg="$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
+
+          test -n "$aarch64_dmg"
+          test -n "$x86_64_dmg"
+
+          repack_updater_archive aarch64 "$aarch64_dmg"
+          repack_updater_archive x86_64 "$x86_64_dmg"
+
+          ls -lh release-assets
 
       - name: Generate updater manifest
         env:
           VERSION_TAG: ${{ needs.check-version.outputs.version }}
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/write_latest_json.py
+
+      - name: Upload updater assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ needs.check-version.outputs.version }}
+        run: |
+          gh release upload "$VERSION_TAG" \
+            release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz \
+            release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig \
+            release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz \
+            release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig \
+            release-assets/latest.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
 
       - name: Install OSS SDK
         run: python3 -m pip install --upgrade oss2
