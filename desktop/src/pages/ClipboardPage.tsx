@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
+import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { CopyPathButton } from "../components/CopyPathButton";
@@ -74,6 +74,16 @@ function stripClipFrontmatter(content: string) {
   return content.replace(/^---[\s\S]*?---\s*/, "").trim();
 }
 
+function normalizeClipImageLinks(content: string, clipPath: string) {
+  const clipDir = clipPath.includes("/") ? clipPath.slice(0, clipPath.lastIndexOf("/")) : "";
+  return content.replace(/(!\[[^\]]*]\()([^)\s]+)(\))/g, (match, prefix, src, suffix) => {
+    if (!clipDir || src.startsWith("http") || src.startsWith("data:") || src.startsWith("/") || /^(clips|imports|notes|conversations|plans|claude-config)\//.test(src)) {
+      return match;
+    }
+    return `${prefix}${clipDir}/${src}${suffix}`;
+  });
+}
+
 export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -87,6 +97,9 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
+  const [creatingNote, setCreatingNote] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const savedClipsLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
@@ -177,13 +190,14 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
 
   const openFile = useCallback(async (path: string) => {
     try {
+      if (multiSelectMode) return;
       const content = await invoke<string>("read_file", { filePath: path });
       const body = stripClipFrontmatter(content);
       setSelectedFile(path);
       setFileContent(body);
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
-  }, []);
+  }, [multiSelectMode]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("clips/")) return;
@@ -227,12 +241,19 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (e.key === "Escape" && multiSelectMode) {
+        e.preventDefault();
+        setMultiSelectMode(false);
+        setSelectedClipPaths([]);
+        return;
+      }
+      if (multiSelectMode) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext]);
+  }, [multiSelectMode, navPrev, navNext]);
 
   const copyContent = useCallback(async (content: string, copiedKey = "detail") => {
     try {
@@ -255,12 +276,56 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
     await copyContent(stripClipFrontmatter(content), path);
   }, [copyContent]);
 
+  const toggleMultiSelectMode = useCallback(() => {
+    setMultiSelectMode((enabled) => {
+      if (enabled) setSelectedClipPaths([]);
+      else {
+        setSelectedFile(null);
+        setFileContent("");
+      }
+      return !enabled;
+    });
+  }, []);
+
+  const toggleClipSelection = useCallback((path: string) => {
+    setSelectedClipPaths((prev) => {
+      if (prev.includes(path)) return prev.filter((p) => p !== path);
+      return [...prev, path];
+    });
+  }, []);
+
+  const createNoteFromSelectedClips = useCallback(async () => {
+    if (selectedClipPaths.length === 0 || creatingNote) return;
+    setCreatingNote(true);
+    try {
+      const blocks: string[] = [];
+      for (const path of selectedClipPaths) {
+        const content = await invoke<string>("read_file", { filePath: path });
+        const body = normalizeClipImageLinks(stripClipFrontmatter(content), path);
+        if (body.trim()) blocks.push(body.trim());
+      }
+      if (blocks.length === 0) {
+        showToast(t("clipboard.noSelectedContent"), true);
+        return;
+      }
+      const result = await invoke<NoteResult>("create_note", { content: blocks.join("\n\n") });
+      showToast(result.message);
+      setMultiSelectMode(false);
+      setSelectedClipPaths([]);
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setCreatingNote(false);
+    }
+  }, [creatingNote, selectedClipPaths, showToast, t]);
+
   const confirmDeleteClip = async (path: string) => {
     const ok = await ask(t("clipboard.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!ok) return;
     try {
       await invoke<NoteResult>("delete_clip", { filePath: path });
       showToast(t("clipboard.clipDeleted"));
+      setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
       if (selectedFile === path) {
         setSelectedFile(null);
         setFileContent("");
@@ -316,6 +381,14 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={toggleMultiSelectMode} title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")} style={{
+              display: "flex", alignItems: "center", padding: 6,
+              borderRadius: 4, cursor: "pointer",
+              background: multiSelectMode ? "var(--bg-hover)" : "none",
+              border: "none", color: multiSelectMode ? "var(--accent)" : "var(--text-secondary)",
+            }}>
+              {multiSelectMode ? <X size={14} /> : <ListChecks size={14} />}
+            </button>
             <button onClick={() => { setRefreshTrigger((t) => t + 1); void refreshClipboardStatus(); if (selectedFile) void openFile(selectedFile); }} title={t("common.refresh")} style={{
               display: "flex", alignItems: "center", padding: 6,
               borderRadius: 4, cursor: "pointer",
@@ -364,38 +437,59 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
             <>
             {savedClips.map((file) => {
               const selected = selectedFile === file.path;
-              const metaColor = selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)";
+              const selectionOrder = selectedClipPaths.indexOf(file.path);
+              const clipSelected = selectionOrder >= 0;
+              const active = multiSelectMode ? clipSelected : selected;
+              const metaColor = active ? "rgba(255,255,255,0.7)" : "var(--text-secondary)";
               const actionColor = copiedId === file.path
                 ? "#fff"
-                : selected ? "rgba(255,255,255,0.85)" : "var(--text-secondary)";
+                : active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)";
               return (
                 <div
                   key={file.path}
                   style={{
                     borderBottom: "1px solid var(--border)",
-                    background: selected ? "var(--accent)" : "transparent",
-                    color: selected ? "#fff" : "var(--text)",
+                    background: active ? "var(--accent)" : "transparent",
+                    color: active ? "#fff" : "var(--text)",
                     transition: "background 0.15s",
                   }}
                 >
                   <button
                     type="button"
                     ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
-                    onClick={() => openFile(file.path)}
+                    onClick={() => {
+                      if (multiSelectMode) toggleClipSelection(file.path);
+                      else void openFile(file.path);
+                    }}
                     onDoubleClick={(e) => {
+                      if (multiSelectMode) return;
                       e.preventDefault();
                       void copyClipContent(file.path);
                     }}
                     style={{
+                      position: "relative",
                       display: "block", width: "100%", textAlign: "left",
-                      padding: "12px 16px 6px", cursor: "pointer",
+                      padding: multiSelectMode ? "12px 48px 6px 16px" : "12px 16px 6px", cursor: "pointer",
                       border: "none", background: "transparent",
                       color: "inherit",
                     }}
                   >
+                    {multiSelectMode && (
+                      <span style={{
+                        position: "absolute", top: 10, right: 16,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 22, height: 22, borderRadius: 999,
+                        border: `1px solid ${clipSelected ? "rgba(255,255,255,0.75)" : "var(--border)"}`,
+                        background: clipSelected ? "rgba(255,255,255,0.18)" : "var(--bg)",
+                        color: clipSelected ? "#fff" : "var(--text-secondary)",
+                        fontSize: 11, fontWeight: 700,
+                      }}>
+                        {clipSelected ? selectionOrder + 1 : ""}
+                      </span>
+                    )}
                     {file.preview_image ? (
                       <div style={{ minWidth: 0 }}>
-                        <ClipImageThumb relPath={file.preview_image} selected={selected} wide />
+                        <ClipImageThumb relPath={file.preview_image} selected={active} wide />
                       </div>
                     ) : (
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -414,44 +508,48 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
                       {relativeTime(file.modified, t)}
                     </span>
                     {file.preview_image ? (
-                      <span style={{ fontSize: 10, color: selected ? "rgba(255,255,255,0.5)" : "var(--text-secondary)", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 10, color: active ? "rgba(255,255,255,0.5)" : "var(--text-secondary)", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {file.name}
                       </span>
                     ) : null}
                     <span style={{ flex: 1 }} />
-                    <button
-                      type="button"
-                      title={t("clipboard.copy")}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void copyClipContent(file.path);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 22, height: 22, cursor: "pointer",
-                        border: "none", background: "transparent", color: actionColor,
-                      }}
-                    >
-                      {copiedId === file.path ? <Check size={13} /> : <Copy size={13} />}
-                    </button>
-                    <button
-                      type="button"
-                      title={t("clipboard.deleteClip")}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        void confirmDeleteClip(file.path);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 22, height: 22, cursor: "pointer",
-                        border: "none", background: "transparent",
-                        color: selected ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {!multiSelectMode && (
+                      <>
+                        <button
+                          type="button"
+                          title={t("clipboard.copy")}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void copyClipContent(file.path);
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            width: 22, height: 22, cursor: "pointer",
+                            border: "none", background: "transparent", color: actionColor,
+                          }}
+                        >
+                          {copiedId === file.path ? <Check size={13} /> : <Copy size={13} />}
+                        </button>
+                        <button
+                          type="button"
+                          title={t("clipboard.deleteClip")}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void confirmDeleteClip(file.path);
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            width: 22, height: 22, cursor: "pointer",
+                            border: "none", background: "transparent",
+                            color: active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -477,13 +575,52 @@ export default function ClipboardPage({ onFocusSidebar: _onFocusSidebar, enterTr
           )}
         </div>
 
-        {/* Bottom stats */}
-        <div style={{
-          padding: "10px 16px", borderTop: "1px solid var(--border)",
-          fontSize: 11, color: "var(--text-secondary)", textAlign: "center",
-        }}>
-          {t("clipboard.clipsTotal", String(status?.clips_count ?? 0))}
-        </div>
+        {multiSelectMode ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 12px", borderTop: "1px solid var(--border)",
+            background: "var(--bg)",
+          }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: "var(--text-secondary)" }}>
+              {t("clipboard.selectedCount", selectedClipPaths.length)}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setMultiSelectMode(false); setSelectedClipPaths([]); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "5px 9px",
+                borderRadius: 6, fontSize: 12, cursor: "pointer",
+                background: "var(--bg-hover)", border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <X size={12} /> {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              disabled={selectedClipPaths.length === 0 || creatingNote}
+              onClick={() => void createNoteFromSelectedClips()}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
+                borderRadius: 6, fontSize: 12,
+                cursor: selectedClipPaths.length === 0 || creatingNote ? "default" : "pointer",
+                background: selectedClipPaths.length === 0 || creatingNote ? "var(--bg-hover)" : "var(--accent)",
+                border: "1px solid var(--border)",
+                color: selectedClipPaths.length === 0 || creatingNote ? "var(--text-secondary)" : "#fff",
+                opacity: selectedClipPaths.length === 0 || creatingNote ? 0.7 : 1,
+              }}
+            >
+              <FilePlus2 size={12} /> {creatingNote ? t("clipboard.creatingNote") : t("clipboard.saveSelectedToNote")}
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            padding: "10px 16px", borderTop: "1px solid var(--border)",
+            fontSize: 11, color: "var(--text-secondary)", textAlign: "center",
+          }}>
+            {t("clipboard.clipsTotal", String(status?.clips_count ?? 0))}
+          </div>
+        )}
       </div>
       )}
 
