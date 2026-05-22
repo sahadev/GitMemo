@@ -1,14 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
-
-export type Lang = 'en' | 'zh'
-
-interface I18nContextType {
-  lang: Lang
-  setLang: (lang: Lang) => void
-  t: (key: string) => string
-}
-
-const I18nContext = createContext<I18nContextType>(null!)
+import { useState, type ReactNode } from 'react'
+import { I18nContext, type Lang } from './context'
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(() => {
@@ -36,10 +27,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useI18n() {
-  return useContext(I18nContext)
-}
-
 // ─── English ───────────────────────────────────────────
 const en: Record<string, string> = {
   // Hero
@@ -50,6 +37,16 @@ const en: Record<string, string> = {
   'hero.badge': 'Open Source · MIT License',
   'hero.download': 'Download',
   'hero.github': 'View on GitHub',
+
+  // Downloads
+  'download.label': 'Desktop Downloads',
+  'download.title': 'Download GitMemo',
+  'download.subtitle': 'Choose the macOS installer for your Mac.',
+  'download.macosAppleSilicon.title': 'macOS Apple Silicon',
+  'download.macosAppleSilicon.desc': 'For Macs with Apple Silicon chips.',
+  'download.macosIntel.title': 'macOS Intel',
+  'download.macosIntel.desc': 'For Intel-based Macs.',
+  'download.action': 'Download .dmg',
 
   // Pain Points
   'pain.label': 'The Problem',
@@ -172,6 +169,16 @@ const zh: Record<string, string> = {
   'hero.badge': '开源 · MIT 许可证',
   'hero.download': '下载',
   'hero.github': '在 GitHub 查看',
+
+  // Downloads
+  'download.label': '桌面客户端下载',
+  'download.title': '下载客户端',
+  'download.subtitle': '选择与你的 Mac 匹配的安装包。',
+  'download.macosAppleSilicon.title': 'macOS Apple Silicon',
+  'download.macosAppleSilicon.desc': '适用于 Apple Silicon 架构的 macOS 系统。',
+  'download.macosIntel.title': 'macOS Intel',
+  'download.macosIntel.desc': '适用于 Intel 架构的 macOS 系统。',
+  'download.action': '下载 .dmg',
 
   // Pain Points
   'pain.label': '痛点',

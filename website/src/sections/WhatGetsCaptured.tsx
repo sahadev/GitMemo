@@ -1,6 +1,6 @@
 import { MessageSquare, FileText, ClipboardList, Brain, Wrench, Target } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
-import { useI18n } from '../i18n'
+import { useI18n } from '../i18n/useI18n'
 
 export default function WhatGetsCaptured() {
   const { t } = useI18n()

@@ -1,7 +1,7 @@
 import { Download, Sun, Moon } from 'lucide-react'
 import Terminal from '../components/Terminal'
-import { useI18n } from '../i18n'
-import { useTheme } from '../theme'
+import { useI18n } from '../i18n/useI18n'
+import { useTheme } from '../useTheme'
 
 export default function Hero() {
   const { t, lang, setLang } = useI18n()
@@ -63,7 +63,7 @@ export default function Hero() {
       {/* CTAs */}
       <div className="relative z-10 flex flex-wrap items-center justify-center gap-4 mt-10">
         <a
-          href="https://github.com/sahadev/GitMemo/releases/latest"
+          href="#downloads"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent text-white font-semibold text-sm hover:bg-accent-light transition-colors"
         >
           <Download size={18} />

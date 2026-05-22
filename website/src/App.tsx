@@ -1,5 +1,6 @@
 import './index.css'
 import Hero from './sections/Hero'
+import Downloads from './sections/Downloads'
 import PainPoints from './sections/PainPoints'
 import Features from './sections/Features'
 import WhatGetsCaptured from './sections/WhatGetsCaptured'
@@ -13,6 +14,7 @@ function App() {
   return (
     <div className="min-h-screen">
       <Hero />
+      <Downloads />
       <PainPoints />
       <Features />
       <WhatGetsCaptured />

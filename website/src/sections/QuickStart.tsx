@@ -1,5 +1,5 @@
 import { Terminal as TerminalIcon, Apple, MonitorCheck } from 'lucide-react'
-import { useI18n } from '../i18n'
+import { useI18n } from '../i18n/useI18n'
 
 export default function QuickStart() {
   const { t } = useI18n()

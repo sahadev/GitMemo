@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write Tauri updater latest.json from release-assets/ (CI release job)."""
+"""Write Tauri updater latest.json from RELEASE_ASSETS_DIR."""
 from __future__ import annotations
 
 import json
@@ -29,7 +29,7 @@ def main() -> None:
         sys.exit(1)
 
     base = f"https://github.com/{repository}/releases/download/{version_tag}"
-    root = pathlib.Path("release-assets")
+    root = pathlib.Path(os.environ.get("RELEASE_ASSETS_DIR", "release-assets"))
 
     aarch64_tar = "GitMemo-desktop-macos-aarch64.app.tar.gz"
     x86_64_tar = "GitMemo-desktop-macos-x86_64.app.tar.gz"

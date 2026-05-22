@@ -1,7 +1,7 @@
 import { MessageSquare, Clipboard, Search, Plug, Zap, FileText } from 'lucide-react'
 import FeatureCard from '../components/FeatureCard'
 import FadeIn from '../components/FadeIn'
-import { useI18n } from '../i18n'
+import { useI18n } from '../i18n/useI18n'
 
 export default function Features() {
   const { t } = useI18n()

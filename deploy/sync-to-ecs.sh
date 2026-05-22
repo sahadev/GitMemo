@@ -14,6 +14,7 @@ set -euo pipefail
 #   ECS_USER  — SSH 用户名（默认 root）
 #   ECS_DIR   — ECS 上项目目录（默认 /opt/kakacut）
 #   BAIDU_VERIFY_CODE — 百度站长平台验证码（可选，从 ziyuan.baidu.com 获取）
+#   VITE_DOWNLOAD_MANIFEST_URL — OSS downloads.json 地址（可选，配置后下载区优先走 OSS）
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -86,7 +87,12 @@ fix_for_china() {
 build_website() {
     log "========== 构建 GitMemo 官网（默认中文）=========="
     cd "$WEBSITE_DIR"
-    VITE_DEFAULT_LANG=zh npm run build
+    if [ -n "${VITE_DOWNLOAD_MANIFEST_URL:-}" ]; then
+        info "下载 manifest: ${VITE_DOWNLOAD_MANIFEST_URL}"
+    else
+        warn "未设置 VITE_DOWNLOAD_MANIFEST_URL，下载区将回退 GitHub Releases"
+    fi
+    VITE_DEFAULT_LANG=zh VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"

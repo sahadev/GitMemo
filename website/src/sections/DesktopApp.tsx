@@ -1,5 +1,5 @@
 import { LayoutDashboard, FileText, Clipboard, Search } from 'lucide-react'
-import { useI18n } from '../i18n'
+import { useI18n } from '../i18n/useI18n'
 import screenshot from '../assets/screenshot-20260409-080849.png'
 
 export default function DesktopApp() {

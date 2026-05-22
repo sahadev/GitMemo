@@ -12,6 +12,8 @@ ARTICLE_CN.md
 
 # Secrets & certificates
 .env*
+!.env*.example
+!**/.env*.example
 *.pem
 *.key
 *.p12
@@ -28,3 +30,7 @@ desktop/public/changelog.json
 
 # Logs
 *.log
+
+# Local release mirroring
+release-assets/
+downloaded-artifacts/

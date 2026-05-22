@@ -77,6 +77,31 @@ cd /Users/Zhuanz/Code/other/GitMemo-desktop
 ./deploy/sync-to-ecs.sh --nginx-only
 ```
 
+如需让下载区优先走 OSS，在 `deploy/.env.local` 中配置：
+
+```bash
+VITE_DOWNLOAD_MANIFEST_URL=https://你的bucket.oss-cn-hangzhou.aliyuncs.com/downloads.json
+```
+
+`VITE_DOWNLOAD_MANIFEST_URL` 是 Vite 构建期变量，必须在执行 `npm run build` 时存在。部署脚本会读取 `deploy/.env.local` 并注入到构建命令；未配置时下载区会回退 GitHub Releases。
+
+Release 下载包不在本地官网部署脚本中同步。构建产物同步 OSS 的逻辑在 GitHub Actions 的 `sync-oss` job 中，构建完成后会自动收集 `.dmg`、`.app.tar.gz`、签名文件和 CLI 二进制，生成 `downloads.json` / `latest.json`，上传到 OSS，并按保留策略删除旧版本目录。
+
+需要在 GitHub 仓库中配置这些 Secrets：
+
+```bash
+ALIYUN_ACCESS_KEY_ID
+ALIYUN_ACCESS_KEY_SECRET
+ALIYUN_OSS_BUCKET
+ALIYUN_OSS_REGION
+```
+
+如使用自定义 OSS 绑定域名或 CDN，还可以配置 GitHub Actions Variable：
+
+```bash
+ALIYUN_OSS_PUBLIC_BASE_URL
+```
+
 ## 三、Google Fonts 处理
 
 部署脚本会自动将 `fonts.googleapis.com` 替换为 `fonts.googleapis.cn`（Google 中国镜像），确保国内用户字体加载正常。

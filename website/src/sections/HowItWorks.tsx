@@ -1,5 +1,5 @@
 import { FileText, GitCommit, Search } from 'lucide-react'
-import { useI18n } from '../i18n'
+import { useI18n } from '../i18n/useI18n'
 
 const steps = [
   {
