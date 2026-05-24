@@ -308,9 +308,10 @@ mod tests {
         let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
             .unwrap()
             .with_timezone(&Local);
+        let expected = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
         let content = "---\ntitle: 深夜代码\ndate: 2026-05-24\n---\n\nBody\n";
         let normalized = normalize_date_only_frontmatter(content, &now);
-        assert!(normalized.contains("date: 2026-05-24T20:33:22+08:00"));
+        assert!(normalized.contains(&format!("date: {expected}")));
     }
 
     #[test]
@@ -338,9 +339,10 @@ mod tests {
         let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
             .unwrap()
             .with_timezone(&Local);
+        let expected = now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
         let content = "---\ndate: 2026-05-20\nupdated: 2026-05-24\n---\n\nBody\n";
         let normalized = normalize_date_only_frontmatter(content, &now);
-        assert!(normalized.contains("updated: 2026-05-24T20:33:22+08:00"));
+        assert!(normalized.contains(&format!("updated: {expected}")));
         assert!(normalized.contains("date: 2026-05-20"));
     }
 
