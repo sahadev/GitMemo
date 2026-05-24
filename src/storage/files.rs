@@ -88,6 +88,84 @@ pub fn refresh_updated_frontmatter(content: &str, now: &chrono::DateTime<Local>)
     format!("---\n{}\n---{}", lines.join("\n"), body)
 }
 
+pub fn normalize_date_only_frontmatter(content: &str, now: &chrono::DateTime<Local>) -> String {
+    if !content.starts_with("---") {
+        return content.to_string();
+    }
+
+    let Some(rest) = content.strip_prefix("---") else {
+        return content.to_string();
+    };
+    let rest = rest.strip_prefix('\r').unwrap_or(rest);
+    let Some(rest) = rest.strip_prefix('\n') else {
+        return content.to_string();
+    };
+    let Some(end) = rest.find("\n---") else {
+        return content.to_string();
+    };
+
+    let frontmatter = &rest[..end];
+    let body = &rest[end + 4..];
+    let current_date = now.format("%Y-%m-%d").to_string();
+    let full_timestamp = local_timestamp(now);
+    let activity_key = ["updated:", "date:", "created:"].into_iter().find(|key| {
+        frontmatter
+            .lines()
+            .any(|line| line.trim_start().starts_with(key))
+    });
+    let mut changed = false;
+    let lines: Vec<String> = frontmatter
+        .lines()
+        .map(|line| {
+            let trimmed = line.trim_start();
+            if activity_key.is_some_and(|key| trimmed.starts_with(key)) {
+                let Some((key, value)) = trimmed.split_once(':') else {
+                    return line.to_string();
+                };
+                let value = value.trim().trim_matches('"').trim_matches('\'');
+                if value == current_date {
+                    let indent_len = line.len() - trimmed.len();
+                    changed = true;
+                    return format!("{}{}: {}", &line[..indent_len], key, full_timestamp);
+                }
+            }
+            line.to_string()
+        })
+        .collect();
+
+    if changed {
+        format!("---\n{}\n---{}", lines.join("\n"), body)
+    } else {
+        content.to_string()
+    }
+}
+
+pub fn normalize_repo_date_only_frontmatter(base: &Path) -> Result<u32> {
+    let mut changed = 0u32;
+    let now = Local::now();
+    for subdir in ["conversations", "notes", "clips", "plans", "imports"] {
+        let root = base.join(subdir);
+        if !root.exists() {
+            continue;
+        }
+        for entry in walkdir::WalkDir::new(&root)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "md"))
+        {
+            let path = entry.path();
+            let content = std::fs::read_to_string(path)?;
+            let normalized = normalize_date_only_frontmatter(&content, &now);
+            if normalized != content {
+                std::fs::write(path, normalized)?;
+                changed += 1;
+            }
+        }
+    }
+    Ok(changed)
+}
+
 /// Create a scratch note, returns relative path
 pub fn create_scratch(base: &Path, content: &str) -> Result<String> {
     let now = Local::now();
@@ -223,6 +301,47 @@ mod tests {
         let updated = refresh_updated_frontmatter(content, &now);
         assert!(updated.contains("date: 2025-04-13"));
         assert!(updated.contains("updated:"));
+    }
+
+    #[test]
+    fn test_normalize_date_only_frontmatter_replaces_current_date() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
+            .unwrap()
+            .with_timezone(&Local);
+        let content = "---\ntitle: 深夜代码\ndate: 2026-05-24\n---\n\nBody\n";
+        let normalized = normalize_date_only_frontmatter(content, &now);
+        assert!(normalized.contains("date: 2026-05-24T20:33:22+08:00"));
+    }
+
+    #[test]
+    fn test_normalize_date_only_frontmatter_keeps_historical_date() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
+            .unwrap()
+            .with_timezone(&Local);
+        let content = "---\ndate: 2026-05-20\n---\n\nBody\n";
+        let normalized = normalize_date_only_frontmatter(content, &now);
+        assert_eq!(normalized, content);
+    }
+
+    #[test]
+    fn test_normalize_date_only_frontmatter_keeps_date_when_updated_exists() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
+            .unwrap()
+            .with_timezone(&Local);
+        let content = "---\ndate: 2026-05-24\nupdated: 2026-05-24T18:00:00+08:00\n---\n\nBody\n";
+        let normalized = normalize_date_only_frontmatter(content, &now);
+        assert_eq!(normalized, content);
+    }
+
+    #[test]
+    fn test_normalize_date_only_frontmatter_replaces_updated_activity() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
+            .unwrap()
+            .with_timezone(&Local);
+        let content = "---\ndate: 2026-05-20\nupdated: 2026-05-24\n---\n\nBody\n";
+        let normalized = normalize_date_only_frontmatter(content, &now);
+        assert!(normalized.contains("updated: 2026-05-24T20:33:22+08:00"));
+        assert!(normalized.contains("date: 2026-05-20"));
     }
 
     #[test]

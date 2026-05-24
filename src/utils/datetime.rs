@@ -92,6 +92,10 @@ fn parse_gitmemo_datetime(s: &str) -> Option<DateTime<Local>> {
     None
 }
 
+fn is_date_only(s: &str) -> bool {
+    NaiveDate::parse_from_str(strip_yaml_scalar_quotes(s).trim(), "%Y-%m-%d").is_ok()
+}
+
 /// Prefer frontmatter `updated` / `date` / `created`; otherwise use file `modified` time.
 /// Returns `(RFC3339 display string, unix millis for sorting)`.
 ///
@@ -106,6 +110,11 @@ pub fn record_timestamp_for_markdown(content: &str, modified: SystemTime) -> (St
     let fallback_str = fallback_dt.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
 
     if let Some(raw) = frontmatter_activity_datetime_raw(content) {
+        // Date-only frontmatter is not precise enough for activity sorting/display.
+        // Use the file mtime instead of turning it into an artificial 00:00:00.
+        if is_date_only(&raw) {
+            return (fallback_str, fallback_ms);
+        }
         if let Some(dt) = parse_gitmemo_datetime(&raw) {
             let ms = dt.timestamp_millis();
             let s = dt.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
@@ -156,6 +165,19 @@ mod tests {
         let (s, ms) = record_timestamp_for_markdown(md, t);
         assert!(s.starts_with("2026-03-31T22:43:39"));
         assert_ne!(ms, 0);
+    }
+
+    #[test]
+    fn record_timestamp_uses_mtime_for_date_only_frontmatter() {
+        let md = "---\ndate: 2026-05-24\n---\n\nHi";
+        let expected = DateTime::parse_from_rfc3339("2026-05-24T20:33:22+08:00")
+            .unwrap()
+            .with_timezone(&Local);
+        let t = SystemTime::UNIX_EPOCH
+            + std::time::Duration::from_millis(expected.timestamp_millis() as u64);
+        let (s, ms) = record_timestamp_for_markdown(md, t);
+        assert_eq!(s, expected.to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+        assert_eq!(ms, expected.timestamp_millis());
     }
 
     #[test]

@@ -22,13 +22,14 @@ interface SearchResultItem {
 }
 
 const SEARCH_STATE_KEY = "gitmemo-search-state";
-const mobileSourceTypes = new Set(["conversation", "note", "clip", "plan"]);
+const mobileSourceTypes = new Set(["conversation", "note", "clip", "plan", "import"]);
 
 function isMobileContentPath(path: string) {
   return path.startsWith("conversations/")
     || path.startsWith("notes/")
     || path.startsWith("clips/")
-    || path.startsWith("plans/");
+    || path.startsWith("plans/")
+    || path.startsWith("imports/");
 }
 
 export default function SearchPage({

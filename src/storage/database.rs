@@ -6,6 +6,8 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+const INDEX_SCHEMA_VERSION: &str = "2";
+
 pub struct SearchResult {
     pub source_type: String, // "conversation" or "note"
     pub title: String,
@@ -112,6 +114,16 @@ fn init_schema(conn: &Connection) -> Result<()> {
         "ALTER TABLE documents ADD COLUMN file_size INTEGER NOT NULL DEFAULT 0",
     )?;
     if added_activity_at || added_activity_ts || added_file_mtime_ms || added_file_size {
+        conn.execute("DELETE FROM metadata WHERE key = 'last_index_time'", [])?;
+    }
+    let known_index_version: Option<String> = conn
+        .query_row(
+            "SELECT value FROM metadata WHERE key = 'index_schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .ok();
+    if known_index_version.as_deref() != Some(INDEX_SCHEMA_VERSION) {
         conn.execute("DELETE FROM metadata WHERE key = 'last_index_time'", [])?;
     }
     conn.execute_batch(
@@ -382,6 +394,10 @@ fn set_last_index_time(conn: &Connection) -> Result<()> {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
+    conn.execute(
+        "INSERT OR REPLACE INTO metadata (key, value) VALUES ('index_schema_version', ?1)",
+        params![INDEX_SCHEMA_VERSION],
+    )?;
     conn.execute(
         "INSERT OR REPLACE INTO metadata (key, value) VALUES ('last_index_time', ?1)",
         params![now.to_string()],
@@ -726,11 +742,11 @@ pub fn search(
     type_filter: &str,
     limit: usize,
 ) -> Result<Vec<SearchResult>> {
-    let sql = "SELECT d.source_type, d.title, d.file_path, snippet(search_index, 2, '**', '**', '...', 20) as snip, d.created_at
+    let sql = "SELECT d.source_type, d.title, d.file_path, snippet(search_index, 2, '**', '**', '...', 20) as snip, d.activity_at
          FROM search_index si
          JOIN documents d ON d.id = si.doc_id
          WHERE search_index MATCH ?1 AND (?3 = 'all' OR d.source_type = ?3)
-         ORDER BY rank
+         ORDER BY d.activity_ts DESC, d.file_path ASC
          LIMIT ?2";
 
     let mut stmt = conn.prepare(sql)?;
@@ -760,11 +776,11 @@ pub fn search_like(
 ) -> Result<Vec<SearchResult>> {
     let pattern = format!("%{}%", query);
 
-    let sql = "SELECT d.source_type, d.title, d.file_path, si.content, d.created_at
+    let sql = "SELECT d.source_type, d.title, d.file_path, si.content, d.activity_at
          FROM search_index si
          JOIN documents d ON d.id = si.doc_id
          WHERE (si.title LIKE ?1 OR si.content LIKE ?1) AND (?3 = 'all' OR d.source_type = ?3)
-         ORDER BY d.created_at DESC
+         ORDER BY d.activity_ts DESC, d.file_path ASC
          LIMIT ?2";
 
     let mut stmt = conn.prepare(sql)?;
@@ -1001,6 +1017,94 @@ mod tests {
         let conn = in_memory_db();
         let results = search(&conn, "nonexistent", "all", 10).unwrap();
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_search_orders_and_limits_by_activity_time() {
+        let conn = in_memory_db();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "notes/scratch/old.md",
+                source_type: "note",
+                title: "Old",
+                content: "needle ordered",
+                date: "2026-04-01T09:00:00+08:00",
+                activity_at: "2026-04-01T09:00:00+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-04-01T09:00:00+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "notes/scratch/new.md",
+                source_type: "note",
+                title: "New",
+                content: "needle ordered",
+                date: "2026-05-20T09:00:00+08:00",
+                activity_at: "2026-05-20T09:00:00+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+
+        let limited = search(&conn, "needle ordered", "all", 1).unwrap();
+
+        assert_eq!(limited.len(), 1);
+        assert_eq!(limited[0].title, "New");
+    }
+
+    #[test]
+    fn test_search_like_orders_and_limits_by_activity_time() {
+        let conn = in_memory_db();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "notes/scratch/old-cjk.md",
+                source_type: "note",
+                title: "旧内容",
+                content: "中文排序",
+                date: "2026-04-01T09:00:00+08:00",
+                activity_at: "2026-04-01T09:00:00+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-04-01T09:00:00+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "notes/scratch/new-cjk.md",
+                source_type: "note",
+                title: "新内容",
+                content: "中文排序",
+                date: "2026-05-20T09:00:00+08:00",
+                activity_at: "2026-05-20T09:00:00+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+
+        let limited = search_like(&conn, "中文", "all", 1).unwrap();
+
+        assert_eq!(limited.len(), 1);
+        assert_eq!(limited[0].title, "新内容");
     }
 
     #[test]

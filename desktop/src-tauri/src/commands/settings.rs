@@ -12,6 +12,9 @@ use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 const SETTINGS_FILE: &str = "desktop_settings.toml";
+pub const IMPORT_FILE_SIZE_LIMIT_MIN_KB: u64 = 500;
+pub const IMPORT_FILE_SIZE_LIMIT_MAX_KB: u64 = 20 * 1024;
+pub const IMPORT_FILE_SIZE_LIMIT_DEFAULT_KB: u64 = 2 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -35,6 +38,8 @@ pub struct DesktopSettings {
     pub proxy_url: String,
     #[serde(default)]
     pub shortcuts: KeyboardShortcuts,
+    #[serde(default = "default_import_file_size_limit_kb")]
+    pub import_file_size_limit_kb: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +79,13 @@ fn default_edit_selected_shortcut() -> String {
 fn default_delete_selected_shortcut() -> String {
     "CmdOrCtrl+Delete".into()
 }
+fn default_import_file_size_limit_kb() -> u64 {
+    IMPORT_FILE_SIZE_LIMIT_DEFAULT_KB
+}
+
+fn normalize_import_file_size_limit_kb(kb: u64) -> u64 {
+    kb.clamp(IMPORT_FILE_SIZE_LIMIT_MIN_KB, IMPORT_FILE_SIZE_LIMIT_MAX_KB)
+}
 
 impl Default for KeyboardShortcuts {
     fn default() -> Self {
@@ -97,6 +109,7 @@ impl Default for DesktopSettings {
             proxy_mode: ProxyMode::default(),
             proxy_url: String::new(),
             shortcuts: KeyboardShortcuts::default(),
+            import_file_size_limit_kb: IMPORT_FILE_SIZE_LIMIT_DEFAULT_KB,
         }
     }
 }
@@ -128,12 +141,18 @@ fn load_settings() -> DesktopSettings {
     let path = settings_path();
     if path.exists() {
         if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(settings) = toml::from_str::<DesktopSettings>(&content) {
+            if let Ok(mut settings) = toml::from_str::<DesktopSettings>(&content) {
+                settings.import_file_size_limit_kb =
+                    normalize_import_file_size_limit_kb(settings.import_file_size_limit_kb);
                 return settings;
             }
         }
     }
     DesktopSettings::default()
+}
+
+pub fn import_file_size_limit_bytes() -> u64 {
+    normalize_import_file_size_limit_kb(load_settings().import_file_size_limit_kb) * 1024
 }
 
 fn save_settings(settings: &DesktopSettings) -> Result<(), String> {
@@ -308,6 +327,14 @@ pub fn set_control_copy_paste(enabled: bool) -> Result<String, String> {
     } else {
         "Control copy/paste disabled".into()
     })
+}
+
+#[tauri::command]
+pub fn set_import_file_size_limit_kb(kb: u64) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.import_file_size_limit_kb = normalize_import_file_size_limit_kb(kb);
+    save_settings(&settings)?;
+    Ok("ok".into())
 }
 
 #[tauri::command]

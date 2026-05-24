@@ -1,3 +1,4 @@
+use super::settings;
 use gitmemo_core::storage::{files, git};
 use serde::Serialize;
 use std::path::Path;
@@ -122,6 +123,15 @@ fn import_single_file(
         .metadata()
         .map(|m| m.len())
         .unwrap_or(0);
+
+    let max_import_file_size = settings::import_file_size_limit_bytes();
+    if file_size > max_import_file_size {
+        return Err(format!(
+            "File too large: {} bytes (max {} bytes)",
+            file_size,
+            max_import_file_size,
+        ));
+    }
 
     let (base_dir, category) = route_file(&filename, &ext);
     let now = chrono::Local::now();

@@ -1218,6 +1218,7 @@ fn push_branch_with_token(repo: &git2::Repository, branch: &str, token: &str) ->
 #[cfg(target_os = "android")]
 fn commit_and_push_with_token(repo_path: &Path, message: &str, token: &str) -> Result<SyncResult> {
     let _ = ensure_repo_clean(repo_path);
+    let _ = crate::storage::files::normalize_repo_date_only_frontmatter(repo_path);
     let repo = git2::Repository::open(repo_path)?;
     let branch = configured_branch(repo_path);
     ensure_token_branch(&repo, &branch)?;
@@ -1361,6 +1362,7 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
 #[allow(dead_code)]
 pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
     let _ = ensure_repo_clean(repo_path);
+    let _ = crate::storage::files::normalize_repo_date_only_frontmatter(repo_path);
     let repo = git2::Repository::open(repo_path)?;
 
     let mut index = repo.index()?;
@@ -1395,6 +1397,7 @@ pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
 
     // Health check first: abort any stuck rebase/merge
     let _ = ensure_repo_clean(repo_path);
+    let _ = crate::storage::files::normalize_repo_date_only_frontmatter(repo_path);
 
     let repo = git2::Repository::open(repo_path)?;
 

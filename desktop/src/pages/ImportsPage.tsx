@@ -55,7 +55,17 @@ function ImportImagePreview({ relPath }: { relPath: string }) {
   );
 }
 
-export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger, active }: { onFocusSidebar?: () => void; enterTrigger?: number; active?: boolean } = {}) {
+export default function ImportsPage({
+  onFocusSidebar: _onFocusSidebar,
+  enterTrigger: _enterTrigger,
+  active,
+  registerMobileBackHandler,
+}: {
+  onFocusSidebar?: () => void;
+  enterTrigger?: number;
+  active?: boolean;
+  registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
+} = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
@@ -75,24 +85,26 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
   const loadInFlight = useRef<Promise<void> | null>(null);
   const filesLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
+  const detailOpenedFromCrossPageRef = useRef(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
   useEffect(() => {
     filesLengthRef.current = files.length;
   }, [files.length]);
 
-  const openFile = useCallback(async (path: string) => {
+  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
       setEditContent(content);
       setEditing(false);
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       setTimeout(() => {
         itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 50);
     } catch (e) { console.error(e); }
-  }, []);
+  }, [isMobile]);
 
   const loadFiles = useCallback((reset = true) => {
     if (loadInFlight.current) return loadInFlight.current;
@@ -166,7 +178,7 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("imports/")) return;
-    void loadFiles().then(() => openFile(pendingOpenPath));
+    void loadFiles().then(() => openFile(pendingOpenPath, true));
     consumePendingOpenPath();
   }, [pendingOpenPath, consumePendingOpenPath, loadFiles, openFile]);
 
@@ -205,6 +217,30 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
       setSaving(false);
     }
   }, [selectedFile, editContent, showToast, t]);
+
+  const closeDetail = useCallback(() => {
+    setSelectedFile(null);
+    setFileContent("");
+    setEditContent("");
+    setEditing(false);
+    detailOpenedFromCrossPageRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !registerMobileBackHandler) return;
+    registerMobileBackHandler(() => {
+      if (selectedFile) {
+        if (detailOpenedFromCrossPageRef.current) {
+          closeDetail();
+          return false;
+        }
+        closeDetail();
+        return true;
+      }
+      return false;
+    });
+    return () => registerMobileBackHandler(null);
+  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -329,8 +365,8 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "12px 20px", borderBottom: "1px solid var(--border)",
                 }}>
-                  <button
-                    onClick={() => { setSelectedFile(null); setFileContent(""); setEditContent(""); setEditing(false); }}
+              <button
+                    onClick={closeDetail}
                     style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
                   >
                     <ChevronLeft size={16} />
@@ -378,8 +414,8 @@ export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrig
                   <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {selectedFile}
                   </span>
-                  <RevealInFinderButton relPath={selectedFile} />
-                  <CopyPathButton relPath={selectedFile} />
+                  {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
+                  {!isMobile && <CopyPathButton relPath={selectedFile} />}
                   <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
                     <Trash2 size={13} />
                   </button>

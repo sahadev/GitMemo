@@ -22,6 +22,10 @@ import {
   type ShortcutId,
 } from "../utils/shortcuts";
 
+const IMPORT_SIZE_LIMIT_MIN_KB = 500;
+const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
+const IMPORT_SIZE_LIMIT_DEFAULT_KB = 2 * 1024;
+
 const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "global_search", labelKey: "settings.shortcutGlobalSearchLabel", descKey: "settings.shortcutGlobalSearchDesc" },
   { id: "app_search", labelKey: "settings.shortcutAppSearchLabel", descKey: "settings.shortcutAppSearchDesc" },
@@ -136,6 +140,12 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   );
 }
 
+function formatImportSizeLimit(kb: number): string {
+  if (kb < 1024) return `${kb} KB`;
+  const mb = kb / 1024;
+  return Number.isInteger(mb) ? `${mb} MB` : `${mb.toFixed(1)} MB`;
+}
+
 export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
@@ -179,6 +189,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [mobileGitReset, setMobileGitReset] = useState(false);
   const [mobileGitRunning, setMobileGitRunning] = useState(false);
   const [mobileGitResult, setMobileGitResult] = useState<MobileGitSpikeResult | null>(null);
+  const [savingImportLimit, setSavingImportLimit] = useState(false);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -223,6 +234,19 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       refreshSettings();
     } catch (e) {
       showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const setImportFileSizeLimit = async (kb: number) => {
+    const nextKb = Math.max(IMPORT_SIZE_LIMIT_MIN_KB, Math.min(IMPORT_SIZE_LIMIT_MAX_KB, Math.round(kb)));
+    setSavingImportLimit(true);
+    try {
+      await invoke<string>("set_import_file_size_limit_kb", { kb: nextKb });
+      await refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setSavingImportLimit(false);
     }
   };
 
@@ -539,6 +563,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     defaultDetail: t("settings.mobileDiagnosticDefaultDetail"),
   });
   const mobileBottomSpacer = `calc(${MOBILE_BOTTOM_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom, 0px))`;
+  const importFileSizeLimitKb = settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB;
 
   const languages: { id: Locale; label: string }[] = [
     { id: "en", label: "English" },
@@ -664,6 +689,53 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           {isDesktop && (
             <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
+
+              {/* Import file size limit */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Download size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.importFileSizeLimit")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                      {t(
+                        "settings.importFileSizeLimitDesc",
+                        formatImportSizeLimit(IMPORT_SIZE_LIMIT_MIN_KB),
+                        formatImportSizeLimit(IMPORT_SIZE_LIMIT_MAX_KB),
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: isMobile ? "100%" : 280,
+                }}>
+                  <input
+                    type="range"
+                    min={IMPORT_SIZE_LIMIT_MIN_KB}
+                    max={IMPORT_SIZE_LIMIT_MAX_KB}
+                    step={100}
+                    value={importFileSizeLimitKb}
+                    onChange={(e) => void setImportFileSizeLimit(Number(e.target.value))}
+                    disabled={savingImportLimit}
+                    style={{ flex: 1, accentColor: "var(--accent)" }}
+                    aria-label={t("settings.importFileSizeLimit")}
+                  />
+                  <span style={{
+                    minWidth: 56,
+                    textAlign: "right",
+                    fontSize: 12,
+                    color: savingImportLimit ? "var(--text-secondary)" : "var(--accent)",
+                    fontWeight: 600,
+                    fontFamily: "ui-monospace, monospace",
+                  }}>
+                    {formatImportSizeLimit(importFileSizeLimitKb)}
+                  </span>
+                </div>
+              </div>
+
               <div style={{ borderTop: "1px solid var(--border)" }} />
 
               {/* Control copy/paste compatibility */}

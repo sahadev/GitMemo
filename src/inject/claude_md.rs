@@ -40,14 +40,14 @@ fn generate_instruction_zh(sync_dir: &str) -> String {
 ```markdown
 ---
 title: {{文档标题}}
-date: {{YYYY-MM-DD}}
+date: {{YYYY-MM-DDTHH:MM:SS±HH:MM}}
 tags: {{逗号分隔的标签}}
 ---
 
 {{文档正文}}
 ```
 
-规则：标题不超过 30 字，静默保存，同名文件覆盖；正文尽量完整，不要只在对话里说“见上文”；保存后应继续按 GitMemo 规则同步。普通问答、代码修改、调试不触发。
+规则：标题不超过 30 字，静默保存，同名文件覆盖；`date` 必须是带时区偏移的 ISO 8601 完整时间，例如 `2026-05-24T20:33:22+08:00`，保存前可执行 `date +"%Y-%m-%dT%H:%M:%S%z"` 并把偏移格式规范为 `±HH:MM`，不要只写 `YYYY-MM-DD`；正文尽量完整，不要只在对话里说“见上文”；保存后应继续按 GitMemo 规则同步。普通问答、代码修改、调试不触发。
 {MARKER_END}"#
     )
 }
@@ -80,14 +80,14 @@ Example format:
 ```markdown
 ---
 title: {{document title}}
-date: {{YYYY-MM-DD}}
+date: {{YYYY-MM-DDTHH:MM:SS±HH:MM}}
 tags: {{comma-separated tags}}
 ---
 
 {{document body}}
 ```
 
-Rules: title max 60 chars, save silently, overwrite same-name files; capture the full substance in the document instead of only referencing the chat; after saving, continue following GitMemo sync rules. Do not trigger for regular Q&A, code edits, or debugging.
+Rules: title max 60 chars, save silently, overwrite same-name files; `date` must be full ISO 8601 with timezone offset, e.g. `2026-05-24T20:33:22+08:00`. Before saving, run `date +"%Y-%m-%dT%H:%M:%S%z"` if needed and normalize the offset to `±HH:MM`; do not write date-only `YYYY-MM-DD`. Capture the full substance in the document instead of only referencing the chat; after saving, continue following GitMemo sync rules. Do not trigger for regular Q&A, code edits, or debugging.
 {MARKER_END}"#
     )
 }
@@ -150,6 +150,8 @@ mod tests {
         assert!(instruction.contains(MARKER_END));
         assert!(instruction.contains("GitMemo"));
         assert!(instruction.contains("自动捕获"));
+        assert!(instruction.contains("YYYY-MM-DDTHH:MM:SS"));
+        assert!(!instruction.contains("date: {{YYYY-MM-DD}}"));
     }
 
     #[test]
@@ -159,6 +161,8 @@ mod tests {
         assert!(instruction.contains(MARKER_END));
         assert!(instruction.contains("GitMemo"));
         assert!(instruction.contains("auto-captured"));
+        assert!(instruction.contains("YYYY-MM-DDTHH:MM:SS"));
+        assert!(!instruction.contains("date: {{YYYY-MM-DD}}"));
     }
 
     #[test]

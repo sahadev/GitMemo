@@ -65,6 +65,7 @@ export interface DesktopSettings {
   proxy_mode: "system" | "none" | "custom";
   proxy_url: string;
   shortcuts: KeyboardShortcuts;
+  import_file_size_limit_kb: number;
 }
 
 export interface AppMeta {

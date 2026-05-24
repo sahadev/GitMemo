@@ -117,6 +117,7 @@ export default function ClipboardPage({
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
   const [creatingNote, setCreatingNote] = useState(false);
+  const [deletingSelected, setDeletingSelected] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const savedClipsLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
@@ -315,7 +316,7 @@ export default function ClipboardPage({
   }, []);
 
   const createNoteFromSelectedClips = useCallback(async () => {
-    if (selectedClipPaths.length === 0 || creatingNote) return;
+    if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
     setCreatingNote(true);
     try {
       const blocks: string[] = [];
@@ -337,7 +338,34 @@ export default function ClipboardPage({
     } finally {
       setCreatingNote(false);
     }
-  }, [creatingNote, selectedClipPaths, showToast, t]);
+  }, [creatingNote, deletingSelected, selectedClipPaths, showToast, t]);
+
+  const confirmDeleteSelectedClips = useCallback(async () => {
+    if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
+    const paths = [...selectedClipPaths];
+    const ok = await ask(t("clipboard.deleteSelectedConfirm", paths.length), { title: t("common.confirm"), kind: "warning" });
+    if (!ok) return;
+    setDeletingSelected(true);
+    try {
+      for (const path of paths) {
+        await invoke<NoteResult>("delete_clip", { filePath: path });
+      }
+      showToast(t("clipboard.selectedDeleted", paths.length));
+      setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
+      if (selectedFile && paths.includes(selectedFile)) {
+        setSelectedFile(null);
+        setFileContent("");
+      }
+      setMultiSelectMode(false);
+      setSelectedClipPaths([]);
+      loadSavedClips();
+      refreshClipboardStatus();
+    } catch (e) {
+      showToast(String(e), true);
+    } finally {
+      setDeletingSelected(false);
+    }
+  }, [creatingNote, deletingSelected, refreshClipboardStatus, selectedClipPaths, selectedFile, showToast, t]);
 
   const confirmDeleteClip = async (path: string) => {
     const ok = await ask(t("clipboard.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
@@ -664,7 +692,10 @@ export default function ClipboardPage({
             zIndex: isMobile ? 29 : undefined,
             boxShadow: isMobile ? "0 -8px 20px rgba(0,0,0,0.18)" : undefined,
           }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: "var(--text-secondary)" }}>
+            <span style={{
+              flex: 1, minWidth: 0, fontSize: 11, color: "var(--text-secondary)",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
               {t("clipboard.selectedCount", selectedClipPaths.length)}
             </span>
             <button
@@ -683,18 +714,39 @@ export default function ClipboardPage({
             </button>
             <button
               type="button"
-              disabled={selectedClipPaths.length === 0 || creatingNote}
+              disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
+              onClick={() => void confirmDeleteSelectedClips()}
+              title={t("clipboard.deleteSelected")}
+              aria-label={t("clipboard.deleteSelected")}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                minWidth: isMobile ? 38 : undefined,
+                minHeight: isMobile ? 38 : undefined,
+                padding: isMobile ? "8px 10px" : "5px 9px",
+                borderRadius: 6, fontSize: 12,
+                cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
+                background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "rgba(239, 68, 68, 0.10)",
+                border: "1px solid var(--border)",
+                color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "var(--red)",
+                opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
+              }}
+            >
+              <Trash2 size={12} /> {!isMobile && (deletingSelected ? t("clipboard.deletingSelected") : t("clipboard.deleteSelected"))}
+            </button>
+            <button
+              type="button"
+              disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
               onClick={() => void createNoteFromSelectedClips()}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                 minHeight: isMobile ? 38 : undefined,
                 padding: isMobile ? "8px 12px" : "5px 10px",
                 borderRadius: 6, fontSize: 12,
-                cursor: selectedClipPaths.length === 0 || creatingNote ? "default" : "pointer",
-                background: selectedClipPaths.length === 0 || creatingNote ? "var(--bg-hover)" : "var(--accent)",
+                cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
+                background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--accent)",
                 border: "1px solid var(--border)",
-                color: selectedClipPaths.length === 0 || creatingNote ? "var(--text-secondary)" : "#fff",
-                opacity: selectedClipPaths.length === 0 || creatingNote ? 0.7 : 1,
+                color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "#fff",
+                opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
               }}
             >
               <FilePlus2 size={12} /> {creatingNote ? t("clipboard.creatingNote") : t("clipboard.saveSelectedToNote")}

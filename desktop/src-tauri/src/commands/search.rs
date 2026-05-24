@@ -15,6 +15,8 @@ pub struct SearchResultItem {
     pub file_path: String,
     pub snippet: String,
     pub date: String,
+    #[serde(skip_serializing)]
+    pub sort_ts: i64,
 }
 
 /// Run a closure, catching any panic and converting it to `Err(String)`.
@@ -34,7 +36,7 @@ fn catch<T>(f: impl FnOnce() -> Result<T, String> + panic::UnwindSafe) -> Result
     }
 }
 
-fn compute_activity_date(sync_dir: &Path, rel_path: &str) -> String {
+fn compute_activity_timestamp(sync_dir: &Path, rel_path: &str) -> (String, i64) {
     let full_path = sync_dir.join(rel_path);
     let content = std::fs::read_to_string(&full_path).unwrap_or_default();
     let modified_time = full_path
@@ -42,21 +44,26 @@ fn compute_activity_date(sync_dir: &Path, rel_path: &str) -> String {
         .ok()
         .and_then(|m| m.modified().ok())
         .unwrap_or(std::time::UNIX_EPOCH);
-    let (date, _) = record_timestamp_for_markdown(&content, modified_time);
-    date
+    record_timestamp_for_markdown(&content, modified_time)
 }
 
 fn map_results(sync_dir: &Path, results: Vec<database::SearchResult>) -> Vec<SearchResultItem> {
-    results
+    let mut mapped: Vec<SearchResultItem> = results
         .into_iter()
-        .map(|r| SearchResultItem {
-            source_type: r.source_type,
-            title: r.title,
-            file_path: r.file_path.clone(),
-            snippet: r.snippet,
-            date: compute_activity_date(sync_dir, &r.file_path),
+        .map(|r| {
+            let (date, sort_ts) = compute_activity_timestamp(sync_dir, &r.file_path);
+            SearchResultItem {
+                source_type: r.source_type,
+                title: r.title,
+                file_path: r.file_path.clone(),
+                snippet: r.snippet,
+                date,
+                sort_ts,
+            }
         })
-        .collect()
+        .collect();
+    mapped.sort_by(|a, b| b.sort_ts.cmp(&a.sort_ts));
+    mapped
 }
 
 fn sync_external_plans_if_desktop(sync_dir: &Path) {
@@ -224,11 +231,11 @@ fn fuzzy_search_files_sync(
                 };
 
                 let content = std::fs::read_to_string(path).unwrap_or_default();
-                let date = path
+                let (date, sort_ts) = path
                     .metadata()
                     .ok()
                     .and_then(|m| m.modified().ok())
-                    .map(|modified| record_timestamp_for_markdown(&content, modified).0)
+                    .map(|modified| record_timestamp_for_markdown(&content, modified))
                     .unwrap_or_default();
 
                 results.push(SearchResultItem {
@@ -237,6 +244,7 @@ fn fuzzy_search_files_sync(
                     file_path: rel_path,
                     snippet: file_name,
                     date,
+                    sort_ts,
                 });
             }
 
@@ -245,6 +253,7 @@ fn fuzzy_search_files_sync(
             }
         }
 
+        results.sort_by(|a, b| b.sort_ts.cmp(&a.sort_ts));
         Ok(results)
     })
 }
@@ -335,5 +344,38 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Desktop Search");
         assert_eq!(results[0].file_path, "notes/scratch/desktop-search.md");
+    }
+
+    #[test]
+    fn search_results_are_sorted_newest_first() {
+        let _guard = HOME_ENV_LOCK.lock().unwrap();
+        let home = TempHome::new();
+        let _home = HomeOverride::set(home.path());
+        let sync_dir = files::sync_dir();
+
+        gitmemo_core::storage::files::create_directory_structure(&sync_dir).unwrap();
+        gitmemo_core::storage::files::write_note(
+            &sync_dir,
+            "notes/scratch/old-search.md",
+            "---\ndate: 2026-05-01T10:00:00+08:00\n---\n\n# Old Search\n\nneedle sorted\n",
+        )
+        .unwrap();
+        gitmemo_core::storage::files::write_note(
+            &sync_dir,
+            "notes/scratch/new-search.md",
+            "---\ndate: 2026-05-20T10:00:00+08:00\n---\n\n# New Search\n\nneedle sorted\n",
+        )
+        .unwrap();
+
+        let indexed = reindex_sync().unwrap();
+        assert_eq!(indexed, 2);
+
+        let results =
+            search_all_sync("needle sorted".to_string(), Some("all".to_string()), Some(10))
+                .unwrap();
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].title, "New Search");
+        assert_eq!(results[1].title, "Old Search");
     }
 }

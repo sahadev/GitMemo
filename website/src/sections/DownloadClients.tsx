@@ -5,7 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
 const FIXED_ANDROID_VERSION = 'v1.0.71'
-const FIXED_ANDROID_APK_URL = 'https://gitmemo.oss-cn-beijing.aliyuncs.com/mobile/app-universal-release.apk'
+const FIXED_ANDROID_APK_URL = 'https://gitmemo.kakacut.cn/mobile/app-universal-release.apk'
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
 
 interface GitHubReleaseAsset {

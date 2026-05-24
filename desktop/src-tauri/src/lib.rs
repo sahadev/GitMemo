@@ -145,6 +145,7 @@ pub fn run() {
             settings::set_autostart,
             settings::set_clipboard_autostart,
             settings::set_control_copy_paste,
+            settings::set_import_file_size_limit_kb,
             settings::set_shortcuts,
             settings::set_proxy,
             settings::set_language,

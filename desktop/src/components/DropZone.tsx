@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { Download, FileText, Image, Code2, File, FolderOpen, Check, X } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
+import { useAppStore } from "../hooks/useAppStore";
 
 interface ImportedFile {
   original_name: string;
@@ -52,6 +53,12 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatSizeLimitFromKb(kb: number): string {
+  if (kb < 1024) return `${kb} KB`;
+  const mb = kb / 1024;
+  return Number.isInteger(mb) ? `${mb} MB` : `${mb.toFixed(1)} MB`;
+}
+
 function isOpenableByGitMemo(name: string) {
   const lower = name.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc") || lower.endsWith(".txt");
@@ -73,6 +80,7 @@ function describeDrop(paths: string[], t: (key: string, ...args: (string | numbe
 
 export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: DropZoneProps) {
   const { t } = useI18n();
+  const settings = useAppStore((s) => s.settings);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -147,10 +155,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
     };
   }, [pendingDrop]);
 
-  const overlayActive = isDragging || !!pendingDrop;
-  const activePaths = pendingDrop?.paths ?? [];
-  const dropCopy = describeDrop(activePaths, t);
-  const canOpen = activePaths.length === 1 && isOpenableByGitMemo(activePaths[0]);
+const overlayActive = isDragging || !!pendingDrop;
+const activePaths = pendingDrop?.paths ?? [];
+const dropCopy = describeDrop(activePaths, t);
+const canOpen = activePaths.length === 1 && isOpenableByGitMemo(activePaths[0]);
+const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limit_kb ?? 2048);
 
   if (overlayActive) {
     return (
@@ -290,6 +299,9 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
 
                 <div style={{ marginTop: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
                   {t("dropzone.routeHint")}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                  {t("dropzone.sizeLimit", maxImportSizeLabel)}
                 </div>
               </>
             ) : (
