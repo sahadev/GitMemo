@@ -92,7 +92,7 @@ build_website() {
     else
         warn "未设置 VITE_DOWNLOAD_MANIFEST_URL，下载区将回退 GitHub Releases"
     fi
-    VITE_DEFAULT_LANG=zh VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" npm run build
+    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"

@@ -54,7 +54,7 @@ export default function Hero() {
         <span className="text-accent-light">{t('hero.title2')}</span>
       </h1>
 
-      <p className="relative z-10 mt-6 text-lg text-text-secondary text-center max-w-2xl leading-relaxed">
+      <p className="relative z-10 mt-6 text-lg text-text-secondary text-center w-full max-w-5xl leading-relaxed whitespace-pre-line">
         {t('hero.subtitle')}
         <br className="hidden sm:block" />
         {t('hero.subtitle2')}

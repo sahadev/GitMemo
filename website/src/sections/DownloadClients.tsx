@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Apple, Cpu, Download, type LucideIcon } from 'lucide-react'
+import { Apple, Cpu, Download, Smartphone, type LucideIcon } from 'lucide-react'
 import { useI18n } from '../i18n/useI18n'
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
+const FIXED_ANDROID_VERSION = 'v1.0.71'
+const FIXED_ANDROID_APK_URL = 'https://gitmemo.oss-cn-beijing.aliyuncs.com/mobile/app-universal-release.apk'
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
 
 interface GitHubReleaseAsset {
@@ -27,11 +29,13 @@ interface DownloadManifest {
 }
 
 interface DownloadItem {
-  key: 'macosAppleSilicon' | 'macosIntel'
+  key: 'macosAppleSilicon' | 'macosIntel' | 'androidApk'
   icon: LucideIcon
   fallbackHref: string
-  assetPattern: RegExp
+  assetPattern?: RegExp
   ext: string
+  fixedVersion?: string
+  useManifest?: boolean
 }
 
 const downloads: DownloadItem[] = [
@@ -48,6 +52,14 @@ const downloads: DownloadItem[] = [
     fallbackHref: 'https://github.com/sahadev/GitMemo/releases/download/v1.0.65/GitMemo_v1.0.65_x86_64.dmg',
     assetPattern: /^GitMemo_v?.+_(?:x86_64|x64)\.dmg$/,
     ext: '.dmg',
+  },
+  {
+    key: 'androidApk',
+    icon: Smartphone,
+    fallbackHref: FIXED_ANDROID_APK_URL,
+    ext: '.apk',
+    fixedVersion: FIXED_ANDROID_VERSION,
+    useManifest: false,
   },
 ]
 
@@ -115,13 +127,15 @@ export default function DownloadClients({ showHeader = true, showVersion = false
         </div>
       )}
 
-      <div className={`${showHeader ? 'mt-10' : ''} grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6`}>
+      <div className={`${showHeader ? 'mt-10' : ''} grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6`}>
         {downloads.map((item) => {
           const Icon = item.icon
           const title = t(`download.${item.key}.title`)
-          const manifestAsset = manifest?.assets[item.key]
-          const asset = release?.assets.find((candidate) => item.assetPattern.test(candidate.name))
-          const version = manifest?.version ?? release?.tag_name ?? FALLBACK_RELEASE_VERSION
+          const manifestAsset = item.useManifest === false ? undefined : manifest?.assets[item.key]
+          const asset = item.assetPattern
+            ? release?.assets.find((candidate) => item.assetPattern?.test(candidate.name))
+            : undefined
+          const version = item.fixedVersion ?? manifest?.version ?? release?.tag_name ?? FALLBACK_RELEASE_VERSION
           return (
             <a
               key={item.key}
@@ -130,9 +144,9 @@ export default function DownloadClients({ showHeader = true, showVersion = false
               aria-label={`${t('download.action')} ${title}`}
             >
               <div>
-                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="text-text">
+                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-1 shrink-0 text-text">
                       <Icon size={24} strokeWidth={2.2} />
                     </span>
                     <h3 className="min-w-0 text-xl sm:text-2xl font-bold text-text">

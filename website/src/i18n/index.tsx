@@ -30,23 +30,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 // ─── English ───────────────────────────────────────────
 const en: Record<string, string> = {
   // Hero
-  'hero.title1': 'Markdown notes, AI conversations,',
-  'hero.title2': 'all in Git',
-  'hero.subtitle': 'A lightweight, open-source Markdown note-taking app and editor for developers.',
-  'hero.subtitle2': 'Save Claude Code, Cursor, and Codex sessions, write notes, manage clipboard — all version-controlled in Git. The Obsidian/Sublime alternative that weighs 16MB.',
-  'hero.badge': 'Open Source · MIT License',
+  'hero.title1': 'All important records',
+  'hero.title2': 'are saved into GitMemo',
+  'hero.subtitle': 'A free, open-source, local-first note-taking app built on Git.',
+  'hero.subtitle2': "Whether it's ideas, screenshots, text, files, or AI output, everything can be saved into your own Git repo for search, sync, and version history.",
+  'hero.badge': 'Free and open source · local-first',
   'hero.download': 'Download',
   'hero.github': 'View on GitHub',
 
   // Downloads
-  'download.label': 'Desktop Downloads',
+  'download.label': 'Client Downloads',
   'download.title': 'Download GitMemo',
-  'download.subtitle': 'Choose the macOS installer for your Mac.',
+  'download.subtitle': 'Choose the installer for your device.',
   'download.macosAppleSilicon.title': 'macOS Apple Silicon',
   'download.macosAppleSilicon.desc': 'For Macs with Apple Silicon chips.',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': 'For Intel-based Macs.',
-  'download.action': 'Download .dmg',
+  'download.androidApk.title': 'Android APK',
+  'download.androidApk.desc': 'Fixed APK build for Android devices.',
+  'download.action': 'Download',
 
   // Pain Points
   'pain.label': 'The Problem',
@@ -141,6 +143,11 @@ const en: Record<string, string> = {
   'app.clipboard': 'Clipboard monitor',
   'app.search': 'Full-text search',
   'app.screenshot': 'Screenshot coming soon',
+  'app.mobile.label': 'Mobile Support',
+  'app.mobile.title': 'GitMemo makes mobile saving easy',
+  'app.mobile.subtitle': 'GitMemo keeps screenshots, photos, and AI-generated content in the same Git-backed library, so saving on Android feels just as simple as saving on desktop.',
+  'app.mobile.caption': 'Desktop on the left, Android on the right',
+  'app.mobile.alt': 'GitMemo desktop and Android comparison screenshot',
 
   // Quick Start
   'start.label': 'Get Started',
@@ -162,23 +169,26 @@ const en: Record<string, string> = {
 // ─── Chinese ───────────────────────────────────────────
 const zh: Record<string, string> = {
   // Hero
-  'hero.title1': 'Markdown 笔记、AI 对话',
-  'hero.title2': '全部存入 Git',
-  'hero.subtitle': '面向开发者的轻量开源 Markdown 笔记应用和编辑器。',
-  'hero.subtitle2': '保存 Claude Code / Cursor / Codex 对话，内置笔记编辑器，剪贴板捕获——全部 Git 版本控制。Obsidian / Sublime Text / Typora 的 16MB 开源替代。',
-  'hero.badge': '开源 · MIT 许可证',
+  'hero.title1': '所有重要记录',
+  'hero.title2': '都轻松存进 GitMemo',
+  'hero.subtitle': '基于Git的开源免费、本地优先的新一代笔记产品',
+  'hero.subtitle2': `无论是灵感、截图、文字、文件 还是 AI 的输出，都能集中保存到自己的 Git 仓库
+  支持搜索、同步以及版本管理。`,
+  'hero.badge': '免费开源 · 本地优先',
   'hero.download': '下载',
   'hero.github': '在 GitHub 查看',
 
   // Downloads
-  'download.label': '桌面客户端下载',
+  'download.label': '客户端下载',
   'download.title': '下载客户端',
-  'download.subtitle': '选择与你的 Mac 匹配的安装包。',
+  'download.subtitle': '选择与你的设备匹配的安装包。',
   'download.macosAppleSilicon.title': 'macOS Apple Silicon',
   'download.macosAppleSilicon.desc': '适用于 Apple Silicon 架构的 macOS 系统。',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': '适用于 Intel 架构的 macOS 系统。',
-  'download.action': '下载 .dmg',
+  'download.androidApk.title': 'Android APK',
+  'download.androidApk.desc': '固定版本 Android 安装包。',
+  'download.action': '下载',
 
   // Pain Points
   'pain.label': '痛点',
@@ -242,8 +252,8 @@ const zh: Record<string, string> = {
 
   // Comparison
   'cmp.label': '竞品对比',
-  'cmp.title': 'GitMemo vs 印象笔记 vs Obsidian vs 有道云笔记',
-  'cmp.subtitle': '唯一一个同时覆盖 Markdown 编辑、AI 对话捕获、剪贴板历史、Git 原生同步和开源的笔记工具。印象笔记/有道云笔记/Obsidian/Typora 用户的免费开源替代。',
+  'cmp.title': 'GitMemo vs 印象笔记 vs Obsidian vs Notion vs Sublime Text',
+  'cmp.subtitle': '唯一一个同时覆盖 Markdown 编辑、AI 对话捕获、剪贴板历史、Git 原生同步和开源的笔记工具。印象笔记/Obsidian/Notion/Sublime Text/Typora 用户的免费开源替代。',
   'cmp.feature': '功能',
   'cmp.features.aiBackup': 'AI 对话自动备份',
   'cmp.features.notes': 'Markdown 笔记 & 编辑器',
@@ -273,6 +283,11 @@ const zh: Record<string, string> = {
   'app.clipboard': '剪贴板监控',
   'app.search': '全文搜索',
   'app.screenshot': '截图即将推出',
+  'app.mobile.label': '移动端支持',
+  'app.mobile.title': 'GitMemo 让手机保存一样轻松',
+  'app.mobile.subtitle': 'GitMemo 把截图、照片和 AI 生成内容放进同一个 Git 仓库里，让 Android 上的保存体验和桌面端一样轻松。',
+  'app.mobile.caption': '左侧是桌面端，右侧是 Android 端',
+  'app.mobile.alt': 'GitMemo 桌面端与 Android 端对比截图',
 
   // Quick Start
   'start.label': '快速开始',
@@ -281,7 +296,7 @@ const zh: Record<string, string> = {
   'start.comment': '# 安装 CLI（macOS / Linux / Windows）',
   'start.step1': '安装 CLI',
   'start.step2': '运行 gitmemo init，选择 Claude、Cursor、Codex 或全部',
-  'start.step3': '选择纯本地或远程同步（GitHub、GitLab、Gitee）',
+  'start.step3': '选择本地或远程同步（GitHub、GitLab、Gitee）',
 
   // Footer
   'footer.cta.title': '笔记、AI 对话、知识管理，终于有了统一的归宿',

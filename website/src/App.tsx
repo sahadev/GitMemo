@@ -7,6 +7,7 @@ import WhatGetsCaptured from './sections/WhatGetsCaptured'
 import HowItWorks from './sections/HowItWorks'
 import Comparison from './sections/Comparison'
 import DesktopApp from './sections/DesktopApp'
+import MobileApp from './sections/MobileApp'
 import QuickStart from './sections/QuickStart'
 import Footer from './sections/Footer'
 
@@ -21,6 +22,7 @@ function App() {
       <HowItWorks />
       <Comparison />
       <DesktopApp />
+      <MobileApp />
       <QuickStart />
       <Footer />
     </div>

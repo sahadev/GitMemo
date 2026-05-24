@@ -56,7 +56,7 @@ interface ExternalFileOpenTarget {
 }
 
 const desktopPageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
-const mobilePageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "settings"];
+const mobilePageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "imports", "settings"];
 
 type MobileBackHandler = () => boolean;
 
@@ -451,7 +451,7 @@ function App() {
       {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
       {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("plans", handler)} /></div>}
       {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {isDesktop && visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} /></div>}
+      {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}
       {isDesktop && visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
       {isDesktop && visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
       {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} entryTrigger={searchEntryTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} registerMobileBackHandler={(handler) => registerMobileBackHandler("search", handler)} /></div>}
