@@ -110,7 +110,11 @@ fn list_keys_from_ssh_config(host: Option<&str>) -> Vec<PathBuf> {
         if key.eq_ignore_ascii_case("Host") {
             saw_host_block = true;
             in_matching_block = host
-                .map(|target| value.split_whitespace().any(|pattern| host_pattern_matches(pattern, target)))
+                .map(|target| {
+                    value
+                        .split_whitespace()
+                        .any(|pattern| host_pattern_matches(pattern, target))
+                })
                 .unwrap_or(false);
             continue;
         }
@@ -218,7 +222,6 @@ pub fn generate_key_candidate(git_url: &str) -> Result<SshKeyCandidate> {
     })
 }
 
-
 /// Find an existing SSH private key in ~/.ssh/ or ~/.ssh/config.
 pub fn find_existing_key() -> Option<PathBuf> {
     find_key_from_ssh_config(None).or_else(|| {
@@ -285,10 +288,14 @@ fn generate_new_key(host: Option<&str>) -> Result<(PathBuf, bool)> {
 
     let status = Command::new("ssh-keygen")
         .args([
-            "-t", "ed25519",
-            "-f", key_path.to_str().unwrap(),
-            "-N", "",
-            "-C", "gitmemo",
+            "-t",
+            "ed25519",
+            "-f",
+            key_path.to_str().unwrap(),
+            "-N",
+            "",
+            "-C",
+            "gitmemo",
         ])
         .status()?;
 
@@ -438,7 +445,9 @@ fn extract_host_path(url: &str) -> Option<(String, String)> {
         let after_at = &url[at_pos + 1..];
         if let Some(colon_pos) = after_at.find(':') {
             let host = after_at[..colon_pos].to_string();
-            let path = after_at[colon_pos + 1..].trim_end_matches(".git").to_string();
+            let path = after_at[colon_pos + 1..]
+                .trim_end_matches(".git")
+                .to_string();
             return Some((host, path));
         }
     }
@@ -458,6 +467,9 @@ pub fn deploy_keys_url(git_url: &str) -> Option<String> {
 
 /// Open a URL in the default browser
 pub fn open_browser(url: &str) {
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let _ = url;
+
     #[cfg(target_os = "macos")]
     let _ = std::process::Command::new("open").arg(url).spawn();
     #[cfg(target_os = "linux")]

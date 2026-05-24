@@ -167,7 +167,14 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
         return Ok(vec![]);
     }
 
-    let folders = ["conversations", "notes/scratch", "notes/daily", "notes/manual", "clips", "plans"];
+    let folders = [
+        "conversations",
+        "notes/scratch",
+        "notes/daily",
+        "notes/manual",
+        "clips",
+        "plans",
+    ];
     let mut items: Vec<RecentItem> = Vec::new();
 
     for folder in &folders {
@@ -192,8 +199,7 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
                 .as_ref()
                 .and_then(|m| m.modified().ok())
                 .unwrap_or(std::time::UNIX_EPOCH);
-            let (modified, modified_ts) =
-                record_timestamp_for_markdown(&head, modified_time);
+            let (modified, modified_ts) = record_timestamp_for_markdown(&head, modified_time);
 
             let name = path
                 .file_stem()
@@ -248,12 +254,19 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
     let now = std::time::SystemTime::now();
     let min_age = std::time::Duration::from_secs(min_age_days * 24 * 60 * 60);
 
-    let folders = ["conversations", "notes/scratch", "notes/daily", "notes/manual"];
+    let folders = [
+        "conversations",
+        "notes/scratch",
+        "notes/daily",
+        "notes/manual",
+    ];
     let mut candidates: Vec<RecentItem> = Vec::new();
 
     for folder in &folders {
         let target = sync_dir.join(folder);
-        if !target.exists() { continue; }
+        if !target.exists() {
+            continue;
+        }
         for entry in walkdir::WalkDir::new(&target)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -266,8 +279,7 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
                 .as_ref()
                 .and_then(|m| m.modified().ok())
                 .unwrap_or(std::time::UNIX_EPOCH);
-            let (modified, modified_ts) =
-                record_timestamp_for_markdown(&head, modified_time);
+            let (modified, modified_ts) = record_timestamp_for_markdown(&head, modified_time);
 
             let record_system = std::time::UNIX_EPOCH
                 .checked_add(std::time::Duration::from_millis(modified_ts.max(0) as u64))
@@ -278,13 +290,26 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
                 Ok(_) => {}
             }
 
-            let rel_path = path.strip_prefix(&sync_dir).unwrap_or(path).to_string_lossy().to_string();
-            let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            let rel_path = path
+                .strip_prefix(&sync_dir)
+                .unwrap_or(path)
+                .to_string_lossy()
+                .to_string();
+            let name = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
 
-            let category = if rel_path.starts_with("conversations") { "conversation" }
-                else if rel_path.starts_with("notes/daily") { "daily" }
-                else if rel_path.starts_with("notes/manual") { "manual" }
-                else { "scratch" };
+            let category = if rel_path.starts_with("conversations") {
+                "conversation"
+            } else if rel_path.starts_with("notes/daily") {
+                "daily"
+            } else if rel_path.starts_with("notes/manual") {
+                "manual"
+            } else {
+                "scratch"
+            };
 
             candidates.push(RecentItem {
                 name,
@@ -306,23 +331,23 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
 }
 
 fn get_last_commit(repo_path: &std::path::Path) -> (String, String, String) {
-    let output = std::process::Command::new("git")
-        .args(["log", "-1", "--format=%h|%s|%cI"])
-        .current_dir(repo_path)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output();
+    let Ok(repo) = git2::Repository::open(repo_path) else {
+        return (String::new(), String::new(), String::new());
+    };
+    let Ok(commit) = repo.head().and_then(|head| head.peel_to_commit()) else {
+        return (String::new(), String::new(), String::new());
+    };
 
-    match output {
-        Ok(o) if o.status.success() => {
-            let line = String::from_utf8_lossy(&o.stdout).trim().to_string();
-            let parts: Vec<&str> = line.splitn(3, '|').collect();
-            if parts.len() == 3 {
-                (parts[0].to_string(), parts[1].to_string(), parts[2].to_string())
-            } else {
-                (String::new(), String::new(), String::new())
-            }
-        }
-        _ => (String::new(), String::new(), String::new()),
-    }
+    let id = commit.id().to_string().chars().take(7).collect::<String>();
+    let msg = commit.summary().unwrap_or_default().to_string();
+    let time = commit.time();
+    let timestamp = time.seconds();
+    let offset = time.offset_minutes() * 60;
+    let Some(fixed_offset) = chrono::FixedOffset::east_opt(offset) else {
+        return (id, msg, String::new());
+    };
+    let Some(datetime) = chrono::DateTime::from_timestamp(timestamp, 0) else {
+        return (id, msg, String::new());
+    };
+    (id, msg, datetime.with_timezone(&fixed_offset).to_rfc3339())
 }

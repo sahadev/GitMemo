@@ -17,8 +17,17 @@ import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
-export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
+export default function PlansPage({
+  onFocusSidebar: _onFocusSidebar,
+  enterTrigger: _enterTrigger,
+  registerMobileBackHandler,
+}: {
+  onFocusSidebar?: () => void;
+  enterTrigger?: number;
+  registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
+} = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
@@ -35,6 +44,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const filesLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
+  const detailOpenedFromCrossPageRef = useRef(false);
 
   useEffect(() => { loadFiles(); }, []);
   useEffect(() => {
@@ -67,20 +77,21 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
     onLoadMore: () => loadFiles(false),
   });
 
-  const openFile = useCallback(async (path: string) => {
+  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("plans/")) return;
-    void openFile(pendingOpenPath);
+    void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
-  }, [pendingOpenPath, consumePendingOpenPath]);
+  }, [pendingOpenPath, openFile, consumePendingOpenPath]);
 
   const navPrev = useCallback(() => {
     if (!selectedFile || files.length === 0) return;
@@ -116,6 +127,7 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
   }, [files, hasMore, loadingMore, openFile]);
 
   const handleDelete = useCallback(async () => {
+    if (isMobile) return;
     if (!selectedFile) return;
     const confirmed = await ask(t("plans.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
@@ -139,9 +151,10 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [selectedFile, files, t, showToast]);
+  }, [isMobile, selectedFile, files, t, showToast]);
 
   useEffect(() => {
+    if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -154,24 +167,47 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, handleDelete, shortcuts.delete_selected]);
+  }, [isMobile, navPrev, navNext, handleDelete, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
+  const closeDetail = useCallback(() => {
+    setSelectedFile(null);
+    setFileContent("");
+    detailOpenedFromCrossPageRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !registerMobileBackHandler) return;
+    registerMobileBackHandler(() => {
+      if (selectedFile) {
+        if (detailOpenedFromCrossPageRef.current) {
+          closeDetail();
+          return false;
+        }
+        closeDetail();
+        return true;
+      }
+      return false;
+    });
+    return () => registerMobileBackHandler(null);
+  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
   return (
-    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="plans"
         defaultWidth={300}
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 12px",
+          display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
           borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
         }}>
           <Lightbulb size={18} style={{ color: "var(--accent)" }} />
           <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
@@ -195,15 +231,20 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
           </span>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0,
+        }}>
           {loading ? (
-            <Loading compact text="Loading..." />
+            <Loading compact text={t("common.loading")} />
           ) : files.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
               <Lightbulb size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>No plans yet</p>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("plans.empty")}</p>
               <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
-                Plans from Claude Code will appear here after sync
+                {t("plans.emptyDesc")}
               </p>
             </div>
           ) : (
@@ -217,7 +258,8 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
                   onClick={() => openFile(f.path)}
                   style={{
                     display: "block", width: "100%", textAlign: "left",
-                    padding: "12px 16px", cursor: "pointer",
+                    minHeight: isMobile ? 56 : undefined,
+                    padding: isMobile ? "14px 16px" : "12px 16px", cursor: "pointer",
                     background: selected ? "var(--accent)" : "transparent",
                     border: "none", borderBottom: "1px solid var(--border)",
                     color: selected ? "#fff" : "var(--text)", transition: "background 0.15s",
@@ -256,40 +298,59 @@ export default function PlansPage({ onFocusSidebar: _onFocusSidebar, enterTrigge
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
               <Lightbulb size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>Select a plan to view</p>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("plans.selectToView")}</p>
             </div>
           </div>
         ) : (
           <>
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "12px 20px", borderBottom: "1px solid var(--border)",
+              padding: isMobile ? "8px 12px" : "12px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
             }}>
               <button
-                onClick={() => { setSelectedFile(null); setFileContent(""); }}
-                style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                onClick={closeDetail}
+                style={{
+                  width: isMobile ? 36 : 24,
+                  height: isMobile ? 36 : 24,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                }}
+                title={t("common.back")}
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={isMobile ? 20 : 16} />
               </button>
-              <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {selectedFile}
+              <span style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 13 : 12, fontWeight: isMobile ? 600 : 400, color: isMobile ? "var(--text)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               </span>
-              <RevealInFinderButton relPath={selectedFile} />
-              {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-              <button
+              {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
+              {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
+              {!isMobile && <button
                 onClick={() => void handleDelete()}
                 style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}
                 title={t("plans.delete")}
               >
                 <Trash2 size={13} />
-              </button>
+              </button>}
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: isMobile ? `16px 16px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "20px 28px",
+              userSelect: "text",
+            }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>
           </>

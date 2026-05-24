@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { onBackButtonPress } from "@tauri-apps/api/app";
+import { exit } from "@tauri-apps/plugin-process";
 import { notify } from "./utils/notify";
 import Sidebar from "./components/Sidebar";
 import BottomNav from "./components/BottomNav";
@@ -19,10 +21,16 @@ import ExternalFilesPage from "./pages/ExternalFilesPage";
 import ImportsPage from "./pages/ImportsPage";
 import { SetupWizard } from "./components/SetupWizard";
 import { useSync } from "./hooks/useSync";
-import { usePlatform } from "./hooks/usePlatform";
+import { usePlatformFlags } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 import { useI18n } from "./hooks/useI18n";
 import { shortcutMatches, withDefaultShortcuts } from "./utils/shortcuts";
+
+declare global {
+  interface Window {
+    __gitmemoMobileBack?: () => boolean;
+  }
+}
 
 export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
@@ -47,7 +55,10 @@ interface ExternalFileOpenTarget {
   requestId: number;
 }
 
-const pageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
+const desktopPageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
+const mobilePageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "settings"];
+
+type MobileBackHandler = () => boolean;
 
 interface ImportedFileResult {
   original_name: string;
@@ -63,12 +74,12 @@ interface ImportResult {
 }
 
 function App() {
-  const platform = usePlatform();
-  const isMobile = platform === "mobile";
+  const { isMobile, isDesktop } = usePlatformFlags();
   const { t } = useI18n();
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [visitedPages, setVisitedPages] = useState<Set<Page>>(() => new Set<Page>(["dashboard"]));
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [searchEntryTrigger, setSearchEntryTrigger] = useState(0);
   const [sidebarFocused, setSidebarFocused] = useState(false);
   const [enterContentTrigger, setEnterContentTrigger] = useState(0);
   const [openFilePath, setOpenFilePath] = useState<string | null>(null);
@@ -80,6 +91,12 @@ function App() {
   const { gitStatus } = sync;
   const { theme, toggleTheme, setPendingOpenPath, settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
+  const pageOrder = isDesktop ? desktopPageOrder : mobilePageOrder;
+  const mobilePageStackRef = useRef<Page[]>([]);
+  const mobileBackHandlersRef = useRef<Partial<Record<Page, MobileBackHandler>>>({});
+  const mobileHistoryGuardActiveRef = useRef(false);
+  const performMobileBackRef = useRef<() => boolean>(() => false);
+  const mobileTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useEffect(() => {
     void invoke("app_ready").catch(() => {});
@@ -93,12 +110,142 @@ function App() {
     });
   }, [currentPage]);
 
+  useEffect(() => {
+    if (isMobile && !mobilePageOrder.includes(currentPage)) {
+      setCurrentPage("dashboard");
+      mobilePageStackRef.current = [];
+    }
+  }, [currentPage, isMobile]);
+
+  const ensureMobileHistoryGuard = useCallback(() => {
+    if (!isMobile || initialized === false || mobileHistoryGuardActiveRef.current) return;
+    window.history.pushState({ gitmemoMobileGuard: true }, "");
+    mobileHistoryGuardActiveRef.current = true;
+  }, [initialized, isMobile]);
+
+  const navigatePage = useCallback((page: Page, stack = true) => {
+    if (isMobile && page === "search") {
+      setSearchEntryTrigger((n) => n + 1);
+    }
+    if (page === currentPage) return;
+    if (isMobile && stack) {
+      const nextStack = [...mobilePageStackRef.current, currentPage].slice(-30);
+      mobilePageStackRef.current = nextStack;
+      ensureMobileHistoryGuard();
+    }
+    setCurrentPage(page);
+    setSidebarFocused(false);
+  }, [currentPage, ensureMobileHistoryGuard, isMobile]);
+
+  const registerMobileBackHandler = useCallback((page: Page, handler: MobileBackHandler | null) => {
+    if (handler) mobileBackHandlersRef.current[page] = handler;
+    else delete mobileBackHandlersRef.current[page];
+  }, []);
+
+  const performMobileBack = useCallback(() => {
+    const pageHandler = mobileBackHandlersRef.current[currentPage];
+    if (pageHandler?.()) return true;
+
+    const previous = mobilePageStackRef.current[mobilePageStackRef.current.length - 1];
+    if (previous) {
+      const nextStack = mobilePageStackRef.current.slice(0, -1);
+      mobilePageStackRef.current = nextStack;
+      setCurrentPage(previous);
+      setSidebarFocused(false);
+      return true;
+    }
+
+    if (currentPage !== "dashboard") {
+      setCurrentPage("dashboard");
+      setSidebarFocused(false);
+      return true;
+    }
+
+    return false;
+  }, [currentPage]);
+
+  useEffect(() => {
+    performMobileBackRef.current = performMobileBack;
+  }, [performMobileBack]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    window.__gitmemoMobileBack = () => performMobileBackRef.current();
+    return () => {
+      delete window.__gitmemoMobileBack;
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || initialized === false) return;
+    window.history.replaceState({ gitmemoMobileRoot: true }, "");
+    window.history.pushState({ gitmemoMobileGuard: true }, "");
+    mobileHistoryGuardActiveRef.current = true;
+
+    const handlePopState = () => {
+      mobileHistoryGuardActiveRef.current = false;
+      if (performMobileBackRef.current()) {
+        window.history.pushState({ gitmemoMobileGuard: true }, "");
+        mobileHistoryGuardActiveRef.current = true;
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [initialized, isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || initialized === false) return;
+
+    let cancelled = false;
+    let listener: { unregister: () => Promise<void> } | null = null;
+
+    void onBackButtonPress(() => {
+      if (performMobileBackRef.current()) {
+        ensureMobileHistoryGuard();
+        return;
+      }
+      void exit(0);
+    }).then((registered) => {
+      if (cancelled) void registered.unregister();
+      else listener = registered;
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+      if (listener) void listener.unregister();
+    };
+  }, [ensureMobileHistoryGuard, initialized, isMobile]);
+
+  const handleMobileTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile || initialized === false || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    mobileTouchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, [initialized, isMobile]);
+
+  const handleMobileTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const start = mobileTouchStartRef.current;
+    mobileTouchStartRef.current = null;
+    if (!isMobile || initialized === false || !start || e.changedTouches.length !== 1) return;
+    if (start.x > 36) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const elapsed = Date.now() - start.time;
+    if (deltaX < 72 || Math.abs(deltaY) > 60 || elapsed > 800) return;
+
+    if (performMobileBack()) ensureMobileHistoryGuard();
+  }, [ensureMobileHistoryGuard, initialized, isMobile, performMobileBack]);
+
   const navigateAndFocus = useCallback((page: Page) => {
     setCurrentPage(page);
     setFocusTrigger((n) => n + 1);
   }, []);
 
   const routeExternalFile = useCallback(async (filePath: string) => {
+    if (!isDesktop) return false;
+
     try {
       const target = await invoke<ExternalOpenTarget>("classify_external_open_target", { filePath });
       if (target.kind === "sync" && target.page && target.rel_path) {
@@ -130,7 +277,7 @@ function App() {
       await notify("GitMemo", `Open failed: ${String(e)}`);
     }
     return false;
-  }, [setPendingOpenPath]);
+  }, [isDesktop, setPendingOpenPath]);
 
   // Derive initialization state from global gitStatus
   useEffect(() => {
@@ -165,7 +312,7 @@ function App() {
 
   useEffect(() => {
     // Desktop-only event listeners
-    if (isMobile) return;
+    if (!isDesktop) return;
 
     const handleOpenPage = ({ payload }: { payload: { page?: string } }) => {
       if (!payload?.page) return;
@@ -247,7 +394,7 @@ function App() {
       unlistenQuickPasteOpenFile.then((fn) => fn());
       unlistenQuickPasteOpenPage.then((fn) => fn());
     };
-  }, [isMobile, navigateAndFocus, sidebarFocused, currentPage, sync, initialized, routeExternalFile, shortcuts]);
+  }, [isDesktop, navigateAndFocus, sidebarFocused, currentPage, pageOrder, initialized, routeExternalFile, shortcuts]);
 
   const handleExternalFileTargetConsumed = useCallback(() => {
     setExternalFileOpenTarget(null);
@@ -267,6 +414,7 @@ function App() {
   const handleSetupComplete = useCallback((needsRemoteSync?: boolean) => {
     setInitialized(true);
     setCurrentPage("dashboard");
+    mobilePageStackRef.current = [];
     if (needsRemoteSync) {
       void invoke("sync_remote_init").catch(() => {});
     }
@@ -289,25 +437,25 @@ function App() {
   }, [setPendingOpenPath]);
 
   const dropZone = useMemo(
-    () => (!isMobile ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} onNavigateAfterImport={handleDropImportNavigate} /> : null),
-    [isMobile, handleOpenDroppedFiles, handleDropImportNavigate],
+    () => (isDesktop ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} onNavigateAfterImport={handleDropImportNavigate} /> : null),
+    [isDesktop, handleOpenDroppedFiles, handleDropImportNavigate],
   );
 
   const pageContent = initialized === false && currentPage !== "settings" ? (
     <SetupWizard onComplete={handleSetupComplete} />
   ) : (
     <>
-      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={setCurrentPage} active={currentPage === "dashboard"} /></div>}
-      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} /></div>}
-      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} /></div>}
-      {visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
-      {visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
-      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} /></div>}
-      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SettingsPage onNavigate={setCurrentPage} /></div>}
+      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={navigatePage} active={currentPage === "dashboard"} /></div>}
+      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} registerMobileBackHandler={(handler) => registerMobileBackHandler("conversations", handler)} /></div>}
+      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
+      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
+      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("plans", handler)} /></div>}
+      {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {isDesktop && visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} /></div>}
+      {isDesktop && visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
+      {isDesktop && visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
+      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} entryTrigger={searchEntryTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} registerMobileBackHandler={(handler) => registerMobileBackHandler("search", handler)} /></div>}
+      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SettingsPage onNavigate={navigatePage} /></div>}
     </>
   );
 
@@ -315,10 +463,14 @@ function App() {
     <div style={{
       display: "flex",
       flexDirection: isMobile ? "column" : "row",
-      height: "100vh",
+      height: isMobile ? "100dvh" : "100vh",
       width: "100vw",
-    }}>
-      {!isMobile && initialized !== false && (
+      overflow: "hidden",
+    }}
+      onTouchStart={handleMobileTouchStart}
+      onTouchEnd={handleMobileTouchEnd}
+    >
+      {isDesktop && initialized !== false && (
         <Sidebar
           currentPage={currentPage}
           onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}
@@ -329,11 +481,21 @@ function App() {
           onSync={sync.triggerSync}
         />
       )}
-      <main style={{ flex: 1, overflow: "hidden", display: "flex", minWidth: 0, minHeight: 0 }} onClick={() => setSidebarFocused(false)}>
+      <main
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          display: "flex",
+          minWidth: 0,
+          minHeight: 0,
+          boxSizing: "border-box",
+        }}
+        onClick={() => setSidebarFocused(false)}
+      >
         {pageContent}
       </main>
-      {isMobile && (
-        <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
+      {isMobile && initialized !== false && (
+        <BottomNav currentPage={currentPage} onNavigate={navigatePage} />
       )}
       {dropZone}
     </div>

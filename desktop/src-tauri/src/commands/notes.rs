@@ -1,13 +1,14 @@
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
+use gitmemo_core::utils::sanitize::git_error_for_user;
 use serde::Serialize;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::SystemTime;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
@@ -110,6 +111,12 @@ pub struct FilePage {
 pub struct SavedAttachment {
     pub path: String,
     pub markdown: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SavedLocalImage {
+    pub path: String,
     pub message: String,
 }
 
@@ -341,7 +348,9 @@ fn bg_commit_and_push(msg: String) {
         let sync_event = match git::commit_and_push(&dir, &msg) {
             Ok(result) if result.push_error.is_some() => GitSyncEvent {
                 ok: false,
-                message: result.push_error.unwrap_or_else(|| "push failed".into()),
+                message: git_error_for_user(
+                    result.push_error.unwrap_or_else(|| "push failed".into()),
+                ),
             },
             Ok(result) if !git::has_remote(&dir) => GitSyncEvent {
                 ok: true,
@@ -361,7 +370,7 @@ fn bg_commit_and_push(msg: String) {
             },
             Err(e) => GitSyncEvent {
                 ok: false,
-                message: e.to_string(),
+                message: git_error_for_user(e.to_string()),
             },
         };
         if let Some(handle) = APP_HANDLE.get() {
@@ -372,6 +381,7 @@ fn bg_commit_and_push(msg: String) {
     });
 }
 
+#[cfg(not(target_os = "android"))]
 fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
     // Pull latest from remote first (even if no local changes)
     let pulled = git::pull(dir).unwrap_or(false);
@@ -392,12 +402,13 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
 
     refresh_index(dir);
 
-    let result = git::commit_and_push(dir, "auto: sync from desktop").map_err(|e| e.to_string())?;
+    let result = git::commit_and_push(dir, "auto: sync from desktop")
+        .map_err(|e| git_error_for_user(e.to_string()))?;
     if result.committed && result.pushed {
         Ok("Synced to Git".into())
     } else if result.committed {
         if let Some(err) = result.push_error {
-            Err(format!("Push failed: {}", err))
+            Err(format!("Push failed: {}", git_error_for_user(err)))
         } else {
             Ok("Committed".into())
         }
@@ -416,7 +427,7 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
                 return Err(format!("Pull failed: {} commits behind", behind));
             } else if ahead > 0 {
                 if let Some(err) = result.push_error {
-                    return Err(format!("Push failed: {}", err));
+                    return Err(format!("Push failed: {}", git_error_for_user(err)));
                 }
                 return Err(format!("Push failed: {} commits unpushed", ahead));
             }
@@ -509,6 +520,322 @@ pub fn read_file_base64(file_path: String) -> Result<String, String> {
     Ok(base64::engine::general_purpose::STANDARD.encode(&buf))
 }
 
+fn resolve_sync_file(rel_path: &str) -> Result<PathBuf, String> {
+    let base = sync_dir();
+    let base = base.canonicalize().map_err(|e| e.to_string())?;
+    let rel = rel_path.trim().trim_start_matches('/');
+    if rel.is_empty() || rel.contains("..") {
+        return Err("Invalid path".into());
+    }
+    let full = base.join(rel);
+    let full = full.canonicalize().map_err(|e| e.to_string())?;
+    if !full.starts_with(&base) {
+        return Err("Invalid path".into());
+    }
+    if !full.is_file() {
+        return Err("File not found".into());
+    }
+    Ok(full)
+}
+
+fn image_ext_from_mime(mime: &str) -> Option<&'static str> {
+    match mime {
+        "image/png" => Some("png"),
+        "image/jpeg" => Some("jpg"),
+        "image/gif" => Some("gif"),
+        "image/webp" => Some("webp"),
+        "image/bmp" => Some("bmp"),
+        "image/svg+xml" => Some("svg"),
+        _ => None,
+    }
+}
+
+fn image_mime_from_ext(ext: &str) -> &'static str {
+    match ext.to_ascii_lowercase().as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "svg" => "image/svg+xml",
+        _ => "image/png",
+    }
+}
+
+fn split_data_image_url(data_url: &str) -> Result<(String, String), String> {
+    let Some(rest) = data_url.strip_prefix("data:") else {
+        return Err("Invalid image data".into());
+    };
+    let Some((meta, b64)) = rest.split_once(',') else {
+        return Err("Invalid image data".into());
+    };
+    let mut parts = meta.split(';');
+    let mime = parts.next().unwrap_or("image/png").to_ascii_lowercase();
+    if !mime.starts_with("image/") || !parts.any(|part| part.eq_ignore_ascii_case("base64")) {
+        return Err("Invalid image data".into());
+    }
+    Ok((mime, b64.to_string()))
+}
+
+fn guess_image_ext(file_name: Option<&str>, mime_type: &str) -> String {
+    file_name
+        .and_then(|name| {
+            Path::new(name)
+                .extension()
+                .map(|ext| ext.to_string_lossy().to_string())
+        })
+        .filter(|ext| !ext.trim().is_empty())
+        .or_else(|| image_ext_from_mime(mime_type).map(str::to_string))
+        .unwrap_or_else(|| "png".to_string())
+}
+
+fn export_file_name(file_name: Option<String>, mime_type: &str) -> String {
+    let now = chrono::Local::now();
+    let ext = guess_image_ext(file_name.as_deref(), mime_type);
+    let stem = file_name
+        .as_deref()
+        .and_then(|name| {
+            Path::new(name)
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().to_string())
+        })
+        .filter(|stem| !stem.trim().is_empty())
+        .unwrap_or_else(|| "gitmemo-image".to_string());
+    let stem = sanitize_name(&stem);
+    format!("{}-{}.{}", now.format("%Y%m%d-%H%M%S"), stem, ext)
+}
+
+#[cfg(target_os = "android")]
+fn save_image_to_android_gallery(
+    bytes: &[u8],
+    file_name: &str,
+    mime_type: &str,
+) -> Result<String, String> {
+    use jni::objects::{JObject, JString, JValue};
+
+    let ctx = ndk_context::android_context();
+    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) }
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+    let context = unsafe { JObject::from_raw(ctx.context().cast()) };
+
+    let resolver = env
+        .call_method(
+            &context,
+            "getContentResolver",
+            "()Landroid/content/ContentResolver;",
+            &[],
+        )
+        .and_then(|v| v.l())
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+
+    let values = env
+        .new_object("android/content/ContentValues", "()V", &[])
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+
+    let display_name_key = env.new_string("_display_name").map_err(|e| e.to_string())?;
+    let display_name = env.new_string(file_name).map_err(|e| e.to_string())?;
+    env.call_method(
+        &values,
+        "put",
+        "(Ljava/lang/String;Ljava/lang/String;)V",
+        &[JValue::from(&display_name_key), JValue::from(&display_name)],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mime_key = env.new_string("mime_type").map_err(|e| e.to_string())?;
+    let mime_value = env.new_string(mime_type).map_err(|e| e.to_string())?;
+    env.call_method(
+        &values,
+        "put",
+        "(Ljava/lang/String;Ljava/lang/String;)V",
+        &[JValue::from(&mime_key), JValue::from(&mime_value)],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let relative_path_key = env.new_string("relative_path").map_err(|e| e.to_string())?;
+    let relative_path = env
+        .new_string("Pictures/GitMemo")
+        .map_err(|e| e.to_string())?;
+    env.call_method(
+        &values,
+        "put",
+        "(Ljava/lang/String;Ljava/lang/String;)V",
+        &[
+            JValue::from(&relative_path_key),
+            JValue::from(&relative_path),
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let media_class = env
+        .find_class("android/provider/MediaStore$Images$Media")
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+    let external_uri = env
+        .get_static_field(media_class, "EXTERNAL_CONTENT_URI", "Landroid/net/Uri;")
+        .and_then(|v| v.l())
+        .map_err(|e| format!("Android media store unavailable: {e}"))?;
+
+    let uri = env
+        .call_method(
+            &resolver,
+            "insert",
+            "(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;",
+            &[JValue::from(&external_uri), JValue::from(&values)],
+        )
+        .and_then(|v| v.l())
+        .map_err(|e| format!("Save failed: {e}"))?;
+
+    if uri.as_raw().is_null() {
+        return Err("Save failed".into());
+    }
+
+    let stream = env
+        .call_method(
+            &resolver,
+            "openOutputStream",
+            "(Landroid/net/Uri;)Ljava/io/OutputStream;",
+            &[JValue::from(&uri)],
+        )
+        .and_then(|v| v.l())
+        .map_err(|e| format!("Save failed: {e}"))?;
+
+    let byte_array = env
+        .byte_array_from_slice(bytes)
+        .map_err(|e| e.to_string())?;
+    env.call_method(&stream, "write", "([B)V", &[JValue::from(&byte_array)])
+        .map_err(|e| format!("Save failed: {e}"))?;
+    env.call_method(&stream, "flush", "()V", &[])
+        .map_err(|e| format!("Save failed: {e}"))?;
+    env.call_method(&stream, "close", "()V", &[])
+        .map_err(|e| format!("Save failed: {e}"))?;
+
+    let uri_string = env
+        .call_method(&uri, "toString", "()Ljava/lang/String;", &[])
+        .and_then(|v| v.l())
+        .map_err(|e| e.to_string())?;
+    let uri_string: JString = uri_string.into();
+    let uri_string: String = env
+        .get_string(&uri_string)
+        .map_err(|e| e.to_string())?
+        .into();
+
+    Ok(uri_string)
+}
+
+fn save_image_to_filesystem(
+    app: &AppHandle,
+    bytes: &[u8],
+    file_name: &str,
+) -> Result<PathBuf, String> {
+    let base = app
+        .path()
+        .picture_dir()
+        .or_else(|_| app.path().download_dir())
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(|e| e.to_string())?;
+    let dir = base.join("GitMemo");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let mut candidate = dir.join(file_name);
+    if candidate.exists() {
+        let stem = Path::new(file_name)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "gitmemo-image".to_string());
+        let ext = Path::new(file_name)
+            .extension()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "png".to_string());
+        for idx in 1..1000 {
+            let next = dir.join(format!("{}-{}.{}", stem, idx, ext));
+            if !next.exists() {
+                candidate = next;
+                break;
+            }
+        }
+    }
+
+    std::fs::write(&candidate, bytes).map_err(|e| e.to_string())?;
+    Ok(candidate)
+}
+
+#[tauri::command]
+pub async fn save_image_to_local(
+    app: AppHandle,
+    source: String,
+    file_path: Option<String>,
+    file_name: Option<String>,
+) -> Result<SavedLocalImage, String> {
+    let (bytes, mime_type, inferred_name) =
+        if let Some(path) = file_path.as_deref().filter(|p| !p.trim().is_empty()) {
+            let full = resolve_sync_file(path)?;
+            let bytes = std::fs::read(&full).map_err(|e| e.to_string())?;
+            let ext = full
+                .extension()
+                .map(|ext| ext.to_string_lossy().to_string())
+                .unwrap_or_else(|| "png".to_string());
+            let mime_type = image_mime_from_ext(&ext).to_string();
+            let inferred_name = full
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string());
+            (bytes, mime_type, inferred_name)
+        } else if source.starts_with("data:image/") {
+            let (mime_type, b64) = split_data_image_url(&source)?;
+            let bytes = {
+                use base64::Engine;
+                base64::engine::general_purpose::STANDARD
+                    .decode(b64.as_bytes())
+                    .map_err(|e| e.to_string())?
+            };
+            (bytes, mime_type, None)
+        } else if source.starts_with("http://") || source.starts_with("https://") {
+            let response = reqwest::get(&source)
+                .await
+                .map_err(|e| format!("Download failed: {e}"))?;
+            if !response.status().is_success() {
+                return Err(format!("Download failed: HTTP {}", response.status()));
+            }
+            let mime_type = response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.split(';').next())
+                .filter(|v| v.starts_with("image/"))
+                .unwrap_or("image/png")
+                .to_string();
+            let bytes = response
+                .bytes()
+                .await
+                .map_err(|e| format!("Download failed: {e}"))?
+                .to_vec();
+            (bytes, mime_type, None)
+        } else {
+            return Err("Unsupported image source".into());
+        };
+
+    if bytes.is_empty() {
+        return Err("Image is empty".into());
+    }
+
+    let output_name = export_file_name(file_name.or(inferred_name), &mime_type);
+
+    #[cfg(target_os = "android")]
+    if let Ok(uri) = save_image_to_android_gallery(&bytes, &output_name, &mime_type) {
+        return Ok(SavedLocalImage {
+            path: uri,
+            message: "Image saved".into(),
+        });
+    }
+
+    let path = save_image_to_filesystem(&app, &bytes, &output_name)?;
+    Ok(SavedLocalImage {
+        path: path.to_string_lossy().to_string(),
+        message: "Image saved".into(),
+    })
+}
+
 /// Absolute path to a file under the GitMemo sync directory (for copy / display).
 #[tauri::command]
 pub fn resolve_sync_path(rel_path: String) -> Result<String, String> {
@@ -564,6 +891,59 @@ fn list_files_page_sync(
     let limit = limit
         .unwrap_or(DEFAULT_LIST_PAGE_SIZE)
         .clamp(1, MAX_LIST_PAGE_SIZE);
+    let requested_offset = offset.unwrap_or(0);
+
+    match list_files_page_from_index(&dir, &folder, requested_offset, limit) {
+        Ok(page) => {
+            let expected_entries = page.total.saturating_sub(page.offset).min(page.limit);
+            if page.entries.len() >= expected_entries || !folder_has_listed_files(&dir, &folder) {
+                Ok(page)
+            } else {
+                list_files_page_from_filesystem(&dir, &folder, requested_offset, limit)
+            }
+        }
+        Err(err) => {
+            log::warn!(
+                "list_files_page index load failed for folder '{}', falling back to filesystem: {}",
+                folder,
+                err
+            );
+            list_files_page_from_filesystem(&dir, &folder, requested_offset, limit)
+        }
+    }
+}
+
+fn folder_has_listed_files(dir: &Path, folder: &str) -> bool {
+    !collect_file_candidates(dir, folder).is_empty()
+}
+
+fn list_files_page_from_filesystem(
+    dir: &Path,
+    folder: &str,
+    requested_offset: usize,
+    limit: usize,
+) -> Result<FilePage, String> {
+    let all_entries = build_file_entries(dir, collect_file_candidates(dir, folder));
+    let total = all_entries.len();
+    let offset = requested_offset.min(total);
+    let end = offset.saturating_add(limit).min(total);
+    let entries = all_entries.into_iter().skip(offset).take(limit).collect();
+
+    Ok(FilePage {
+        entries,
+        total,
+        offset,
+        limit,
+        has_more: end < total,
+    })
+}
+
+fn list_files_page_from_index(
+    dir: &Path,
+    folder: &str,
+    requested_offset: usize,
+    limit: usize,
+) -> Result<FilePage, String> {
     let db_path = dir.join(".metadata").join("index.db");
     let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
     if !database::index_is_ready(&conn).map_err(|e| e.to_string())? {
@@ -571,8 +951,7 @@ fn list_files_page_sync(
     } else {
         database::sync_index_folder(&conn, &dir, &folder).map_err(|e| e.to_string())?;
     }
-    let requested_offset = offset.unwrap_or(0);
-    let page = database::list_documents_page(&conn, &folder, requested_offset, limit)
+    let page = database::list_documents_page(&conn, folder, requested_offset, limit)
         .map_err(|e| e.to_string())?;
 
     let total = page.total;
@@ -885,10 +1264,37 @@ pub(crate) fn sync_to_git_blocking() -> Result<String, String> {
     if !dir.exists() {
         return Err("GitMemo not initialized".into());
     }
-    sync_external_plans_to_gitmemo(&dir);
-    sync_claude_config(&dir);
-    sync_cursor_config(&dir);
-    run_full_sync(&dir)
+    #[cfg(target_os = "android")]
+    {
+        let pulled = git::pull(&dir).unwrap_or(false);
+        if pulled {
+            emit_files_changed();
+        }
+        refresh_index(&dir);
+        let result = git::commit_and_push(&dir, "auto: sync from mobile")
+            .map_err(|e| git_error_for_user(e.to_string()))?;
+        if let Some(err) = result.push_error {
+            return Err(format!("Push failed: {}", git_error_for_user(err)));
+        }
+        if result.committed && result.pushed {
+            return Ok("Synced to Git".into());
+        }
+        if result.pushed {
+            return Ok("Pushed".into());
+        }
+        if pulled {
+            return Ok("Pulled latest".into());
+        }
+        return Ok("No changes".into());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        sync_external_plans_to_gitmemo(&dir);
+        sync_claude_config(&dir);
+        sync_cursor_config(&dir);
+        run_full_sync(&dir)
+    }
 }
 
 fn external_plan_dirs(home: &Path) -> [PathBuf; 2] {

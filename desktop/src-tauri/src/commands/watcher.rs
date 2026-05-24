@@ -1,14 +1,25 @@
+#[cfg(desktop)]
 use gitmemo_core::storage::{database, files};
+#[cfg(desktop)]
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+#[cfg(desktop)]
 use serde::Serialize;
+#[cfg(desktop)]
 use std::path::Path;
+#[cfg(desktop)]
 use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(desktop)]
 use std::sync::mpsc;
+#[cfg(desktop)]
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
+#[cfg(desktop)]
+use tauri::Emitter;
 
+#[cfg(desktop)]
 static WATCHER_RUNNING: AtomicBool = AtomicBool::new(false);
 
+#[cfg(desktop)]
 #[derive(Debug, Clone, Serialize)]
 pub struct FilesChangedEvent {
     /// Which folder changed: "conversations", "notes", "clips", "plans", etc.
@@ -16,6 +27,7 @@ pub struct FilesChangedEvent {
 }
 
 /// Determine which top-level folder a path belongs to.
+#[cfg(desktop)]
 fn classify_path(path: &Path, sync_dir: &Path) -> Option<String> {
     let rel = path.strip_prefix(sync_dir).ok()?;
     let first = rel.components().next()?;
@@ -28,6 +40,7 @@ fn classify_path(path: &Path, sync_dir: &Path) -> Option<String> {
     }
 }
 
+#[cfg(desktop)]
 fn update_index_for_path(path: &Path, sync_dir: &Path, removed: bool) {
     let Ok(rel) = path.strip_prefix(sync_dir) else {
         return;
@@ -51,6 +64,7 @@ fn update_index_for_path(path: &Path, sync_dir: &Path, removed: bool) {
 /// Start watching the sync directory for file changes.
 /// Emits `files-changed` events to the frontend with debouncing.
 /// Safe to call multiple times — only the first successful call starts a watcher.
+#[cfg(desktop)]
 pub fn start_file_watcher(app_handle: AppHandle) {
     let sync_dir = files::sync_dir();
     if !sync_dir.exists() {
@@ -146,8 +160,16 @@ pub fn start_file_watcher(app_handle: AppHandle) {
     });
 }
 
+#[cfg(not(desktop))]
+pub fn start_file_watcher(_app_handle: AppHandle) {}
+
 /// Tauri command to (re)start the file watcher after initialization.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn restart_file_watcher(app_handle: AppHandle) {
     start_file_watcher(app_handle);
 }
+
+#[cfg(not(desktop))]
+#[tauri::command]
+pub fn restart_file_watcher(_app_handle: AppHandle) {}

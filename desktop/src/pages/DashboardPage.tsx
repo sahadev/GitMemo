@@ -8,10 +8,12 @@ import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { useFileWatcher } from "../hooks/useFileWatcher";
+import { usePlatformFlags } from "../hooks/usePlatform";
+import { MOBILE_DASHBOARD_BOTTOM_PADDING } from "../utils/mobileLayout";
 import {
   MessageSquare, StickyNote, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
-  Activity, Circle,
+  Activity, Circle, Search,
 } from "lucide-react";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 
@@ -48,6 +50,7 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
+const mobileContentCategories = new Set(["conversation", "daily", "manual", "scratch", "clip", "plan"]);
 
 const formatSize = (sizeKb: number) => (
   sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`
@@ -72,7 +75,8 @@ function saveCache(c: DashboardCache) {
 
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
   const { t } = useI18n();
-  const { isSuccess, isFailed, gitStatus, refreshGitStatus } = useSync();
+  const { isMobile, isDesktop } = usePlatformFlags();
+  const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
   const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, setNotesTab, setPendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const navigateTo = useCallback((page: Page, notesTab?: NotesTab) => {
@@ -81,11 +85,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, [onNavigate, setNotesTab]);
 
   const openRecord = useCallback((item: RecentItem) => {
+    if (!isDesktop && !mobileContentCategories.has(item.category)) return;
     const cfg = categoryConfig[item.category] || categoryConfig.scratch;
     if (cfg.page === "notes" && cfg.notesTab) setNotesTab(cfg.notesTab);
     setPendingOpenPath(item.path);
     onNavigate?.(cfg.page);
-  }, [onNavigate, setNotesTab, setPendingOpenPath]);
+  }, [isDesktop, onNavigate, setNotesTab, setPendingOpenPath]);
 
 
   const cached = loadCache();
@@ -96,7 +101,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [reviewPreview, setReviewPreview] = useState("");
 
   // Derived state
-  const editorConfigured = claudeEnabled || cursorEnabled;
+  const editorConfigured = isDesktop && (claudeEnabled || cursorEnabled);
+  const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
   const lastCommitBrowseUrl = useMemo(
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
     [gitStatus?.git_remote, gitStatus?.last_commit_id],
@@ -145,7 +151,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       loadData();
     }
   }, [isSuccess, isFailed, loadData]);
-  useFileWatcher(["conversations", "notes", "clips", "plans"], loadData);
+  useFileWatcher(watchedFolders, loadData);
 
   const handleRefresh = useCallback(() => {
     loadData();
@@ -173,21 +179,25 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const contentFileCount = stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips + stats.plans;
   const displayedFileCount = stats.tracked_files ?? contentFileCount;
   const displayedRepoSizeKb = stats.repository_size_kb ?? stats.total_size_kb;
+  const displayedRecent = isDesktop
+    ? recent
+    : recent.filter((item) => mobileContentCategories.has(item.category));
+  const showReviewItem = !!reviewItem && (isDesktop || mobileContentCategories.has(reviewItem.category));
 
   const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page; notesTab?: NotesTab }[] = [
-    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" },
+    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" as Page },
     { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)", page: "notes", notesTab: "daily" },
     { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes", notesTab: "manual" },
     { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "var(--purple)", page: "notes", notesTab: "scratch" },
     { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "var(--pink)", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "plans" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "plans" as Page },
   ];
 
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
     borderRadius: 6,
-    padding: "16px 20px",
+    padding: isMobile ? "14px" : "16px 20px",
   };
 
   const syncStatus = (() => {
@@ -215,12 +225,50 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       color: "var(--green)",
     };
   })();
+  const mobileSyncText = isSyncing
+    ? t("sidebar.syncing")
+    : syncMessage || (gitStatus?.git_remote ? syncStatus.text : t("dashboard.noRemote"));
+  const mobileSyncColor = isSyncing
+    ? "var(--accent)"
+    : syncMessage
+      ? (isFailed ? "var(--red)" : "var(--green)")
+      : (gitStatus?.git_remote ? syncStatus.color : "var(--text-secondary)");
 
   return (
-    <div style={{ padding: "20px 28px 28px", overflowY: "auto", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
+    <div style={{
+      padding: isMobile ? "14px 14px 0" : "20px 28px 28px",
+      overflowY: "auto",
+      height: "100%",
+      flex: 1,
+      minWidth: 0,
+      minHeight: 0,
+      boxSizing: "border-box",
+    }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>{t("dashboard.title")}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => onNavigate?.("search")}
+              title={t("nav.search")}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 8,
+                borderRadius: 8,
+                color: "var(--text-secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 36,
+                minHeight: 36,
+              }}
+            >
+              <Search size={19} />
+            </button>
+          )}
           <button
             type="button"
             onClick={handleRefresh}
@@ -234,7 +282,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           >
             <RefreshCw size={14} />
           </button>
-          {clipStatus && (
+          {isDesktop && clipStatus && (
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "4px 12px", borderRadius: 20,
@@ -257,16 +305,72 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         </div>
       </div>
 
+      {isMobile && (
+        <div style={{
+          ...cardStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16,
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+              <RefreshCw size={13} style={{ color: mobileSyncColor, animation: isSyncing ? "spin 1s linear infinite" : undefined }} />
+              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
+            </div>
+            <p style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: mobileSyncColor,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "100%",
+            }}>
+              {mobileSyncText}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={!gitStatus?.git_remote || isSyncing}
+            onClick={() => void triggerSync()}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              minHeight: 38,
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: `1px solid ${gitStatus?.git_remote ? "var(--accent)" : "var(--border)"}`,
+              background: gitStatus?.git_remote ? "var(--accent)" : "var(--bg-hover)",
+              color: gitStatus?.git_remote ? "#fff" : "var(--text-secondary)",
+              cursor: !gitStatus?.git_remote || isSyncing ? "default" : "pointer",
+              opacity: isSyncing ? 0.7 : 1,
+              flexShrink: 0,
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            <RefreshCw size={13} style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined} />
+            {gitStatus?.git_remote ? t("sidebar.syncToGit") : t("dashboard.noRemote")}
+          </button>
+        </div>
+      )}
+
       {/* Onboarding Checklist */}
-      <OnboardingChecklist
-        onNavigate={(page) => onNavigate?.(page)}
-        hasConversations={stats.conversations > 0}
-        clipboardActive={clipStatus?.watching ?? false}
-        editorConfigured={editorConfigured}
-      />
+      {isDesktop && (
+        <OnboardingChecklist
+          onNavigate={(page) => onNavigate?.(page)}
+          hasConversations={stats.conversations > 0}
+          clipboardActive={clipStatus?.watching ?? false}
+          editorConfigured={editorConfigured}
+        />
+      )}
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -289,37 +393,45 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 </div>
                 <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
               </div>
-              <p style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{card.value}</p>
+              <p style={{ fontSize: isMobile ? 24 : 26, fontWeight: 700, letterSpacing: 0 }}>{card.value}</p>
             </div>
           );
         })}
       </div>
 
       {/* Empty state guide */}
-      {stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips === 0 && recent.length === 0 && (
+      {contentFileCount === 0 && displayedRecent.length === 0 && (
         <div style={{
           padding: "20px 24px", borderRadius: 6, marginBottom: 16,
           border: "1px dashed var(--accent)40", background: "var(--accent)06",
           textAlign: "center",
         }}>
           <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t("dashboard.emptyGuideTitle")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>{t("dashboard.emptyGuideDesc")}</p>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+            {isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc")}
+          </p>
         </div>
       )}
 
       {/* Git Info — only when remote is configured */}
       {gitStatus?.git_remote && (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: isMobile ? 10 : 12, marginBottom: 16 }}>
         {/* Sync Status */}
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
           </div>
-          <p style={{ fontSize: 18, fontWeight: 700 }}>
+          <p style={{
+            fontSize: isMobile ? 14 : 18,
+            fontWeight: 700,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
             <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
           </p>
         </div>
@@ -337,10 +449,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               onClick={() => void openUrl(lastCommitBrowseUrl)}
               style={{
                 display: "block", width: "100%", textAlign: "left", padding: 0, margin: 0,
-                fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace",
+                fontSize: isMobile ? 14 : 18, fontWeight: 700, fontFamily: "ui-monospace, monospace",
                 color: "var(--accent)", background: "none", border: "none", cursor: "pointer",
                 textDecoration: "underline", textDecorationColor: "transparent",
                 transition: "text-decoration-color 0.15s",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.textDecorationColor = "var(--accent)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.textDecorationColor = "transparent"; }}
@@ -348,12 +461,20 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               {gitStatus.last_commit_id}
             </button>
           ) : (
-            <p style={{ fontSize: 18, fontWeight: 700, fontFamily: "ui-monospace, monospace", color: "var(--accent)" }}>
+            <p style={{
+              fontSize: isMobile ? 14 : 18,
+              fontWeight: 700,
+              fontFamily: "ui-monospace, monospace",
+              color: "var(--accent)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>
               {gitStatus?.last_commit_id || "—"}
             </p>
           )}
           {gitStatus?.last_commit_time && (
-            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
             </p>
           )}
@@ -367,13 +488,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <Activity size={13} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.recentActivity")}</span>
           </div>
-          {recent.length === 0 ? (
+          {displayedRecent.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--text-secondary)", padding: "12px 0" }}>
               {t("dashboard.noActivity")}
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {recent.map((item) => {
+              {displayedRecent.map((item) => {
                 const cfg = categoryConfig[item.category] || categoryConfig.scratch;
                 const Icon = cfg.icon;
                 return (
@@ -383,18 +504,19 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     onClick={() => openRecord(item)}
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      padding: "6px 8px", borderRadius: 6,
+                      minHeight: isMobile ? 44 : undefined,
+                      padding: isMobile ? "10px 6px" : "6px 8px", borderRadius: 6,
                       background: "transparent", border: "none",
                       cursor: "pointer", textAlign: "left",
                       color: "var(--text)", width: "100%",
                       transition: "background 0.15s",
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                    onMouseLeave={(e) => { if (!isMobile) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <Icon size={12} style={{ color: cfg.color, flexShrink: 0 }} />
+                    <Icon size={isMobile ? 14 : 12} style={{ color: cfg.color, flexShrink: 0 }} />
                     <span style={{
-                      flex: 1, fontSize: 12, overflow: "hidden",
+                      flex: 1, fontSize: isMobile ? 13 : 12, overflow: "hidden",
                       textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {item.name}
@@ -410,7 +532,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       </div>
 
       {/* Today's Review */}
-      {reviewItem && (
+      {showReviewItem && reviewItem && (
         <div style={{ ...cardStyle, marginBottom: 16, cursor: "pointer" }}
           onClick={() => openRecord(reviewItem)}
         >
@@ -466,7 +588,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           <Zap size={13} style={{ color: "var(--text-secondary)" }} />
           <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.quickInfo")}</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -479,12 +601,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               {gitStatus?.git_remote || t("dashboard.noRemote")}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-              CLI: gitmemo --help
-            </span>
-          </div>
+          {isDesktop && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
+              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                CLI: gitmemo --help
+              </span>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
@@ -499,6 +623,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           </div>
         </div>
       </div>
+      {isMobile && <div aria-hidden="true" style={{ height: MOBILE_DASHBOARD_BOTTOM_PADDING, flexShrink: 0 }} />}
     </div>
   );
 }

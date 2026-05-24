@@ -22,6 +22,8 @@ pub struct GitConfig {
     pub branch: String,
     #[serde(default)]
     pub ssh_key_path: Option<String>,
+    #[serde(default)]
+    pub access_token: Option<String>,
 }
 
 impl Config {
@@ -42,7 +44,9 @@ impl Config {
     }
 
     pub fn config_path() -> PathBuf {
-        crate::storage::files::sync_dir().join(".metadata").join("config.toml")
+        crate::storage::files::sync_dir()
+            .join(".metadata")
+            .join("config.toml")
     }
 }
 
@@ -58,6 +62,7 @@ mod tests {
                 remote: "git@github.com:user/repo.git".to_string(),
                 branch: "main".to_string(),
                 ssh_key_path: Some("/Users/test/.ssh/id_ed25519".to_string()),
+                access_token: None,
             },
             lang: "zh".to_string(),
         };
@@ -65,7 +70,10 @@ mod tests {
         let loaded = Config::load(tmp.path()).unwrap();
         assert_eq!(loaded.git.remote, "git@github.com:user/repo.git");
         assert_eq!(loaded.git.branch, "main");
-        assert_eq!(loaded.git.ssh_key_path.as_deref(), Some("/Users/test/.ssh/id_ed25519"));
+        assert_eq!(
+            loaded.git.ssh_key_path.as_deref(),
+            Some("/Users/test/.ssh/id_ed25519")
+        );
         assert_eq!(loaded.lang, "zh");
     }
 
@@ -76,6 +84,7 @@ mod tests {
                 remote: "https://example.com".to_string(),
                 branch: "main".to_string(),
                 ssh_key_path: None,
+                access_token: Some("token".to_string()),
             },
             lang: "en".to_string(),
         };
@@ -86,6 +95,7 @@ mod tests {
                 remote: String::new(),
                 branch: "main".to_string(),
                 ssh_key_path: None,
+                access_token: None,
             },
             lang: "en".to_string(),
         };

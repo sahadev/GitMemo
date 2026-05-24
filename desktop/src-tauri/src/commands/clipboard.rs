@@ -1,9 +1,11 @@
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(desktop)]
 use tauri::Emitter;
 
 static WATCHING: AtomicBool = AtomicBool::new(false);
 
+#[cfg(desktop)]
 pub fn is_watching() -> bool {
     WATCHING.load(Ordering::SeqCst)
 }
@@ -270,7 +272,11 @@ pub(crate) mod desktop_poll {
 
     enum PendingClip {
         Text(String),
-        Image { width: usize, height: usize, bytes: Vec<u8> },
+        Image {
+            width: usize,
+            height: usize,
+            bytes: Vec<u8>,
+        },
     }
 
     fn is_redundant_image_data_url(text: &str) -> bool {
@@ -358,12 +364,14 @@ pub(crate) mod desktop_poll {
                         events.push(event);
                     }
                 }
-                PendingClip::Image { width, height, bytes } => {
-                    match save_clip_image_from_rgba(width, height, bytes) {
-                        Ok(event) => events.push(event),
-                        Err(e) => log::warn!("clipboard image save skipped: {}", e),
-                    }
-                }
+                PendingClip::Image {
+                    width,
+                    height,
+                    bytes,
+                } => match save_clip_image_from_rgba(width, height, bytes) {
+                    Ok(event) => events.push(event),
+                    Err(e) => log::warn!("clipboard image save skipped: {}", e),
+                },
             }
         }
         events
@@ -378,10 +386,16 @@ pub(crate) mod desktop_poll {
                 let (ref mut last_text_hash, _) = *guard;
                 let mut clipboard = match arboard::Clipboard::new() {
                     Ok(cb) => cb,
-                    Err(e) => { log::error!("Failed to init clipboard: {}", e); WATCHING.store(false, Ordering::SeqCst); return; }
+                    Err(e) => {
+                        log::error!("Failed to init clipboard: {}", e);
+                        WATCHING.store(false, Ordering::SeqCst);
+                        return;
+                    }
                 };
                 if let Ok(t) = clipboard.get_text() {
-                    if !t.is_empty() { *last_text_hash = content_hash(&t); }
+                    if !t.is_empty() {
+                        *last_text_hash = content_hash(&t);
+                    }
                 }
             });
             while WATCHING.load(Ordering::SeqCst) {
@@ -391,12 +405,17 @@ pub(crate) mod desktop_poll {
                     let (ref mut last_text_hash, ref mut last_image_hash) = *guard;
                     let mut clipboard = match arboard::Clipboard::new() {
                         Ok(cb) => cb,
-                        Err(e) => { log::error!("Failed to init clipboard: {}", e); return Vec::new(); }
+                        Err(e) => {
+                            log::error!("Failed to init clipboard: {}", e);
+                            return Vec::new();
+                        }
                     };
                     collect_pending_clips(&mut clipboard, last_text_hash, last_image_hash)
                 });
                 let events = flush_pending_clips(events);
-                for event in events { let _ = app.emit("clipboard-saved", &event); }
+                for event in events {
+                    let _ = app.emit("clipboard-saved", &event);
+                }
                 std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
             }
             return;
@@ -406,13 +425,28 @@ pub(crate) mod desktop_poll {
         {
             let mut clipboard = match arboard::Clipboard::new() {
                 Ok(cb) => cb,
-                Err(e) => { log::error!("Failed to init clipboard: {}", e); WATCHING.store(false, Ordering::SeqCst); return; }
+                Err(e) => {
+                    log::error!("Failed to init clipboard: {}", e);
+                    WATCHING.store(false, Ordering::SeqCst);
+                    return;
+                }
             };
-            let mut last_text_hash = clipboard.get_text().ok().filter(|t| !t.is_empty()).map(|t| content_hash(&t)).unwrap_or_default();
+            let mut last_text_hash = clipboard
+                .get_text()
+                .ok()
+                .filter(|t| !t.is_empty())
+                .map(|t| content_hash(&t))
+                .unwrap_or_default();
             let mut last_image_hash = String::new();
             while WATCHING.load(Ordering::SeqCst) {
-                let pending = collect_pending_clips(&mut clipboard, &mut last_text_hash, &mut last_image_hash);
-                for event in flush_pending_clips(pending) { let _ = app.emit("clipboard-saved", &event); }
+                let pending = collect_pending_clips(
+                    &mut clipboard,
+                    &mut last_text_hash,
+                    &mut last_image_hash,
+                );
+                for event in flush_pending_clips(pending) {
+                    let _ = app.emit("clipboard-saved", &event);
+                }
                 std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
             }
         }
@@ -431,26 +465,47 @@ pub(crate) mod desktop_poll {
         let bytes = img.bytes.as_ref();
         let sample_len = 8192.min(bytes.len());
         hasher.update(&bytes[..sample_len]);
-        if bytes.len() > sample_len { hasher.update(&bytes[bytes.len() - sample_len..]); }
+        if bytes.len() > sample_len {
+            hasher.update(&bytes[bytes.len() - sample_len..]);
+        }
         format!("{:x}", hasher.finalize())
     }
 
     const MAX_CLIPBOARD_IMAGE_PIXELS: u64 = 25_000_000;
 
-    fn save_clip_image_from_rgba(width: usize, height: usize, bytes: Vec<u8>) -> Result<ClipboardEvent, String> {
+    fn save_clip_image_from_rgba(
+        width: usize,
+        height: usize,
+        bytes: Vec<u8>,
+    ) -> Result<ClipboardEvent, String> {
         let sync_dir = files::sync_dir();
-        if !sync_dir.exists() { return Err("GitMemo not initialized".into()); }
+        if !sync_dir.exists() {
+            return Err("GitMemo not initialized".into());
+        }
 
         let w = width as u64;
         let h = height as u64;
         let pixels = w.checked_mul(h).ok_or("Invalid image dimensions")?;
-        if pixels == 0 { return Err("Empty image".into()); }
-        if pixels > MAX_CLIPBOARD_IMAGE_PIXELS {
-            return Err(format!("Image too large ({}x{}), max {} pixels", width, height, MAX_CLIPBOARD_IMAGE_PIXELS));
+        if pixels == 0 {
+            return Err("Empty image".into());
         }
-        let expected_len = (pixels as usize).checked_mul(4).ok_or("Image buffer size overflow")?;
+        if pixels > MAX_CLIPBOARD_IMAGE_PIXELS {
+            return Err(format!(
+                "Image too large ({}x{}), max {} pixels",
+                width, height, MAX_CLIPBOARD_IMAGE_PIXELS
+            ));
+        }
+        let expected_len = (pixels as usize)
+            .checked_mul(4)
+            .ok_or("Image buffer size overflow")?;
         if bytes.len() != expected_len {
-            return Err(format!("Bad RGBA size: got {} bytes, need {} for {}x{}", bytes.len(), expected_len, width, height));
+            return Err(format!(
+                "Bad RGBA size: got {} bytes, need {} for {}x{}",
+                bytes.len(),
+                expected_len,
+                width,
+                height
+            ));
         }
 
         let w32 = u32::try_from(width).map_err(|_| "Width too large")?;
@@ -468,7 +523,8 @@ pub(crate) mod desktop_poll {
 
         let img_buf: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
             image::ImageBuffer::from_raw(w32, h32, bytes).ok_or("Failed to create image buffer")?;
-        img_buf.save_with_format(&png_path, image::ImageFormat::Png)
+        img_buf
+            .save_with_format(&png_path, image::ImageFormat::Png)
             .map_err(|e| format!("Failed to save PNG: {}", e))?;
 
         let md_filename = format!("{}-screenshot.md", time_str);
@@ -482,7 +538,9 @@ pub(crate) mod desktop_poll {
         std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
 
         let dir = sync_dir.clone();
-        std::thread::spawn(move || { let _ = git::commit_and_push(&dir, "clip: screenshot"); });
+        std::thread::spawn(move || {
+            let _ = git::commit_and_push(&dir, "clip: screenshot");
+        });
 
         Ok(ClipboardEvent {
             saved: true,

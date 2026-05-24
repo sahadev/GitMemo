@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 /// Directory for crash logs
+#[cfg(desktop)]
 fn crash_log_dir() -> PathBuf {
     // Use the gitmemo sync dir's .metadata/crash_logs for cross-platform consistency.
     // Fallback to HOME-based path if sync dir doesn't exist yet.
@@ -14,6 +15,16 @@ fn crash_log_dir() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."));
     home.join(".gitmemo").join(".metadata").join("crash_logs")
+}
+
+#[cfg(not(desktop))]
+fn crash_log_dir() -> PathBuf {
+    std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join(".gitmemo")
+        .join(".metadata")
+        .join("crash_logs")
 }
 
 /// Write a crash log entry (panic or unhandled error).
@@ -41,7 +52,11 @@ pub fn write_crash_log(kind: &str, message: &str) {
 
     // Also append to a rolling "latest.log" for quick access
     let latest = dir.join("latest.log");
-    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(&latest) {
+    if let Ok(mut file) = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&latest)
+    {
         let _ = file.write_all(format!("\n---\n{}", content).as_bytes());
     }
 }
@@ -91,7 +106,10 @@ pub fn get_crash_logs() -> Result<Vec<CrashLogEntry>, String> {
         .filter(|e| {
             e.path()
                 .file_name()
-                .map(|n| n.to_string_lossy().starts_with("crash_") && n.to_string_lossy().ends_with(".log"))
+                .map(|n| {
+                    n.to_string_lossy().starts_with("crash_")
+                        && n.to_string_lossy().ends_with(".log")
+                })
                 .unwrap_or(false)
         })
         .filter_map(|e| {

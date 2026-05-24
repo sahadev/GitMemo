@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">GitMemo</string>
+    <string name="main_activity_title">GitMemo</string>
+</resources>

@@ -1,8 +1,9 @@
 pub mod clipboard;
 pub mod crash_log;
-pub mod local_editor;
 pub mod import;
 pub mod init;
+pub mod local_editor;
+pub mod mobile_git_spike;
 pub mod notes;
 pub mod search;
 pub mod settings;

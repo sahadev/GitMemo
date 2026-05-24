@@ -7,7 +7,10 @@ import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
+import { usePlatformFlags } from "../hooks/usePlatform";
 import type { Page } from "../App";
+import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
+import { MOBILE_BOTTOM_NAV_HEIGHT } from "../utils/mobileLayout";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -27,6 +30,79 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "edit_selected", labelKey: "settings.shortcutEditLabel", descKey: "settings.shortcutEditDesc" },
   { id: "delete_selected", labelKey: "settings.shortcutDeleteLabel", descKey: "settings.shortcutDeleteDesc" },
 ];
+
+interface MobileGitSpikeResult {
+  success: boolean;
+  repo_path: string;
+  note_path: string | null;
+  commit_id: string | null;
+  ahead: number;
+  behind: number;
+  steps: { name: string; ok: boolean; message: string }[];
+}
+
+interface MobileGitDiagnosticStep {
+  name: string;
+  ok: boolean;
+  message: string;
+}
+
+function accessTokenHelpUrl(remoteUrl: string): string {
+  const lower = remoteUrl.toLowerCase();
+  if (lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
+  if (lower.includes("gitlab")) return "https://gitlab.com/-/user_settings/personal_access_tokens";
+  if (lower.includes("bitbucket")) return "https://bitbucket.org/account/settings/app-passwords/";
+  return "https://github.com/settings/personal-access-tokens/new";
+}
+
+function accessTokenProvider(remoteUrl: string): string {
+  const lower = remoteUrl.toLowerCase();
+  if (lower.includes("gitee.com")) return "Gitee";
+  if (lower.includes("github.com")) return "GitHub";
+  if (lower.includes("gitlab")) return "GitLab";
+  if (lower.includes("bitbucket")) return "Bitbucket";
+  return "Git";
+}
+
+function summarizeMobileDiagnostic(
+  steps: MobileGitDiagnosticStep[] | null,
+  labels: { needsAttention: string; ready: string; defaultDetail: string },
+): { ok: boolean; title: string; detail: string } | null {
+  if (!steps) return null;
+  const failed = steps.find((step) => !step.ok);
+  if (failed) {
+    return {
+      ok: false,
+      title: labels.needsAttention,
+      detail: `${failed.name}: ${failed.message}`,
+    };
+  }
+  const history = steps.find((step) => step.name === "history")?.message;
+  const push = steps.find((step) => step.name === "push_auth")?.message;
+  return {
+    ok: true,
+    title: labels.ready,
+    detail: history || push || labels.defaultDetail,
+  };
+}
+
+function visibleMobileDiagnosticSteps(steps: MobileGitDiagnosticStep[]): MobileGitDiagnosticStep[] {
+  const important = new Set([
+    "config",
+    "origin",
+    "fetch",
+    "repo_state",
+    "head",
+    "local_head",
+    "remote_head",
+    "worktree",
+    "history",
+    "merge_preview",
+    "push_auth",
+    "tls_fallback",
+  ]);
+  return steps.filter((step) => !step.ok || important.has(step.name));
+}
 
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -63,6 +139,8 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
+  const { isMobile, isDesktop } = usePlatformFlags();
+  const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const { gitStatus, refreshGitStatus } = useSync();
   const {
     settings, refreshSettings,
@@ -80,6 +158,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
   const [editingRemote, setEditingRemote] = useState(false);
   const [remoteInput, setRemoteInput] = useState("");
+  const [remoteTokenInput, setRemoteTokenInput] = useState("");
   const [savingRemote, setSavingRemote] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
@@ -88,9 +167,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [updatingClaudeSkills, setUpdatingClaudeSkills] = useState(false);
   const [updatingCursorSkills, setUpdatingCursorSkills] = useState(false);
   const [testingRemote, setTestingRemote] = useState(false);
+  const [diagnosingRemote, setDiagnosingRemote] = useState(false);
+  const [mobileGitDiagnostic, setMobileGitDiagnostic] = useState<MobileGitDiagnosticStep[] | null>(null);
   const [shortcutDrafts, setShortcutDrafts] = useState<KeyboardShortcuts>(() => withDefaultShortcuts());
   const [recordingShortcut, setRecordingShortcut] = useState<ShortcutId | null>(null);
   const [savingShortcut, setSavingShortcut] = useState<ShortcutId | "all" | null>(null);
+  const [mobileGitRemote, setMobileGitRemote] = useState("");
+  const [mobileGitBranch, setMobileGitBranch] = useState("main");
+  const [mobileGitToken, setMobileGitToken] = useState("");
+  const [mobileGitNote, setMobileGitNote] = useState("Android Git sync spike note");
+  const [mobileGitReset, setMobileGitReset] = useState(false);
+  const [mobileGitRunning, setMobileGitRunning] = useState(false);
+  const [mobileGitResult, setMobileGitResult] = useState<MobileGitSpikeResult | null>(null);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -243,15 +331,25 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
   const saveRemote = async () => {
     const trimmed = remoteInput.trim();
-    if (trimmed === gitRemote) {
+    const hasNewMobileToken = isMobile && !!remoteTokenInput.trim();
+    if (trimmed === gitRemote && !hasNewMobileToken) {
       setEditingRemote(false);
+      setRemoteTokenInput("");
+      return;
+    }
+    if (isMobile && trimmed && !remoteTokenInput.trim() && !gitRemote) {
+      showToast(t("settings.remoteTokenRequired"), true);
       return;
     }
     setSavingRemote(true);
     try {
-      await invoke<string>("set_remote", { url: trimmed });
+      await invoke<string>("set_remote", {
+        url: trimmed,
+        accessToken: isMobile ? (remoteTokenInput.trim() || null) : null,
+      });
       await refreshGitStatus();
       setRemoteInput(trimmed);
+      setRemoteTokenInput("");
       setEditingRemote(false);
       showToast(trimmed ? "Saved" : "Removed");
     } catch (e) {
@@ -274,6 +372,53 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     }
   };
 
+  const diagnoseRemoteSync = async () => {
+    if (diagnosingRemote) return;
+    setDiagnosingRemote(true);
+    setMobileGitDiagnostic(null);
+    try {
+      const steps = await invoke<MobileGitDiagnosticStep[]>("mobile_git_diagnose_saved_remote");
+      setMobileGitDiagnostic(steps);
+      const failed = steps.find((step) => !step.ok);
+      showToast(failed ? `${failed.name}: ${failed.message}` : t("settings.mobileGitDiagnosticSuccess"), !!failed);
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setDiagnosingRemote(false);
+    }
+  };
+
+  const runMobileGitSpike = async () => {
+    if (mobileGitRunning) return;
+    const remoteUrl = mobileGitRemote.trim();
+    const branch = mobileGitBranch.trim() || "main";
+    const token = mobileGitToken.trim();
+    if (!remoteUrl || !token) {
+      showToast(t("settings.mobileGitSpikeMissingInput"), true);
+      return;
+    }
+    setMobileGitRunning(true);
+    setMobileGitResult(null);
+    try {
+      const result = await invoke<MobileGitSpikeResult>("mobile_git_spike_sync", {
+        request: {
+          remote_url: remoteUrl,
+          branch,
+          username: "x-access-token",
+          token,
+          note_content: mobileGitNote.trim() || "Android Git sync spike note",
+          reset: mobileGitReset,
+        },
+      });
+      setMobileGitResult(result);
+      showToast(result.success ? t("settings.mobileGitSpikeSuccess") : t("settings.mobileGitSpikeFailed"), !result.success);
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setMobileGitRunning(false);
+    }
+  };
+
   const copyValue = async (value: string, field: "syncDir" | "gitRemote") => {
     if (!value) return;
     try {
@@ -290,7 +435,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     await Promise.allSettled([
       refreshGitStatus(),
       refreshSettings(),
-      refreshIntegrationStatus(),
+      isDesktop ? refreshIntegrationStatus() : Promise.resolve(),
     ]);
   };
 
@@ -353,14 +498,47 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
     borderRadius: 6,
-    padding: "20px 24px",
+    padding: isMobile ? "16px 14px" : "20px 24px",
   };
 
   const rowStyle = {
     display: "flex" as const,
-    alignItems: "center" as const,
+    alignItems: isMobile ? "flex-start" as const : "center" as const,
     justifyContent: "space-between" as const,
+    gap: isMobile ? 10 : 12,
+    flexDirection: isMobile ? "column" as const : "row" as const,
   };
+  const segmentedButtonPadding = isMobile ? "8px 12px" : "4px 12px";
+  const compactButtonPadding = isMobile ? "8px 10px" : "4px 8px";
+  const mobileFieldStyle = {
+    padding: isMobile ? "10px 12px" : "4px 8px",
+    borderRadius: 5,
+    fontSize: isMobile ? 13 : 11,
+  };
+  const mobileRemoteStatus = isMobile && gitRemote ? (() => {
+    if (!gitStatus) {
+      return { text: t("settings.mobileRemoteStatusUnknown"), color: "var(--text-secondary)" };
+    }
+    if (gitStatus.unpushed > 0 && gitStatus.behind > 0) {
+      return {
+        text: t("dashboard.diverged", String(gitStatus.unpushed), String(gitStatus.behind)),
+        color: "var(--yellow)",
+      };
+    }
+    if (gitStatus.behind > 0) {
+      return { text: t("dashboard.behind", String(gitStatus.behind)), color: "var(--red)" };
+    }
+    if (gitStatus.unpushed > 0) {
+      return { text: `${gitStatus.unpushed} ${t("dashboard.unpushed")}`, color: "var(--yellow)" };
+    }
+    return { text: t("dashboard.synced"), color: "var(--green)" };
+  })() : null;
+  const mobileDiagnosticSummary = summarizeMobileDiagnostic(mobileGitDiagnostic, {
+    needsAttention: t("settings.mobileDiagnosticNeedsAttention"),
+    ready: t("settings.mobileDiagnosticReady"),
+    defaultDetail: t("settings.mobileDiagnosticDefaultDetail"),
+  });
+  const mobileBottomSpacer = `calc(${MOBILE_BOTTOM_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom, 0px))`;
 
   const languages: { id: Locale; label: string }[] = [
     { id: "en", label: "English" },
@@ -369,7 +547,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
   return (
     <div style={{
-      padding: "20px 32px 32px",
+      padding: isMobile ? "14px 14px 14px" : "20px 32px 32px",
       overflowY: "auto",
       height: "100%",
       width: "100%",
@@ -377,6 +555,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       minWidth: 0,
       minHeight: 0,
       boxSizing: "border-box",
+      overscrollBehavior: "contain",
+      WebkitOverflowScrolling: "touch",
+      scrollPaddingBottom: isMobile ? mobileBottomSpacer : undefined,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <Settings size={20} style={{ color: "var(--text-secondary)" }} />
@@ -433,7 +614,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   key={lang.id}
                   onClick={() => void changeLanguage(lang.id)}
                   style={{
-                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
+                    padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
                     background: locale === lang.id ? "var(--accent)" : "var(--bg-hover)",
                     color: locale === lang.id ? "#fff" : "var(--text-secondary)",
                     border: locale === lang.id ? "1px solid var(--accent)" : "1px solid var(--border)",
@@ -445,47 +626,59 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)" }} />
+          {isDesktop && (
+            <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
 
-          {/* Launch at login */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Power size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
+              {/* Launch at login */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Power size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
+                  </div>
+                </div>
+                <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
               </div>
-            </div>
-            <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
-          </div>
+            </>
+          )}
 
-          <div style={{ borderTop: "1px solid var(--border)" }} />
+          {isDesktop && (
+            <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
 
-          {/* Clipboard autostart */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
+              {/* Clipboard autostart */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
+                  </div>
+                </div>
+                <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
               </div>
-            </div>
-            <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
-          </div>
+            </>
+          )}
 
-          <div style={{ borderTop: "1px solid var(--border)" }} />
+          {isDesktop && (
+            <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
 
-          {/* Control copy/paste compatibility */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
+              {/* Control copy/paste compatibility */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
+                  </div>
+                </div>
+                <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
               </div>
-            </div>
-            <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
-          </div>
+            </>
+          )}
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
@@ -505,7 +698,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     key={mode}
                     onClick={() => void setProxyMode(mode)}
                     style={{
-                      padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
+                      padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
                       background: (settings?.proxy_mode ?? "system") === mode ? "var(--accent)" : "var(--bg-hover)",
                       color: (settings?.proxy_mode ?? "system") === mode ? "#fff" : "var(--text-secondary)",
                       border: (settings?.proxy_mode ?? "system") === mode ? "1px solid var(--accent)" : "1px solid var(--border)",
@@ -517,7 +710,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </div>
             </div>
             {(settings?.proxy_mode === "custom" || editingProxy) && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 25 }}>
+              <div style={{ display: "flex", alignItems: isMobile ? "stretch" : "center", gap: 6, paddingLeft: isMobile ? 0 : 25, flexDirection: isMobile ? "column" : "row" }}>
                 <input
                   autoFocus
                   value={proxyUrlInput || settings?.proxy_url || ""}
@@ -528,7 +721,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   }}
                   placeholder={t("settings.proxyUrlPlaceholder")}
                   style={{
-                    flex: 1, maxWidth: 320, padding: "4px 8px", borderRadius: 4, fontSize: 11,
+                    flex: 1, maxWidth: isMobile ? "100%" : 320, ...mobileFieldStyle,
                     background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
                     fontFamily: "ui-monospace, monospace",
                   }}
@@ -536,7 +729,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <button
                   onClick={() => void saveProxyUrl()}
                   style={{
-                    padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                    padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                     background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
                   }}
                 >
@@ -546,88 +739,92 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             )}
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)" }} />
+          {isDesktop && (
+            <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
 
-          {/* Claude integration */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Terminal size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.claudeIntegration")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
+              {/* Claude integration */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Terminal size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.claudeIntegration")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {claudeEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => void updateClaudeSkills()}
+                      disabled={updatingClaudeSkills}
+                      style={{
+                        padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingClaudeSkills ? "default" : "pointer",
+                        background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                        opacity: updatingClaudeSkills ? 0.6 : 1,
+                      }}
+                    >
+                      {updatingClaudeSkills ? t("settings.checking") : t("settings.updateSkills")}
+                    </button>
+                  )}
+                  <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+                </div>
               </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {claudeEnabled && (
+
+              <div style={{ borderTop: "1px solid var(--border)" }} />
+
+              {/* Cursor integration */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Code size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {cursorEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => void updateCursorSkills()}
+                      disabled={updatingCursorSkills}
+                      style={{
+                        padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingCursorSkills ? "default" : "pointer",
+                        background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                        opacity: updatingCursorSkills ? 0.6 : 1,
+                      }}
+                    >
+                      {updatingCursorSkills ? t("settings.checking") : t("settings.updateSkills")}
+                    </button>
+                  )}
+                  <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px solid var(--border)" }} />
+
+              {/* Local editor dirs */}
+              <div style={rowStyle}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <FolderOpen size={15} style={{ color: "var(--text-secondary)" }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.localDirs")}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.localDirsDesc")}</p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => void updateClaudeSkills()}
-                  disabled={updatingClaudeSkills}
+                  onClick={() => onNavigate?.("editor-home")}
                   style={{
-                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingClaudeSkills ? "default" : "pointer",
+                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
                     background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
-                    opacity: updatingClaudeSkills ? 0.6 : 1,
                   }}
                 >
-                  {updatingClaudeSkills ? t("settings.checking") : t("settings.updateSkills")}
+                  {t("settings.open")}
                 </button>
-              )}
-              <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
-            </div>
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border)" }} />
-
-          {/* Cursor integration */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Code size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
               </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {cursorEnabled && (
-                <button
-                  type="button"
-                  onClick={() => void updateCursorSkills()}
-                  disabled={updatingCursorSkills}
-                  style={{
-                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingCursorSkills ? "default" : "pointer",
-                    background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
-                    opacity: updatingCursorSkills ? 0.6 : 1,
-                  }}
-                >
-                  {updatingCursorSkills ? t("settings.checking") : t("settings.updateSkills")}
-                </button>
-              )}
-              <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
-            </div>
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border)" }} />
-
-          {/* Local editor dirs */}
-          <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <FolderOpen size={15} style={{ color: "var(--text-secondary)" }} />
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.localDirs")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.localDirsDesc")}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate?.("editor-home")}
-              style={{
-                padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
-                background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
-              }}
-            >
-              {t("settings.open")}
-            </button>
-          </div>
+            </>
+          )}
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
@@ -648,7 +845,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 onBlur={saveBranch}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) saveBranch(); if (e.key === "Escape") { setEditingBranch(false); setBranchInput(branch); } }}
                 style={{
-                  width: 120, padding: "4px 8px", borderRadius: 4, fontSize: 12,
+                  width: isMobile ? "100%" : 120, ...mobileFieldStyle,
                   background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
                   fontFamily: "ui-monospace, monospace",
                 }}
@@ -657,7 +854,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <button
                 onClick={() => setEditingBranch(true)}
                 style={{
-                  padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
+                  padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
                   background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                   fontFamily: "ui-monospace, monospace",
                 }}
@@ -688,7 +885,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   alignItems: "center",
                   gap: 6,
                   maxWidth: 240,
-                  padding: "4px 8px",
+                  padding: compactButtonPadding,
                   borderRadius: 6,
                   border: "1px solid var(--border)",
                   background: "var(--bg)",
@@ -730,7 +927,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 </div>
               </div>
               {editingRemote ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: isMobile ? "stretch" : "center",
+                  gap: 6,
+                  flexDirection: isMobile ? "column" : "row",
+                  width: isMobile ? "100%" : undefined,
+                }}>
                   <input
                     autoFocus
                     value={remoteInput}
@@ -740,18 +943,56 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveRemote();
                       if (e.key === "Escape" && !savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); }
                     }}
-                    placeholder="git@github.com:user/repo.git"
+                    placeholder={isMobile ? "https://github.com/user/repo.git" : "git@github.com:user/repo.git"}
                     style={{
-                      width: 280, padding: "4px 8px", borderRadius: 4, fontSize: 11,
+                      width: isMobile ? "100%" : 280, ...mobileFieldStyle,
                       background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
                       fontFamily: "ui-monospace, monospace",
                     }}
                   />
+                  {isMobile && (
+                    <>
+                      <input
+                        type="password"
+                        value={remoteTokenInput}
+                        onChange={(e) => setRemoteTokenInput(e.target.value)}
+                        disabled={savingRemote}
+                        placeholder={t("setup.mobileAccessToken")}
+                        style={{
+                          width: "100%", ...mobileFieldStyle,
+                          background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)",
+                        }}
+                      />
+                      <div style={{
+                        padding: "10px 12px",
+                        borderRadius: 6,
+                        border: "1px solid var(--border)",
+                        background: "var(--bg-hover)",
+                      }}>
+                        <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                          {t("settings.remoteTokenHint")}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void openUrl(accessTokenHelpUrl(remoteInput))}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            width: "100%", marginTop: 8,
+                            padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                            background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <ExternalLink size={11} /> {t("settings.createAccessTokenFor", accessTokenProvider(remoteInput || gitRemote))}
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <button
                     onClick={() => void saveRemote()}
                     disabled={savingRemote}
                     style={{
-                      padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                       background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
                       opacity: savingRemote ? 0.7 : 1,
                     }}
@@ -759,10 +1000,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     {savingRemote ? t("settings.checking") : t("conversations.save")}
                   </button>
                   <button
-                    onClick={() => { if (!savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); } }}
+                    onClick={() => { if (!savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); setRemoteTokenInput(""); } }}
                     disabled={savingRemote}
                     style={{
-                      padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                       opacity: savingRemote ? 0.6 : 1,
                     }}
@@ -771,14 +1012,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   </button>
                 </div>
               ) : gitRemote ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
                   <button
                     type="button"
                     onClick={() => void copyValue(gitRemote, "gitRemote")}
                     title={t("common.clickToCopy")}
                     style={{
                       display: "flex", alignItems: "center", gap: 6,
-                      maxWidth: 280, padding: "4px 8px", borderRadius: 6,
+                      maxWidth: isMobile ? "100%" : 280, padding: compactButtonPadding, borderRadius: 6,
                       border: "1px solid var(--border)", background: "var(--bg)",
                       color: "var(--text-secondary)", cursor: "pointer",
                     }}
@@ -792,9 +1033,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     </span>
                   </button>
                   <button
-                    onClick={() => { setRemoteInput(gitRemote); setEditingRemote(true); }}
+                    onClick={() => { setRemoteInput(gitRemote); setRemoteTokenInput(""); setEditingRemote(true); }}
                     style={{
-                      padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                     }}
                   >
@@ -802,21 +1043,34 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   </button>
                   <button
                     onClick={() => void testRemoteSync()}
-                    disabled={testingRemote}
+                    disabled={testingRemote || diagnosingRemote}
                     style={{
-                      padding: "4px 8px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--green)",
                       opacity: testingRemote ? 0.7 : 1,
                     }}
                   >
                     {testingRemote ? t("settings.checking") : t("settings.testSync")}
                   </button>
+                  {isMobile && (
+                    <button
+                      onClick={() => void diagnoseRemoteSync()}
+                      disabled={testingRemote || diagnosingRemote}
+                      style={{
+                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                        background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                        opacity: diagnosingRemote ? 0.7 : 1,
+                      }}
+                    >
+                      {diagnosingRemote ? t("settings.checking") : t("settings.mobileGitDiagnosticRun")}
+                    </button>
+                  )}
                 </div>
               ) : (
               <button
-                onClick={() => { setRemoteInput(""); setEditingRemote(true); }}
+                onClick={() => { setRemoteInput(""); setRemoteTokenInput(""); setEditingRemote(true); }}
                 style={{
-                  padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                  padding: segmentedButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                   background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
                 }}
               >
@@ -824,8 +1078,111 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </button>
             )}
             </div>
+            {isMobile && gitRemote && (
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--bg)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600 }}>{t("settings.mobileRemoteStatus")}</p>
+                    <p style={{
+                      marginTop: 2,
+                      fontSize: 12,
+                      color: mobileRemoteStatus?.color ?? "var(--text-secondary)",
+                      fontWeight: 600,
+                    }}>
+                      {mobileRemoteStatus?.text ?? t("settings.mobileRemoteStatusUnknown")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void openUrl(accessTokenHelpUrl(gitRemote))}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: compactButtonPadding,
+                      borderRadius: 5,
+                      fontSize: 11,
+                      cursor: "pointer",
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      color: "var(--accent)",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ExternalLink size={11} /> {t("settings.createAccessTokenFor", accessTokenProvider(gitRemote))}
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                  {t("settings.mobileRemoteSummary")}
+                </p>
+              </div>
+            )}
+            {isMobile && mobileGitDiagnostic && (
+              <div style={{
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--bg-hover)",
+              }}>
+                <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{t("settings.mobileGitDiagnostic")}</p>
+                {mobileDiagnosticSummary && (
+                  <div style={{
+                    padding: "8px 10px",
+                    marginBottom: 8,
+                    borderRadius: 6,
+                    background: "var(--bg-card)",
+                    border: `1px solid ${mobileDiagnosticSummary.ok ? "rgba(34, 197, 94, 0.35)" : "rgba(239, 68, 68, 0.35)"}`,
+                  }}>
+                    <p style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: mobileDiagnosticSummary.ok ? "var(--green)" : "var(--red)",
+                    }}>
+                      {mobileDiagnosticSummary.title}
+                    </p>
+                    <p style={{ marginTop: 3, fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, wordBreak: "break-word" }}>
+                      {mobileDiagnosticSummary.detail}
+                    </p>
+                  </div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {visibleMobileDiagnosticSteps(mobileGitDiagnostic).map((step, index) => (
+                    <div key={`${step.name}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <span style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        background: step.ok ? "var(--green)" : "var(--red)",
+                        marginTop: 5,
+                        flexShrink: 0,
+                      }} />
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 11, fontWeight: 600 }}>{step.name}</p>
+                        <p style={{
+                          fontSize: 11,
+                          color: "var(--text-secondary)",
+                          lineHeight: 1.5,
+                          wordBreak: "break-word",
+                        }}>
+                          {step.message}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* SSH guidance when editing */}
-            {editingRemote && (
+            {isDesktop && editingRemote && (
               <div style={{
                 padding: "12px 16px", borderRadius: 8,
                 background: "var(--bg-hover)", border: "1px solid var(--border)",
@@ -870,102 +1227,104 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         </div>
       </div>
 
-      <div style={{ ...cardStyle, marginTop: 20 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
+      {isDesktop && (
+        <div style={{ ...cardStyle, marginTop: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
+              </div>
+              <button
+                type="button"
+                onClick={resetAllShortcuts}
+                disabled={savingShortcut !== null}
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                  border: "1px solid var(--border)", background: "transparent",
+                  color: "var(--text-secondary)", cursor: savingShortcut ? "default" : "pointer",
+                  opacity: savingShortcut ? 0.65 : 1,
+                }}
+              >
+                <RotateCcw size={12} /> {t("settings.resetShortcuts")}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={resetAllShortcuts}
-              disabled={savingShortcut !== null}
-              style={{
-                display: "flex", alignItems: "center", gap: 4,
-                padding: "5px 9px", borderRadius: 5, fontSize: 11,
-                border: "1px solid var(--border)", background: "transparent",
-                color: "var(--text-secondary)", cursor: savingShortcut ? "default" : "pointer",
-                opacity: savingShortcut ? 0.65 : 1,
-              }}
-            >
-              <RotateCcw size={12} /> {t("settings.resetShortcuts")}
-            </button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {shortcutRows.map((row) => {
-              const recording = recordingShortcut === row.id;
-              const saving = savingShortcut === row.id || savingShortcut === "all";
-              return (
-                <div
-                  key={row.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: "10px 0",
-                    borderTop: "1px solid var(--border)",
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 12, fontWeight: 500 }}>{t(row.labelKey)}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {shortcutRows.map((row) => {
+                const recording = recordingShortcut === row.id;
+                const saving = savingShortcut === row.id || savingShortcut === "all";
+                return (
+                  <div
+                    key={row.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: "10px 0",
+                      borderTop: "1px solid var(--border)",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500 }}>{t(row.labelKey)}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        data-shortcut-recorder="true"
+                        onClick={() => setRecordingShortcut(row.id)}
+                        onKeyDown={(e) => captureShortcut(row.id, e)}
+                        disabled={saving}
+                        style={{
+                          minWidth: 128,
+                          padding: "6px 10px",
+                          borderRadius: 5,
+                          border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
+                          background: recording ? "var(--bg-hover)" : "var(--bg)",
+                          color: recording ? "var(--accent)" : "var(--text)",
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          fontSize: 12,
+                          cursor: saving ? "default" : "pointer",
+                          opacity: saving ? 0.65 : 1,
+                        }}
+                      >
+                        {recording ? t("settings.pressShortcut") : formatShortcut(shortcutDrafts[row.id])}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resetShortcut(row.id)}
+                        disabled={saving}
+                        title={t("settings.resetShortcut")}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          width: 28, height: 28, borderRadius: 5,
+                          border: "1px solid var(--border)", background: "transparent",
+                          color: "var(--text-secondary)", cursor: saving ? "default" : "pointer",
+                          opacity: saving ? 0.65 : 1,
+                        }}
+                      >
+                        <RotateCcw size={12} />
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      data-shortcut-recorder="true"
-                      onClick={() => setRecordingShortcut(row.id)}
-                      onKeyDown={(e) => captureShortcut(row.id, e)}
-                      disabled={saving}
-                      style={{
-                        minWidth: 128,
-                        padding: "6px 10px",
-                        borderRadius: 5,
-                        border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
-                        background: recording ? "var(--bg-hover)" : "var(--bg)",
-                        color: recording ? "var(--accent)" : "var(--text)",
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        fontSize: 12,
-                        cursor: saving ? "default" : "pointer",
-                        opacity: saving ? 0.65 : 1,
-                      }}
-                    >
-                      {recording ? t("settings.pressShortcut") : formatShortcut(shortcutDrafts[row.id])}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => resetShortcut(row.id)}
-                      disabled={saving}
-                      title={t("settings.resetShortcut")}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 28, height: 28, borderRadius: 5,
-                        border: "1px solid var(--border)", background: "transparent",
-                        color: "var(--text-secondary)", cursor: saving ? "default" : "pointer",
-                        opacity: saving ? 0.65 : 1,
-                      }}
-                    >
-                      <RotateCcw size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* About */}
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-        <img src="/logo.png" alt="GitMemo" style={{ width: 48, height: 48, borderRadius: 6, marginBottom: 10 }} />
-        <p style={{ fontSize: 14, fontWeight: 600 }}>GitMemo Desktop</p>
+        <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 48, height: 48, borderRadius: 6, marginBottom: 10, ...logoSaveProps.style }} />
+        <p style={{ fontSize: 14, fontWeight: 600 }}>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</p>
         <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
         {/* Update status */}
-        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+        {isDesktop && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
           {updateStatus === "idle" && (
             <button
               onClick={() => void checkForUpdates()}
@@ -1026,7 +1385,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           {updateStatus === "upToDate" && (
             <span style={{ fontSize: 11, color: "var(--green)" }}>{t("settings.upToDate")}</span>
           )}
-        </div>
+        </div>}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
           <button
             onClick={() => void openUrl("https://github.com/sahadev/gitmemo")}
@@ -1065,6 +1424,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           </button>
         </div>
       </div>
+      {isMobile && <div aria-hidden="true" style={{ height: mobileBottomSpacer }} />}
 
       {/* Changelog Modal */}
       {showChangelog && (

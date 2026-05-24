@@ -13,6 +13,7 @@ import {
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
+import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 
 interface SidebarProps {
   currentPage: Page;
@@ -40,6 +41,7 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] =
 export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, onSync }: SidebarProps) {
   const { t } = useI18n();
   const { appMeta } = useAppStore();
+  const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
 
   return (
     <div
@@ -63,7 +65,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <img src="/logo.png" alt="GitMemo" style={{ width: 22, height: 22, borderRadius: 4 }} />
+          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 22, height: 22, borderRadius: 4, ...logoSaveProps.style }} />
           <span style={{ fontWeight: 700, fontSize: 15 }}>GitMemo</span>
         </div>
       </div>

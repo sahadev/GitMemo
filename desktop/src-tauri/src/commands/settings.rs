@@ -1,5 +1,6 @@
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
+use gitmemo_core::utils::sanitize::git_error_for_user;
 use serde::{Deserialize, Serialize};
 #[cfg(desktop)]
 use std::str::FromStr;
@@ -52,7 +53,9 @@ pub struct KeyboardShortcuts {
     pub delete_selected: String,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 fn default_global_search_shortcut() -> String {
     "CmdOrCtrl+Shift+G".into()
 }
@@ -106,8 +109,19 @@ pub struct AppMeta {
     pub recommended_cli_version: String,
 }
 
+#[cfg(desktop)]
 fn settings_path() -> std::path::PathBuf {
     files::sync_dir().join(".metadata").join(SETTINGS_FILE)
+}
+
+#[cfg(not(desktop))]
+fn settings_path() -> std::path::PathBuf {
+    std::env::var("HOME")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join(".gitmemo")
+        .join(".metadata")
+        .join(SETTINGS_FILE)
 }
 
 fn load_settings() -> DesktopSettings {
@@ -205,10 +219,12 @@ pub fn register_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[cfg(not(desktop))]
+#[allow(dead_code)]
 pub fn register_global_shortcuts(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(desktop)]
 pub fn should_autostart_clipboard() -> bool {
     load_settings().clipboard_autostart
 }
@@ -217,7 +233,9 @@ pub fn should_autostart_clipboard() -> bool {
 pub fn get_app_meta() -> Result<AppMeta, String> {
     Ok(AppMeta {
         version: env!("CARGO_PKG_VERSION").to_string(),
-        release_time: option_env!("GITMEMO_RELEASE_TIME").unwrap_or("").to_string(),
+        release_time: option_env!("GITMEMO_RELEASE_TIME")
+            .unwrap_or("")
+            .to_string(),
         requires_cli: false,
         recommended_cli_version: env!("CARGO_PKG_VERSION").to_string(),
     })
@@ -389,11 +407,13 @@ fn parse_scutil_proxy(text: &str, prefix: &str) -> Option<String> {
     }
     let proxy_key = format!("{}Proxy : ", prefix);
     let port_key = format!("{}Port : ", prefix);
-    let host = text.lines()
+    let host = text
+        .lines()
         .find(|l| l.contains(&proxy_key))
         .and_then(|l| l.split(" : ").nth(1))
         .map(|s| s.trim())?;
-    let port = text.lines()
+    let port = text
+        .lines()
         .find(|l| l.contains(&port_key))
         .and_then(|l| l.split(" : ").nth(1))
         .map(|s| s.trim())?;
@@ -404,7 +424,8 @@ fn parse_scutil_proxy(text: &str, prefix: &str) -> Option<String> {
 pub fn get_branch() -> Result<String, String> {
     let config_path = gitmemo_core::utils::config::Config::config_path();
     if config_path.exists() {
-        let config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+        let config =
+            gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
         Ok(config.git.branch)
     } else {
         Ok("main".into())
@@ -414,7 +435,8 @@ pub fn get_branch() -> Result<String, String> {
 #[tauri::command]
 pub fn set_branch(name: String) -> Result<String, String> {
     let config_path = gitmemo_core::utils::config::Config::config_path();
-    let mut config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+    let mut config =
+        gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
     let old = config.git.branch.clone();
     config.git.branch = name.clone();
     config.save(&config_path).map_err(|e| e.to_string())?;
@@ -438,12 +460,24 @@ fn test_remote_sync_blocking() -> Result<String, String> {
         return Err("GitMemo not initialized".into());
     }
     let test_path = sync_dir.join("notes/scratch/.sync-test");
-    std::fs::write(&test_path, format!("sync test at {:?}\n", std::time::SystemTime::now()))
-        .map_err(|e| format!("Write failed: {e}"))?;
-    git::commit_and_push(&sync_dir, "test: sync connection test")
-        .map_err(|e| format!("Push failed: {e}"))?;
+    std::fs::write(
+        &test_path,
+        format!("sync test at {:?}\n", std::time::SystemTime::now()),
+    )
+    .map_err(|e| format!("Write failed: {e}"))?;
+    let result = git::commit_and_push(&sync_dir, "test: sync connection test")
+        .map_err(|e| format!("Push failed: {}", git_error_for_user(e.to_string())))?;
+    if let Some(err) = result.push_error {
+        let _ = std::fs::remove_file(&test_path);
+        let _ = git::commit_and_push(&sync_dir, "test: cleanup sync test");
+        return Err(format!("Push failed: {}", git_error_for_user(err)));
+    }
     let _ = std::fs::remove_file(&test_path);
-    let _ = git::commit_and_push(&sync_dir, "test: cleanup sync test");
+    let cleanup = git::commit_and_push(&sync_dir, "test: cleanup sync test")
+        .map_err(|e| format!("Cleanup push failed: {}", git_error_for_user(e.to_string())))?;
+    if let Some(err) = cleanup.push_error {
+        return Err(format!("Cleanup push failed: {}", git_error_for_user(err)));
+    }
     Ok("Sync OK".to_string())
 }
 
@@ -473,38 +507,89 @@ pub fn get_ssh_public_key() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn set_remote(url: String) -> Result<String, String> {
+pub fn set_remote(url: String, access_token: Option<String>) -> Result<String, String> {
+    let url = url.trim().to_string();
     let config_path = gitmemo_core::utils::config::Config::config_path();
-    let mut config = gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+    let mut config =
+        gitmemo_core::utils::config::Config::load(&config_path).map_err(|e| e.to_string())?;
+
+    let provided_token = access_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|token| !token.is_empty())
+        .map(ToOwned::to_owned);
+
+    #[cfg(target_os = "android")]
+    {
+        if !url.is_empty() {
+            if !(url.starts_with("https://") || url.starts_with("http://")) {
+                return Err("Android currently supports HTTPS Git URLs only".to_string());
+            }
+            let token = provided_token
+                .clone()
+                .or_else(|| config.git.access_token.clone())
+                .filter(|token| !token.trim().is_empty())
+                .ok_or_else(|| "Access token is required for Android HTTPS sync".to_string())?;
+            config.git.access_token = Some(token);
+        } else {
+            config.git.access_token = None;
+        }
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        if let Some(token) = provided_token {
+            config.git.access_token = Some(token);
+        } else if url.is_empty() {
+            config.git.access_token = None;
+        }
+    }
+
     config.git.remote = url.clone();
     config.save(&config_path).map_err(|e| e.to_string())?;
 
     let sync_dir = files::sync_dir();
-    if url.is_empty() {
-        let _ = std::process::Command::new("git")
-            .args(["remote", "remove", "origin"])
-            .current_dir(&sync_dir)
-            .output();
-    } else {
-        let check = std::process::Command::new("git")
-            .args(["remote", "get-url", "origin"])
-            .current_dir(&sync_dir)
-            .output();
-        if check.map(|o| o.status.success()).unwrap_or(false) {
+    #[cfg(target_os = "android")]
+    {
+        if url.is_empty() {
+            if let Ok(repo) = git2::Repository::open(&sync_dir) {
+                let _ = repo.remote_delete("origin");
+            }
+            return Ok("ok".to_string());
+        }
+        git::init_repo(&sync_dir, &url).map_err(|e| git_error_for_user(e.to_string()))?;
+        git::pull(&sync_dir).map_err(|e| git_error_for_user(e.to_string()))?;
+        return Ok("ok".to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        if url.is_empty() {
             let _ = std::process::Command::new("git")
-                .args(["remote", "set-url", "origin", &url])
+                .args(["remote", "remove", "origin"])
                 .current_dir(&sync_dir)
                 .output();
         } else {
-            let _ = std::process::Command::new("git")
-                .args(["remote", "add", "origin", &url])
+            let check = std::process::Command::new("git")
+                .args(["remote", "get-url", "origin"])
                 .current_dir(&sync_dir)
                 .output();
+            if check.map(|o| o.status.success()).unwrap_or(false) {
+                let _ = std::process::Command::new("git")
+                    .args(["remote", "set-url", "origin", &url])
+                    .current_dir(&sync_dir)
+                    .output();
+            } else {
+                let _ = std::process::Command::new("git")
+                    .args(["remote", "add", "origin", &url])
+                    .current_dir(&sync_dir)
+                    .output();
+            }
+            git::setup_tracking(&sync_dir, &config.git.branch);
         }
-        git::setup_tracking(&sync_dir, &config.git.branch);
-    }
 
-    Ok("ok".to_string())
+        Ok("ok".to_string())
+    }
 }
 
 // ── Helper ──────────────────────────────────────────────────────────────────
@@ -535,7 +620,9 @@ pub fn set_language(lang: String) -> Result<String, String> {
 
 fn claude_md_path() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
-    std::path::PathBuf::from(home).join(".claude").join("CLAUDE.md")
+    std::path::PathBuf::from(home)
+        .join(".claude")
+        .join("CLAUDE.md")
 }
 
 fn cursor_rules_path() -> std::path::PathBuf {
@@ -548,19 +635,26 @@ fn cursor_rules_path() -> std::path::PathBuf {
 
 fn cursor_skills_dir() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
-    std::path::PathBuf::from(home).join(".cursor").join("skills")
+    std::path::PathBuf::from(home)
+        .join(".cursor")
+        .join("skills")
 }
 
 fn claude_skills_dir() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
-    std::path::PathBuf::from(home).join(".claude").join("skills")
+    std::path::PathBuf::from(home)
+        .join(".claude")
+        .join("skills")
 }
 
 fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
     let save_dir = skills_dir.join("save");
     std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
-    std::fs::write(save_dir.join("SKILL.md"), include_str!("../../../../skills/save/SKILL.md"))
-        .map_err(|e| e.to_string())?;
+    std::fs::write(
+        save_dir.join("SKILL.md"),
+        include_str!("../../../../skills/save/SKILL.md"),
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -574,7 +668,8 @@ fn install_claude_skills(lang: String) -> Result<(), String> {
     install_save_skill(&skills)?;
 
     let session_log_dir = skills.join("gitmemo-session-log");
-    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum).map_err(|e| e.to_string())?;
+    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -588,7 +683,8 @@ fn install_cursor_skills(lang: String) -> Result<(), String> {
     install_save_skill(&skills)?;
 
     let session_log_dir = skills.join("gitmemo-session-log");
-    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum).map_err(|e| e.to_string())?;
+    session_log_skill::install(&session_log_dir, &sync_dir, lang_enum)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -664,8 +760,7 @@ pub fn setup_cursor_integration(lang: String) -> Result<String, String> {
     let lang_enum = Lang::parse(&lang);
 
     // 1. Write gitmemo.mdc
-    cursor_rules::inject(&cursor_rules_path(), &sync_dir, lang_enum)
-        .map_err(|e| e.to_string())?;
+    cursor_rules::inject(&cursor_rules_path(), &sync_dir, lang_enum).map_err(|e| e.to_string())?;
 
     // 2. Write bundled skills
     install_cursor_skills(lang)?;

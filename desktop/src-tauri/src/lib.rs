@@ -1,14 +1,19 @@
 mod commands;
 
-use commands::{clipboard, crash_log, import, init, local_editor, notes, search, settings, stats, watcher};
+use commands::{
+    clipboard, crash_log, import, init, local_editor, mobile_git_spike, notes, search, settings,
+    stats, watcher,
+};
+#[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Listener, Manager, RunEvent, State, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 #[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Listener, RunEvent, WebviewWindow,
 };
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
@@ -46,17 +51,39 @@ fn app_ready(app: AppHandle, pending: State<PendingExternalOpen>) {
     flush_pending_external_open(&app, &pending);
 }
 
+#[tauri::command]
+fn get_runtime_platform() -> &'static str {
+    #[cfg(mobile)]
+    {
+        "mobile"
+    }
+    #[cfg(not(mobile))]
+    {
+        "desktop"
+    }
+}
+
+#[cfg(mobile)]
+fn configure_mobile_environment(app: &tauri::App) {
+    if let Ok(app_data_dir) = app.path().app_data_dir() {
+        let _ = std::fs::create_dir_all(&app_data_dir);
+        std::env::set_var("HOME", app_data_dir);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Install panic hook FIRST — catches any panic from here on
     crash_log::install_panic_hook();
 
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(PendingExternalOpen::default())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir { file_name: Some("gitmemo".into()) },
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("gitmemo".into()),
+                    },
                 ))
                 .level(log::LevelFilter::Info)
                 .build(),
@@ -68,15 +95,13 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init());
 
     #[cfg(desktop)]
-    {
-        builder = builder
-            .plugin(tauri_plugin_updater::Builder::new().build())
-            .plugin(tauri_plugin_autostart::init(
-                MacosLauncher::LaunchAgent,
-                Some(vec!["--hidden"]),
-            ))
-            .plugin(tauri_plugin_global_shortcut::Builder::new().build());
-    }
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
+        ))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
     let app = builder
         .invoke_handler(tauri::generate_handler![
@@ -86,6 +111,7 @@ pub fn run() {
             notes::create_manual,
             notes::read_file,
             notes::read_file_base64,
+            notes::save_image_to_local,
             notes::resolve_sync_path,
             notes::list_files,
             notes::list_files_page,
@@ -156,6 +182,9 @@ pub fn run() {
             init::generate_ssh_key,
             init::init_gitmemo,
             init::sync_remote_init,
+            // Mobile Git spike
+            mobile_git_spike::mobile_git_spike_sync,
+            mobile_git_spike::mobile_git_diagnose_saved_remote,
             // Watcher
             watcher::restart_file_watcher,
             // Capture
@@ -163,9 +192,13 @@ pub fn run() {
             // Crash logs
             crash_log::get_crash_logs,
             crash_log::clear_crash_logs,
+            get_runtime_platform,
             app_ready,
         ])
         .setup(|app| {
+            #[cfg(mobile)]
+            configure_mobile_environment(app);
+
             // Store app handle for background git sync events
             notes::set_app_handle(app.handle().clone());
 
@@ -173,18 +206,22 @@ pub fn run() {
             watcher::start_file_watcher(app.handle().clone());
 
             // Apply proxy environment variables before any network operations
+            #[cfg(desktop)]
             settings::apply_proxy_env();
 
             // Pull latest from remote on startup (with health check), then auto-capture
-            std::thread::spawn(|| {
-                let sync_dir = gitmemo_core::storage::files::sync_dir();
-                if sync_dir.exists() {
-                    let _ = gitmemo_core::services::startup::run_startup(
-                        &sync_dir,
-                        StartupMode::Desktop,
-                    );
-                }
-            });
+            #[cfg(desktop)]
+            {
+                std::thread::spawn(|| {
+                    let sync_dir = gitmemo_core::storage::files::sync_dir();
+                    if sync_dir.exists() {
+                        let _ = gitmemo_core::services::startup::run_startup(
+                            &sync_dir,
+                            StartupMode::Desktop,
+                        );
+                    }
+                });
+            }
 
             // ── Desktop-only setup ──
             #[cfg(desktop)]
@@ -202,22 +239,22 @@ pub fn run() {
             panic!("{}", msg);
         });
 
-    app.run(move |app_handle, event| {
+    app.run(move |_app_handle, _event| {
         #[cfg(target_os = "macos")]
-        if let RunEvent::Reopen { .. } = event {
-            show_main_window_from_app(app_handle);
+        if let RunEvent::Reopen { .. } = _event {
+            show_main_window_from_app(_app_handle);
         }
 
         #[cfg(desktop)]
-        if let RunEvent::Opened { urls } = event {
-            show_main_window_from_app(app_handle);
-            let pending = app_handle.state::<PendingExternalOpen>();
-            let has_window = app_handle.get_webview_window("main").is_some();
+        if let RunEvent::Opened { urls } = _event {
+            show_main_window_from_app(_app_handle);
+            let pending = _app_handle.state::<PendingExternalOpen>();
+            let has_window = _app_handle.get_webview_window("main").is_some();
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
                     let path = path.to_string_lossy().into_owned();
                     if has_window {
-                        emit_external_open(app_handle, path);
+                        emit_external_open(_app_handle, path);
                     } else {
                         pending.0.lock().unwrap().push(path);
                     }
@@ -270,9 +307,15 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     let payload = match init::capture_conversations_sync() {
                         Ok(r) => notes::GitSyncEvent {
                             ok: true,
-                            message: format!("{} new, {} updated", r.new_sessions, r.updated_sessions),
+                            message: format!(
+                                "{} new, {} updated",
+                                r.new_sessions, r.updated_sessions
+                            ),
                         },
-                        Err(msg) => notes::GitSyncEvent { ok: false, message: msg },
+                        Err(msg) => notes::GitSyncEvent {
+                            ok: false,
+                            message: msg,
+                        },
                     };
                     let _ = app_handle.emit("git-sync-end", &payload);
                 });
@@ -283,7 +326,11 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     let _ = clipboard::start_clipboard_watch(app.clone());
                 }
-                let label = if clipboard::is_watching() { "Clipboard: ON" } else { "Clipboard: OFF" };
+                let label = if clipboard::is_watching() {
+                    "Clipboard: ON"
+                } else {
+                    "Clipboard: OFF"
+                };
                 let _ = clip_menu_item.set_text(label);
                 let _ = app.emit("tray-toggle-clipboard", ());
             }
@@ -314,7 +361,11 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // --- Keep tray clipboard label in sync with actual state ---
     let clip_item_for_listen = clip_i.clone();
     app.listen("tray-clipboard-update", move |_event| {
-        let label = if clipboard::is_watching() { "Clipboard: ON" } else { "Clipboard: OFF" };
+        let label = if clipboard::is_watching() {
+            "Clipboard: ON"
+        } else {
+            "Clipboard: OFF"
+        };
         let _ = clip_item_for_listen.set_text(label);
     });
 

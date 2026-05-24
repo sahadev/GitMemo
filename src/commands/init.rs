@@ -10,7 +10,13 @@ enum EditorChoice {
     All,
 }
 
-pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, editor: Option<String>, lang_arg: Option<String>) -> Result<()> {
+pub fn cmd_init(
+    git_url: Option<String>,
+    path: Option<String>,
+    no_mcp: bool,
+    editor: Option<String>,
+    lang_arg: Option<String>,
+) -> Result<()> {
     use console::style;
     use dialoguer::{Input, Select};
     use utils::i18n::{self, Lang};
@@ -101,8 +107,12 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
             let auto_detected = if let Ok(repo) = git2::Repository::open(&sync_dir) {
                 if let Ok(remote) = repo.find_remote("origin") {
                     remote.url().map(|u| u.to_string())
-                } else { None }
-            } else { None };
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
 
             if let Some(existing_url) = auto_detected {
                 println!(
@@ -133,10 +143,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
             println!("    HTTPS: {}", style(&url).dim());
             println!("    SSH:   {}", style(&ssh_url).cyan());
             println!();
-            let options = vec![
-                t.use_ssh_url(),
-                t.keep_https_url(),
-            ];
+            let options = vec![t.use_ssh_url(), t.keep_https_url()];
             let selection = Select::new()
                 .with_prompt(t.choose_url_prompt())
                 .items(&options)
@@ -170,9 +177,19 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         let (key_path, is_new_key) = utils::ssh::find_or_generate_key_for_git_url(&url)?;
         let pub_key = utils::ssh::read_public_key(&key_path)?;
         if is_new_key {
-            println!("  {} {} ({})", style("✓").green(), t.ssh_key_generated(), style(key_path.display()).dim());
+            println!(
+                "  {} {} ({})",
+                style("✓").green(),
+                t.ssh_key_generated(),
+                style(key_path.display()).dim()
+            );
         } else {
-            println!("  {} {} ({})", style("✓").green(), t.ssh_key_exists(), style(key_path.display()).dim());
+            println!(
+                "  {} {} ({})",
+                style("✓").green(),
+                t.ssh_key_exists(),
+                style(key_path.display()).dim()
+            );
         }
         Some((key_path, pub_key, is_new_key))
     } else {
@@ -194,10 +211,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         .join(".cursor")
         .join("rules")
         .join("gitmemo.mdc");
-    let cursor_mcp_path = dirs::home_dir()
-        .unwrap()
-        .join(".cursor")
-        .join("mcp.json");
+    let cursor_mcp_path = dirs::home_dir().unwrap().join(".cursor").join("mcp.json");
 
     // Backup relevant configs
     for (src, name) in [
@@ -227,7 +241,11 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         cursor_save_skill_dir.join("SKILL.md"),
         include_str!("../../skills/save/SKILL.md"),
     )?;
-    println!("  {} {}", style("✓").green(), t.cursor_save_skill_installed());
+    println!(
+        "  {} {}",
+        style("✓").green(),
+        t.cursor_save_skill_installed()
+    );
 
     let cursor_session_log_dir = dirs::home_dir()
         .unwrap()
@@ -256,7 +274,11 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         }
 
         // Install /save skill
-        let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
+        let skill_dir = dirs::home_dir()
+            .unwrap()
+            .join(".claude")
+            .join("skills")
+            .join("save");
         std::fs::create_dir_all(&skill_dir)?;
         std::fs::write(
             skill_dir.join("SKILL.md"),
@@ -297,7 +319,10 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
         git: utils::config::GitConfig {
             remote: url.clone(),
             branch: branch.clone(),
-            ssh_key_path: key_path_and_pub.as_ref().map(|(key_path, _, _)| key_path.to_string_lossy().to_string()),
+            ssh_key_path: key_path_and_pub
+                .as_ref()
+                .map(|(key_path, _, _)| key_path.to_string_lossy().to_string()),
+            access_token: None,
         },
         lang: lang.as_str().to_string(),
     };
@@ -323,11 +348,7 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
                 Ok(utils::ssh::SshTestResult::AuthFailed(_)) => {
                     println!("\r  {} {}  ", style("✗").red(), t.ssh_test_auth_failed());
                     println!();
-                    println!(
-                        "  {} {}",
-                        style("→").yellow(),
-                        t.deploy_key_hint()
-                    );
+                    println!("  {} {}", style("→").yellow(), t.deploy_key_hint());
                     println!();
                     println!("  {}", style(pub_key).dim());
                     println!();
@@ -338,7 +359,11 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
                     }
                 }
                 Ok(utils::ssh::SshTestResult::ConnectionFailed(msg)) => {
-                    println!("\r  {} {}  ", style("✗").red(), t.ssh_test_connection_failed());
+                    println!(
+                        "\r  {} {}  ",
+                        style("✗").red(),
+                        t.ssh_test_connection_failed()
+                    );
                     println!("    {}", style(&msg).dim());
                 }
                 Ok(utils::ssh::SshTestResult::NotSsh) => {}
@@ -360,24 +385,19 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
     // Show deploy key hint for new key + non-SSH URL (SSH case already handled above)
     if let Some((_, ref pub_key, true)) = key_path_and_pub {
         if !utils::ssh::is_ssh_url(&url) {
-            println!(
-                "  {} {}",
-                style("→").yellow(),
-                t.deploy_key_hint()
-            );
+            println!("  {} {}", style("→").yellow(), t.deploy_key_hint());
             println!();
             println!("  {}", style(pub_key).dim());
             println!();
         }
     }
-    println!(
-        "  {}",
-        style(t.all_set()).green().bold()
-    );
+    println!("  {}", style(t.all_set()).green().bold());
     println!();
     println!("  {}", t.next_steps());
     if install_claude {
-        let step1 = t.claude_next_step_1().replace("{}", &style("/save").cyan().to_string());
+        let step1 = t
+            .claude_next_step_1()
+            .replace("{}", &style("/save").cyan().to_string());
         println!("    1. {}", step1);
         println!("    2. {}", t.claude_next_step_2());
     }
@@ -390,8 +410,16 @@ pub fn cmd_init(git_url: Option<String>, path: Option<String>, no_mcp: bool, edi
     }
     println!();
     println!("  {}", t.verify_heading());
-    println!("    {} {}", style("gitmemo note \"hello world\"").cyan(), t.verify_test());
-    println!("    {} {}", style("gitmemo status").cyan(), t.verify_status());
+    println!(
+        "    {} {}",
+        style("gitmemo note \"hello world\"").cyan(),
+        t.verify_test()
+    );
+    println!(
+        "    {} {}",
+        style("gitmemo status").cyan(),
+        t.verify_status()
+    );
     println!();
 
     Ok(())
@@ -419,7 +447,11 @@ pub fn cmd_uninstall(remove_data: bool) -> Result<()> {
     inject::mcp_register::unregister(&claude_json_path)?;
     println!("  {} {}", style("✓").green(), t.claude_mcp_removed());
 
-    let skill_dir = dirs::home_dir().unwrap().join(".claude").join("skills").join("save");
+    let skill_dir = dirs::home_dir()
+        .unwrap()
+        .join(".claude")
+        .join("skills")
+        .join("save");
     if skill_dir.exists() {
         std::fs::remove_dir_all(&skill_dir)?;
         println!("  {} {}", style("✓").green(), t.save_skill_removed());
@@ -472,10 +504,7 @@ pub fn cmd_uninstall(remove_data: bool) -> Result<()> {
         );
     }
 
-    let cursor_mcp_path = dirs::home_dir()
-        .unwrap()
-        .join(".cursor")
-        .join("mcp.json");
+    let cursor_mcp_path = dirs::home_dir().unwrap().join(".cursor").join("mcp.json");
     inject::cursor_mcp::unregister(&cursor_mcp_path)?;
     println!("  {} {}", style("✓").green(), t.cursor_mcp_removed());
 

@@ -17,6 +17,7 @@ import { useAppStore, type NotesTab } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { formatShortcut, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 interface NoteResult {
   success: boolean;
@@ -36,7 +37,17 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
 
-export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { focusTrigger?: number; onFocusSidebar?: () => void; enterTrigger?: number }) {
+export default function NotesPage({
+  focusTrigger,
+  onFocusSidebar: _onFocusSidebar,
+  enterTrigger: _enterTrigger,
+  registerMobileBackHandler,
+}: {
+  focusTrigger?: number;
+  onFocusSidebar?: () => void;
+  enterTrigger?: number;
+  registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
+}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { notesTab: activeTab, setNotesTab, pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
@@ -59,6 +70,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const filesLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
+  const detailOpenedFromCrossPageRef = useRef(false);
   /** True while IME composition is active (more reliable than keydown.isComposing alone in some WebViews). */
   const imeComposingRef = useRef(false);
 
@@ -133,15 +145,6 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
     if (focusTrigger && textareaRef.current) textareaRef.current.focus();
   }, [focusTrigger]);
 
-  useEffect(() => {
-    if (!pendingOpenPath?.startsWith("notes/")) return;
-    if (pendingOpenPath.startsWith("notes/daily/")) setNotesTab("daily");
-    else if (pendingOpenPath.startsWith("notes/manual/")) setNotesTab("manual");
-    else setNotesTab("scratch");
-    void openFile(pendingOpenPath);
-    consumePendingOpenPath();
-  }, [pendingOpenPath, setNotesTab, consumePendingOpenPath]);
-
   const loadFiles = async (reset = true) => {
     if (reset) setLoading(true);
     else setLoadingMore(true);
@@ -172,17 +175,27 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
     onLoadMore: () => loadFiles(false),
   });
 
-  const openFile = useCallback(async (path: string) => {
+  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
       setEditing(false);
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       setTimeout(() => {
         itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 50);
     } catch (e) { console.error(e); }
-  }, []);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!pendingOpenPath?.startsWith("notes/")) return;
+    if (pendingOpenPath.startsWith("notes/daily/")) setNotesTab("daily");
+    else if (pendingOpenPath.startsWith("notes/manual/")) setNotesTab("manual");
+    else setNotesTab("scratch");
+    void openFile(pendingOpenPath, true);
+    consumePendingOpenPath();
+  }, [pendingOpenPath, setNotesTab, openFile, consumePendingOpenPath]);
 
   // Keyboard nav for file list
   const navPrev = useCallback(() => {
@@ -271,6 +284,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
   };
 
   useEffect(() => {
+    if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -287,25 +301,51 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
+  }, [isMobile, navPrev, navNext, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
+  const mobileBottomPadding = MOBILE_BOTTOM_CONTENT_PADDING;
+  const selectedFileName = selectedFile?.split("/").pop() ?? "";
+  const closeDetail = useCallback(() => {
+    setSelectedFile(null);
+    setFileContent("");
+    setEditing(false);
+    detailOpenedFromCrossPageRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !registerMobileBackHandler) return;
+    registerMobileBackHandler(() => {
+      if (selectedFile) {
+        if (detailOpenedFromCrossPageRef.current) {
+          closeDetail();
+          return false;
+        }
+        closeDetail();
+        return true;
+      }
+      return false;
+    });
+    return () => registerMobileBackHandler(null);
+  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
   return (
-    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="notes"
         defaultWidth={300}
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", height: "100%",
+        width: "100%", flex: 1, minWidth: 0,
         minHeight: 0, overflow: "hidden",
       }}>
         {/* Tabs */}
         <div style={{
           display: "flex", alignItems: "center", borderBottom: "1px solid var(--border)",
-          padding: "0 8px",
+          padding: isMobile ? "0 10px" : "0 8px",
+          flexShrink: 0,
         }}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -316,7 +356,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 onClick={() => setNotesTab(tab.id)}
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 4, padding: "12px 4px", fontSize: 11, cursor: "pointer",
+                  gap: 5, padding: isMobile ? "13px 4px" : "12px 4px", fontSize: isMobile ? 12 : 11, cursor: "pointer",
                   borderBottom: `2px solid ${active ? "var(--accent)" : "transparent"}`,
                   color: active ? "var(--accent)" : "var(--text-secondary)",
                   background: "none", border: "none",
@@ -324,7 +364,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                   borderBottomColor: active ? "var(--accent)" : "transparent",
                 }}
               >
-                <Icon size={12} />
+                <Icon size={isMobile ? 15 : 12} />
                 {t(tab.labelKey)}
               </button>
             );
@@ -334,8 +374,9 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
             onClick={handleRefresh}
             title={t("common.refresh")}
             style={{
-              background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 4,
-              color: "var(--text-secondary)", display: "flex", alignItems: "center",
+              background: "none", border: "none", cursor: "pointer", padding: 0, borderRadius: 6,
+              color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center",
+              width: isMobile ? 40 : 28, height: isMobile ? 40 : 28,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
@@ -345,14 +386,14 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
         </div>
 
         {/* Quick note input */}
-        <div style={{ padding: 14, borderBottom: "1px solid var(--border)" }}>
+        <div style={{ padding: isMobile ? "12px 14px" : 14, borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           {activeTab === "manual" && (
             <input
               value={manualTitle}
               onChange={(e) => setManualTitle(e.target.value)}
               placeholder={t("notes.placeholderTitle")}
               style={{
-                width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                width: "100%", padding: isMobile ? "11px 12px" : "8px 12px", borderRadius: 6, fontSize: isMobile ? 14 : 13,
                 marginBottom: 8, background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit",
               }}
@@ -367,6 +408,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
               onCompositionStart={() => { imeComposingRef.current = true; }}
               onCompositionEnd={() => { imeComposingRef.current = false; }}
               onKeyDown={(e) => {
+                if (isMobile) return;
                 if (e.key !== "Enter" || e.shiftKey) return;
                 const ev = e.nativeEvent;
                 if (imeComposingRef.current || ev.isComposing) return;
@@ -375,34 +417,38 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 void handleCreateNote();
               }}
               placeholder={activeTab === "daily" ? t("notes.placeholderDaily") : activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
-              rows={3}
+              rows={isMobile ? 4 : 3}
               style={{
-                width: "100%", padding: "10px 12px", borderRadius: 6, fontSize: 13,
+                width: "100%", padding: isMobile ? "12px 46px 12px 12px" : "10px 12px", borderRadius: 6, fontSize: isMobile ? 14 : 13,
                 resize: "vertical", background: "var(--bg)", color: "var(--text)",
-                border: "1px solid var(--border)", fontFamily: "inherit", minHeight: 60,
+                border: "1px solid var(--border)", fontFamily: "inherit", minHeight: isMobile ? 96 : 60,
               }}
             />
             <button
               onClick={handleCreateNote}
               disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
               style={{
-                position: "absolute", bottom: 8, right: 8, padding: 4,
-                borderRadius: 4, background: "none", border: "none", cursor: "pointer",
+                position: "absolute", bottom: isMobile ? 10 : 8, right: isMobile ? 8 : 8, padding: 0,
+                width: isMobile ? 34 : 22, height: isMobile ? 34 : 22,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: 6, background: isMobile ? "var(--bg-card)" : "none", border: isMobile ? "1px solid var(--border)" : "none", cursor: "pointer",
                 color: saving ? "var(--green)" : newNote.trim() ? "var(--accent)" : "var(--text-secondary)",
                 opacity: newNote.trim() ? 1 : 0.4,
                 animation: saving ? "spin 1s linear infinite" : undefined,
               }}
             >
-              <Send size={14} />
+              <Send size={isMobile ? 16 : 14} />
             </button>
           </div>
-          <p style={{ fontSize: 10, marginTop: 6, color: saving ? "var(--green)" : "var(--text-secondary)" }}>
-            {saving ? t("notes.saving") : t("notes.enterToSave")}
-          </p>
+          {(!isMobile || saving) && (
+            <p style={{ fontSize: 10, marginTop: 6, color: saving ? "var(--green)" : "var(--text-secondary)" }}>
+              {saving ? t("notes.saving") : t("notes.enterToSave")}
+            </p>
+          )}
         </div>
 
         {/* File list */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: isMobile ? mobileBottomPadding : 0 }}>
           {loading ? (
             <Loading compact text={t("notes.loading")} />
           ) : files.length === 0 ? (
@@ -416,7 +462,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                   ? t("notes.useInputAbove")
                   : activeTab === "manual"
                   ? t("notes.docsHint")
-                  : "Saved automatically from AI chats"}
+                  : t("notes.useInputAbove")}
               </p>
             </div>
           ) : (
@@ -431,17 +477,17 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                 ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                 onClick={() => openFile(file.path)}
                 style={{
-                  width: "100%", textAlign: "left", padding: "12px 16px",
+                  width: "100%", textAlign: "left", padding: isMobile ? "15px 16px" : "12px 16px",
                   cursor: "pointer", transition: "background 0.15s",
                   background: selected ? "var(--accent)" : "transparent",
                   border: "none", color: selected ? "#fff" : "var(--text)",
                   borderBottom: "1px solid var(--border)",
                 }}
               >
-                <p style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: isMobile ? 14 : 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {title}
                 </p>
-                <p style={{ fontSize: 10, marginTop: 4, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
+                <p style={{ fontSize: isMobile ? 11 : 10, marginTop: 5, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
                   {relativeTime(file.modified, t)}
                 </p>
               </button>
@@ -471,45 +517,52 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {selectedFile ? (
           <>
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "12px 20px", borderBottom: "1px solid var(--border)",
+              padding: isMobile ? "8px 12px" : "12px 20px", borderBottom: "1px solid var(--border)",
+              flexShrink: 0,
             }}>
               <button
-                onClick={() => { setSelectedFile(null); setFileContent(""); setEditing(false); }}
-                style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                onClick={closeDetail}
+                style={{
+                  width: isMobile ? 36 : 24, height: isMobile ? 36 : 24, padding: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)",
+                  flexShrink: 0,
+                }}
+                title={t("common.back")}
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={isMobile ? 20 : 16} />
               </button>
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {selectedFile}
+                {isMobile ? selectedFileName : selectedFile}
               </span>
-              <RevealInFinderButton relPath={selectedFile} />
-              {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
+              {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
+              {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={handleSaveEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>
-                    <Save size={12} /> {t("notes.save")}
+                  <button onClick={handleSaveEdit} title={t("notes.save")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>
+                    <Save size={isMobile ? 16 : 12} /> {!isMobile && t("notes.save")}
                   </button>
-                  <button onClick={() => setEditing(false)} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
-                    <X size={14} />
+                  <button onClick={() => setEditing(false)} title={t("common.cancel")} style={{ width: isMobile ? 38 : 22, height: isMobile ? 38 : 22, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+                    <X size={isMobile ? 17 : 14} />
                   </button>
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={startEdit} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
-                    <Pencil size={12} /> {t("notes.edit")}
+                  <button onClick={startEdit} title={t("notes.edit")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+                    <Pencil size={isMobile ? 16 : 12} /> {!isMobile && t("notes.edit")}
                   </button>
-                  <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
-                    <Trash2 size={13} />
+                  <button onClick={handleDelete} title={t("common.delete")} style={{ width: isMobile ? 38 : 22, height: isMobile ? 38 : 22, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
+                    <Trash2 size={isMobile ? 16 : 13} />
                   </button>
                 </div>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px" }}>
               {editing ? (
                 <textarea
                   ref={editRef}
@@ -521,7 +574,7 @@ export default function NotesPage({ focusTrigger, onFocusSidebar: _onFocusSideba
                     if (e.key === "Escape") setEditing(false);
                   }}
                   style={{
-                    width: "100%", height: "100%", resize: "none", fontSize: 13,
+                    width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? 15 : 13,
                     lineHeight: 1.7, padding: 0, background: "transparent", color: "var(--text)",
                     border: "none", outline: "none",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",

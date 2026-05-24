@@ -1,11 +1,14 @@
-import { useState, useCallback, ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n, Locale } from "../hooks/useI18n";
+import { usePlatformFlags } from "../hooks/usePlatform";
 import {
   Globe, HardDrive, Cloud, GitBranch, Code2, Check, ChevronRight,
   Loader2, Copy, AlertCircle, Rocket, ExternalLink, KeyRound,
 } from "lucide-react";
+import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 interface InitStep {
   name: string;
@@ -19,6 +22,12 @@ interface InitResult {
   ssh_public_key: string | null;
   deploy_keys_url?: string | null;
   needs_remote_sync: boolean;
+}
+
+interface InitProgressEvent {
+  step: string;
+  status: "running" | "ok" | "error" | string;
+  message: string;
 }
 
 interface SshKeyCandidate {
@@ -37,6 +46,14 @@ interface SshKeyScanResult {
 
 type WizardStep = "language" | "storage" | "ssh_key" | "editors" | "running" | "done";
 type GitPlatform = "github" | "gitlab" | "gitee" | "bitbucket" | "other";
+
+function accessTokenHelpUrl(gitUrl: string, platform: GitPlatform | null): string {
+  const lower = gitUrl.toLowerCase();
+  if (platform === "gitee" || lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
+  if (platform === "gitlab" || lower.includes("gitlab")) return "https://gitlab.com/-/user_settings/personal_access_tokens";
+  if (platform === "bitbucket" || lower.includes("bitbucket.org")) return "https://bitbucket.org/account/settings/app-passwords/";
+  return "https://github.com/settings/personal-access-tokens/new";
+}
 
 const PLATFORM_META: Record<GitPlatform, {
   label: string;
@@ -90,11 +107,13 @@ const PLATFORM_META: Record<GitPlatform, {
 
 export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boolean) => void }) {
   const { t, locale, setLocale } = useI18n();
+  const { isMobile, isDesktop } = usePlatformFlags();
   const [step, setStep] = useState<WizardStep>("language");
   const [lang, setLang] = useState<Locale>(locale);
   const [storageMode, setStorageMode] = useState<"local" | "remote">("local");
   const [platform, setPlatform] = useState<GitPlatform | null>(null);
   const [gitUrl, setGitUrl] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [editors, setEditors] = useState<string[]>([]);
   const [sshCandidates, setSshCandidates] = useState<SshKeyCandidate[]>([]);
   const [selectedSshKeyPath, setSelectedSshKeyPath] = useState<string | null>(null);
@@ -106,6 +125,24 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const [error, setError] = useState("");
   const [sshKeyCopied, setSshKeyCopied] = useState(false);
   const [entering, setEntering] = useState(false);
+  const [initLogs, setInitLogs] = useState<InitProgressEvent[]>([]);
+  const initLogRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    const unlisten = listen<InitProgressEvent>("setup-init-progress", ({ payload }) => {
+      if (disposed) return;
+      setInitLogs(prev => [...prev.slice(-80), payload]);
+    });
+    return () => {
+      disposed = true;
+      void unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
+    initLogRef.current?.scrollTo({ top: initLogRef.current.scrollHeight });
+  }, [initLogs]);
 
   const handleLangSelect = useCallback((value: Locale) => {
     setLang(value);
@@ -119,7 +156,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     ));
   }, []);
 
-  const isSshRemote = storageMode === "remote" && gitUrl.trim().startsWith("git@");
+  const trimmedGitUrl = gitUrl.trim();
+  const isSshRemote = isDesktop && storageMode === "remote" && trimmedGitUrl.startsWith("git@");
+  const isHttpsRemote = /^https:\/\//i.test(trimmedGitUrl);
+  const mobileRemoteReady = !isMobile || storageMode !== "remote" || (isHttpsRemote && accessToken.trim().length > 0);
+  const remoteReady = storageMode !== "remote" || (!!platform && !!trimmedGitUrl && mobileRemoteReady);
 
   const loadSshCandidates = useCallback(async () => {
     if (!isSshRemote) {
@@ -168,13 +209,22 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const runInit = useCallback(async () => {
     setStep("running");
     setError("");
+    setResult(null);
+    setInitLogs([{
+      step: "start",
+      status: "running",
+      message: t("setup.initStarting"),
+    }]);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => setTimeout(resolve, 80));
     try {
       const res = await invoke<InitResult>("init_gitmemo", {
         request: {
           lang,
           git_url: storageMode === "remote" ? gitUrl : "",
-          ssh_key_path: isSshRemote ? selectedSshKeyPath : null,
-          editors,
+          ssh_key_path: isDesktop && isSshRemote ? selectedSshKeyPath : null,
+          access_token: isMobile && storageMode === "remote" ? accessToken.trim() : null,
+          editors: isDesktop ? editors : [],
         },
       });
       setResult(res);
@@ -183,7 +233,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
       setError(`${e}`);
       setStep("done");
     }
-  }, [lang, storageMode, gitUrl, isSshRemote, selectedSshKeyPath, editors]);
+  }, [lang, storageMode, gitUrl, isDesktop, isSshRemote, selectedSshKeyPath, isMobile, accessToken, editors, t]);
 
   const copySshKey = useCallback((publicKey?: string | null) => {
     if (!publicKey) return;
@@ -211,8 +261,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     borderRadius: 0,
     background: "var(--bg-card)",
     border: "none",
-    display: "grid",
-    gridTemplateColumns: step === "done" ? "300px minmax(0, 1fr)" : "280px minmax(0, 1fr)",
+    display: isMobile ? "flex" : "grid",
+    flexDirection: isMobile ? "column" : undefined,
+    gridTemplateColumns: isMobile ? undefined : step === "done" ? "300px minmax(0, 1fr)" : "280px minmax(0, 1fr)",
     overflow: "hidden",
     boxShadow: "none",
   };
@@ -241,29 +292,61 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     color: "var(--text)",
   };
 
+  const buttonRowStyle: React.CSSProperties = {
+    display: "flex",
+    gap: isMobile ? 8 : 10,
+    alignItems: "stretch",
+    flexWrap: "nowrap",
+    width: "100%",
+  };
+
+  const navBackButtonStyle: React.CSSProperties = {
+    ...btnSecondary,
+    width: "auto",
+    minWidth: isMobile ? 72 : 86,
+    flex: "0 0 auto",
+    padding: isMobile ? "10px 14px" : "10px 20px",
+    whiteSpace: "nowrap",
+  };
+
+  const navPrimaryButtonStyle: React.CSSProperties = {
+    ...btnPrimary,
+    width: "auto",
+    flex: "1 1 0",
+    minWidth: 0,
+    whiteSpace: "nowrap",
+  };
+
   const optionCard = (selected: boolean): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
     gap: 14,
-    padding: "14px 18px",
+    padding: isMobile ? "12px 14px" : "14px 18px",
     borderRadius: 8,
     border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
     background: selected ? "var(--accent)10" : "transparent",
     cursor: "pointer",
     transition: "all 0.15s",
     width: "100%",
+    minWidth: 0,
     textAlign: "left",
   });
 
-  const steps: WizardStep[] = ["language", "storage", ...(isSshRemote ? ["ssh_key" as const] : []), "editors"];
+  const steps: WizardStep[] = isDesktop
+    ? ["language", "storage", ...(isSshRemote ? ["ssh_key" as const] : []), "editors"]
+    : ["language", "storage"];
   const stepIndex = steps.indexOf(step);
   const showStepIndicator = stepIndex >= 0;
   const selectedPlatformMeta = platform ? PLATFORM_META[platform] : null;
   const setupSucceeded = !!result?.success;
   const showSetupError = !!error || (!!result && !result.success);
-  const retryStep: WizardStep = storageMode === "remote" ? "storage" : "editors";
+  const retryStep: WizardStep = isDesktop && storageMode !== "remote" ? "editors" : "storage";
   const selectedSshCandidate = sshCandidates.find(candidate => candidate.path === selectedSshKeyPath) ?? null;
   const doneDeployKeysUrl = result?.deploy_keys_url ?? deployKeysUrl;
+  const latestInitLog = initLogs[initLogs.length - 1] ?? null;
+  const gitUrlPlaceholder = isMobile
+    ? "https://github.com/user/gitmemo-data.git"
+    : selectedPlatformMeta?.placeholder ?? "";
 
   const stepTitles: Partial<Record<WizardStep, string>> = {
     language: "Welcome to GitMemo",
@@ -276,13 +359,15 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
   const stepDescriptions: Partial<Record<WizardStep, string>> = {
     language: "Choose your preferred language",
-    storage: t("setup.storageDesc"),
+    storage: isMobile ? t("setup.mobileStorageDesc") : t("setup.storageDesc"),
     ssh_key: t("setup.sshSelectDesc"),
     editors: t("setup.editorsDesc"),
-    running: t("setup.pleaseWait"),
+    running: isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"),
     done: showSetupError
       ? (storageMode === "remote"
-          ? "Setup did not complete. Check the failed steps and retry after confirming your remote access."
+          ? (isMobile
+              ? t("setup.mobileRemoteErrorDesc")
+              : "Setup did not complete. Check the failed steps and retry after confirming your remote access.")
           : "Setup did not complete. Review the failed steps below and retry.")
       : t("setup.completeDesc"),
   };
@@ -298,7 +383,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     step === "language"
       ? t("setup.tipLanguage")
       : step === "storage"
-        ? (storageMode === "remote" ? t("setup.tipStorageRemote") : t("setup.tipStorageLocal"))
+        ? (storageMode === "remote"
+            ? (isMobile ? t("setup.tipMobileStorageRemote") : t("setup.tipStorageRemote"))
+            : t("setup.tipStorageLocal"))
         : step === "ssh_key"
           ? t("setup.sshWriteAccess")
           : step === "editors"
@@ -308,7 +395,16 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
               : t("setup.tipSettingUp");
 
   const renderPanel = (content: ReactNode) => (
-    <div style={{ padding: "28px 30px 24px", overflowY: "auto", minWidth: 0, minHeight: 0, height: "100%" }}>
+    <div style={{
+      padding: isMobile ? `18px 18px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "28px 30px 24px",
+      overflowY: "auto",
+      minWidth: 0,
+      minHeight: 0,
+      height: isMobile ? "auto" : "100%",
+      flex: 1,
+      overscrollBehavior: "contain",
+      WebkitOverflowScrolling: "touch",
+    }}>
       {content}
     </div>
   );
@@ -323,43 +419,58 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     paddingRight: 4,
   };
 
+  const initLogIcon = (status: string) => {
+    if (status === "ok") return <Check size={13} style={{ color: "var(--green)", flexShrink: 0 }} />;
+    if (status === "error") return <AlertCircle size={13} style={{ color: "var(--red)", flexShrink: 0 }} />;
+    return <Loader2 size={13} style={{ color: "var(--accent)", flexShrink: 0, animation: "spin 1s linear infinite" }} />;
+  };
+
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
         <aside style={{
-          padding: "36px 24px 32px",
-          borderRight: "1px solid var(--border)",
+          padding: isMobile ? "18px 18px 12px" : "36px 24px 32px",
+          borderRight: isMobile ? "none" : "1px solid var(--border)",
+          borderBottom: isMobile ? "1px solid var(--border)" : "none",
           background: "linear-gradient(180deg, var(--bg-hover) 0%, transparent 100%)",
           display: "flex",
           flexDirection: "column",
-          gap: 22,
+          gap: isMobile ? 12 : 22,
           minWidth: 0,
+          flexShrink: 0,
         }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", marginBottom: 10, letterSpacing: 0.3 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", marginBottom: isMobile ? 6 : 10, letterSpacing: 0.3 }}>
               GitMemo Setup
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, marginBottom: 6, lineHeight: 1.2 }}>
               {stepTitles[step]}
             </h2>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
               {stepDescriptions[step]}
             </p>
           </div>
 
           {showStepIndicator && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{
+              display: "flex",
+              flexDirection: isMobile ? "row" : "column",
+              gap: isMobile ? 8 : 10,
+              overflowX: isMobile ? "auto" : undefined,
+              paddingBottom: isMobile ? 2 : undefined,
+            }}>
               {navSteps.map(({ key, label, active, complete }, index) => (
                 <div
                   key={key}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
-                    padding: "10px 12px",
+                    gap: isMobile ? 8 : 12,
+                    padding: isMobile ? "8px 10px" : "10px 12px",
                     borderRadius: 8,
                     background: active ? "var(--accent)10" : "transparent",
                     border: `1px solid ${active ? "var(--accent)30" : "transparent"}`,
+                    flex: isMobile ? "0 0 auto" : undefined,
                   }}
                 >
                   <div style={{
@@ -377,7 +488,12 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   }}>
                     {complete ? <Check size={13} /> : index + 1}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: active ? "var(--text)" : "var(--text-secondary)" }}>
+                  <div style={{
+                    fontSize: isMobile ? 12 : 13,
+                    fontWeight: 600,
+                    color: active ? "var(--text)" : "var(--text-secondary)",
+                    whiteSpace: isMobile ? "nowrap" : undefined,
+                  }}>
                     {label}
                   </div>
                 </div>
@@ -385,7 +501,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             </div>
           )}
 
-          <div style={{
+          {!isMobile && <div style={{
             marginTop: "auto",
             padding: "14px 14px 0",
             borderTop: "1px solid var(--border)",
@@ -395,10 +511,17 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
           }}>
             <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{t("setup.tipTitle")}</div>
             {sidebarTip}
-          </div>
+          </div>}
         </aside>
 
-        <section style={{ minWidth: 0, minHeight: 0 }}>
+        <section style={{
+          minWidth: 0,
+          minHeight: 0,
+          flex: isMobile ? 1 : undefined,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}>
           {step === "language" && renderPanel(
             <div>
               <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -502,7 +625,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         type="text"
                         value={gitUrl}
                         onChange={(e) => setGitUrl(e.target.value)}
-                        placeholder={selectedPlatformMeta?.placeholder ?? ""}
+                        placeholder={gitUrlPlaceholder}
                         style={{
                           width: "100%",
                           padding: "10px 12px",
@@ -517,26 +640,96 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         }}
                       />
                       <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
-                        {t("setup.gitUrlHint")}
+                        {isMobile ? t("setup.mobileGitUrlHint") : t("setup.gitUrlHint")}
                       </p>
+                      {isMobile && (
+                        <>
+                          <input
+                            type="text"
+                            value={accessToken}
+                            onChange={(e) => setAccessToken(e.target.value)}
+                            placeholder={t("setup.mobileAccessToken")}
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: 8,
+                              border: "1px solid var(--border)",
+                              background: "var(--bg-input)",
+                              color: "var(--text)",
+                              fontSize: 13,
+                              outline: "none",
+                              boxSizing: "border-box",
+                              marginTop: 10,
+                            }}
+                          />
+                          <p style={{
+                            fontSize: 11,
+                            color: trimmedGitUrl && !isHttpsRemote ? "var(--red)" : "var(--text-secondary)",
+                            marginTop: 6,
+                            lineHeight: 1.5,
+                          }}>
+                            {trimmedGitUrl && !isHttpsRemote ? t("setup.mobileHttpsRequired") : t("setup.mobileTokenHint")}
+                          </p>
+                          <div style={{
+                            marginTop: 10,
+                            padding: "10px 12px",
+                            borderRadius: 8,
+                            border: "1px solid var(--border)",
+                            background: "var(--bg-hover)",
+                          }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                              <KeyRound size={14} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
+                              <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                                {t("setup.mobileTokenGuide")}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void openUrl(accessTokenHelpUrl(trimmedGitUrl, platform))}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 5,
+                                marginTop: 8,
+                                width: "100%",
+                                padding: "8px 10px",
+                                borderRadius: 6,
+                                border: "1px solid var(--border)",
+                                background: "var(--bg)",
+                                color: "var(--accent)",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <ExternalLink size={11} /> {t("setup.createAccessToken")}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <button style={{ ...btnSecondary, width: "auto", padding: "10px 20px" }} onClick={() => setStep("language")}>
+              <div style={buttonRowStyle}>
+                <button style={navBackButtonStyle} onClick={() => setStep("language")}>
                   {t("setup.back")}
                 </button>
                 <button
                   style={{
-                    ...btnPrimary,
-                    opacity: storageMode === "remote" && (!platform || !gitUrl.trim()) ? 0.5 : 1,
+                    ...navPrimaryButtonStyle,
+                    opacity: remoteReady ? 1 : 0.5,
                   }}
-                  disabled={storageMode === "remote" && (!platform || !gitUrl.trim())}
+                  disabled={!remoteReady}
                   onClick={() => {
                     setSshKeyCopied(false);
-                    void loadSshCandidates();
+                    if (isMobile) {
+                      void runInit();
+                    } else {
+                      void loadSshCandidates();
+                    }
                   }}
                 >
                   {scanningSsh ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : t("setup.next")}
@@ -671,12 +864,12 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 </p>
               )}
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <button style={{ ...btnSecondary, width: "auto", padding: "10px 20px" }} onClick={() => setStep("storage")}>
+              <div style={buttonRowStyle}>
+                <button style={navBackButtonStyle} onClick={() => setStep("storage")}>
                   {t("setup.back")}
                 </button>
                 <button
-                  style={{ ...btnPrimary, opacity: selectedSshKeyPath ? 1 : 0.5 }}
+                  style={{ ...navPrimaryButtonStyle, opacity: selectedSshKeyPath ? 1 : 0.5 }}
                   disabled={!selectedSshKeyPath}
                   onClick={() => setStep("editors")}
                 >
@@ -750,11 +943,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   </div>
                 </button>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button style={{ ...btnSecondary, width: "auto", padding: "10px 20px" }} onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>
+              <div style={buttonRowStyle}>
+                <button style={navBackButtonStyle} onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>
                   {t("setup.back")}
                 </button>
-                <button style={btnPrimary} onClick={runInit}>
+                <button style={navPrimaryButtonStyle} onClick={runInit}>
                   <Rocket size={16} /> {t("setup.startSetup")}
                 </button>
               </div>
@@ -771,18 +964,86 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
           )}
 
           {step === "running" && renderPanel(
-            <div style={{ textAlign: "center", padding: "80px 0" }}>
-              <Loader2
-                size={40}
-                style={{
-                  color: "var(--accent)",
-                  animation: "spin 1s linear infinite",
-                  display: "block",
-                  margin: "0 auto 16px",
-                }}
-              />
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t("setup.settingUp")}</h2>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("setup.pleaseWait")}</p>
+            <div style={{
+              minHeight: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: 18,
+              padding: isMobile ? "28px 0" : "48px 0",
+            }}>
+              <div style={{ textAlign: "center" }}>
+                <Loader2
+                  size={isMobile ? 44 : 48}
+                  style={{
+                    color: "var(--accent)",
+                    animation: "spin 1s linear infinite",
+                    display: "block",
+                    margin: "0 auto 16px",
+                  }}
+                />
+                <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, marginBottom: 8 }}>{t("setup.settingUp")}</h2>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                  {latestInitLog?.message ?? (isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"))}
+                </p>
+              </div>
+
+              <div style={{
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                background: "var(--bg-hover)",
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderBottom: "1px solid var(--border)",
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>{t("setup.initLogTitle")}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                    {t("setup.initLogCount", initLogs.length)}
+                  </span>
+                </div>
+                <div
+                  ref={initLogRef}
+                  style={{
+                    maxHeight: isMobile ? 230 : 260,
+                    overflowY: "auto",
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  {initLogs.length === 0 ? (
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("setup.initWaitingLog")}</p>
+                  ) : initLogs.map((item, index) => (
+                    <div key={`${item.step}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      {initLogIcon(item.status)}
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{
+                          fontSize: 12,
+                          color: item.status === "error" ? "var(--red)" : "var(--text)",
+                          lineHeight: 1.5,
+                          wordBreak: "break-word",
+                        }}>
+                          {item.message}
+                        </p>
+                        <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>
+                          {item.step}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6, textAlign: "center" }}>
+                {t("setup.initLongRunningHint")}
+              </p>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           )}
@@ -793,7 +1054,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <AlertCircle size={40} style={{ color: "var(--red)", marginBottom: 12 }} />
                 <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "var(--red)" }}>{t("setup.failed")}</h2>
                 <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>{error}</p>
-                <button style={btnPrimary} onClick={() => { setError(""); setStep("editors"); }}>
+                <button style={btnPrimary} onClick={() => { setError(""); setStep(retryStep); }}>
                   {t("setup.retry")}
                 </button>
               </div>
@@ -827,7 +1088,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                     {showSetupError
                       ? (storageMode === "remote"
-                          ? "Setup did not complete. Check the failed steps below, make sure your SSH key is ready in the remote repository, then retry."
+                          ? (isMobile
+                              ? t("setup.mobileRemoteErrorDesc")
+                              : "Setup did not complete. Check the failed steps below, make sure your SSH key is ready in the remote repository, then retry.")
                           : "Setup did not complete. Review the failed steps below and retry.")
                       : t("setup.completeDesc")}
                   </p>
@@ -855,7 +1118,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   </div>
                 )}
 
-                {result?.ssh_public_key && doneDeployKeysUrl && (
+                {isDesktop && result?.ssh_public_key && doneDeployKeysUrl && (
                   <div style={{
                     marginBottom: 16,
                     padding: "12px 16px",

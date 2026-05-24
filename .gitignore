@@ -18,6 +18,9 @@ ARTICLE_CN.md
 *.key
 *.p12
 *.pfx
+*.jks
+*.keystore
+desktop/src-tauri/gen/android/keystore.properties
 
 # Tauri generated schemas
 desktop/src-tauri/gen/schemas/

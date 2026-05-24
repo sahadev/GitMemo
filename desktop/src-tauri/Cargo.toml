@@ -30,6 +30,7 @@ tauri-plugin-updater = "2"
 
 # Core library (reuse gitmemo logic)
 gitmemo_core = { path = "../..", package = "gitmemo" }
+git2 = { version = "0.19", features = ["vendored-openssl"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -57,10 +58,16 @@ sha2 = "0.10"
 
 # Base64 encoding for image file reading
 base64 = "0.22"
+reqwest = { version = "0.13.2", default-features = false, features = ["rustls"] }
 
 # Config
 toml = "0.8"
 url = "2"
+
+# Android media store bridge
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+ndk-context = "0.1"
 
 # ── Desktop-only dependencies ──
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

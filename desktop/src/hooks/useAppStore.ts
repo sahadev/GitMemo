@@ -7,6 +7,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import type { KeyboardShortcuts } from "../utils/shortcuts";
 import { notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
+import { getRuntimePlatform, getRuntimePlatformSync } from "./usePlatform";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
 const UPDATE_CHECK_TIMEOUT_MS = 15_000;
@@ -248,13 +249,21 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
   init: async () => {
     const { refreshClipboardStatus, refreshSettings, refreshIntegrationStatus } = get();
+    const platform = await getRuntimePlatform();
     const metaPromise = invoke<AppMeta>("get_app_meta").catch(() => null);
-    await Promise.all([
+    const tasks: Promise<unknown>[] = [
       refreshClipboardStatus(),
       refreshSettings(),
-      refreshIntegrationStatus(),
       metaPromise.then((m) => { if (m) set({ appMeta: m }); }),
-    ]);
+    ];
+
+    if (platform === "desktop") {
+      tasks.push(refreshIntegrationStatus());
+    } else {
+      set({ claudeEnabled: false, cursorEnabled: false });
+    }
+
+    await Promise.all(tasks);
   },
 }));
 
@@ -279,7 +288,13 @@ export function initAppListeners() {
 
   // Load all state on startup
   void useAppStoreInternal.getState().init();
-  configureControlCopyPasteBridge(false);
+  void getRuntimePlatform().then((platform) => {
+    if (platform === "desktop") {
+      configureControlCopyPasteBridge(
+        useAppStoreInternal.getState().settings?.control_copy_paste ?? false,
+      );
+    }
+  });
 
   // Keep clipboard status in sync when backend toggles it (e.g. tray menu)
   void listen("tray-clipboard-update", () => {
@@ -299,7 +314,10 @@ export function initAppListeners() {
   applyTheme(useAppStoreInternal.getState().theme);
   useAppStoreInternal.subscribe((s, prev) => {
     if (s.theme !== prev.theme) applyTheme(s.theme);
-    if (s.settings?.control_copy_paste !== prev.settings?.control_copy_paste) {
+    if (
+      getRuntimePlatformSync() === "desktop" &&
+      s.settings?.control_copy_paste !== prev.settings?.control_copy_paste
+    ) {
       configureControlCopyPasteBridge(s.settings?.control_copy_paste ?? false);
     }
   });

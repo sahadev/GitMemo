@@ -1,4 +1,4 @@
-/// Placeholder for sensitive info filtering
+/// Filter sensitive values from text before it is displayed or written to logs.
 #[allow(dead_code)]
 pub fn filter_sensitive(content: &str) -> String {
     let mut result = content.to_string();
@@ -7,6 +7,11 @@ pub fn filter_sensitive(content: &str) -> String {
     let patterns = [
         (r"sk-[a-zA-Z0-9]{20,}", "***API_KEY***"),
         (r"ghp_[a-zA-Z0-9]{36}", "***GITHUB_TOKEN***"),
+        (r"github_pat_[a-zA-Z0-9_]{20,}", "***GITHUB_TOKEN***"),
+        (r"glpat-[a-zA-Z0-9_\-]{20,}", "***GITLAB_TOKEN***"),
+        (r"https://([^/\s:@]+):([^@\s]+)@", "https://***:***@"),
+        (r"https://([^/\s:@]+)@", "https://***@"),
+        (r"(?i)(access_token|token|password)=([^&\s]+)", "$1=***"),
     ];
 
     for (pattern, replacement) in &patterns {
@@ -16,6 +21,58 @@ pub fn filter_sensitive(content: &str) -> String {
     }
 
     result
+}
+
+/// Convert low-level Git/libgit2 transport errors into messages that are safer
+/// and easier to act on in the UI.
+#[allow(dead_code)]
+pub fn git_error_for_user(error: impl AsRef<str>) -> String {
+    let sanitized = filter_sensitive(error.as_ref()).trim().to_string();
+    if sanitized.is_empty() {
+        return "Git operation failed".to_string();
+    }
+
+    let lower = sanitized.to_ascii_lowercase();
+    let hint = if lower.contains("authentication failed")
+        || lower.contains("auth failed")
+        || lower.contains("unauthorized")
+        || lower.contains("401")
+        || lower.contains("invalid username or password")
+        || lower.contains("bad credentials")
+    {
+        Some("Authentication failed. Check that the access token is valid and has read/write access to this repository.")
+    } else if lower.contains("permission denied")
+        || lower.contains("access denied")
+        || lower.contains("403")
+        || lower.contains("forbidden")
+        || lower.contains("protected branch")
+        || lower.contains("pre-receive hook")
+        || lower.contains("not allowed")
+    {
+        Some("Push was rejected by the remote. Check repository write permission and branch protection rules.")
+    } else if lower.contains("certificate") || lower.contains("ssl") || lower.contains("tls") {
+        Some("TLS certificate verification failed. Check the network, proxy, or certificate configuration.")
+    } else if lower.contains("could not resolve host")
+        || lower.contains("failed to connect")
+        || lower.contains("connection timed out")
+        || lower.contains("connection reset")
+        || lower.contains("network is unreachable")
+        || lower.contains("timeout")
+    {
+        Some("Network connection failed. Check the network connection or proxy settings.")
+    } else if lower.contains("non-fast-forward")
+        || lower.contains("fetch first")
+        || lower.contains("not fast-forward")
+    {
+        Some("Remote history changed before push. Run sync again to fetch and merge the latest remote history.")
+    } else {
+        None
+    };
+
+    match hint {
+        Some(hint) if !sanitized.contains(hint) => format!("{hint} Details: {sanitized}"),
+        _ => sanitized,
+    }
 }
 
 #[cfg(test)]

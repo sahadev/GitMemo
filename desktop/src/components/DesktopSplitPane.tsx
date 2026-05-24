@@ -10,6 +10,17 @@ const desktopPaneStyle: CSSProperties = {
   flex: 1,
 };
 
+const mobilePaneStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  height: "100%",
+  minWidth: 0,
+  minHeight: 0,
+  flex: 1,
+  overflow: "hidden",
+};
+
 export function DesktopSplitPane({
   panelKey,
   defaultWidth,
@@ -29,7 +40,12 @@ export function DesktopSplitPane({
   const panel = useResizablePanel(panelKey, defaultWidth, minWidth, maxWidth);
 
   if (isMobile) {
-    return <>{left}{right}</>;
+    return (
+      <div style={mobilePaneStyle}>
+        {left}
+        {right}
+      </div>
+    );
   }
 
   return (

@@ -1,22 +1,20 @@
 import {
   LayoutDashboard,
-  Search,
-  MessageSquare,
   StickyNote,
   Settings,
-  FileSymlink,
-  Download,
+  Clipboard,
+  MessageSquare,
+  Lightbulb,
 } from "lucide-react";
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
 
 const mobileNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
-  { id: "search", icon: Search, labelKey: "nav.search" },
   { id: "conversations", icon: MessageSquare, labelKey: "nav.conversations" },
   { id: "notes", icon: StickyNote, labelKey: "nav.notes" },
-  { id: "imports", icon: Download, labelKey: "nav.imports" },
-  { id: "external-files", icon: FileSymlink, labelKey: "nav.externalFiles" },
+  { id: "clipboard", icon: Clipboard, labelKey: "nav.clipboard" },
+  { id: "plans", icon: Lightbulb, labelKey: "nav.plans" },
   { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
@@ -30,6 +28,11 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
 
   return (
     <nav style={{
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 30,
       display: "flex",
       alignItems: "center",
       justifyContent: "space-around",
@@ -37,6 +40,8 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
       background: "var(--bg-card)",
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
       flexShrink: 0,
+      width: "100%",
+      boxSizing: "border-box",
     }}>
       {mobileNavItems.map((item) => {
         const Icon = item.icon;
@@ -52,7 +57,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
               flexDirection: "column",
               alignItems: "center",
               gap: 2,
-              padding: "10px 4px 8px",
+              padding: "9px 2px 7px",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -61,8 +66,8 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
               justifyContent: "center",
             }}
           >
-            <Icon size={20} />
-            <span style={{ fontSize: 10, fontWeight: active ? 600 : 400 }}>
+            <Icon size={18} />
+            <span style={{ fontSize: 9, fontWeight: active ? 600 : 400, lineHeight: 1.1 }}>
               {t(item.labelKey)}
             </span>
           </button>

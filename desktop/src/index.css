@@ -237,8 +237,22 @@ textarea:focus, input:focus {
     display: none;
   }
   body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     padding-top: env(safe-area-inset-top, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+  }
+  input,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+  .markdown-body {
+    font-size: 15px;
+    line-height: 1.78;
+  }
+  .markdown-body pre,
+  .markdown-body code {
+    font-size: 13px;
   }
 }

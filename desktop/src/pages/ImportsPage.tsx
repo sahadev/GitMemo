@@ -17,6 +17,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 
 interface NoteResult {
   success: boolean;
@@ -26,6 +27,11 @@ interface NoteResult {
 
 function ImportImagePreview({ relPath }: { relPath: string }) {
   const [src, setSrc] = useState<string | null>(null);
+  const imageSaveProps = useLongPressImageSave({
+    src,
+    filePath: relPath,
+    fileName: relPath.split("/").pop() ?? null,
+  });
   useEffect(() => {
     let cancelled = false;
     invoke<string>("read_file_base64", { filePath: relPath })
@@ -39,7 +45,14 @@ function ImportImagePreview({ relPath }: { relPath: string }) {
     return () => { cancelled = true; };
   }, [relPath]);
   if (!src) return <div style={{ width: 48, height: 36, flexShrink: 0, borderRadius: 4, background: "var(--bg-hover)" }} />;
-  return <img src={src} alt="" style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid var(--border)" }} />;
+  return (
+    <img
+      src={src}
+      alt=""
+      {...imageSaveProps}
+      style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid var(--border)", ...imageSaveProps.style }}
+    />
+  );
 }
 
 export default function ImportsPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger, active }: { onFocusSidebar?: () => void; enterTrigger?: number; active?: boolean } = {}) {

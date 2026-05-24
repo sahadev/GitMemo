@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { Search, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useAppStore } from "../hooks/useAppStore";
+import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface MarkdownViewProps {
@@ -114,25 +115,38 @@ function prepareMarkdown(markdown: string) {
   return preserveParagraphLineIndents(stripFrontmatter(markdown));
 }
 
+function resolveMarkdownImagePath(src?: string, filePath?: string) {
+  if (!src || !filePath) return null;
+  if (src.startsWith("http") || src.startsWith("data:")) return null;
+
+  const slashIndex = filePath.lastIndexOf("/");
+  const dir = slashIndex >= 0 ? filePath.substring(0, slashIndex) : "";
+  const isRootRelative = src.startsWith("/");
+  const isSyncRootPath = /^(clips|imports|notes|conversations|plans|claude-config)\//.test(src);
+  return isRootRelative
+    ? src.slice(1)
+    : isSyncRootPath
+    ? src
+    : dir
+    ? `${dir}/${src}`
+    : src;
+}
+
 /**
  * Custom img renderer that loads local images via Tauri's read_file_base64.
  */
 function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { filePath?: string }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const imgRelPath = useMemo(() => resolveMarkdownImagePath(src, filePath), [src, filePath]);
+  const imageSaveProps = useLongPressImageSave({
+    src: dataUrl ?? src ?? null,
+    filePath: imgRelPath,
+    fileName: src?.split("/").pop() ?? null,
+  });
 
   useEffect(() => {
-    if (!src || !filePath) return;
-    // Only handle relative paths (not http/data URLs)
-    if (src.startsWith("http") || src.startsWith("data:")) return;
-
-    const dir = filePath.substring(0, filePath.lastIndexOf("/"));
-    const isRootRelative = src.startsWith("/");
-    const isSyncRootPath = /^(clips|imports|notes|conversations|plans|claude-config)\//.test(src);
-    const imgRelPath = isRootRelative
-      ? src.slice(1)
-      : isSyncRootPath
-      ? src
-      : `${dir}/${src}`;
+    setDataUrl(null);
+    if (!src || !imgRelPath) return;
 
     invoke<string>("read_file_base64", { filePath: imgRelPath })
       .then((b64) => {
@@ -141,15 +155,15 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
         setDataUrl(`data:${mime};base64,${b64}`);
       })
       .catch(() => {});
-  }, [src, filePath]);
+  }, [src, imgRelPath]);
 
   if (dataUrl) {
-    return <img src={dataUrl} alt={alt ?? ""} {...rest} />;
+    return <img src={dataUrl} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
   }
   if (src?.startsWith("http") || src?.startsWith("data:")) {
-    return <img src={src} alt={alt ?? ""} {...rest} />;
+    return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
   }
-  return <img src={src} alt={alt ?? ""} {...rest} />;
+  return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
 }
 
 export default function MarkdownView({ content, filePath }: MarkdownViewProps) {

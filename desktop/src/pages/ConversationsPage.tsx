@@ -17,6 +17,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 interface ConversationMeta {
   title: string;
@@ -94,7 +95,17 @@ function parseConversationBody(body: string): ParsedConversationBody {
   };
 }
 
-export default function ConversationsPage({ onFocusSidebar, enterTrigger, sidebarFocused }: { onFocusSidebar?: () => void; enterTrigger?: number; sidebarFocused?: boolean }) {
+export default function ConversationsPage({
+  onFocusSidebar,
+  enterTrigger,
+  sidebarFocused,
+  registerMobileBackHandler,
+}: {
+  onFocusSidebar?: () => void;
+  enterTrigger?: number;
+  sidebarFocused?: boolean;
+  registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
+}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
@@ -116,6 +127,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   const editRef = useRef<HTMLTextAreaElement>(null);
   const filesLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
+  const detailOpenedFromCrossPageRef = useRef(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [totalFiles, setTotalFiles] = useState(0);
@@ -175,32 +187,34 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
     setMessages(parsed.messages);
   }, []);
 
-  const openFile = useCallback(async (path: string) => {
+  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const raw = await invoke<string>("read_file", { filePath: path });
       applyConversationRaw(path, raw);
       setEditing(false);
       setEditContent("");
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       setTimeout(() => {
         itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 50);
     } catch (e) {
       console.error(e);
     }
-  }, [applyConversationRaw]);
+  }, [applyConversationRaw, isMobile]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("conversations/")) return;
-    void openFile(pendingOpenPath);
+    void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
 
   const startEdit = useCallback(() => {
+    if (isMobile) return;
     if (!selectedFile) return;
     setEditing(true);
     setEditContent(rawContent);
     window.setTimeout(() => editRef.current?.focus(), 0);
-  }, [selectedFile, rawContent]);
+  }, [isMobile, selectedFile, rawContent]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
@@ -222,6 +236,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   }, [selectedFile, editContent, applyConversationRaw, showToast, t]);
 
   const handleDelete = async () => {
+    if (isMobile) return;
     if (!selectedFile) return;
     const confirmed = await ask(t("conversations.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
@@ -283,6 +298,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
   }, [files, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
+    if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -311,13 +327,39 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigatePrev, navigateNext, selectedFile, files, sidebarFocused, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
+  }, [isMobile, navigatePrev, navigateNext, selectedFile, files, sidebarFocused, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
+  const closeDetail = useCallback(() => {
+    setSelectedFile(null);
+    setMessages([]);
+    setCurrentMeta(null);
+    setRawBody("");
+    setRawContent("");
+    setEditing(false);
+    setIntroContent("");
+    detailOpenedFromCrossPageRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !registerMobileBackHandler) return;
+    registerMobileBackHandler(() => {
+      if (selectedFile) {
+        if (detailOpenedFromCrossPageRef.current) {
+          closeDetail();
+          return false;
+        }
+        closeDetail();
+        return true;
+      }
+      return false;
+    });
+    return () => registerMobileBackHandler(null);
+  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
   return (
-    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="conversations"
         defaultWidth={300}
@@ -325,12 +367,14 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
       <div style={{
         display: "flex", flexDirection: "column",
         flexShrink: 0, background: "var(--bg)",
+        width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 12px",
+          display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
           borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
         }}>
           <MessageSquare size={18} style={{ color: "var(--accent)" }} />
           <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
@@ -356,7 +400,12 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
         </div>
 
         {/* List */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0,
+        }}>
           {loading ? (
             <Loading compact text={t("conversations.loading")} />
           ) : files.length === 0 ? (
@@ -376,7 +425,8 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   onClick={() => openFile(f.path)}
                   style={{
                     display: "block", width: "100%", textAlign: "left",
-                    padding: "12px 16px", cursor: "pointer",
+                    minHeight: isMobile ? 58 : undefined,
+                    padding: isMobile ? "14px 16px" : "12px 16px", cursor: "pointer",
                     background: selected ? "var(--accent)" : "transparent",
                     border: "none", borderBottom: "1px solid var(--border)",
                     color: selected ? "#fff" : "var(--text)", transition: "background 0.15s",
@@ -431,7 +481,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
@@ -444,13 +494,27 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
             {/* Header */}
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
+              padding: isMobile ? "8px 12px" : "10px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
             }}>
               <button
-                onClick={() => { setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false); }}
-                style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
+                onClick={closeDetail}
+                style={{
+                  width: isMobile ? 36 : 24,
+                  height: isMobile ? 36 : 24,
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                }}
+                title={t("common.back")}
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={isMobile ? 20 : 16} />
               </button>
               <span
                 onClick={() => {
@@ -458,7 +522,7 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   navigator.clipboard.writeText(text);
                   showToast(t("conversations.copied"));
                 }}
-                style={{ fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
+                style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
                 title={t("conversations.clickToCopy")}
               >
                 {currentMeta?.title || selectedFile}
@@ -476,9 +540,9 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   {currentMeta.messages} {t("conversations.msgs")}
                 </span>
               )}
-              <RevealInFinderButton relPath={selectedFile ?? undefined} />
-              {selectedFile && !editing ? <CopyPathButton relPath={selectedFile} /> : null}
-              {editing ? (
+              {!isMobile && <RevealInFinderButton relPath={selectedFile ?? undefined} />}
+              {!isMobile && selectedFile && !editing ? <CopyPathButton relPath={selectedFile} /> : null}
+              {!isMobile && (editing ? (
                 <>
                   <button
                     onClick={() => { setEditing(false); setEditContent(""); }}
@@ -517,8 +581,8 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                   <Pencil size={12} />
                   {t("conversations.edit")}
                 </button>
-              )}
-              <button
+              ))}
+              {!isMobile && <button
                 onClick={() => void handleDelete()}
                 style={{
                   padding: 6, borderRadius: 4, background: "none", border: "none",
@@ -527,11 +591,16 @@ export default function ConversationsPage({ onFocusSidebar, enterTrigger, sideba
                 title={t("conversations.deleteConversation")}
               >
                 <Trash2 size={14} />
-              </button>
+              </button>}
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", userSelect: "text" }}>
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: isMobile ? `16px 16px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "20px 24px",
+              userSelect: "text",
+            }}>
               {editing ? (
                 <textarea
                   ref={editRef}
