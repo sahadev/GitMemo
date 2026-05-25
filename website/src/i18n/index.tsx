@@ -48,8 +48,6 @@ const en: Record<string, string> = {
   'download.macosIntel.desc': 'For Intel-based Macs.',
   'download.androidApk.title': 'Android APK (arm64-v8a)',
   'download.androidApk.desc': 'For mainstream 64-bit Android phones.',
-  'download.abi': 'Supported ABI',
-  'download.fileName': 'File name',
   'download.action': 'Download',
 
   // Pain Points
@@ -114,8 +112,8 @@ const en: Record<string, string> = {
 
   // Comparison
   'cmp.label': 'Comparison',
-  'cmp.title': 'GitMemo vs Evernote vs Obsidian vs Notion vs Sublime Text',
-  'cmp.subtitle': 'The only tool that combines Markdown editing, AI conversation capture, clipboard history, Git-native sync, and open source. A true alternative to cloud note apps.',
+  'cmp.title': 'GitMemo vs Obsidian',
+  'cmp.subtitle': 'GitMemo is closest to Obsidian in note-taking and Markdown workflows, but it adds AI conversation capture, clipboard history, Git-native sync, and built-in mobile-friendly saving.',
   'cmp.feature': 'Feature',
   'cmp.features.aiBackup': 'AI conversation capture',
   'cmp.features.notes': 'Markdown notes & editor',
@@ -126,14 +124,10 @@ const en: Record<string, string> = {
   'cmp.features.openSource': 'Open source',
   'cmp.features.appSize': 'App size',
   'cmp.features.price': 'Price',
-  'cmp.products.evernote': 'Evernote',
   'cmp.products.obsidian': 'Obsidian',
-  'cmp.products.notion': 'Notion',
-  'cmp.products.sublime': 'Sublime Text',
-  'cmp.products.typora': 'Typora',
   'cmp.products.gitmemo': 'GitMemo',
-  'cmp.note': 'GitMemo\'s unique position:',
-  'cmp.note2': 'Notes + Editor + AI capture + Git-native + Open source + Free + No subscription',
+  'cmp.note': 'Core difference:',
+  'cmp.note2': 'Obsidian is a powerful local Markdown knowledge base; GitMemo focuses on Git-backed notes plus AI and clipboard capture.',
 
   // Desktop App
   'app.label': 'Desktop App',
@@ -191,8 +185,6 @@ const zh: Record<string, string> = {
   'download.macosIntel.desc': '适用于 Intel 架构的 macOS 系统。',
   'download.androidApk.title': 'Android APK（arm64-v8a）',
   'download.androidApk.desc': '适用于主流 64 位 Android 手机。',
-  'download.abi': '支持 ABI',
-  'download.fileName': '文件名',
   'download.action': '下载',
 
   // Pain Points
@@ -257,8 +249,8 @@ const zh: Record<string, string> = {
 
   // Comparison
   'cmp.label': '竞品对比',
-  'cmp.title': 'GitMemo vs 印象笔记 vs Obsidian vs Notion vs Sublime Text',
-  'cmp.subtitle': '唯一一个同时覆盖 Markdown 编辑、AI 对话捕获、剪贴板历史、Git 原生同步和开源的笔记工具。印象笔记/Obsidian/Notion/Sublime Text/Typora 用户的免费开源替代。',
+  'cmp.title': 'GitMemo vs Obsidian',
+  'cmp.subtitle': 'GitMemo 和 Obsidian 最接近：都面向本地 Markdown 知识库。但 GitMemo 更强调 AI 对话捕获、剪贴板历史、Git 原生同步和移动端保存。',
   'cmp.feature': '功能',
   'cmp.features.aiBackup': 'AI 对话自动备份',
   'cmp.features.notes': 'Markdown 笔记 & 编辑器',
@@ -269,14 +261,10 @@ const zh: Record<string, string> = {
   'cmp.features.openSource': '开源',
   'cmp.features.appSize': '应用体积',
   'cmp.features.price': '价格',
-  'cmp.products.evernote': '印象笔记',
   'cmp.products.obsidian': 'Obsidian',
-  'cmp.products.notion': 'Notion',
-  'cmp.products.sublime': 'Sublime Text',
-  'cmp.products.typora': 'Typora',
   'cmp.products.gitmemo': 'GitMemo',
-  'cmp.note': 'GitMemo 的独特定位：',
-  'cmp.note2': '笔记 + 编辑器 + AI 捕获 + Git 原生 + 开源 + 免费 + 无订阅',
+  'cmp.note': '核心区别：',
+  'cmp.note2': 'Obsidian 是强大的本地 Markdown 知识库；GitMemo 是 Git 原生的笔记库，并内置 AI 对话和剪贴板捕获。',
 
   // Desktop App
   'app.label': '桌面客户端',

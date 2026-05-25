@@ -39,8 +39,6 @@ interface DownloadItem {
   fallbackHref: string
   assetPattern?: RegExp
   ext: string
-  abi?: string
-  fileName?: string
   fixedVersion?: string
   useManifest?: boolean
 }
@@ -65,8 +63,6 @@ const downloads: DownloadItem[] = [
     icon: Smartphone,
     fallbackHref: FIXED_ANDROID_APK_URL,
     ext: '.apk',
-    abi: FIXED_ANDROID_ABI,
-    fileName: FIXED_ANDROID_APK_FILENAME,
     fixedVersion: FIXED_ANDROID_VERSION,
     useManifest: false,
   },
@@ -171,16 +167,6 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                 <p className="mt-6 text-sm sm:text-base text-text-secondary">
                   {t(`download.${item.key}.desc`)}
                 </p>
-                {item.abi && (
-                  <p className="mt-3 text-xs sm:text-sm text-text-secondary">
-                    {t('download.abi')}: <span className="font-medium text-text">{item.abi}</span>
-                  </p>
-                )}
-                {item.fileName && (
-                  <p className="mt-2 break-all text-xs sm:text-sm text-text-secondary">
-                    {t('download.fileName')}: <span className="font-medium text-text">{item.fileName}</span>
-                  </p>
-                )}
               </div>
 
               <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
