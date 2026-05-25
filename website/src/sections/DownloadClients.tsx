@@ -4,8 +4,9 @@ import { useI18n } from '../i18n/useI18n'
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
-const FIXED_ANDROID_VERSION = 'v1.0.71'
-const FIXED_ANDROID_APK_URL = 'https://gitmemo.kakacut.cn/mobile/app-universal-release.apk'
+const FIXED_ANDROID_VERSION = 'v1.0.77'
+const FIXED_ANDROID_ABI = 'arm64-v8a'
+const FIXED_ANDROID_APK_URL = 'https://gitmemo.kakacut.cn/mobile/gitmemo-android-arm64-v8a-release.apk'
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
 
 interface GitHubReleaseAsset {
@@ -34,6 +35,7 @@ interface DownloadItem {
   fallbackHref: string
   assetPattern?: RegExp
   ext: string
+  abi?: string
   fixedVersion?: string
   useManifest?: boolean
 }
@@ -58,6 +60,7 @@ const downloads: DownloadItem[] = [
     icon: Smartphone,
     fallbackHref: FIXED_ANDROID_APK_URL,
     ext: '.apk',
+    abi: FIXED_ANDROID_ABI,
     fixedVersion: FIXED_ANDROID_VERSION,
     useManifest: false,
   },
@@ -162,6 +165,11 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                 <p className="mt-6 text-sm sm:text-base text-text-secondary">
                   {t(`download.${item.key}.desc`)}
                 </p>
+                {item.abi && (
+                  <p className="mt-3 text-xs sm:text-sm text-text-secondary">
+                    {t('download.abi')}: <span className="font-medium text-text">{item.abi}</span>
+                  </p>
+                )}
               </div>
 
               <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">

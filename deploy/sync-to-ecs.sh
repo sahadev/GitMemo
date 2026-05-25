@@ -15,18 +15,20 @@ set -euo pipefail
 #   ECS_DIR   — ECS 上项目目录（默认 /opt/kakacut）
 #   BAIDU_VERIFY_CODE — 百度站长平台验证码（可选，从 ziyuan.baidu.com 获取）
 #   VITE_DOWNLOAD_MANIFEST_URL — OSS downloads.json 地址（可选，配置后下载区优先走 OSS）
+#   ANDROID_APK — Android APK 源文件路径（可选，默认自动查找 arm64-v8a release 包）
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEBSITE_DIR="$PROJECT_DIR/website"
-ANDROID_APK="$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
 
 # 加载本地配置
 if [ -f "$SCRIPT_DIR/.env.local" ]; then
     source "$SCRIPT_DIR/.env.local"
 fi
 
+ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
+ANDROID_APK_FILENAME="${ANDROID_APK_FILENAME:-gitmemo-android-${ANDROID_ABI}-release.apk}"
 ECS_IP="${ECS_IP:-101.200.217.80}"
 ECS_USER="${ECS_USER:-root}"
 ECS_DIR="${ECS_DIR:-/opt/kakacut}"
@@ -49,6 +51,59 @@ warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
 info() { echo -e "${CYAN}[info]${NC} $*"; }
 
 ECS_SSH="$ECS_USER@$ECS_IP"
+
+apk_abi_list() {
+    local apk="$1"
+    if ! command -v unzip >/dev/null 2>&1; then
+        return 1
+    fi
+    unzip -Z1 "$apk" 2>/dev/null \
+        | awk -F/ '$1 == "lib" && $2 != "" && $NF ~ /\.so$/ { print $2 }' \
+        | sort -u \
+        | paste -sd ',' -
+}
+
+apk_matches_published_abi() {
+    local apk="$1"
+    local abis
+    if [ ! -f "$apk" ]; then
+        return 1
+    fi
+    abis="$(apk_abi_list "$apk" || true)"
+    [ "$abis" = "$ANDROID_ABI" ]
+}
+
+resolve_android_apk() {
+    local candidates=()
+
+    if [ -n "${ANDROID_APK:-}" ]; then
+        candidates+=("$ANDROID_APK")
+    fi
+
+    candidates+=(
+        "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/$ANDROID_APK_FILENAME"
+        "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/arm64/release/$ANDROID_APK_FILENAME"
+        "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk"
+        "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
+        "$HOME/Downloads/app-universal-release.apk"
+    )
+
+    local candidate
+    for candidate in "${candidates[@]}"; do
+        if [ ! -f "$candidate" ]; then
+            continue
+        fi
+
+        if apk_matches_published_abi "$candidate"; then
+            echo "$candidate"
+            return 0
+        fi
+
+        warn "跳过 Android APK：$(basename "$candidate") 不是 ${ANDROID_ABI} 单 ABI 包" >&2
+    done
+
+    return 1
+}
 
 # ============================================
 # 替换 Google Fonts 为国内镜像
@@ -100,13 +155,16 @@ build_website() {
     mkdir -p "$SCRIPT_DIR/dist"
     cp -r "$WEBSITE_DIR/dist/client" "$SCRIPT_DIR/dist/gitmemo"
 
-    if [ -f "$ANDROID_APK" ]; then
+    local resolved_android_apk
+    resolved_android_apk="$(resolve_android_apk || true)"
+    if [ -n "$resolved_android_apk" ]; then
         mkdir -p "$SCRIPT_DIR/dist/gitmemo/mobile"
-        cp "$ANDROID_APK" "$SCRIPT_DIR/dist/gitmemo/mobile/app-universal-release.apk"
-        log "Android APK 已复制到 /mobile/app-universal-release.apk"
+        cp "$resolved_android_apk" "$SCRIPT_DIR/dist/gitmemo/mobile/$ANDROID_APK_FILENAME"
+        log "Android ${ANDROID_ABI} APK 已复制到 /mobile/${ANDROID_APK_FILENAME}"
+        info "APK 源文件: $resolved_android_apk"
     else
-        warn "未找到 Android release APK，跳过 /mobile/app-universal-release.apk"
-        warn "预期路径: $ANDROID_APK"
+        warn "未找到 Android ${ANDROID_ABI} release APK，跳过 /mobile/${ANDROID_APK_FILENAME}"
+        warn "可通过 ANDROID_APK=/path/to/app.apk 指定源文件"
     fi
 
     fix_for_china

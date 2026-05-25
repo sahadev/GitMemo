@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -17,13 +18,25 @@ open class RustPlugin : Plugin<Project> {
     override fun apply(project: Project) = with(project) {
         config = extensions.create("rust", Config::class.java)
 
-        val defaultAbiList = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64");
-        val abiList = (findProperty("abiList") as? String)?.split(',') ?: defaultAbiList
+        fun csvProperty(name: String, fallback: List<String>): List<String> =
+            (findProperty(name) as? String)
+                ?.split(',')
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.takeIf { it.isNotEmpty() }
+                ?: fallback
 
-        val defaultArchList = listOf("arm64", "arm", "x86", "x86_64");
-        val archList = (findProperty("archList") as? String)?.split(',') ?: defaultArchList
+        val defaultAbiList = listOf("arm64-v8a")
+        val abiList = csvProperty("abiList", defaultAbiList)
 
-        val targetsList = (findProperty("targetList") as? String)?.split(',') ?: listOf("aarch64", "armv7", "i686", "x86_64")
+        val defaultArchList = listOf("arm64")
+        val archList = csvProperty("archList", defaultArchList)
+
+        val targetsList = csvProperty("targetList", listOf("aarch64"))
+
+        if (abiList.size != archList.size || archList.size != targetsList.size) {
+            throw GradleException("abiList, archList, and targetList must have the same number of entries")
+        }
 
         extensions.configure<ApplicationExtension> {
             @Suppress("UnstableApiUsage")
@@ -35,11 +48,11 @@ open class RustPlugin : Plugin<Project> {
                         abiFilters += abiList
                     }
                 }
-                defaultArchList.forEachIndexed { index, arch ->
+                archList.forEachIndexed { index, arch ->
                     create(arch) {
                         dimension = "abi"
                         ndk {
-                            abiFilters.add(defaultAbiList[index])
+                            abiFilters.add(abiList[index])
                         }
                     }
                 }

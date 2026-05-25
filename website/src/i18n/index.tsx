@@ -46,8 +46,9 @@ const en: Record<string, string> = {
   'download.macosAppleSilicon.desc': 'For Macs with Apple Silicon chips.',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': 'For Intel-based Macs.',
-  'download.androidApk.title': 'Android APK',
-  'download.androidApk.desc': 'Fixed APK build for Android devices.',
+  'download.androidApk.title': 'Android APK (arm64-v8a)',
+  'download.androidApk.desc': 'For mainstream 64-bit Android phones.',
+  'download.abi': 'Supported ABI',
   'download.action': 'Download',
 
   // Pain Points
@@ -187,8 +188,9 @@ const zh: Record<string, string> = {
   'download.macosAppleSilicon.desc': '适用于 Apple Silicon 架构的 macOS 系统。',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': '适用于 Intel 架构的 macOS 系统。',
-  'download.androidApk.title': 'Android APK',
-  'download.androidApk.desc': '固定版本 Android 安装包。',
+  'download.androidApk.title': 'Android APK（arm64-v8a）',
+  'download.androidApk.desc': '适用于主流 64 位 Android 手机。',
+  'download.abi': '支持 ABI',
   'download.action': '下载',
 
   // Pain Points

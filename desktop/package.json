@@ -12,6 +12,7 @@
     "dev": "vite",
     "generate:changelog": "python3 ../scripts/generate_changelog.py --output public/changelog.json",
     "build": "pnpm run generate:changelog && tsc && vite build",
+    "build:android:arm64": "../scripts/build_android_arm64.sh",
     "preview": "vite preview",
     "tauri": "tauri"
   },
