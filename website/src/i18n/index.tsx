@@ -164,6 +164,7 @@ const en: Record<string, string> = {
   'footer.getStarted': 'Get Started',
   'footer.star': 'Star on GitHub',
   'footer.mit': 'Open source under MIT',
+  'footer.contact': 'Contact',
 }
 
 // ─── Chinese ───────────────────────────────────────────
@@ -304,4 +305,5 @@ const zh: Record<string, string> = {
   'footer.getStarted': '开始使用',
   'footer.star': '在 GitHub Star',
   'footer.mit': '基于 MIT 许可证开源',
+  'footer.contact': '联系',
 }
