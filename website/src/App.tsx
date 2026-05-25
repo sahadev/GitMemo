@@ -1,4 +1,5 @@
 import './index.css'
+import TopNav from './sections/TopNav'
 import Hero from './sections/Hero'
 import Downloads from './sections/Downloads'
 import PainPoints from './sections/PainPoints'
@@ -14,6 +15,7 @@ import Footer from './sections/Footer'
 function App() {
   return (
     <div className="min-h-screen">
+      <TopNav />
       <Hero />
       <Downloads />
       <PainPoints />

@@ -28,7 +28,8 @@ export default function Footer() {
           <div className="flex items-center gap-6 text-sm text-text-secondary">
             <a href="https://github.com/sahadev/GitMemo" className="hover:text-text transition-colors">GitHub</a>
             <a href="https://github.com/sahadev/GitMemo/releases" className="hover:text-text transition-colors">Releases</a>
-            <a href="https://github.com/sahadev/GitMemo#readme" className="hover:text-text transition-colors">Docs</a>
+            <a href="/readme/" className="hover:text-text transition-colors">README</a>
+            <a href="/llms.txt" className="hover:text-text transition-colors">{t('footer.llms')}</a>
             <a href="https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+" className="hover:text-text transition-colors">Feedback</a>
             <a href="mailto:sahadev@foxmail.com" className="hover:text-text transition-colors">{t('footer.contact')}</a>
           </div>

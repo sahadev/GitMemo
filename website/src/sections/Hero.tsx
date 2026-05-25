@@ -15,7 +15,7 @@ export default function Hero() {
       </div>
 
       {/* Theme + Language toggles */}
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-3 md:top-8">
         <button
           onClick={toggleTheme}
           className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center text-text-secondary hover:text-text transition-colors"

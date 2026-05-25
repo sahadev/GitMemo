@@ -36,7 +36,7 @@ export default function Comparison() {
   const { t } = useI18n()
 
   return (
-    <section className="py-24 px-6 border-t border-border">
+    <section id="comparison" className="py-24 px-6 border-t border-border scroll-mt-20">
       <div className="max-w-4xl mx-auto">
         <p className="text-accent text-sm font-semibold tracking-wider uppercase mb-4 text-center">{t('cmp.label')}</p>
         <h2 className="text-3xl sm:text-4xl font-bold text-text text-center mb-4">{t('cmp.title')}</h2>

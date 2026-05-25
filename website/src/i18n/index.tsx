@@ -38,6 +38,13 @@ const en: Record<string, string> = {
   'hero.download': 'Download',
   'hero.github': 'View on GitHub',
 
+  // Navigation
+  'nav.downloads': 'Download',
+  'nav.features': 'Features',
+  'nav.comparison': 'Compare',
+  'nav.readme': 'README',
+  'nav.llms': 'LLM docs',
+
   // Downloads
   'download.label': 'Client Downloads',
   'download.title': 'Download GitMemo',
@@ -161,6 +168,7 @@ const en: Record<string, string> = {
   'footer.star': 'Star on GitHub',
   'footer.mit': 'Open source under MIT',
   'footer.contact': 'Contact',
+  'footer.llms': 'LLM docs',
 }
 
 // ─── Chinese ───────────────────────────────────────────
@@ -174,6 +182,13 @@ const zh: Record<string, string> = {
   'hero.badge': '免费开源 · 本地优先',
   'hero.download': '下载',
   'hero.github': '在 GitHub 查看',
+
+  // Navigation
+  'nav.downloads': '下载',
+  'nav.features': '功能',
+  'nav.comparison': '对比',
+  'nav.readme': 'README',
+  'nav.llms': '大模型文档',
 
   // Downloads
   'download.label': '客户端下载',
@@ -298,4 +313,5 @@ const zh: Record<string, string> = {
   'footer.star': '在 GitHub Star',
   'footer.mit': '基于 MIT 许可证开源',
   'footer.contact': '联系',
+  'footer.llms': '大模型文档',
 }
