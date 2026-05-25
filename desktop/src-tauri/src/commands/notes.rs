@@ -471,27 +471,6 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
 }
 
 #[tauri::command]
-pub fn append_daily(content: String) -> Result<NoteResult, String> {
-    let dir = sync_dir();
-    if !dir.exists() {
-        return Err("GitMemo not initialized".into());
-    }
-
-    let rel_path = files::append_daily(&dir, &content).map_err(|e| e.to_string())?;
-    bg_refresh_index_file(dir.clone(), rel_path.clone());
-    bg_commit_and_push(format!(
-        "daily: {}",
-        content.chars().take(50).collect::<String>()
-    ));
-
-    Ok(NoteResult {
-        success: true,
-        path: rel_path.clone(),
-        message: format!("Appended to daily note: {}", rel_path),
-    })
-}
-
-#[tauri::command]
 pub fn create_manual(title: String, content: String, append: bool) -> Result<NoteResult, String> {
     let dir = sync_dir();
     if !dir.exists() {

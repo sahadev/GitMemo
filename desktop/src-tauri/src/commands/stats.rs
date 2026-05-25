@@ -35,7 +35,6 @@ fn count_md_files(dir: &Path) -> usize {
 #[derive(Debug, Serialize)]
 pub struct AppStats {
     pub conversations: usize,
-    pub daily_notes: usize,
     pub manuals: usize,
     pub scratch_notes: usize,
     pub clips: usize,
@@ -78,7 +77,6 @@ fn get_stats_sync() -> Result<AppStats, String> {
 
     Ok(AppStats {
         conversations: count_md_files(&sync_dir.join("conversations")),
-        daily_notes: count_md_files(&sync_dir.join("notes").join("daily")),
         manuals: count_md_files(&sync_dir.join("notes").join("manual")),
         scratch_notes: count_md_files(&sync_dir.join("notes").join("scratch")),
         clips: count_md_files(&sync_dir.join("clips")),
@@ -170,7 +168,6 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
     let folders = [
         "conversations",
         "notes/scratch",
-        "notes/daily",
         "notes/manual",
         "clips",
         "plans",
@@ -213,8 +210,6 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
                 "clip"
             } else if rel_path.starts_with("plans") {
                 "plan"
-            } else if rel_path.starts_with("notes/daily") {
-                "daily"
             } else if rel_path.starts_with("notes/manual") {
                 "manual"
             } else {
@@ -257,7 +252,6 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
     let folders = [
         "conversations",
         "notes/scratch",
-        "notes/daily",
         "notes/manual",
     ];
     let mut candidates: Vec<RecentItem> = Vec::new();
@@ -303,8 +297,6 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
 
             let category = if rel_path.starts_with("conversations") {
                 "conversation"
-            } else if rel_path.starts_with("notes/daily") {
-                "daily"
             } else if rel_path.starts_with("notes/manual") {
                 "manual"
             } else {

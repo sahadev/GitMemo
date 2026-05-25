@@ -183,7 +183,7 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
     };
     const handleTouchEnd = (event: TouchEvent) => finishLongPress(event);
     const handleContextMenu = (event: MouseEvent) => {
-      if (!isMobile) return;
+      if (!src && !filePath) return;
       event.preventDefault();
       event.stopPropagation();
       suppressClickUntilRef.current = Date.now() + 900;
@@ -210,15 +210,15 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
       node.removeEventListener("contextmenu", handleContextMenu);
       node.removeEventListener("click", handleClickCapture, true);
     };
-  }, [beginLongPress, finishLongPress, isMobile, moveLongPress, saveImage]);
+  }, [beginLongPress, filePath, finishLongPress, isMobile, moveLongPress, saveImage, src]);
 
   const contextMenu = useCallback((e: ReactMouseEvent<HTMLImageElement>) => {
-    if (!isMobile) return;
+    if (!src && !filePath) return;
     e.preventDefault();
     e.stopPropagation();
     suppressClickUntilRef.current = Date.now() + 900;
     void saveImage();
-  }, [isMobile, saveImage]);
+  }, [filePath, saveImage, src]);
 
   const clickCapture = useCallback((e: ReactMouseEvent<HTMLImageElement>) => {
     if (!isMobile || Date.now() > suppressClickUntilRef.current) return;

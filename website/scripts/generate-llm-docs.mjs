@@ -99,7 +99,6 @@ Default repository path: \`~/.gitmemo\`
 Common directories:
 
 - \`conversations/\`: captured AI conversations.
-- \`notes/daily/\`: daily notes.
 - \`notes/manual/\`: long-form manuals, reports, and reusable docs.
 - \`notes/scratch/\`: quick scratch notes.
 - \`clips/\`: clipboard captures.
@@ -303,7 +302,6 @@ GitMemo provides MCP tools through the GitMemo CLI/server integration.
 - \`cds_recent\`: list recent saved items.
 - \`cds_read\`: read a file from the GitMemo repository.
 - \`cds_note\`: create a scratch note.
-- \`cds_daily\`: append to the daily note.
 - \`cds_manual\`: create or append a manual document.
 - \`cds_stats\`: return repository statistics.
 - \`cds_sync\`: commit and push local changes.
@@ -317,7 +315,6 @@ If an AI tool writes files directly without using GitMemo MCP tools, timestamp q
 ## Storage Paths
 
 - Scratch notes: \`notes/scratch/\`
-- Daily notes: \`notes/daily/\`
 - Manual documents: \`notes/manual/\`
 `)
 
@@ -347,9 +344,9 @@ writeDoc('facts.json', JSON.stringify({
   },
   data: {
     defaultPath: '~/.gitmemo',
-    directories: ['conversations', 'notes/daily', 'notes/manual', 'notes/scratch', 'clips', 'plans', 'imports'],
+    directories: ['conversations', 'notes/manual', 'notes/scratch', 'clips', 'plans', 'imports'],
   },
-  mcpTools: ['cds_search', 'cds_recent', 'cds_read', 'cds_note', 'cds_daily', 'cds_manual', 'cds_stats', 'cds_sync'],
+  mcpTools: ['cds_search', 'cds_recent', 'cds_read', 'cds_note', 'cds_manual', 'cds_stats', 'cds_sync'],
 }, null, 2))
 
 console.log(`Generated LLM docs for GitMemo ${versionTag}`)

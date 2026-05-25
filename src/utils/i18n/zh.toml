@@ -119,8 +119,6 @@ push_hint = "运行 {} 推送到远程"
 # ── Note commands ────────────────────────────────────────
 
 scratch_created = "便签已创建: {}"
-daily_saved = "今日笔记已保存"
-daily_appended = "已追加到今日笔记: {}"
 content_empty = "内容为空，跳过。"
 manual_saved = "手册已保存: {}"
 
@@ -137,7 +135,6 @@ recent_heading = "📋 最近 {} 天的对话："
 
 stats_title = "GitMemo 统计"
 stats_conversations = "对话记录"
-stats_daily = "每日笔记"
 stats_manual = "手册"
 stats_scratch = "便签"
 stats_storage = "存储大小"
@@ -170,8 +167,6 @@ mcp_read_desc = "读取某条对话或笔记的完整内容。"
 mcp_read_path_desc = "文件相对路径"
 mcp_note_desc = "创建一条便签笔记。当用户说'记一下'、'保存这个想法'时使用。"
 mcp_note_content_desc = "笔记内容"
-mcp_daily_desc = "追加内容到今天的日记。当用户说'记到今天的日记里'时使用。"
-mcp_daily_content_desc = "要追加的内容"
 mcp_manual_desc = "创建或追加到手册文档。当用户说'创建一篇手册'、'整理成文档'时使用。"
 mcp_manual_title_desc = "手册标题"
 mcp_manual_content_desc = "手册内容"
@@ -183,7 +178,6 @@ mcp_sync_message_desc = "commit message（可选，默认自动生成）"
 # ── MCP tool responses ───────────────────────────────────
 
 mcp_note_created = "便签已创建: {}"
-mcp_daily_appended = "已追加到今日笔记: {}"
 mcp_manual_saved = "手册已保存: {}"
 mcp_sync_done = "Git 同步完成（已提交并推送）"
 mcp_committed_push_failed = "已提交，但推送失败: {}"

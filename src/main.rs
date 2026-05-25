@@ -39,7 +39,6 @@ fn main() -> Result<()> {
         } => commands::cmd_init(git_url, path, no_mcp, editor, lang)?,
         Commands::Uninstall { remove_data } => commands::cmd_uninstall(remove_data)?,
         Commands::Note { content } => commands::cmd_note(&sync_dir, &content)?,
-        Commands::Daily { content } => commands::cmd_daily(&sync_dir, content)?,
         Commands::Manual {
             title,
             content,

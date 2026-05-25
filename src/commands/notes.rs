@@ -3,7 +3,6 @@ use std::path::Path;
 
 use super::common::{ensure_init, print_sync_status};
 use crate::{services, utils};
-use gitmemo_core::storage::files::refresh_updated_frontmatter;
 
 pub fn cmd_note(sync_dir: &Path, content: &str) -> Result<()> {
     use console::style;
@@ -14,56 +13,6 @@ pub fn cmd_note(sync_dir: &Path, content: &str) -> Result<()> {
         "  {} {}",
         style("✓").green(),
         t.scratch_created(&result.rel_path)
-    );
-    print_sync_status(&result.sync);
-    Ok(())
-}
-
-pub fn cmd_daily(sync_dir: &Path, content: Option<String>) -> Result<()> {
-    use console::style;
-    let t = utils::i18n::get();
-    ensure_init(sync_dir)?;
-
-    let text = match content {
-        Some(c) => c,
-        None => {
-            // Open editor
-            let daily_path = sync_dir.join(format!(
-                "notes/daily/{}.md",
-                chrono::Local::now().format("%Y-%m-%d")
-            ));
-            if !daily_path.exists() {
-                let now = chrono::Local::now();
-                let date = now.format("%Y-%m-%d").to_string();
-                std::fs::create_dir_all(daily_path.parent().unwrap())?;
-                std::fs::write(
-                    &daily_path,
-                    format!(
-                        "---\ndate: {}\nupdated: {}\n---\n\n# {}\n\n",
-                        date,
-                        now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
-                        date
-                    ),
-                )?;
-            }
-            let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
-            std::process::Command::new(&editor)
-                .arg(&daily_path)
-                .status()?;
-            let now = chrono::Local::now();
-            let updated = refresh_updated_frontmatter(&std::fs::read_to_string(&daily_path)?, &now);
-            std::fs::write(&daily_path, updated)?;
-            services::sync::commit_and_push(sync_dir, "daily: update")?;
-            println!("  {} {}", style("✓").green(), t.daily_saved());
-            return Ok(());
-        }
-    };
-
-    let result = services::notes::append_daily(sync_dir, &text)?;
-    println!(
-        "  {} {}",
-        style("✓").green(),
-        t.daily_appended(&result.rel_path)
     );
     print_sync_status(&result.sync);
     Ok(())

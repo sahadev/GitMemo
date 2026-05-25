@@ -1,7 +1,7 @@
 {
   "name": "GitMemo",
   "description": "Local-first Git-backed note and knowledge app for developers.",
-  "version": "v1.0.80",
+  "version": "v1.0.81",
   "website": "https://gitmemo.kakacut.cn",
   "repository": "https://github.com/sahadev/GitMemo",
   "install": {
@@ -15,15 +15,14 @@
   },
   "android": {
     "abi": "arm64-v8a",
-    "filename": "gitmemo-android-v1.0.80-arm64-v8a-release.apk",
-    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.80-arm64-v8a-release.apk",
+    "filename": "gitmemo-android-v1.0.81-arm64-v8a-release.apk",
+    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.81-arm64-v8a-release.apk",
     "sync": "HTTPS remote URL plus access token"
   },
   "data": {
     "defaultPath": "~/.gitmemo",
     "directories": [
       "conversations",
-      "notes/daily",
       "notes/manual",
       "notes/scratch",
       "clips",
@@ -36,7 +35,6 @@
     "cds_recent",
     "cds_read",
     "cds_note",
-    "cds_daily",
     "cds_manual",
     "cds_stats",
     "cds_sync"

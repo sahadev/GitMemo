@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "仪表盘",
     "search": "搜索",
+    "aiRecords": "AI记录",
     "conversations": "对话",
     "notes": "笔记",
     "clipboard": "剪贴板",
@@ -76,7 +77,6 @@
   "dashboard": {
     "title": "仪表盘",
     "conversations": "对话",
-    "dailyNotes": "日记",
     "manuals": "手册",
     "scratchNotes": "便签",
     "clips": "剪贴板",
@@ -126,10 +126,8 @@
   },
   "notes": {
     "scratch": "便签",
-    "daily": "日记",
     "manual": "文档",
     "plans": "计划",
-    "placeholderDaily": "添加到今天的日记...",
     "placeholderScratch": "快速记录...",
     "placeholderManual": "写下这份文档的内容...",
     "placeholderTitle": "标题",

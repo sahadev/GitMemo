@@ -74,7 +74,6 @@ pub fn cmd_stats(sync_dir: &Path) -> Result<()> {
         t.stats_conversations(),
         stats.conversation_count
     );
-    println!("  {}:  {}", t.stats_daily(), stats.note_daily_count);
     println!("  {}:      {}", t.stats_manual(), stats.note_manual_count);
     println!("  {}:      {}", t.stats_scratch(), stats.note_scratch_count);
     println!(

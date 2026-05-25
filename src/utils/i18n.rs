@@ -210,8 +210,6 @@ impl I18n {
     // ── Note commands ───────────────────────────────────────
 
     pub fn scratch_created(&self, path: &str) -> String { self.fmt1("scratch_created", path) }
-    pub fn daily_saved(&self) -> &str { self.s("daily_saved") }
-    pub fn daily_appended(&self, path: &str) -> String { self.fmt1("daily_appended", path) }
     pub fn content_empty(&self) -> &str { self.s("content_empty") }
     pub fn manual_saved(&self, path: &str) -> String { self.fmt1("manual_saved", path) }
 
@@ -228,7 +226,6 @@ impl I18n {
 
     pub fn stats_title(&self) -> &str { self.s("stats_title") }
     pub fn stats_conversations(&self) -> &str { self.s("stats_conversations") }
-    pub fn stats_daily(&self) -> &str { self.s("stats_daily") }
     pub fn stats_manual(&self) -> &str { self.s("stats_manual") }
     pub fn stats_scratch(&self) -> &str { self.s("stats_scratch") }
     pub fn stats_storage(&self) -> &str { self.s("stats_storage") }
@@ -277,8 +274,6 @@ impl I18n {
     pub fn mcp_read_path_desc(&self) -> &str { self.s("mcp_read_path_desc") }
     pub fn mcp_note_desc(&self) -> &str { self.s("mcp_note_desc") }
     pub fn mcp_note_content_desc(&self) -> &str { self.s("mcp_note_content_desc") }
-    pub fn mcp_daily_desc(&self) -> &str { self.s("mcp_daily_desc") }
-    pub fn mcp_daily_content_desc(&self) -> &str { self.s("mcp_daily_content_desc") }
     pub fn mcp_manual_desc(&self) -> &str { self.s("mcp_manual_desc") }
     pub fn mcp_manual_title_desc(&self) -> &str { self.s("mcp_manual_title_desc") }
     pub fn mcp_manual_content_desc(&self) -> &str { self.s("mcp_manual_content_desc") }
@@ -290,7 +285,6 @@ impl I18n {
     // ── MCP tool responses ──────────────────────────────────
 
     pub fn mcp_note_created(&self, path: &str) -> String { self.fmt1("mcp_note_created", path) }
-    pub fn mcp_daily_appended(&self, path: &str) -> String { self.fmt1("mcp_daily_appended", path) }
     pub fn mcp_manual_saved(&self, path: &str) -> String { self.fmt1("mcp_manual_saved", path) }
     pub fn mcp_sync_done(&self) -> &str { self.s("mcp_sync_done") }
     pub fn mcp_committed_push_failed(&self, err: &str) -> String { self.fmt1("mcp_committed_push_failed", err) }

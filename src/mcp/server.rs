@@ -173,17 +173,6 @@ fn get_tool_definitions() -> Vec<Value> {
             }
         }),
         json!({
-            "name": "cds_daily",
-            "description": t.mcp_daily_desc(),
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "content": { "type": "string", "description": t.mcp_daily_content_desc() }
-                },
-                "required": ["content"]
-            }
-        }),
-        json!({
             "name": "cds_manual",
             "description": t.mcp_manual_desc(),
             "inputSchema": {
@@ -292,14 +281,6 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             Ok(t.mcp_note_created(&result.rel_path))
         }
 
-        "cds_daily" => {
-            let content = args["content"]
-                .as_str()
-                .ok_or_else(|| anyhow::anyhow!("content required"))?;
-            let result = crate::services::notes::append_daily(&sync_dir, content)?;
-            Ok(t.mcp_daily_appended(&result.rel_path))
-        }
-
         "cds_manual" => {
             let title = args["title"]
                 .as_str()
@@ -317,7 +298,6 @@ fn call_tool(name: &str, args: &Value) -> Result<String> {
             Ok(serde_json::to_string_pretty(&json!({
                 "conversations": stats.conversation_count,
                 "notes": {
-                    "daily": stats.note_daily_count,
                     "manual": stats.note_manual_count,
                     "scratch": stats.note_scratch_count
                 }

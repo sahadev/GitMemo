@@ -60,12 +60,6 @@ pub enum Commands {
         content: String,
     },
 
-    /// Open or append to today's daily note
-    Daily {
-        /// Content to append (opens editor if omitted)
-        content: Option<String>,
-    },
-
     /// Create or append to a manual
     Manual {
         /// Manual title

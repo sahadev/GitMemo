@@ -28,7 +28,6 @@ Default repository path: `~/.gitmemo`
 Common directories:
 
 - `conversations/`: captured AI conversations.
-- `notes/daily/`: daily notes.
 - `notes/manual/`: long-form manuals, reports, and reusable docs.
 - `notes/scratch/`: quick scratch notes.
 - `clips/`: clipboard captures.

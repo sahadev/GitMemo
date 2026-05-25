@@ -96,7 +96,6 @@ Git network operations use repository locking and non-interactive Git settings i
 The GitMemo sync directory is a Git worktree. The important synced folders are:
 
 - `conversations/`: captured Claude Code and Codex conversations.
-- `notes/daily/`: daily notes.
 - `notes/manual/`: manual documents.
 - `notes/scratch/`: quick notes.
 - `clips/`: clipboard text and image captures.
@@ -173,7 +172,6 @@ It exposes these tools:
 - `cds_recent`: list recent records.
 - `cds_read`: read a Markdown file by relative path.
 - `cds_note`: create a scratch note.
-- `cds_daily`: append to daily notes.
 - `cds_manual`: create or update a manual.
 - `cds_stats`: return note/conversation stats.
 - `cds_sync`: commit and push changes.

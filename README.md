@@ -18,7 +18,7 @@ Available as both a CLI and a Desktop app, with a local-first workflow for Claud
 - **Conversation capture for supported AI tools** — Claude Code and Cursor use rules, skills, hooks, and MCP where available; Codex sessions are imported from native local logs with `gitmemo capture`
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
 - **Multi-editor** — Supports Claude Code, Cursor, and Codex
-- **Notes** — Scratch notes, daily journal, manuals — one command to create
+- **Notes** — Scratch notes and manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
 - **No always-on sync daemon for editor capture** — Capture relies on native hooks, integrations, or local session logs rather than a separate sync service
 - **Data ownership** — Your content lives in **your** Git repo; local indexes and helpers are explained in the [Data & storage statement](docs/DATA-STATEMENT.md)
@@ -147,7 +147,6 @@ gitmemo remote --remove    # Remove remote (switch to local-only)
 gitmemo branch             # Show current sync branch
 gitmemo branch main        # Switch sync branch to "main"
 gitmemo note "quick note"  # Create a scratch note
-gitmemo daily              # Open/append daily journal
 gitmemo manual "Title"     # Create a manual
 gitmemo search "docker"    # Full-text search conversations and notes
 gitmemo recent             # List recent conversations
@@ -166,7 +165,6 @@ gitmemo uninstall          # Remove configs (keeps data)
 │   └── 2026-03/
 │       └── 03-25-rust-async.md
 ├── notes/
-│   ├── daily/              # Daily journal
 │   ├── manual/             # Long-form manuals & research docs
 │   └── scratch/            # Quick scratch notes
 ├── clips/                  # Auto-captured clipboard content

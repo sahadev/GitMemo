@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "search": "Search",
+    "aiRecords": "AI Records",
     "conversations": "Conversations",
     "notes": "Notes",
     "clipboard": "Clipboard",
@@ -76,7 +77,6 @@
   "dashboard": {
     "title": "Dashboard",
     "conversations": "Conversations",
-    "dailyNotes": "Daily Notes",
     "manuals": "Manuals",
     "scratchNotes": "Scratch Notes",
     "clips": "Clips",
@@ -126,10 +126,8 @@
   },
   "notes": {
     "scratch": "Scratch",
-    "daily": "Daily",
     "manual": "Docs",
     "plans": "Plans",
-    "placeholderDaily": "Add to today's note...",
     "placeholderScratch": "Quick note...",
     "placeholderManual": "Write your document...",
     "placeholderTitle": "Title",

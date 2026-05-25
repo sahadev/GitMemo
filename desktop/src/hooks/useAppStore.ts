@@ -50,7 +50,8 @@ async function logUpdaterError(message: string): Promise<void> {
 // ---- Shared types (single source of truth) ----
 
 export type Theme = "dark" | "light";
-export type NotesTab = "scratch" | "daily" | "manual";
+export type NotesTab = "scratch" | "manual";
+export type AiRecordsTab = "conversations" | "plans";
 
 export interface ClipboardStatus {
   watching: boolean;
@@ -99,6 +100,10 @@ interface AppStore {
   notesTab: NotesTab;
   setNotesTab: (tab: NotesTab) => void;
 
+  // Cross-page AI records tab selection
+  aiRecordsTab: AiRecordsTab;
+  setAiRecordsTab: (tab: AiRecordsTab) => void;
+
   // Cross-page record opening
   pendingOpenPath: string | null;
   setPendingOpenPath: (path: string | null) => void;
@@ -133,6 +138,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   cursorEnabled: false,
   theme: loadTheme(),
   notesTab: "scratch",
+  aiRecordsTab: "conversations",
   pendingOpenPath: null,
   appMeta: null,
   updateStatus: "idle",
@@ -172,6 +178,10 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
   setNotesTab: (tab) => {
     set({ notesTab: tab });
+  },
+
+  setAiRecordsTab: (tab) => {
+    set({ aiRecordsTab: tab });
   },
 
   setPendingOpenPath: (path) => {

@@ -18,7 +18,7 @@
 - **面向已支持 AI 工具的对话捕获** — Claude Code 和 Cursor 使用规则、技能、hooks 与 MCP；Codex 会话通过 `gitmemo capture` 从本机原生日志导入
 - **搜索与复用** — 通过 CLI、Desktop 或 MCP 搜索已保存内容，而不是让它们淹没在聊天记录里
 - **多编辑器** — 同时支持 Claude Code、Cursor 与 Codex
-- **笔记功能** — 便签、每日笔记、手册，一行命令创建
+- **笔记功能** — 便签和手册，一行命令创建
 - **剪贴板捕获** — Desktop 可在启用后本地监控并捕获剪贴板中的文本和图片
 - **编辑器捕获链路无需常驻同步守护进程** — 对话保存依赖编辑器原生 hooks / 集成或本机会话日志，而不是额外的同步服务
 - **数据主权** — 内容在你自己的 Git 仓库中，完全可控；本地索引等辅助数据见 [Data & storage statement（数据与存储声明）](docs/DATA-STATEMENT.md)
@@ -147,7 +147,6 @@ gitmemo remote --remove    # 移除远程仓库（切换到纯本地模式）
 gitmemo branch             # 查看当前同步分支
 gitmemo branch main        # 切换同步分支为 "main"
 gitmemo note "记个笔记"     # 创建便签
-gitmemo daily              # 今日笔记
 gitmemo manual "标题"       # 创建手册
 gitmemo search "docker"    # 全文搜索对话和笔记
 gitmemo recent             # 最近的对话
@@ -166,7 +165,6 @@ gitmemo uninstall          # 移除配置（保留数据）
 │   └── 2026-03/
 │       └── 03-25-rust-async.md
 ├── notes/
-│   ├── daily/              # 每日笔记
 │   ├── manual/             # 手册 & 调研文档
 │   └── scratch/            # 便签
 ├── clips/                  # 自动捕获的剪贴板内容

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -99,11 +99,13 @@ export default function ConversationsPage({
   onFocusSidebar,
   enterTrigger,
   sidebarFocused,
+  listHeaderPrefix,
   registerMobileBackHandler,
 }: {
   onFocusSidebar?: () => void;
   enterTrigger?: number;
   sidebarFocused?: boolean;
+  listHeaderPrefix?: ReactNode;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 }) {
   const { t } = useI18n();
@@ -370,6 +372,7 @@ export default function ConversationsPage({
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
+        {listHeaderPrefix}
         {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",

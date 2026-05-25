@@ -8,7 +8,6 @@ GitMemo provides MCP tools through the GitMemo CLI/server integration.
 - `cds_recent`: list recent saved items.
 - `cds_read`: read a file from the GitMemo repository.
 - `cds_note`: create a scratch note.
-- `cds_daily`: append to the daily note.
 - `cds_manual`: create or append a manual document.
 - `cds_stats`: return repository statistics.
 - `cds_sync`: commit and push local changes.
@@ -22,5 +21,4 @@ If an AI tool writes files directly without using GitMemo MCP tools, timestamp q
 ## Storage Paths
 
 - Scratch notes: `notes/scratch/`
-- Daily notes: `notes/daily/`
 - Manual documents: `notes/manual/`

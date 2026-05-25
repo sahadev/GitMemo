@@ -13,8 +13,7 @@ import ClipboardPage from "./pages/ClipboardPage";
 import SearchPage from "./pages/SearchPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
-import ConversationsPage from "./pages/ConversationsPage";
-import PlansPage from "./pages/PlansPage";
+import AiRecordsPage from "./pages/AiRecordsPage";
 import ClaudeConfigPage from "./pages/ClaudeConfigPage";
 import EditorHomePage from "./pages/EditorHomePage";
 import ExternalFilesPage from "./pages/ExternalFilesPage";
@@ -32,7 +31,7 @@ declare global {
   }
 }
 
-export type Page = "dashboard" | "conversations" | "notes" | "clipboard" | "search" | "plans" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
+export type Page = "dashboard" | "search" | "ai-records" | "notes" | "clipboard" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
 
 type EditorRoot = "claude" | "cursor" | "anonymous";
@@ -55,8 +54,8 @@ interface ExternalFileOpenTarget {
   requestId: number;
 }
 
-const desktopPageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "claude-config", "external-files", "settings"];
-const mobilePageOrder: Page[] = ["dashboard", "search", "conversations", "notes", "clipboard", "plans", "imports", "settings"];
+const desktopPageOrder: Page[] = ["dashboard", "search", "ai-records", "notes", "clipboard", "claude-config", "external-files", "settings"];
+const mobilePageOrder: Page[] = ["dashboard", "search", "ai-records", "notes", "clipboard", "imports", "settings"];
 
 type MobileBackHandler = () => boolean;
 
@@ -89,7 +88,7 @@ function App() {
   const [deferredSystemFilePath, setDeferredSystemFilePath] = useState<string | null>(null);
   const sync = useSync();
   const { gitStatus } = sync;
-  const { theme, toggleTheme, setPendingOpenPath, settings } = useAppStore();
+  const { theme, toggleTheme, setPendingOpenPath, setAiRecordsTab, settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const pageOrder = isDesktop ? desktopPageOrder : mobilePageOrder;
   const mobilePageStackRef = useRef<Page[]>([]);
@@ -249,7 +248,9 @@ function App() {
     try {
       const target = await invoke<ExternalOpenTarget>("classify_external_open_target", { filePath });
       if (target.kind === "sync" && target.page && target.rel_path) {
-        const page = target.page as Page;
+        const page = target.page === "conversations" || target.page === "plans" ? "ai-records" : target.page as Page;
+        if (target.page === "conversations") setAiRecordsTab("conversations");
+        if (target.page === "plans") setAiRecordsTab("plans");
         setEditorOpenTarget(null);
         setExternalFileOpenTarget(null);
         setPendingOpenPath(target.rel_path);
@@ -277,7 +278,7 @@ function App() {
       await notify("GitMemo", `Open failed: ${String(e)}`);
     }
     return false;
-  }, [isDesktop, setPendingOpenPath]);
+  }, [isDesktop, setAiRecordsTab, setPendingOpenPath]);
 
   // Derive initialization state from global gitStatus
   useEffect(() => {
@@ -375,11 +376,11 @@ function App() {
         switch (e.key) {
           case "1": e.preventDefault(); setCurrentPage("dashboard"); setSidebarFocused(false); break;
           case "2": e.preventDefault(); navigateAndFocus("search"); setSidebarFocused(false); break;
-          case "3": e.preventDefault(); setCurrentPage("conversations"); setSidebarFocused(false); break;
+          case "3": e.preventDefault(); setCurrentPage("ai-records"); setSidebarFocused(false); break;
           case "4": e.preventDefault(); setCurrentPage("notes"); setSidebarFocused(false); break;
           case "5": e.preventDefault(); setCurrentPage("clipboard"); setSidebarFocused(false); break;
-          case "6": e.preventDefault(); setCurrentPage("plans"); setSidebarFocused(false); break;
-          case "7": e.preventDefault(); setCurrentPage("claude-config"); setSidebarFocused(false); break;
+          case "6": e.preventDefault(); setCurrentPage("claude-config"); setSidebarFocused(false); break;
+          case "7": e.preventDefault(); setCurrentPage("external-files"); setSidebarFocused(false); break;
           case "8": e.preventDefault(); setCurrentPage("settings"); setSidebarFocused(false); break;
         }
       }
@@ -446,10 +447,9 @@ function App() {
   ) : (
     <>
       {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={navigatePage} active={currentPage === "dashboard"} /></div>}
-      {visitedPages.has("conversations") && <div style={{ display: currentPage === "conversations" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ConversationsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} registerMobileBackHandler={(handler) => registerMobileBackHandler("conversations", handler)} /></div>}
+      {visitedPages.has("ai-records") && <div style={{ display: currentPage === "ai-records" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><AiRecordsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
       {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
       {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
-      {visitedPages.has("plans") && <div style={{ display: currentPage === "plans" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><PlansPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("plans", handler)} /></div>}
       {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}
       {isDesktop && visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}

@@ -42,7 +42,6 @@ struct DocumentIndexRecord<'a> {
 
 pub struct Stats {
     pub conversation_count: u32,
-    pub note_daily_count: u32,
     pub note_manual_count: u32,
     pub note_scratch_count: u32,
 }
@@ -288,6 +287,8 @@ fn skip_index_path(path: &Path) -> bool {
 /// Subdirectory (relative to sync root) and FTS `source_type` for each tree.
 const INDEX_ROOTS: &[(&str, &str)] = &[
     ("conversations", "conversation"),
+    // Legacy daily notes remain searchable, but GitMemo no longer exposes
+    // daily journals as a first-class write surface.
     ("notes/daily", "note"),
     ("notes/manual", "note"),
     ("notes/scratch", "note"),
@@ -891,12 +892,6 @@ pub fn get_stats(conn: &Connection) -> Result<Stats> {
         |row| row.get(0),
     )?;
 
-    let note_daily_count: u32 = conn.query_row(
-        "SELECT COUNT(*) FROM documents WHERE file_path LIKE 'notes/daily/%'",
-        [],
-        |row| row.get(0),
-    )?;
-
     let note_manual_count: u32 = conn.query_row(
         "SELECT COUNT(*) FROM documents WHERE file_path LIKE 'notes/manual/%'",
         [],
@@ -911,7 +906,6 @@ pub fn get_stats(conn: &Connection) -> Result<Stats> {
 
     Ok(Stats {
         conversation_count,
-        note_daily_count,
         note_manual_count,
         note_scratch_count,
     })
@@ -1158,7 +1152,6 @@ mod tests {
 
         let stats = get_stats(&conn).unwrap();
         assert_eq!(stats.conversation_count, 2);
-        assert_eq!(stats.note_daily_count, 1);
         assert_eq!(stats.note_manual_count, 1);
         assert_eq!(stats.note_scratch_count, 1);
     }
@@ -1262,7 +1255,8 @@ mod tests {
 
         let stats = get_stats(&conn).unwrap();
         assert_eq!(stats.conversation_count, 1);
-        assert_eq!(stats.note_daily_count, 1);
+        assert_eq!(stats.note_manual_count, 0);
+        assert_eq!(stats.note_scratch_count, 0);
     }
 
     #[test]

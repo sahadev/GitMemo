@@ -24,12 +24,6 @@ pub fn create_scratch(sync_dir: &Path, content: &str) -> Result<NoteWriteResult>
     Ok(NoteWriteResult { rel_path, sync })
 }
 
-pub fn append_daily(sync_dir: &Path, content: &str) -> Result<NoteWriteResult> {
-    let rel_path = files::append_daily(sync_dir, content)?;
-    let sync = git::commit_and_push(sync_dir, &commit_message("daily", content))?;
-    Ok(NoteWriteResult { rel_path, sync })
-}
-
 pub fn write_manual(
     sync_dir: &Path,
     title: &str,
@@ -59,7 +53,7 @@ mod tests {
     #[test]
     fn commit_message_truncates_on_character_boundary() {
         let content = "你好世界".repeat(20);
-        let msg = commit_message("daily", &content);
-        assert_eq!(msg, format!("daily: {}", "你好世界".repeat(12) + "你好"));
+        let msg = commit_message("note", &content);
+        assert_eq!(msg, format!("note: {}", "你好世界".repeat(12) + "你好"));
     }
 }

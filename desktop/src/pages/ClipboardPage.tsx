@@ -637,14 +637,18 @@ export default function ClipboardPage({
               return (
                 <div
                   key={file.path}
-                    style={{
-                      position: "relative",
-                      borderBottom: "1px solid var(--border)",
-                      background: active ? "var(--accent)" : "transparent",
-                      color: active ? "#fff" : "var(--text)",
-                      transition: "background 0.15s",
-                    }}
-                  >
+                  onClick={() => {
+                    if (multiSelectMode) toggleClipSelection(file.path);
+                  }}
+                  style={{
+                    position: "relative",
+                    borderBottom: "1px solid var(--border)",
+                    background: active ? "var(--accent)" : "transparent",
+                    color: active ? "#fff" : "var(--text)",
+                    transition: "background 0.15s",
+                    cursor: multiSelectMode ? "pointer" : undefined,
+                  }}
+                >
                     {multiSelectMode && (
                       <button
                         type="button"
@@ -678,12 +682,11 @@ export default function ClipboardPage({
                         </span>
                       </button>
                     )}
-                    <button
-                      type="button"
+                  <button
+                    type="button"
                     ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                     onClick={() => {
-                      if (multiSelectMode) toggleClipSelection(file.path);
-                      else void openFile(file.path);
+                      if (!multiSelectMode) void openFile(file.path);
                     }}
                     onContextMenu={(e) => {
                       if (!isMobile || multiSelectMode) return;

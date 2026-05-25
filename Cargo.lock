@@ -411,7 +411,7 @@ dependencies = [
 
 [[package]]
 name = "gitmemo"
-version = "1.0.75"
+version = "1.0.81"
 dependencies = [
  "anyhow",
  "chrono",

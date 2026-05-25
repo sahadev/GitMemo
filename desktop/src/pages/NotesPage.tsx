@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ClipboardEvent,
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Plus, FileText, Calendar, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
+import { Plus, FileText, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
@@ -33,7 +33,6 @@ interface SavedAttachment {
 
 const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
-  { id: "daily", labelKey: "notes.daily", icon: Calendar, folder: "notes/daily" },
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
 
@@ -190,8 +189,7 @@ export default function NotesPage({
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("notes/")) return;
-    if (pendingOpenPath.startsWith("notes/daily/")) setNotesTab("daily");
-    else if (pendingOpenPath.startsWith("notes/manual/")) setNotesTab("manual");
+    if (pendingOpenPath.startsWith("notes/manual/")) setNotesTab("manual");
     else setNotesTab("scratch");
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
@@ -237,9 +235,7 @@ export default function NotesPage({
     setSaving(true);
     try {
       let result: NoteResult;
-      if (activeTab === "daily") {
-        result = await invoke<NoteResult>("append_daily", { content: newNote });
-      } else if (activeTab === "manual") {
+      if (activeTab === "manual") {
         result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: newNote, append: false });
       } else {
         result = await invoke<NoteResult>("create_note", { content: newNote });
@@ -416,7 +412,7 @@ export default function NotesPage({
                 e.preventDefault();
                 void handleCreateNote();
               }}
-              placeholder={activeTab === "daily" ? t("notes.placeholderDaily") : activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
+              placeholder={activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
               rows={isMobile ? 4 : 3}
               style={{
                 width: "100%", padding: isMobile ? "12px 46px 12px 12px" : "10px 12px", borderRadius: 6, fontSize: isMobile ? 14 : 13,
@@ -458,7 +454,7 @@ export default function NotesPage({
                 {t("notes.noNotes", t(`notes.${activeTab}`))}
               </p>
               <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                {activeTab === "scratch" || activeTab === "daily"
+                {activeTab === "scratch"
                   ? t("notes.useInputAbove")
                   : activeTab === "manual"
                   ? t("notes.docsHint")

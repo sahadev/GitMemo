@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
-import { useAppStore, type NotesTab } from "../hooks/useAppStore";
+import { useAppStore, type AiRecordsTab, type NotesTab } from "../hooks/useAppStore";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -11,7 +11,7 @@ import { useFileWatcher } from "../hooks/useFileWatcher";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import { MOBILE_DASHBOARD_BOTTOM_PADDING } from "../utils/mobileLayout";
 import {
-  MessageSquare, StickyNote, BookOpen, FileText, Clipboard,
+  MessageSquare, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
   Activity, Circle, Search,
 } from "lucide-react";
@@ -19,7 +19,6 @@ import { OnboardingChecklist } from "../components/OnboardingChecklist";
 
 interface AppStats {
   conversations: number;
-  daily_notes: number;
   manuals: number;
   scratch_notes: number;
   clips: number;
@@ -40,17 +39,16 @@ interface RecentItem {
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
 
-const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string; page: Page; notesTab?: NotesTab }> = {
-  conversation: { icon: MessageSquare, color: "var(--accent)", page: "conversations" },
-  daily: { icon: StickyNote, color: "var(--green)", page: "notes", notesTab: "daily" },
+const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string; page: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }> = {
+  conversation: { icon: MessageSquare, color: "var(--accent)", page: "ai-records", aiRecordsTab: "conversations" },
   manual: { icon: BookOpen, color: "var(--yellow)", page: "notes", notesTab: "manual" },
   scratch: { icon: FileText, color: "var(--purple)", page: "notes", notesTab: "scratch" },
   clip: { icon: Clipboard, color: "var(--pink)", page: "clipboard" },
-  plan: { icon: Lightbulb, color: "var(--yellow)", page: "plans" },
+  plan: { icon: Lightbulb, color: "var(--yellow)", page: "ai-records", aiRecordsTab: "plans" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
-const mobileContentCategories = new Set(["conversation", "daily", "manual", "scratch", "clip", "plan"]);
+const mobileContentCategories = new Set(["conversation", "manual", "scratch", "clip", "plan"]);
 
 const formatSize = (sizeKb: number) => (
   sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`
@@ -77,20 +75,22 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const { t } = useI18n();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
-  const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, setNotesTab, setPendingOpenPath } = useAppStore();
+  const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
   useRelativeTimeTick();
-  const navigateTo = useCallback((page: Page, notesTab?: NotesTab) => {
+  const navigateTo = useCallback((page: Page, notesTab?: NotesTab, aiRecordsTab?: AiRecordsTab) => {
     if (page === "notes" && notesTab) setNotesTab(notesTab);
+    if (page === "ai-records" && aiRecordsTab) setAiRecordsTab(aiRecordsTab);
     onNavigate?.(page);
-  }, [onNavigate, setNotesTab]);
+  }, [onNavigate, setAiRecordsTab, setNotesTab]);
 
   const openRecord = useCallback((item: RecentItem) => {
     if (!isDesktop && !mobileContentCategories.has(item.category)) return;
     const cfg = categoryConfig[item.category] || categoryConfig.scratch;
     if (cfg.page === "notes" && cfg.notesTab) setNotesTab(cfg.notesTab);
+    if (cfg.page === "ai-records" && cfg.aiRecordsTab) setAiRecordsTab(cfg.aiRecordsTab);
     setPendingOpenPath(item.path);
     onNavigate?.(cfg.page);
-  }, [isDesktop, onNavigate, setNotesTab, setPendingOpenPath]);
+  }, [isDesktop, onNavigate, setAiRecordsTab, setNotesTab, setPendingOpenPath]);
 
 
   const cached = loadCache();
@@ -176,7 +176,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     return <Loading text={t("dashboard.loading")} />;
   }
 
-  const contentFileCount = stats.conversations + stats.daily_notes + stats.manuals + stats.scratch_notes + stats.clips + stats.plans;
+  const contentFileCount = stats.conversations + stats.manuals + stats.scratch_notes + stats.clips + stats.plans;
   const displayedFileCount = stats.tracked_files ?? contentFileCount;
   const displayedRepoSizeKb = stats.repository_size_kb ?? stats.total_size_kb;
   const displayedRecent = isDesktop
@@ -184,13 +184,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     : recent.filter((item) => mobileContentCategories.has(item.category));
   const showReviewItem = !!reviewItem && (isDesktop || mobileContentCategories.has(reviewItem.category));
 
-  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page; notesTab?: NotesTab }[] = [
-    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "conversations" as Page },
-    { icon: StickyNote, label: t("dashboard.dailyNotes"), value: stats.daily_notes, color: "var(--green)", page: "notes", notesTab: "daily" },
+  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }[] = [
+    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "ai-records", aiRecordsTab: "conversations" },
     { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes", notesTab: "manual" },
     { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "var(--purple)", page: "notes", notesTab: "scratch" },
     { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "var(--pink)", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "plans" as Page },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "ai-records", aiRecordsTab: "plans" },
   ];
 
   const cardStyle = {
@@ -376,7 +375,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           return (
             <div
               key={card.label}
-              onClick={() => card.page && navigateTo(card.page, card.notesTab)}
+              onClick={() => card.page && navigateTo(card.page, card.notesTab, card.aiRecordsTab)}
               style={{
                 ...cardStyle,
                 cursor: card.page ? "pointer" : "default",
