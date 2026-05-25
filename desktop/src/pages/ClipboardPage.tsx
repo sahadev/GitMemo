@@ -35,6 +35,16 @@ interface NoteResult {
   message: string;
 }
 
+const CLIP_WATCH_FOLDERS = ["clips"];
+const CLIP_REFRESH_PAGE_SIZE = 100;
+const CLIP_REFRESH_MAX_PRESERVED_ITEMS = 1000;
+
+interface ScrollAnchor {
+  path: string | null;
+  offsetTop: number;
+  scrollTop: number;
+}
+
 function ClipImageThumb({ relPath, selected, wide }: { relPath: string; selected: boolean; wide?: boolean }) {
   const [src, setSrc] = useState<string | null>(null);
   const imageSaveProps = useLongPressImageSave({
@@ -119,6 +129,8 @@ export default function ClipboardPage({
   const [creatingNote, setCreatingNote] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
@@ -126,48 +138,133 @@ export default function ClipboardPage({
   const privacy = useClipboardPrivacy();
 
   useEffect(() => {
+    savedClipsRef.current = savedClips;
     savedClipsLengthRef.current = savedClips.length;
-  }, [savedClips.length]);
+  }, [savedClips]);
 
-  // State-driven data loading
-  useEffect(() => {
-    loadSavedClips();
-  }, [refreshTrigger]);
-  useFileWatcher(["clips"], () => setRefreshTrigger(t => t + 1));
+  const captureScrollAnchor = useCallback((): ScrollAnchor | null => {
+    const container = listScrollRef.current;
+    if (!container) return null;
+    const containerTop = container.getBoundingClientRect().top;
 
-  // Event sources that trigger refresh via state
-  useEffect(() => {
-    const unlisten = listen<ClipboardEvent>("clipboard-saved", () => {
-      setRefreshTrigger(t => t + 1);
-    });
-    const onFocus = () => setRefreshTrigger(t => t + 1);
-    window.addEventListener("focus", onFocus);
-    return () => { unlisten.then((fn) => fn()); window.removeEventListener("focus", onFocus); };
+    for (const file of savedClipsRef.current) {
+      const item = itemRefs.current.get(file.path);
+      if (!item) continue;
+      const rect = item.getBoundingClientRect();
+      if (rect.bottom > containerTop + 1) {
+        return {
+          path: file.path,
+          offsetTop: rect.top - containerTop,
+          scrollTop: container.scrollTop,
+        };
+      }
+    }
+
+    return { path: null, offsetTop: 0, scrollTop: container.scrollTop };
   }, []);
 
-  const loadSavedClips = async (reset = true) => {
-    if (reset) setClipsLoading(true);
-    else setLoadingMore(true);
-    try {
-      const page = await invoke<FilePage>("list_files_page", {
-        folder: "clips",
-        offset: reset ? 0 : savedClipsLengthRef.current,
-        limit: FILE_PAGE_SIZE,
+  const restoreScrollAnchor = useCallback((anchor: ScrollAnchor | null) => {
+    if (!anchor) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const container = listScrollRef.current;
+        if (!container) return;
+        if (!anchor.path) {
+          container.scrollTop = anchor.scrollTop;
+          return;
+        }
+        const item = itemRefs.current.get(anchor.path);
+        if (!item) {
+          container.scrollTop = anchor.scrollTop;
+          return;
+        }
+        const containerTop = container.getBoundingClientRect().top;
+        const itemTop = item.getBoundingClientRect().top;
+        container.scrollTop += itemTop - containerTop - anchor.offsetTop;
       });
-      setSavedClips((prev) => reset ? page.entries : [...prev, ...page.entries]);
-      setHasMore(page.has_more);
+    });
+  }, []);
+
+  const loadSavedClips = useCallback(async ({
+    reset = true,
+    preserveScroll = false,
+  }: { reset?: boolean; preserveScroll?: boolean } = {}) => {
+    const anchor = preserveScroll ? captureScrollAnchor() : null;
+    const showBlockingLoading = reset && (!preserveScroll || savedClipsLengthRef.current === 0);
+    if (showBlockingLoading) setClipsLoading(true);
+    else if (!reset) setLoadingMore(true);
+    try {
+      if (reset) {
+        const initialTargetCount = Math.max(
+          FILE_PAGE_SIZE,
+          preserveScroll ? savedClipsLengthRef.current + FILE_PAGE_SIZE : FILE_PAGE_SIZE,
+        );
+        const entries: FileEntry[] = [];
+        let total = 0;
+
+        while (entries.length < initialTargetCount || (preserveScroll && anchor?.path && !entries.some((entry) => entry.path === anchor.path))) {
+          if (entries.length >= CLIP_REFRESH_MAX_PRESERVED_ITEMS) break;
+          const page = await invoke<FilePage>("list_files_page", {
+            folder: "clips",
+            offset: entries.length,
+            limit: Math.min(
+              CLIP_REFRESH_PAGE_SIZE,
+              Math.max(FILE_PAGE_SIZE, initialTargetCount - entries.length),
+            ),
+          });
+          total = page.total;
+          entries.push(...page.entries);
+          if (!page.has_more || page.entries.length === 0) break;
+        }
+
+        setSavedClips(entries);
+        setHasMore(entries.length < total);
+        if (preserveScroll) restoreScrollAnchor(anchor);
+      } else {
+        const page = await invoke<FilePage>("list_files_page", {
+          folder: "clips",
+          offset: savedClipsLengthRef.current,
+          limit: FILE_PAGE_SIZE,
+        });
+        setSavedClips((prev) => {
+          const seen = new Set(prev.map((clip) => clip.path));
+          return [...prev, ...page.entries.filter((clip) => !seen.has(clip.path))];
+        });
+        setHasMore(page.has_more);
+      }
     }
     catch (e) { console.error(e); }
     finally {
-      if (reset) setClipsLoading(false);
+      if (showBlockingLoading) setClipsLoading(false);
       else setLoadingMore(false);
     }
-  };
+  }, [captureScrollAnchor, restoreScrollAnchor]);
+
+  useEffect(() => {
+    void loadSavedClips();
+  }, [refreshTrigger, loadSavedClips]);
+
+  const refreshSavedClipsInPlace = useCallback(() => {
+    void loadSavedClips({ preserveScroll: true });
+  }, [loadSavedClips]);
+
+  useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace);
+
+  // Event sources that trigger refresh should not push the list back to page one.
+  useEffect(() => {
+    const unlisten = listen<ClipboardEvent>("clipboard-saved", refreshSavedClipsInPlace);
+    window.addEventListener("focus", refreshSavedClipsInPlace);
+    return () => {
+      unlisten.then((fn) => fn());
+      window.removeEventListener("focus", refreshSavedClipsInPlace);
+    };
+  }, [refreshSavedClipsInPlace]);
+
   const { sentinelRef, loadMore } = useAutoLoadMore({
     hasMore,
     loading: clipsLoading,
     loadingMore,
-    onLoadMore: () => loadSavedClips(false),
+    onLoadMore: () => loadSavedClips({ reset: false }),
   });
 
   const doStartWatch = async () => {
@@ -356,7 +453,7 @@ export default function ClipboardPage({
       }
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
-      loadSavedClips();
+      loadSavedClips({ preserveScroll: true });
       refreshClipboardStatus();
     } catch (e) {
       showToast(String(e), true);
@@ -376,7 +473,7 @@ export default function ClipboardPage({
         setSelectedFile(null);
         setFileContent("");
       }
-      loadSavedClips();
+      loadSavedClips({ preserveScroll: true });
       refreshClipboardStatus();
     } catch (e) {
       showToast(String(e));
@@ -502,7 +599,7 @@ export default function ClipboardPage({
         </div>
 
         {/* Clip list */}
-        <div style={{
+        <div ref={listScrollRef} style={{
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
