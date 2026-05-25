@@ -49,6 +49,7 @@ const en: Record<string, string> = {
   'download.androidApk.title': 'Android APK (arm64-v8a)',
   'download.androidApk.desc': 'For mainstream 64-bit Android phones.',
   'download.abi': 'Supported ABI',
+  'download.fileName': 'File name',
   'download.action': 'Download',
 
   // Pain Points
@@ -191,6 +192,7 @@ const zh: Record<string, string> = {
   'download.androidApk.title': 'Android APK（arm64-v8a）',
   'download.androidApk.desc': '适用于主流 64 位 Android 手机。',
   'download.abi': '支持 ABI',
+  'download.fileName': '文件名',
   'download.action': '下载',
 
   // Pain Points

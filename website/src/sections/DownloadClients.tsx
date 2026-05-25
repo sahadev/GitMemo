@@ -4,9 +4,13 @@ import { useI18n } from '../i18n/useI18n'
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
-const FIXED_ANDROID_VERSION = 'v1.0.77'
+const FIXED_ANDROID_VERSION = (import.meta.env.VITE_ANDROID_APK_VERSION || 'v1.0.78').trim()
 const FIXED_ANDROID_ABI = 'arm64-v8a'
-const FIXED_ANDROID_APK_URL = 'https://gitmemo.kakacut.cn/mobile/gitmemo-android-arm64-v8a-release.apk'
+const FIXED_ANDROID_APK_FILENAME = (
+  import.meta.env.VITE_ANDROID_APK_FILENAME ||
+  `gitmemo-android-${FIXED_ANDROID_VERSION}-${FIXED_ANDROID_ABI}-release.apk`
+).trim()
+const FIXED_ANDROID_APK_URL = `https://gitmemo.kakacut.cn/mobile/${FIXED_ANDROID_APK_FILENAME}`
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
 
 interface GitHubReleaseAsset {
@@ -36,6 +40,7 @@ interface DownloadItem {
   assetPattern?: RegExp
   ext: string
   abi?: string
+  fileName?: string
   fixedVersion?: string
   useManifest?: boolean
 }
@@ -61,6 +66,7 @@ const downloads: DownloadItem[] = [
     fallbackHref: FIXED_ANDROID_APK_URL,
     ext: '.apk',
     abi: FIXED_ANDROID_ABI,
+    fileName: FIXED_ANDROID_APK_FILENAME,
     fixedVersion: FIXED_ANDROID_VERSION,
     useManifest: false,
   },
@@ -168,6 +174,11 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                 {item.abi && (
                   <p className="mt-3 text-xs sm:text-sm text-text-secondary">
                     {t('download.abi')}: <span className="font-medium text-text">{item.abi}</span>
+                  </p>
+                )}
+                {item.fileName && (
+                  <p className="mt-2 break-all text-xs sm:text-sm text-text-secondary">
+                    {t('download.fileName')}: <span className="font-medium text-text">{item.fileName}</span>
                   </p>
                 )}
               </div>

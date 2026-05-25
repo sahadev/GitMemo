@@ -21,6 +21,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEBSITE_DIR="$PROJECT_DIR/website"
+PROJECT_VERSION="$(awk -F'"' '/^version = / { print $2; exit }' "$PROJECT_DIR/Cargo.toml")"
 
 # 加载本地配置
 if [ -f "$SCRIPT_DIR/.env.local" ]; then
@@ -28,7 +29,8 @@ if [ -f "$SCRIPT_DIR/.env.local" ]; then
 fi
 
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
-ANDROID_APK_FILENAME="${ANDROID_APK_FILENAME:-gitmemo-android-${ANDROID_ABI}-release.apk}"
+ANDROID_VERSION="${ANDROID_VERSION:-v${PROJECT_VERSION}}"
+ANDROID_APK_FILENAME="${ANDROID_APK_FILENAME:-gitmemo-android-${ANDROID_VERSION}-${ANDROID_ABI}-release.apk}"
 ECS_IP="${ECS_IP:-101.200.217.80}"
 ECS_USER="${ECS_USER:-root}"
 ECS_DIR="${ECS_DIR:-/opt/kakacut}"
@@ -83,6 +85,7 @@ resolve_android_apk() {
     candidates+=(
         "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/$ANDROID_APK_FILENAME"
         "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/arm64/release/$ANDROID_APK_FILENAME"
+        "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/gitmemo-android-${ANDROID_ABI}-release.apk"
         "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk"
         "$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
         "$HOME/Downloads/app-universal-release.apk"
@@ -148,7 +151,7 @@ build_website() {
     else
         warn "未设置 VITE_DOWNLOAD_MANIFEST_URL，下载区将回退 GitHub Releases"
     fi
-    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" npm run build
+    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" VITE_ANDROID_APK_VERSION="$ANDROID_VERSION" VITE_ANDROID_APK_FILENAME="$ANDROID_APK_FILENAME" npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"

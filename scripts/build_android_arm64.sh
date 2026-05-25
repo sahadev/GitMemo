@@ -5,8 +5,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DESKTOP_DIR="$ROOT_DIR/desktop"
 ANDROID_DIR="$DESKTOP_DIR/src-tauri/gen/android"
 APK_SOURCE="$ANDROID_DIR/app/build/outputs/apk/universal/release/app-universal-release.apk"
-APK_OUTPUT="$ANDROID_DIR/app/build/outputs/apk/universal/release/gitmemo-android-arm64-v8a-release.apk"
 ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+VERSION="$(awk -F'"' '/^version = / { print $2; exit }' "$ROOT_DIR/Cargo.toml")"
+APK_OUTPUT="$ANDROID_DIR/app/build/outputs/apk/universal/release/gitmemo-android-v${VERSION}-arm64-v8a-release.apk"
 
 if [ -z "${JAVA_HOME:-}" ]; then
     if [ -x "/opt/homebrew/opt/openjdk@17/bin/java" ]; then
