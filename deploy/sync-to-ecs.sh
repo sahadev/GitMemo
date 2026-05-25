@@ -20,6 +20,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEBSITE_DIR="$PROJECT_DIR/website"
+ANDROID_APK="$PROJECT_DIR/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
 
 # 加载本地配置
 if [ -f "$SCRIPT_DIR/.env.local" ]; then
@@ -98,6 +99,15 @@ build_website() {
     rm -rf "$SCRIPT_DIR/dist/gitmemo"
     mkdir -p "$SCRIPT_DIR/dist"
     cp -r "$WEBSITE_DIR/dist/client" "$SCRIPT_DIR/dist/gitmemo"
+
+    if [ -f "$ANDROID_APK" ]; then
+        mkdir -p "$SCRIPT_DIR/dist/gitmemo/mobile"
+        cp "$ANDROID_APK" "$SCRIPT_DIR/dist/gitmemo/mobile/app-universal-release.apk"
+        log "Android APK 已复制到 /mobile/app-universal-release.apk"
+    else
+        warn "未找到 Android release APK，跳过 /mobile/app-universal-release.apk"
+        warn "预期路径: $ANDROID_APK"
+    fi
 
     fix_for_china
     log "构建完成"
