@@ -1,6 +1,6 @@
 # GitMemo Downloads
 
-Current source version: v1.0.81
+Current source version: v1.0.83
 
 ## Official Links
 
@@ -10,8 +10,8 @@ Current source version: v1.0.81
 
 ## Android APK
 
-- APK URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.81-arm64-v8a-release.apk
-- APK filename: gitmemo-android-v1.0.81-arm64-v8a-release.apk
+- APK URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.83-arm64-v8a-release.apk
+- APK filename: gitmemo-android-v1.0.83-arm64-v8a-release.apk
 - ABI: arm64-v8a
 - Package type: release APK
 

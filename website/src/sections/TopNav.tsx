@@ -1,8 +1,10 @@
-import { BookOpen, Download } from 'lucide-react'
+import { BookOpen, Download, Moon, Sun } from 'lucide-react'
 import { useI18n } from '../i18n/useI18n'
+import { useTheme } from '../useTheme'
 
 export default function TopNav() {
-  const { t } = useI18n()
+  const { t, lang, setLang } = useI18n()
+  const { theme, toggleTheme } = useTheme()
 
   const links = [
     { href: '#downloads-section', label: t('nav.downloads') },
@@ -33,6 +35,27 @@ export default function TopNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-secondary transition-colors hover:bg-surface-2 hover:text-text"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <div className="flex h-8 items-center gap-1 rounded-md border border-border bg-surface px-1">
+            <button
+              onClick={() => setLang('en')}
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${lang === 'en' ? 'bg-accent text-white' : 'text-text-secondary hover:text-text'}`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLang('zh')}
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${lang === 'zh' ? 'bg-accent text-white' : 'text-text-secondary hover:text-text'}`}
+            >
+              中文
+            </button>
+          </div>
           <a
             href="#downloads-section"
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-secondary transition-colors hover:text-text md:hidden"

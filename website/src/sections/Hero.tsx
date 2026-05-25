@@ -1,42 +1,17 @@
-import { Download, Sun, Moon } from 'lucide-react'
+import { Download } from 'lucide-react'
 import Terminal from '../components/Terminal'
 import { useI18n } from '../i18n/useI18n'
 import { useTheme } from '../useTheme'
 
 export default function Hero() {
-  const { t, lang, setLang } = useI18n()
-  const { theme, toggleTheme } = useTheme()
+  const { t } = useI18n()
+  const { theme } = useTheme()
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-24 hero-grid overflow-hidden">
       {/* Gradient glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse,rgba(0,122,255,0.12),transparent_60%)]" />
-      </div>
-
-      {/* Theme + Language toggles */}
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-3 md:top-8">
-        <button
-          onClick={toggleTheme}
-          className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center text-text-secondary hover:text-text transition-colors"
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
-        <div className="flex items-center gap-1 rounded-full bg-surface border border-border px-1 py-1">
-          <button
-            onClick={() => setLang('en')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${lang === 'en' ? 'bg-accent text-white' : 'text-text-secondary hover:text-text'}`}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => setLang('zh')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${lang === 'zh' ? 'bg-accent text-white' : 'text-text-secondary hover:text-text'}`}
-          >
-            中文
-          </button>
-        </div>
       </div>
 
       {/* Logo + badge */}
