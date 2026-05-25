@@ -633,18 +633,53 @@ export default function ClipboardPage({
               const actionColor = copiedId === file.path
                 ? "#fff"
                 : active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)";
+              const actionSize = isMobile ? 32 : 22;
               return (
                 <div
                   key={file.path}
-                  style={{
-                    borderBottom: "1px solid var(--border)",
-                    background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text)",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  <button
-                    type="button"
+                    style={{
+                      position: "relative",
+                      borderBottom: "1px solid var(--border)",
+                      background: active ? "var(--accent)" : "transparent",
+                      color: active ? "#fff" : "var(--text)",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    {multiSelectMode && (
+                      <button
+                        type="button"
+                        aria-label={clipSelected ? t("common.cancel") : t("clipboard.selectMode")}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleClipSelection(file.path);
+                        }}
+                        style={{
+                          position: "absolute",
+                          right: isMobile ? 16 : 18,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          zIndex: 2,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          width: isMobile ? 44 : 32, height: isMobile ? 44 : 32, cursor: "pointer",
+                          border: "none", background: "transparent", color: "inherit", padding: 0,
+                        }}
+                      >
+                        <span style={{
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          width: isMobile ? 26 : 22, height: isMobile ? 26 : 22, borderRadius: 999,
+                          border: `1px solid ${clipSelected ? "rgba(255,255,255,0.75)" : "var(--border)"}`,
+                          background: clipSelected ? "rgba(255,255,255,0.18)" : "var(--bg)",
+                          color: clipSelected ? "#fff" : "var(--text-secondary)",
+                          fontSize: 11, fontWeight: 700,
+                          boxShadow: active ? "none" : "0 1px 4px rgba(0,0,0,0.08)",
+                        }}>
+                          {clipSelected ? selectionOrder + 1 : ""}
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
                     ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                     onClick={() => {
                       if (multiSelectMode) toggleClipSelection(file.path);
@@ -666,27 +701,12 @@ export default function ClipboardPage({
                     style={{
                       position: "relative",
                       display: "block", width: "100%", textAlign: "left",
-                      padding: multiSelectMode
-                        ? (isMobile ? "14px 50px 8px 16px" : "12px 48px 6px 16px")
-                        : (isMobile ? "14px 16px 8px" : "12px 16px 6px"),
+                      padding: isMobile ? "14px 16px 8px" : "12px 16px 6px",
                       cursor: "pointer",
                       border: "none", background: "transparent",
                       color: "inherit",
                     }}
                   >
-                    {multiSelectMode && (
-                      <span style={{
-                        position: "absolute", top: 10, right: 16,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: isMobile ? 24 : 22, height: isMobile ? 24 : 22, borderRadius: 999,
-                        border: `1px solid ${clipSelected ? "rgba(255,255,255,0.75)" : "var(--border)"}`,
-                        background: clipSelected ? "rgba(255,255,255,0.18)" : "var(--bg)",
-                        color: clipSelected ? "#fff" : "var(--text-secondary)",
-                        fontSize: 11, fontWeight: 700,
-                      }}>
-                        {clipSelected ? selectionOrder + 1 : ""}
-                      </span>
-                    )}
                     {file.preview_image ? (
                       <div style={{ minWidth: 0 }}>
                         <ClipImageThumb relPath={file.preview_image} selected={active} wide />
@@ -703,7 +723,11 @@ export default function ClipboardPage({
                       </div>
                     )}
                   </button>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "0 14px 10px 16px" : "0 16px 8px" }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    minHeight: actionSize,
+                    padding: isMobile ? "0 14px 10px 16px" : "0 16px 8px",
+                  }}>
                     <span style={{ fontSize: isMobile ? 11 : 11, color: metaColor }}>
                       {relativeTime(file.modified, t)}
                     </span>
@@ -725,7 +749,7 @@ export default function ClipboardPage({
                           }}
                           style={{
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            width: isMobile ? 32 : 22, height: isMobile ? 32 : 22, cursor: "pointer",
+                            width: actionSize, height: actionSize, cursor: "pointer",
                             border: "none", background: "transparent", color: actionColor,
                           }}
                         >
@@ -741,7 +765,7 @@ export default function ClipboardPage({
                           }}
                           style={{
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            width: isMobile ? 32 : 22, height: isMobile ? 32 : 22, cursor: "pointer",
+                            width: actionSize, height: actionSize, cursor: "pointer",
                             border: "none", background: "transparent",
                             color: active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
                           }}
