@@ -2,13 +2,17 @@ import { ArrowLeft } from 'lucide-react'
 import readmeEn from '../../../README.md?raw'
 import readmeZh from '../../../README_CN.md?raw'
 import { useI18n } from '../i18n/useI18n'
+import ReadmeMarkdown from './ReadmeMarkdown'
 
-function ReadmeText({ content }: { content: string }) {
-  return (
-    <pre className="whitespace-pre-wrap break-words rounded-lg border border-border bg-surface/70 p-5 text-sm leading-7 text-text-secondary shadow-[0_16px_40px_rgba(0,0,0,0.08)] sm:p-8">
-      {content}
-    </pre>
-  )
+const repoBaseUrl = 'https://github.com/sahadev/GitMemo/blob/main/'
+
+function resolveReadmeLink(href: string | undefined) {
+  if (!href) return href
+  if (/^(https?:|mailto:|#)/.test(href)) return href
+  if (href === 'README.md') return '/docs/readme-en.md'
+  if (href === 'README_CN.md') return '/docs/readme-zh.md'
+  if (href.startsWith('/')) return href
+  return `${repoBaseUrl}${href}`
 }
 
 export default function ReadmePage() {
@@ -65,7 +69,7 @@ export default function ReadmePage() {
           </p>
         </header>
 
-        <ReadmeText content={content} />
+        <ReadmeMarkdown content={content} resolveLink={resolveReadmeLink} />
       </div>
     </main>
   )
