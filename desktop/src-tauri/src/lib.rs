@@ -118,6 +118,7 @@ pub fn run() {
             notes::update_note,
             notes::delete_note,
             notes::delete_clip,
+            notes::delete_clips,
             notes::delete_plan,
             notes::save_pasted_attachment,
             // Search

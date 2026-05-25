@@ -65,6 +65,19 @@ fn bg_remove_index_file(dir: PathBuf, rel_path: String) {
     std::thread::spawn(move || remove_index_file(&dir, &rel_path));
 }
 
+fn remove_index_files(dir: &Path, rel_paths: &[String]) {
+    let db_path = dir.join(".metadata").join("index.db");
+    if let Ok(conn) = database::open_or_create(&db_path) {
+        for rel_path in rel_paths {
+            let _ = database::remove_relative_file(&conn, rel_path);
+        }
+    }
+}
+
+fn bg_remove_index_files(dir: PathBuf, rel_paths: Vec<String>) {
+    std::thread::spawn(move || remove_index_files(&dir, &rel_paths));
+}
+
 #[derive(Debug, Serialize)]
 pub struct NoteResult {
     pub success: bool,
@@ -1039,6 +1052,40 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
 #[tauri::command]
 pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
     let dir = sync_dir();
+    let norm = remove_clip_file(&dir, &file_path)?;
+    bg_remove_index_file(dir.clone(), norm.clone());
+    bg_commit_and_push(format!("delete clip: {}", norm));
+
+    Ok(NoteResult {
+        success: true,
+        path: norm,
+        message: "Clip deleted".into(),
+    })
+}
+
+#[tauri::command]
+pub fn delete_clips(file_paths: Vec<String>) -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    if file_paths.is_empty() {
+        return Err("No clips selected".into());
+    }
+
+    let mut deleted = Vec::with_capacity(file_paths.len());
+    for file_path in file_paths {
+        deleted.push(remove_clip_file(&dir, &file_path)?);
+    }
+
+    bg_remove_index_files(dir.clone(), deleted.clone());
+    bg_commit_and_push(format!("delete clips: {}", deleted.len()));
+
+    Ok(NoteResult {
+        success: true,
+        path: deleted.join(","),
+        message: format!("Deleted {} clips", deleted.len()),
+    })
+}
+
+fn remove_clip_file(dir: &Path, file_path: &str) -> Result<String, String> {
     let norm = file_path
         .replace('\\', "/")
         .trim_start_matches('/')
@@ -1068,7 +1115,7 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
             };
             if let Some(img_name) = extract_markdown_image_path(body) {
                 if !img_name.contains("..") && !img_name.contains('/') {
-                    let png_path = full_path.parent().unwrap_or(&dir).join(&img_name);
+                    let png_path = full_path.parent().unwrap_or(dir).join(&img_name);
                     if png_path.is_file() {
                         let _ = std::fs::remove_file(&png_path);
                     }
@@ -1078,14 +1125,7 @@ pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
     }
 
     std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
-    bg_remove_index_file(dir.clone(), norm.clone());
-    bg_commit_and_push(format!("delete clip: {}", norm));
-
-    Ok(NoteResult {
-        success: true,
-        path: norm,
-        message: "Clip deleted".into(),
-    })
+    Ok(norm)
 }
 
 #[tauri::command]

@@ -1390,6 +1390,12 @@ pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
 }
 
 pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
+    // Serialize the full write path, not just network operations. Background
+    // UI actions can otherwise stage/commit at the same time and race on HEAD.
+    with_repo_network_lock(repo_path, || commit_and_push_inner(repo_path, message))
+}
+
+fn commit_and_push_inner(repo_path: &Path, message: &str) -> Result<SyncResult> {
     #[cfg(target_os = "android")]
     if let Some(token) = configured_access_token(repo_path) {
         return commit_and_push_with_token(repo_path, message, &token);
@@ -1427,11 +1433,8 @@ pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
 
     // Push only if remote is configured
     if has_remote(repo_path) {
-        // One lock for pull + push so another GitMemo process cannot interleave.
-        let (pushed, push_error) = with_repo_network_lock(repo_path, || {
-            let _ = pull_inner(repo_path);
-            do_push_with_retry(repo_path)
-        });
+        let _ = pull_inner(repo_path);
+        let (pushed, push_error) = do_push_with_retry(repo_path);
         Ok(SyncResult {
             committed,
             pushed,

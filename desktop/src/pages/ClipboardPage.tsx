@@ -347,9 +347,7 @@ export default function ClipboardPage({
     if (!ok) return;
     setDeletingSelected(true);
     try {
-      for (const path of paths) {
-        await invoke<NoteResult>("delete_clip", { filePath: path });
-      }
+      await invoke<NoteResult>("delete_clips", { filePaths: paths });
       showToast(t("clipboard.selectedDeleted", paths.length));
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
       if (selectedFile && paths.includes(selectedFile)) {
