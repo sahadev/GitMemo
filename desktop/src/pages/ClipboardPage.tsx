@@ -135,6 +135,9 @@ export default function ClipboardPage({
   const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
   const detailOpenedFromCrossPageRef = useRef(false);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
@@ -246,11 +249,42 @@ export default function ClipboardPage({
     void loadSavedClips();
   }, [refreshTrigger, loadSavedClips]);
 
-  const refreshSavedClipsInPlace = useCallback(() => {
-    void loadSavedClips({ preserveScroll: true });
+  const runRefreshSavedClipsInPlace = useCallback(() => {
+    if (refreshInFlightRef.current) {
+      refreshQueuedRef.current = true;
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    void loadSavedClips({ preserveScroll: true }).finally(() => {
+      refreshInFlightRef.current = false;
+      if (!refreshQueuedRef.current) return;
+
+      refreshQueuedRef.current = false;
+      refreshTimerRef.current = window.setTimeout(() => {
+        refreshTimerRef.current = null;
+        runRefreshSavedClipsInPlace();
+      }, 150);
+    });
   }, [loadSavedClips]);
 
+  const refreshSavedClipsInPlace = useCallback(() => {
+    if (refreshTimerRef.current) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+      runRefreshSavedClipsInPlace();
+    }, 250);
+  }, [runRefreshSavedClipsInPlace]);
+
   useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
 
   // Event sources that trigger refresh should not push the list back to page one.
   useEffect(() => {
@@ -456,14 +490,14 @@ export default function ClipboardPage({
       }
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
-      loadSavedClips({ preserveScroll: true });
-      refreshClipboardStatus();
+      refreshSavedClipsInPlace();
+      void refreshClipboardStatus();
     } catch (e) {
       showToast(String(e), true);
     } finally {
       setDeletingSelected(false);
     }
-  }, [creatingNote, deletingSelected, refreshClipboardStatus, selectedClipPaths, selectedFile, showToast, t]);
+  }, [creatingNote, deletingSelected, refreshClipboardStatus, refreshSavedClipsInPlace, selectedClipPaths, selectedFile, showToast, t]);
 
   const confirmDeleteClip = async (path: string) => {
     const ok = await ask(t("clipboard.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
@@ -476,8 +510,8 @@ export default function ClipboardPage({
         setSelectedFile(null);
         setFileContent("");
       }
-      loadSavedClips({ preserveScroll: true });
-      refreshClipboardStatus();
+      refreshSavedClipsInPlace();
+      void refreshClipboardStatus();
     } catch (e) {
       showToast(String(e));
     }
