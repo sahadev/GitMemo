@@ -935,13 +935,6 @@ export default function ClipboardPage({
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFileName : selectedFile}
               </span>
-              {selectedFile ? (
-                <FileMoreActionsMenu
-                  relPath={selectedFile}
-                  exportContent={fileContent}
-                  exportTitle={selectedFileName}
-                />
-              ) : null}
               <button
                 type="button"
                 title={t("clipboard.deleteClip")}
@@ -974,6 +967,13 @@ export default function ClipboardPage({
                   ? <><Check size={isMobile ? 16 : 12} /> {!isMobile && t("clipboard.copied")}</>
                   : <><Copy size={isMobile ? 16 : 12} /> {!isMobile && t("clipboard.copy")}</>}
               </button>
+              {selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFileName}
+                />
+              ) : null}
             </div>
 
             {/* Full content */}

@@ -413,6 +413,9 @@ export default function ImportsPage({
                   <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {selectedFile}
                   </span>
+                  <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
+                    <Trash2 size={13} />
+                  </button>
                   {!editing ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}
@@ -420,9 +423,6 @@ export default function ImportsPage({
                       exportTitle={selectedFile.split("/").pop()}
                     />
                   ) : null}
-                  <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
-                    <Trash2 size={13} />
-                  </button>
                 </div>
                 <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
                   {editing ? (

@@ -212,73 +212,77 @@ export default function SearchPage({
           <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {isMobile ? selectedFile.split("/").pop() : selectedFile}
           </span>
-          {selectedFile && !editing ? (
-            <FileMoreActionsMenu
-              relPath={selectedFile}
-              exportContent={fileContent}
-              exportTitle={selectedFile.split("/").pop()}
-            />
-          ) : null}
-          {(isDesktop || selectedIsNote) && <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 6 }}>
-            {editing ? (
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 6 }}>
+            {(isDesktop || selectedIsNote) ? (
               <>
+                {editing ? (
+                  <>
+                    <button
+                      onClick={() => { setEditing(false); setEditContent(""); }}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
+                        padding: isMobile ? 0 : "5px 10px",
+                        borderRadius: 6, fontSize: 12, cursor: "pointer",
+                        background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
+                      }}
+                      title={t("common.cancel")}
+                    >
+                      <X size={isMobile ? 16 : 12} />
+                    </button>
+                    <button
+                      onClick={() => void handleSaveEdit()}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
+                        padding: isMobile ? 0 : "5px 10px",
+                        borderRadius: 6, fontSize: 12, cursor: "pointer",
+                        background: isMobile ? "var(--bg-success)" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: isMobile ? "var(--green)" : "var(--accent)",
+                      }}
+                      title={t("notes.save")}
+                    >
+                      <Save size={isMobile ? 16 : 12} />
+                      {!isMobile && t("notes.save")}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={startEdit}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
+                      padding: isMobile ? 0 : "5px 10px",
+                      borderRadius: 6, fontSize: 12, cursor: "pointer",
+                      background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
+                    }}
+                    title={t("notes.edit")}
+                  >
+                    <Pencil size={isMobile ? 16 : 12} />
+                    {!isMobile && t("notes.edit")}
+                  </button>
+                )}
                 <button
-                  onClick={() => { setEditing(false); setEditContent(""); }}
+                  onClick={() => void handleDelete()}
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                     width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                    padding: isMobile ? 0 : "5px 10px",
-                    borderRadius: 6, fontSize: 12, cursor: "pointer",
-                    background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: isMobile ? 0 : 6, borderRadius: 6, background: "none", border: "none",
+                    cursor: "pointer", color: "var(--text-secondary)",
                   }}
-                  title={t("common.cancel")}
+                  title={t("common.delete")}
                 >
-                  <X size={isMobile ? 16 : 12} />
-                </button>
-                <button
-                  onClick={() => void handleSaveEdit()}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                    width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                    padding: isMobile ? 0 : "5px 10px",
-                    borderRadius: 6, fontSize: 12, cursor: "pointer",
-                    background: isMobile ? "var(--bg-success)" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: isMobile ? "var(--green)" : "var(--accent)",
-                  }}
-                  title={t("notes.save")}
-                >
-                  <Save size={isMobile ? 16 : 12} />
-                  {!isMobile && t("notes.save")}
+                  <Trash2 size={isMobile ? 16 : 14} />
                 </button>
               </>
-            ) : (
-              <button
-                onClick={startEdit}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                  width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                  padding: isMobile ? 0 : "5px 10px",
-                  borderRadius: 6, fontSize: 12, cursor: "pointer",
-                  background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
-                }}
-                title={t("notes.edit")}
-              >
-                <Pencil size={isMobile ? 16 : 12} />
-                {!isMobile && t("notes.edit")}
-              </button>
-            )}
-            <button
-              onClick={() => void handleDelete()}
-              style={{
-                width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                padding: isMobile ? 0 : 6, borderRadius: 6, background: "none", border: "none",
-                cursor: "pointer", color: "var(--text-secondary)",
-              }}
-              title={t("common.delete")}
-            >
-              <Trash2 size={isMobile ? 16 : 14} />
-            </button>
-          </div>}
+            ) : null}
+            {selectedFile && !editing ? (
+              <FileMoreActionsMenu
+                relPath={selectedFile}
+                exportContent={fileContent}
+                exportTitle={selectedFile.split("/").pop()}
+              />
+            ) : null}
+          </div>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px", userSelect: "text" }}>
           {editing ? (

@@ -98,13 +98,13 @@ export default function ConversationsPage({
   onFocusSidebar,
   enterTrigger,
   sidebarFocused,
-  listHeaderPrefix,
+  renderListHeader,
   registerMobileBackHandler,
 }: {
   onFocusSidebar?: () => void;
   enterTrigger?: number;
   sidebarFocused?: boolean;
-  listHeaderPrefix?: ReactNode;
+  renderListHeader?: (actions: ReactNode) => ReactNode;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 }) {
   const { t } = useI18n();
@@ -359,6 +359,30 @@ export default function ConversationsPage({
     return () => registerMobileBackHandler(null);
   }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
+  const listHeaderActions = (
+    <>
+      <button
+        onClick={() => loadFiles()}
+        title={t("common.refresh")}
+        style={{
+          background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4,
+          color: "var(--text-secondary)", display: "flex", alignItems: "center",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+      >
+        <RefreshCw size={14} />
+      </button>
+      <span style={{
+        fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
+        padding: "2px 8px", borderRadius: 10, whiteSpace: "nowrap",
+      }}>
+        {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
+        {hasMore ? ` / ${totalFiles}` : ""}
+      </span>
+    </>
+  );
+
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
@@ -371,35 +395,17 @@ export default function ConversationsPage({
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
-        {listHeaderPrefix}
-        {/* Header */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}>
-          <MessageSquare size={18} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
-          <button
-            onClick={() => loadFiles()}
-            title={t("common.refresh")}
-            style={{
-              background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4,
-              color: "var(--text-secondary)", display: "flex", alignItems: "center",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            <RefreshCw size={14} />
-          </button>
-          <span style={{
-            fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: 10,
+        {renderListHeader ? renderListHeader(listHeaderActions) : (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
+            borderBottom: "1px solid var(--border)",
+            flexShrink: 0,
           }}>
-            {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
-            {hasMore ? ` / ${totalFiles}` : ""}
-          </span>
-        </div>
+            <MessageSquare size={18} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
+            {listHeaderActions}
+          </div>
+        )}
 
         {/* List */}
         <div style={{
@@ -542,12 +548,6 @@ export default function ConversationsPage({
                   {currentMeta.messages} {t("conversations.msgs")}
                 </span>
               )}
-              {selectedFile && !editing ? (
-                <FileMoreActionsMenu
-                  relPath={selectedFile}
-                  canExportPdf={false}
-                />
-              ) : null}
               {!isMobile && (editing ? (
                 <>
                   <button
@@ -598,6 +598,12 @@ export default function ConversationsPage({
               >
                 <Trash2 size={14} />
               </button>}
+              {selectedFile && !editing ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  canExportPdf={false}
+                />
+              ) : null}
             </div>
 
             {/* Messages */}

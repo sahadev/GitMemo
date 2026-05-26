@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
 import { Lightbulb, MessageSquare } from "lucide-react";
 import ConversationsPage from "./ConversationsPage";
 import PlansPage from "./PlansPage";
@@ -31,10 +31,11 @@ export default function AiRecordsPage({
     if (pendingOpenPath?.startsWith("plans/")) setAiRecordsTab("plans");
   }, [pendingOpenPath, setAiRecordsTab]);
 
-  const tabBar = useMemo(() => (
+  const renderListHeader = useCallback((actions?: ReactNode) => (
     <div style={{
       display: "flex",
       alignItems: "center",
+      gap: 8,
       borderBottom: "1px solid var(--border)",
       padding: isMobile ? "0 10px" : "0 8px",
       flexShrink: 0,
@@ -68,6 +69,11 @@ export default function AiRecordsPage({
           </button>
         );
       })}
+      {actions ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {actions}
+        </div>
+      ) : null}
     </div>
   ), [activeTab, isMobile, setAiRecordsTab, t]);
 
@@ -76,7 +82,7 @@ export default function AiRecordsPage({
       <PlansPage
         onFocusSidebar={onFocusSidebar}
         enterTrigger={enterTrigger}
-        listHeaderPrefix={tabBar}
+        renderListHeader={renderListHeader}
         registerMobileBackHandler={registerMobileBackHandler}
       />
     );
@@ -87,7 +93,7 @@ export default function AiRecordsPage({
       onFocusSidebar={onFocusSidebar}
       enterTrigger={enterTrigger}
       sidebarFocused={sidebarFocused}
-      listHeaderPrefix={tabBar}
+      renderListHeader={renderListHeader}
       registerMobileBackHandler={registerMobileBackHandler}
     />
   );

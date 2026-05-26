@@ -21,12 +21,12 @@ import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 export default function PlansPage({
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
-  listHeaderPrefix,
+  renderListHeader,
   registerMobileBackHandler,
 }: {
   onFocusSidebar?: () => void;
   enterTrigger?: number;
-  listHeaderPrefix?: ReactNode;
+  renderListHeader?: (actions: ReactNode) => ReactNode;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 } = {}) {
   const { t } = useI18n();
@@ -216,6 +216,29 @@ export default function PlansPage({
     return () => registerMobileBackHandler(null);
   }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
+  const listHeaderActions = (
+    <>
+      <button
+        onClick={() => loadFiles()}
+        title={t("common.refresh")}
+        style={{
+          background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4,
+          color: "var(--text-secondary)", display: "flex", alignItems: "center",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+      >
+        <RefreshCw size={14} />
+      </button>
+      <span style={{
+        fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
+        padding: "2px 8px", borderRadius: 10, whiteSpace: "nowrap",
+      }}>
+        {hasMore ? `${files.length} / ${totalFiles}` : files.length}
+      </span>
+    </>
+  );
+
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
@@ -227,33 +250,17 @@ export default function PlansPage({
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
-        {listHeaderPrefix}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}>
-          <Lightbulb size={18} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
-          <button
-            onClick={() => loadFiles()}
-            title={t("common.refresh")}
-            style={{
-              background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4,
-              color: "var(--text-secondary)", display: "flex", alignItems: "center",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            <RefreshCw size={14} />
-          </button>
-          <span style={{
-            fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: 10,
+        {renderListHeader ? renderListHeader(listHeaderActions) : (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
+            borderBottom: "1px solid var(--border)",
+            flexShrink: 0,
           }}>
-            {hasMore ? `${files.length} / ${totalFiles}` : files.length}
-          </span>
-        </div>
+            <Lightbulb size={18} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
+            {listHeaderActions}
+          </div>
+        )}
 
         <div style={{
           flex: 1,
@@ -359,13 +366,6 @@ export default function PlansPage({
               <span style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 13 : 12, fontWeight: isMobile ? 600 : 400, color: isMobile ? "var(--text)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               </span>
-              {selectedFile ? (
-                <FileMoreActionsMenu
-                  relPath={selectedFile}
-                  exportContent={fileContent}
-                  exportTitle={selectedFile.split("/").pop()}
-                />
-              ) : null}
               {!isMobile && <button
                 onClick={() => void handleDelete()}
                 style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}
@@ -373,6 +373,13 @@ export default function PlansPage({
               >
                 <Trash2 size={13} />
               </button>}
+              {selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFile.split("/").pop()}
+                />
+              ) : null}
             </div>
             <div style={{
               flex: 1,

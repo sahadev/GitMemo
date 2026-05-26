@@ -535,13 +535,6 @@ export default function NotesPage({
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFileName : selectedFile}
               </span>
-              {!editing && selectedFile ? (
-                <FileMoreActionsMenu
-                  relPath={selectedFile}
-                  exportContent={fileContent}
-                  exportTitle={selectedFileName}
-                />
-              ) : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={handleSaveEdit} title={t("notes.save")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>
@@ -559,6 +552,13 @@ export default function NotesPage({
                   <button onClick={handleDelete} title={t("common.delete")} style={{ width: isMobile ? 38 : 22, height: isMobile ? 38 : 22, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
                     <Trash2 size={isMobile ? 16 : 13} />
                   </button>
+                  {selectedFile ? (
+                    <FileMoreActionsMenu
+                      relPath={selectedFile}
+                      exportContent={fileContent}
+                      exportTitle={selectedFileName}
+                    />
+                  ) : null}
                 </div>
               )}
             </div>

@@ -461,14 +461,6 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
                     {selectedFileRel}
                   </span>
-                  {!editing && selectedFileRel ? (
-                    <FileMoreActionsMenu
-                      absolutePath={fileAbs || undefined}
-                      canExportPdf={isProbablyMarkdown(selectedFileRel)}
-                      exportContent={fileContent}
-                      exportTitle={selectedFileRel.split("/").pop()}
-                    />
-                  ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {editing ? (
                       <>
@@ -523,6 +515,14 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                     >
                       <Trash2 size={14} />
                     </button>
+                    {!editing && selectedFileRel ? (
+                      <FileMoreActionsMenu
+                        absolutePath={fileAbs || undefined}
+                        canExportPdf={isProbablyMarkdown(selectedFileRel)}
+                        exportContent={fileContent}
+                        exportTitle={selectedFileRel.split("/").pop()}
+                      />
+                    ) : null}
                   </div>
                 </div>
                 <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
