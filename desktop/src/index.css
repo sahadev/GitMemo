@@ -286,7 +286,7 @@ textarea:focus, input:focus {
 
 @media print {
   @page {
-    margin: 18mm 14mm 18mm;
+    margin: 12mm 14mm 18mm;
   }
 
   body {
@@ -306,7 +306,7 @@ textarea:focus, input:focus {
 
   .gitmemo-print-document {
     max-width: none;
-    padding: 0;
+    padding: 12mm 0 0;
   }
 
   .gitmemo-print-header {
@@ -320,7 +320,8 @@ textarea:focus, input:focus {
     padding: 0 0 2mm;
     position: fixed;
     right: 0;
-    top: -12mm;
+    top: 0;
+    z-index: 1;
   }
 
   .gitmemo-print-brand {
