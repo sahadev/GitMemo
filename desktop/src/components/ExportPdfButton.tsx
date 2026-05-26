@@ -12,6 +12,7 @@ interface ExportPdfButtonProps {
   title?: string;
   disabled?: boolean;
   loadContent?: () => Promise<string>;
+  variant?: "toolbar" | "menuItem";
 }
 
 function displayTitle(title?: string, filePath?: string) {
@@ -42,7 +43,7 @@ async function printDocument() {
   }
 }
 
-export function ExportPdfButton({ content = "", filePath, title, disabled = false, loadContent }: ExportPdfButtonProps) {
+export function ExportPdfButton({ content = "", filePath, title, disabled = false, loadContent, variant = "toolbar" }: ExportPdfButtonProps) {
   const { t } = useI18n();
   const isMobile = usePlatform() === "mobile";
   const [printing, setPrinting] = useState(false);
@@ -94,6 +95,8 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
 
   const buttonDisabled = disabled || printing || (!loadContent && !content.trim());
 
+  const isMenuItem = variant === "menuItem";
+
   return (
     <button
       type="button"
@@ -106,23 +109,26 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        gap: 4,
-        minWidth: isMobile ? 38 : undefined,
-        minHeight: isMobile ? 38 : undefined,
-        padding: isMobile ? "8px 10px" : "5px 10px",
-        borderRadius: 6,
+        justifyContent: isMenuItem ? "flex-start" : "center",
+        gap: isMenuItem ? 8 : 4,
+        width: isMenuItem ? "100%" : undefined,
+        minWidth: isMenuItem ? undefined : isMobile ? 38 : undefined,
+        minHeight: isMenuItem ? undefined : isMobile ? 38 : undefined,
+        padding: isMenuItem ? "8px 10px" : isMobile ? "8px 10px" : "5px 10px",
+        borderRadius: isMenuItem ? 4 : 6,
         fontSize: 12,
         cursor: buttonDisabled ? "not-allowed" : "pointer",
-        background: isMobile ? "transparent" : "var(--bg)",
-        border: isMobile ? "none" : "1px solid var(--border)",
+        background: isMenuItem || isMobile ? "transparent" : "var(--bg)",
+        border: isMenuItem || isMobile ? "none" : "1px solid var(--border)",
         color: "var(--text-secondary)",
         opacity: buttonDisabled ? 0.45 : 1,
         flexShrink: 0,
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
       }}
     >
-      <Printer size={isMobile ? 16 : 12} />
-      {!isMobile && t("common.exportPdf")}
+      <Printer size={isMenuItem ? 14 : isMobile ? 16 : 12} />
+      {(isMenuItem || !isMobile) && t("common.exportPdf")}
     </button>
   );
 }

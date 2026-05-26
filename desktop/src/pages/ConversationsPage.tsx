@@ -4,8 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -543,8 +542,12 @@ export default function ConversationsPage({
                   {currentMeta.messages} {t("conversations.msgs")}
                 </span>
               )}
-              {!isMobile && <RevealInFinderButton relPath={selectedFile ?? undefined} />}
-              {!isMobile && selectedFile && !editing ? <CopyPathButton relPath={selectedFile} /> : null}
+              {selectedFile && !editing ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  canExportPdf={false}
+                />
+              ) : null}
               {!isMobile && (editing ? (
                 <>
                   <button

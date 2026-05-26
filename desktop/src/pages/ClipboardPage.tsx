@@ -6,9 +6,8 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
-import { CopyPathButton } from "../components/CopyPathButton";
 import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -936,9 +935,13 @@ export default function ClipboardPage({
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFileName : selectedFile}
               </span>
-              {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
-              {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-              {selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFileName} /> : null}
+              {selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFileName}
+                />
+              ) : null}
               <button
                 type="button"
                 title={t("clipboard.deleteClip")}

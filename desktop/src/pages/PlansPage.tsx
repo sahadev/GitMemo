@@ -4,9 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -361,9 +359,13 @@ export default function PlansPage({
               <span style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 13 : 12, fontWeight: isMobile ? 600 : 400, color: isMobile ? "var(--text)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               </span>
-              {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
-              {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-              {selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFile.split("/").pop()} /> : null}
+              {selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFile.split("/").pop()}
+                />
+              ) : null}
               {!isMobile && <button
                 onClick={() => void handleDelete()}
                 style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}

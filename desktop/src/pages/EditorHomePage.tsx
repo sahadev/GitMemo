@@ -6,9 +6,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
@@ -463,10 +461,13 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
                     {selectedFileRel}
                   </span>
-                  <RevealInFinderButton absolutePath={fileAbs || undefined} />
-                  {fileAbs ? <CopyPathButton absolutePath={fileAbs} /> : null}
-                  {!editing && selectedFileRel && isProbablyMarkdown(selectedFileRel) ? (
-                    <ExportPdfButton content={fileContent} title={selectedFileRel.split("/").pop()} />
+                  {!editing && selectedFileRel ? (
+                    <FileMoreActionsMenu
+                      absolutePath={fileAbs || undefined}
+                      canExportPdf={isProbablyMarkdown(selectedFileRel)}
+                      exportContent={fileContent}
+                      exportTitle={selectedFileRel.split("/").pop()}
+                    />
                   ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {editing ? (

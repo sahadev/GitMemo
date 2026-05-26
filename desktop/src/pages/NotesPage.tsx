@@ -4,9 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Plus, FileText, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -537,9 +535,13 @@ export default function NotesPage({
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFileName : selectedFile}
               </span>
-              {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
-              {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-              {!editing && selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFileName} /> : null}
+              {!editing && selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFileName}
+                />
+              ) : null}
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={handleSaveEdit} title={t("notes.save")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>

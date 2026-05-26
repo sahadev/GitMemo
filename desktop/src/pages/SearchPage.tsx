@@ -3,9 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
@@ -214,9 +212,13 @@ export default function SearchPage({
           <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {isMobile ? selectedFile.split("/").pop() : selectedFile}
           </span>
-          {isDesktop && <RevealInFinderButton relPath={selectedFile} />}
-          {isDesktop && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
-          {selectedFile && !editing ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFile.split("/").pop()} /> : null}
+          {selectedFile && !editing ? (
+            <FileMoreActionsMenu
+              relPath={selectedFile}
+              exportContent={fileContent}
+              exportTitle={selectedFile.split("/").pop()}
+            />
+          ) : null}
           {(isDesktop || selectedIsNote) && <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 6 }}>
             {editing ? (
               <>

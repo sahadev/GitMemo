@@ -6,9 +6,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
-import { CopyPathButton } from "../components/CopyPathButton";
-import { ExportPdfButton } from "../components/ExportPdfButton";
-import { RevealInFinderButton } from "../components/RevealInFinderButton";
+import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -416,10 +414,14 @@ export default function ExternalFilesPage({
                 >
                   <Trash2 size={14} />
                 </button>
-                <RevealInFinderButton absolutePath={selectedEntry.file_path} disabled={!selectedEntry.exists} />
-                <CopyPathButton absolutePath={selectedEntry.file_path} />
-                {!editing && isProbablyMarkdown(selectedEntry.file_name) ? (
-                  <ExportPdfButton content={fileContent} title={selectedEntry.file_name} />
+                {!editing ? (
+                  <FileMoreActionsMenu
+                    absolutePath={selectedEntry.file_path}
+                    canReveal={selectedEntry.exists}
+                    canExportPdf={isProbablyMarkdown(selectedEntry.file_name)}
+                    exportContent={fileContent}
+                    exportTitle={selectedEntry.file_name}
+                  />
                 ) : null}
               </div>
 
