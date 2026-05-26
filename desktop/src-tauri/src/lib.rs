@@ -114,6 +114,7 @@ pub fn run() {
             notes::resolve_sync_path,
             notes::list_files,
             notes::list_files_page,
+            notes::sync_external_plans,
             notes::update_note,
             notes::delete_note,
             notes::delete_clip,

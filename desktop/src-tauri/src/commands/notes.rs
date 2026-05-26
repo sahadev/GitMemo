@@ -3,6 +3,7 @@ use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use gitmemo_core::utils::sanitize::git_error_for_user;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -89,6 +90,25 @@ pub struct NoteResult {
 pub struct GitSyncEvent {
     pub ok: bool,
     pub message: String,
+}
+
+#[derive(Debug, Default, Serialize)]
+pub struct PlanSyncResult {
+    pub copied: usize,
+    pub duplicates_skipped: usize,
+    pub duplicates_removed: usize,
+}
+
+impl PlanSyncResult {
+    fn merge(&mut self, other: PlanSyncResult) {
+        self.copied += other.copied;
+        self.duplicates_skipped += other.duplicates_skipped;
+        self.duplicates_removed += other.duplicates_removed;
+    }
+
+    fn changed(&self) -> bool {
+        self.copied > 0 || self.duplicates_removed > 0
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -198,9 +218,6 @@ struct FileCandidate {
 }
 
 fn prepare_list_folder(dir: &Path, folder: &str) {
-    if folder == "plans" {
-        sync_external_plans_to_gitmemo(dir);
-    }
     if folder.starts_with("claude-config") {
         sync_claude_config(dir);
     }
@@ -403,9 +420,6 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
     if pulled {
         emit_files_changed();
     }
-
-    // Copy plans from editor workspaces to plans/
-    sync_external_plans_to_gitmemo(dir);
 
     // Sync Claude config (memory, skills, CLAUDE.md) to claude-config/
     sync_claude_config(dir);
@@ -1309,7 +1323,6 @@ pub(crate) fn sync_to_git_blocking() -> Result<String, String> {
 
     #[cfg(not(target_os = "android"))]
     {
-        sync_external_plans_to_gitmemo(&dir);
         sync_claude_config(&dir);
         sync_cursor_config(&dir);
         run_full_sync(&dir)
@@ -1331,16 +1344,52 @@ fn external_plan_dir_for_source(home: &Path, source: &str) -> Option<PathBuf> {
     }
 }
 
-fn sync_plan_dir_to_gitmemo(src: &Path, dst: &Path) {
+fn hash_file(path: &Path) -> Option<String> {
+    let bytes = std::fs::read(path).ok()?;
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    Some(format!("{:x}", hasher.finalize()))
+}
+
+fn is_markdown_file(path: &Path) -> bool {
+    path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("md")
+}
+
+fn collect_plan_hashes(root: &Path) -> std::collections::HashSet<String> {
+    if !root.is_dir() {
+        return std::collections::HashSet::new();
+    }
+
+    walkdir::WalkDir::new(root)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| is_markdown_file(e.path()))
+        .filter_map(|e| hash_file(e.path()))
+        .collect()
+}
+
+fn sync_plan_dir_to_gitmemo(
+    src: &Path,
+    dst: &Path,
+    known_hashes: &mut std::collections::HashSet<String>,
+) -> PlanSyncResult {
+    let mut result = PlanSyncResult::default();
     if !src.is_dir() {
-        return;
+        return result;
     }
     for entry in walkdir::WalkDir::new(src)
         .into_iter()
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        if !path.is_file() || path.extension().and_then(|e| e.to_str()) != Some("md") {
+        if !is_markdown_file(path) {
+            continue;
+        }
+        let Some(hash) = hash_file(path) else {
+            continue;
+        };
+        if known_hashes.contains(&hash) {
+            result.duplicates_skipped += 1;
             continue;
         }
         let rel = path.strip_prefix(src).unwrap_or(path);
@@ -1348,8 +1397,82 @@ fn sync_plan_dir_to_gitmemo(src: &Path, dst: &Path) {
         if let Some(parent) = out.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let _ = std::fs::copy(path, out);
+        if std::fs::copy(path, out).is_ok() {
+            known_hashes.insert(hash);
+            result.copied += 1;
+        }
     }
+    result
+}
+
+struct PlanHashCandidate {
+    path: PathBuf,
+    modified_time: SystemTime,
+}
+
+fn prefer_plan_candidate(candidate: &PlanHashCandidate, current: &PlanHashCandidate) -> bool {
+    candidate.modified_time > current.modified_time
+        || (candidate.modified_time == current.modified_time && candidate.path < current.path)
+}
+
+fn cleanup_duplicate_plans_by_hash(plans_dst: &Path) -> Vec<PathBuf> {
+    let mut by_hash: std::collections::HashMap<String, Vec<PlanHashCandidate>> =
+        std::collections::HashMap::new();
+
+    if !plans_dst.is_dir() {
+        return Vec::new();
+    }
+
+    for entry in walkdir::WalkDir::new(plans_dst)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| is_markdown_file(e.path()))
+    {
+        let path = entry.path().to_path_buf();
+        let Some(hash) = hash_file(&path) else {
+            continue;
+        };
+        let modified_time = path
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        by_hash.entry(hash).or_default().push(PlanHashCandidate {
+            path,
+            modified_time,
+        });
+    }
+
+    let mut removed = Vec::new();
+    for (_, candidates) in by_hash {
+        if candidates.len() < 2 {
+            continue;
+        }
+
+        let mut keep_path = candidates[0].path.clone();
+        let mut keep_modified_time = candidates[0].modified_time;
+        for candidate in &candidates[1..] {
+            let current = PlanHashCandidate {
+                path: keep_path.clone(),
+                modified_time: keep_modified_time,
+            };
+            if prefer_plan_candidate(candidate, &current) {
+                keep_path = candidate.path.clone();
+                keep_modified_time = candidate.modified_time;
+            }
+        }
+
+        for candidate in candidates {
+            if candidate.path == keep_path {
+                continue;
+            }
+            let path = candidate.path;
+            if std::fs::remove_file(&path).is_ok() {
+                removed.push(path);
+            }
+        }
+    }
+    removed
 }
 
 /// Remove legacy flat files like `plans/foo.md` when the canonical copy now lives at
@@ -1396,21 +1519,47 @@ fn cleanup_legacy_flat_plans(plans_dst: &Path) {
 }
 
 /// Copy editor-generated plan files into `<gitmemo>/plans/`.
-pub fn sync_external_plans_to_gitmemo(dir: &std::path::Path) {
+pub fn sync_external_plans_to_gitmemo(dir: &std::path::Path) -> PlanSyncResult {
     let home = match std::env::var("HOME").ok() {
         Some(h) => std::path::PathBuf::from(h),
-        None => return,
+        None => return PlanSyncResult::default(),
     };
     let plans_dst = dir.join("plans");
     let _ = std::fs::create_dir_all(&plans_dst);
 
+    let mut result = PlanSyncResult::default();
+    let mut known_hashes = collect_plan_hashes(&plans_dst);
     for (source, plans_src) in [
         ("claude", home.join(".claude").join("plans")),
         ("cursor", home.join(".cursor").join("plans")),
     ] {
-        sync_plan_dir_to_gitmemo(&plans_src, &plans_dst.join(source));
+        result.merge(sync_plan_dir_to_gitmemo(
+            &plans_src,
+            &plans_dst.join(source),
+            &mut known_hashes,
+        ));
     }
     cleanup_legacy_flat_plans(&plans_dst);
+    result.duplicates_removed += cleanup_duplicate_plans_by_hash(&plans_dst).len();
+    result
+}
+
+#[tauri::command]
+pub async fn sync_external_plans() -> Result<PlanSyncResult, String> {
+    tokio::task::spawn_blocking(|| {
+        let dir = sync_dir();
+        if !dir.exists() {
+            return Err("GitMemo not initialized".into());
+        }
+        let result = sync_external_plans_to_gitmemo(&dir);
+        if result.changed() {
+            refresh_index(&dir);
+            emit_files_changed();
+        }
+        Ok(result)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
 /// Sync valuable Claude config files to <gitmemo>/claude-config/

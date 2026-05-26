@@ -5,9 +5,6 @@ use serde::Serialize;
 use std::panic;
 use std::path::Path;
 
-#[cfg(desktop)]
-use super::notes;
-
 #[derive(Debug, Serialize)]
 pub struct SearchResultItem {
     pub source_type: String,
@@ -66,14 +63,6 @@ fn map_results(sync_dir: &Path, results: Vec<database::SearchResult>) -> Vec<Sea
     mapped
 }
 
-fn sync_external_plans_if_desktop(sync_dir: &Path) {
-    #[cfg(not(desktop))]
-    let _ = sync_dir;
-
-    #[cfg(desktop)]
-    notes::sync_external_plans_to_gitmemo(sync_dir);
-}
-
 #[tauri::command]
 pub async fn search_all(
     query: String,
@@ -95,7 +84,6 @@ fn search_all_sync(
         if !sync_dir.exists() {
             return Err("GitMemo not initialized".into());
         }
-        sync_external_plans_if_desktop(&sync_dir);
 
         let filter = type_filter.as_deref().unwrap_or("all");
         let max = limit.unwrap_or(20);
@@ -126,7 +114,6 @@ fn recent_conversations_sync(
         if !sync_dir.exists() {
             return Err("GitMemo not initialized".into());
         }
-        sync_external_plans_if_desktop(&sync_dir);
 
         let results = services::search::recent_with_full_rebuild(
             &sync_dir,
@@ -152,7 +139,6 @@ fn reindex_sync() -> Result<u32, String> {
         if !sync_dir.exists() {
             return Err("GitMemo not initialized".into());
         }
-        sync_external_plans_if_desktop(&sync_dir);
 
         services::search::rebuild_index(&sync_dir).map_err(|e| e.to_string())
     })
@@ -178,7 +164,6 @@ fn fuzzy_search_files_sync(
         if !sync_dir.exists() {
             return Err("GitMemo not initialized".into());
         }
-        sync_external_plans_if_desktop(&sync_dir);
 
         let max = limit.unwrap_or(10);
         let query_lower = query.to_lowercase();
@@ -370,9 +355,12 @@ mod tests {
         let indexed = reindex_sync().unwrap();
         assert_eq!(indexed, 2);
 
-        let results =
-            search_all_sync("needle sorted".to_string(), Some("all".to_string()), Some(10))
-                .unwrap();
+        let results = search_all_sync(
+            "needle sorted".to_string(),
+            Some("all".to_string()),
+            Some(10),
+        )
+        .unwrap();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].title, "New Search");

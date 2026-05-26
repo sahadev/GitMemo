@@ -47,13 +47,13 @@ export default function PlansPage({
   const filesLengthRef = useRef(0);
   const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
+  const syncedOnEnterRef = useRef(false);
 
-  useEffect(() => { loadFiles(); }, []);
   useEffect(() => {
     filesLengthRef.current = files.length;
   }, [files.length]);
 
-  const loadFiles = async (reset = true) => {
+  const loadFiles = useCallback(async (reset = true) => {
     if (reset) setLoading(true);
     else setLoadingMore(true);
     try {
@@ -70,8 +70,30 @@ export default function PlansPage({
       if (reset) setLoading(false);
       else setLoadingMore(false);
     }
-  };
-  useFileWatcher(["plans"], loadFiles);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const syncAndLoad = async () => {
+      if (!syncedOnEnterRef.current) {
+        syncedOnEnterRef.current = true;
+        setLoading(true);
+        try {
+          await invoke("sync_external_plans");
+        } catch (e) {
+          console.error(e);
+          if (!cancelled) showToast(`Error: ${e}`, true);
+        }
+      }
+      if (!cancelled) await loadFiles();
+    };
+    void syncAndLoad();
+    return () => { cancelled = true; };
+  }, [loadFiles, showToast]);
+
+  const watchedFolders = useMemo(() => ["plans"], []);
+  const handleWatchedFilesChanged = useCallback(() => { void loadFiles(); }, [loadFiles]);
+  useFileWatcher(watchedFolders, handleWatchedFilesChanged);
   const { sentinelRef, loadMore } = useAutoLoadMore({
     hasMore,
     loading,
@@ -153,7 +175,7 @@ export default function PlansPage({
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [isMobile, selectedFile, files, t, showToast]);
+  }, [isMobile, selectedFile, files, t, showToast, openFile, loadFiles]);
 
   useEffect(() => {
     if (isMobile) return;
