@@ -570,7 +570,7 @@ export default function ClipboardPage({
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
         width: "100%", flex: 1, minWidth: 0,
-        height: "100%", minHeight: 0, overflow: "hidden",
+        height: "100%", minHeight: 0, overflow: "hidden", position: "relative",
       }}>
         {/* Header */}
         <div style={{
@@ -640,7 +640,9 @@ export default function ClipboardPage({
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          paddingBottom: isMobile ? (multiSelectMode ? mobileSelectionBottomPadding : mobileBottomPadding) : 0,
+          paddingBottom: isMobile
+            ? (multiSelectMode ? mobileSelectionBottomPadding : mobileBottomPadding)
+            : multiSelectMode ? 58 : 0,
         }}>
           {clipsLoading ? (
             <div
@@ -844,12 +846,12 @@ export default function ClipboardPage({
             display: "flex", alignItems: "center", gap: 8,
             padding: isMobile ? "10px 12px" : "10px 12px", borderTop: "1px solid var(--border)",
             background: "var(--bg)",
-            position: isMobile ? "fixed" : undefined,
-            left: isMobile ? 0 : undefined,
-            right: isMobile ? 0 : undefined,
-            bottom: isMobile ? MOBILE_FIXED_BAR_BOTTOM : undefined,
-            zIndex: isMobile ? 29 : undefined,
-            boxShadow: isMobile ? "0 -8px 20px rgba(0,0,0,0.18)" : undefined,
+            position: isMobile ? "fixed" : "absolute",
+            left: 0,
+            right: 0,
+            bottom: isMobile ? MOBILE_FIXED_BAR_BOTTOM : 0,
+            zIndex: 29,
+            boxShadow: isMobile ? "0 -8px 20px rgba(0,0,0,0.18)" : "0 -6px 16px rgba(0,0,0,0.08)",
           }}>
             <span style={{
               flex: 1, minWidth: 0, fontSize: 11, color: "var(--text-secondary)",
