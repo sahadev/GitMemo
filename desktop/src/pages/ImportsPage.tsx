@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import { Download, ChevronLeft, Trash2, RefreshCw, Pencil, Save, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -416,6 +417,7 @@ export default function ImportsPage({
                   </span>
                   {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
                   {!isMobile && <CopyPathButton relPath={selectedFile} />}
+                  {!editing ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFile.split("/").pop()} /> : null}
                   <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
                     <Trash2 size={13} />
                   </button>

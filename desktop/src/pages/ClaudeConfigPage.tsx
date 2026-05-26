@@ -4,6 +4,7 @@ import { Brain, Wrench, FileText, ChevronLeft, ScrollText, BookOpen, RefreshCw }
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -318,6 +319,7 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
               </span>
               <RevealInFinderButton relPath={selectedFile} />
               {selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
+              {selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFile.split("/").pop()} /> : null}
             </div>
             <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />

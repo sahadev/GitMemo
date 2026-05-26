@@ -345,6 +345,7 @@
     "imageSaveFailed": "Image save failed",
     "preview": "Preview",
     "refresh": "Refresh",
+    "exportPdf": "Export PDF",
     "loading": "Loading...",
     "loadMore": "Load more"
   },

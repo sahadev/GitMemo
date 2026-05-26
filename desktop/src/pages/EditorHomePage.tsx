@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
@@ -464,6 +465,9 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   </span>
                   <RevealInFinderButton absolutePath={fileAbs || undefined} />
                   {fileAbs ? <CopyPathButton absolutePath={fileAbs} /> : null}
+                  {!editing && selectedFileRel && isProbablyMarkdown(selectedFileRel) ? (
+                    <ExportPdfButton content={fileContent} title={selectedFileRel.split("/").pop()} />
+                  ) : null}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {editing ? (
                       <>

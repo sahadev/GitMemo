@@ -8,7 +8,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
-interface MarkdownViewProps {
+export interface MarkdownViewProps {
   content: string;
   /** Relative path of the markdown file (used to resolve sibling images) */
   filePath?: string;
@@ -166,6 +166,36 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
   return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
 }
 
+export function MarkdownContent({ content, filePath }: MarkdownViewProps) {
+  const body = prepareMarkdown(content);
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        img: (props) => <LocalImage {...props} filePath={filePath} />,
+        a: ({ href, children, ...rest }) => (
+          <a
+            {...rest}
+            href={href}
+            onClick={(e) => {
+              if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
+                e.preventDefault();
+                void openUrl(href);
+              }
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {body}
+    </ReactMarkdown>
+  );
+}
+
 export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState("");
@@ -173,7 +203,6 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const imeComposingRef = useRef(false);
   const settings = useAppStore((s) => s.settings);
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
-  const body = prepareMarkdown(content);
 
   const runFind = useCallback((backwards = false, queryValue = findQuery) => {
     const query = queryValue.trim();
@@ -259,29 +288,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
           </button>
         </div>
       )}
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          img: (props) => <LocalImage {...props} filePath={filePath} />,
-          a: ({ href, children, ...rest }) => (
-            <a
-              {...rest}
-              href={href}
-              onClick={(e) => {
-                if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
-                  e.preventDefault();
-                  void openUrl(href);
-                }
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              {children}
-            </a>
-          ),
-        }}
-      >
-        {body}
-      </ReactMarkdown>
+      <MarkdownContent content={content} filePath={filePath} />
     </div>
   );
 }

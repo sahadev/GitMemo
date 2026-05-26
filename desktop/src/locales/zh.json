@@ -345,6 +345,7 @@
     "imageSaveFailed": "图片保存失败",
     "preview": "预览",
     "refresh": "刷新",
+    "exportPdf": "导出 PDF",
     "loading": "加载中...",
     "loadMore": "加载更多"
   },

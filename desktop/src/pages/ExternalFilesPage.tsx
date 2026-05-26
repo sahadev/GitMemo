@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
@@ -417,6 +418,9 @@ export default function ExternalFilesPage({
                 </button>
                 <RevealInFinderButton absolutePath={selectedEntry.file_path} disabled={!selectedEntry.exists} />
                 <CopyPathButton absolutePath={selectedEntry.file_path} />
+                {!editing && isProbablyMarkdown(selectedEntry.file_name) ? (
+                  <ExportPdfButton content={fileContent} title={selectedEntry.file_name} />
+                ) : null}
               </div>
 
               <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>

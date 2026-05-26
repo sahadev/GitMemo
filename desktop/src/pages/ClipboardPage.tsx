@@ -7,6 +7,7 @@ import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, Refres
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -918,6 +919,7 @@ export default function ClipboardPage({
               </span>
               {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
               {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
+              {selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFileName} /> : null}
               <button
                 type="button"
                 title={t("clipboard.deleteClip")}

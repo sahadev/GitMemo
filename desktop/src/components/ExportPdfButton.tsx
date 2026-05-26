@@ -1,0 +1,108 @@
+import { useCallback, useMemo, useState } from "react";
+import { Printer } from "lucide-react";
+import { createRoot, type Root } from "react-dom/client";
+import { MarkdownContent } from "./MarkdownView";
+import { useI18n } from "../hooks/useI18n";
+import { usePlatform } from "../hooks/usePlatform";
+
+interface ExportPdfButtonProps {
+  content: string;
+  filePath?: string;
+  title?: string;
+  disabled?: boolean;
+}
+
+function displayTitle(title?: string, filePath?: string) {
+  const raw = title || filePath?.split("/").pop() || "GitMemo";
+  return raw.replace(/\.(md|mdx|txt)$/i, "");
+}
+
+function waitForImages(container: HTMLElement) {
+  const images = Array.from(container.querySelectorAll("img"));
+  if (images.length === 0) return Promise.resolve();
+
+  return Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    }),
+  );
+}
+
+export function ExportPdfButton({ content, filePath, title, disabled = false }: ExportPdfButtonProps) {
+  const { t } = useI18n();
+  const isMobile = usePlatform() === "mobile";
+  const [printing, setPrinting] = useState(false);
+  const documentTitle = useMemo(() => displayTitle(title, filePath), [filePath, title]);
+
+  const handleExport = useCallback(async () => {
+    if (disabled || printing || !content.trim()) return;
+
+    setPrinting(true);
+    const previousTitle = document.title;
+    const host = document.createElement("div");
+    host.id = "gitmemo-print-root";
+    document.body.appendChild(host);
+
+    let root: Root | null = null;
+    try {
+      document.title = documentTitle;
+      root = createRoot(host);
+      root.render(
+        <article className="gitmemo-print-document markdown-body">
+          <header className="gitmemo-print-header">
+            <h1>{documentTitle}</h1>
+            {filePath ? <p>{filePath}</p> : null}
+          </header>
+          <MarkdownContent content={content} filePath={filePath} />
+        </article>,
+      );
+
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      await waitForImages(host);
+      window.print();
+    } finally {
+      window.setTimeout(() => {
+        root?.unmount();
+        host.remove();
+        document.title = previousTitle;
+        setPrinting(false);
+      }, 400);
+    }
+  }, [content, disabled, documentTitle, filePath, printing]);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        void handleExport();
+      }}
+      disabled={disabled || printing || !content.trim()}
+      title={t("common.exportPdf")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        width: isMobile ? 38 : undefined,
+        height: isMobile ? 38 : undefined,
+        padding: isMobile ? 0 : "5px 10px",
+        borderRadius: 6,
+        fontSize: 12,
+        cursor: disabled || printing || !content.trim() ? "not-allowed" : "pointer",
+        background: isMobile ? "transparent" : "var(--bg)",
+        border: isMobile ? "none" : "1px solid var(--border)",
+        color: "var(--text-secondary)",
+        opacity: disabled || printing || !content.trim() ? 0.45 : 1,
+        flexShrink: 0,
+      }}
+    >
+      <Printer size={isMobile ? 16 : 12} />
+      {!isMobile && t("common.exportPdf")}
+    </button>
+  );
+}

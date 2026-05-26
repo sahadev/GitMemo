@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { CopyPathButton } from "../components/CopyPathButton";
+import { ExportPdfButton } from "../components/ExportPdfButton";
 import { RevealInFinderButton } from "../components/RevealInFinderButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -362,6 +363,7 @@ export default function PlansPage({
               </span>
               {!isMobile && <RevealInFinderButton relPath={selectedFile} />}
               {!isMobile && selectedFile ? <CopyPathButton relPath={selectedFile} /> : null}
+              {selectedFile ? <ExportPdfButton content={fileContent} filePath={selectedFile} title={selectedFile.split("/").pop()} /> : null}
               {!isMobile && <button
                 onClick={() => void handleDelete()}
                 style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}

@@ -215,6 +215,95 @@ textarea:focus, input:focus {
   margin-right: 6px;
 }
 
+#gitmemo-print-root {
+  display: none;
+}
+
+.gitmemo-print-document {
+  background: #fff;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 12pt;
+  line-height: 1.65;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 32px 40px;
+}
+
+.gitmemo-print-header {
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+}
+
+.gitmemo-print-header h1 {
+  color: #111827;
+  font-size: 22pt;
+  line-height: 1.25;
+  margin: 0 0 6px;
+}
+
+.gitmemo-print-header p {
+  color: #6b7280;
+  font-size: 9pt;
+  margin: 0;
+  word-break: break-all;
+}
+
+.gitmemo-print-document pre {
+  background: #f8fafc;
+  border-color: #e5e7eb;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gitmemo-print-document code {
+  color: #be185d;
+}
+
+.gitmemo-print-document img {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  #gitmemo-print-root {
+    display: block !important;
+  }
+
+  .gitmemo-print-document {
+    max-width: none;
+    padding: 0;
+  }
+
+  .gitmemo-print-document,
+  .gitmemo-print-document * {
+    color-adjust: exact;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .gitmemo-print-document a {
+    color: #0057b8;
+    text-decoration: underline;
+  }
+}
+
 /* Spin animation for sync icon */
 @keyframes spin {
   from { transform: rotate(0deg); }
