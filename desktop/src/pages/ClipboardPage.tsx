@@ -6,7 +6,6 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
-import { ExportPdfButton } from "../components/ExportPdfButton";
 import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
@@ -438,20 +437,6 @@ export default function ClipboardPage({
     }
   }, [creatingNote, deletingSelected, selectedClipPaths, showToast, t]);
 
-  const loadSelectedClipsForPdf = useCallback(async () => {
-    const blocks: string[] = [];
-    for (const path of selectedClipPaths) {
-      const content = await invoke<string>("read_file", { filePath: path });
-      const body = normalizeClipImageLinks(stripClipFrontmatter(content), path);
-      if (body.trim()) blocks.push(body.trim());
-    }
-    if (blocks.length === 0) {
-      showToast(t("clipboard.noSelectedContent"), true);
-      return "";
-    }
-    return blocks.join("\n\n---\n\n");
-  }, [selectedClipPaths, showToast, t]);
-
   const confirmDeleteSelectedClips = useCallback(async () => {
     if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
     const paths = [...selectedClipPaths];
@@ -837,20 +822,6 @@ export default function ClipboardPage({
             </span>
             <button
               type="button"
-              onClick={() => { setMultiSelectMode(false); setSelectedClipPaths([]); }}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                minHeight: isMobile ? 38 : undefined,
-                padding: isMobile ? "8px 10px" : "5px 9px",
-                borderRadius: 6, fontSize: 12, cursor: "pointer",
-                background: "var(--bg-hover)", border: "1px solid var(--border)",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <X size={12} /> {t("common.cancel")}
-            </button>
-            <button
-              type="button"
               disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
               onClick={() => void confirmDeleteSelectedClips()}
               title={t("clipboard.deleteSelected")}
@@ -870,11 +841,6 @@ export default function ClipboardPage({
             >
               <Trash2 size={12} /> {!isMobile && (deletingSelected ? t("clipboard.deletingSelected") : t("clipboard.deleteSelected"))}
             </button>
-            <ExportPdfButton
-              disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
-              loadContent={loadSelectedClipsForPdf}
-              title={t("clipboard.selectedPdfTitle", selectedClipPaths.length)}
-            />
             <button
               type="button"
               disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}

@@ -168,7 +168,6 @@
     "deletingSelected": "Deleting",
     "deleteSelectedConfirm": "Delete the {0} selected clipboard records?",
     "selectedDeleted": "Deleted {0}",
-    "selectedPdfTitle": "Clipboard export ({0})",
     "deleteClip": "Delete",
     "clipDeleted": "Clip deleted",
     "loading": "Loading..."
