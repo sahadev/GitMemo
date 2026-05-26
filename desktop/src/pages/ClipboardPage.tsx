@@ -779,43 +779,49 @@ export default function ClipboardPage({
                       </span>
                     ) : null}
                     <span style={{ flex: 1 }} />
-                    {!multiSelectMode && (
-                      <>
-                        <button
-                          type="button"
-                          title={t("clipboard.copy")}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void copyClipContent(file.path);
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            width: actionSize, height: actionSize, cursor: "pointer",
-                            border: "none", background: "transparent", color: actionColor,
-                          }}
-                        >
-                          {copiedId === file.path ? <Check size={isMobile ? 15 : 13} /> : <Copy size={isMobile ? 15 : 13} />}
-                        </button>
-                        <button
-                          type="button"
-                          title={t("clipboard.deleteClip")}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void confirmDeleteClip(file.path);
-                          }}
-                          style={{
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            width: actionSize, height: actionSize, cursor: "pointer",
-                            border: "none", background: "transparent",
-                            color: active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
-                          }}
-                        >
-                          <Trash2 size={isMobile ? 15 : 13} />
-                        </button>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      title={t("clipboard.copy")}
+                      aria-hidden={multiSelectMode}
+                      tabIndex={multiSelectMode ? -1 : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (multiSelectMode) return;
+                        void copyClipContent(file.path);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: actionSize, height: actionSize, cursor: multiSelectMode ? "default" : "pointer",
+                        border: "none", background: "transparent", color: actionColor,
+                        opacity: multiSelectMode ? 0 : 1,
+                        pointerEvents: multiSelectMode ? "none" : "auto",
+                      }}
+                    >
+                      {copiedId === file.path ? <Check size={isMobile ? 15 : 13} /> : <Copy size={isMobile ? 15 : 13} />}
+                    </button>
+                    <button
+                      type="button"
+                      title={t("clipboard.deleteClip")}
+                      aria-hidden={multiSelectMode}
+                      tabIndex={multiSelectMode ? -1 : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (multiSelectMode) return;
+                        void confirmDeleteClip(file.path);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: actionSize, height: actionSize, cursor: multiSelectMode ? "default" : "pointer",
+                        border: "none", background: "transparent",
+                        color: active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
+                        opacity: multiSelectMode ? 0 : 1,
+                        pointerEvents: multiSelectMode ? "none" : "auto",
+                      }}
+                    >
+                      <Trash2 size={isMobile ? 15 : 13} />
+                    </button>
                   </div>
                 </div>
               );
