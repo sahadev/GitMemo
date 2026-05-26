@@ -37,11 +37,13 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
 ];
 
 export default function NotesPage({
+  active = true,
   focusTrigger,
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   focusTrigger?: number;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
@@ -288,7 +290,7 @@ export default function NotesPage({
   };
 
   useEffect(() => {
-    if (isMobile) return;
+    if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       const isArrowNavigation = e.key === "ArrowUp" || e.key === "ArrowDown";
@@ -310,7 +312,7 @@ export default function NotesPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, navPrev, navNext, newNote, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
+  }, [active, isMobile, navPrev, navNext, newNote, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

@@ -104,10 +104,12 @@ function normalizeClipImageLinks(content: string, clipPath: string) {
 }
 
 export default function ClipboardPage({
+  active = true,
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
@@ -356,8 +358,9 @@ export default function ClipboardPage({
   }, [savedClips, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "Escape" && multiSelectMode) {
         e.preventDefault();
@@ -371,7 +374,7 @@ export default function ClipboardPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, multiSelectMode, navPrev, navNext]);
+  }, [active, isMobile, multiSelectMode, navPrev, navNext]);
 
   const copyContent = useCallback(async (content: string, copiedKey = "detail") => {
     try {

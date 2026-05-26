@@ -96,15 +96,15 @@ function parseConversationBody(body: string): ParsedConversationBody {
 }
 
 export default function ConversationsPage({
+  active = true,
   onFocusSidebar,
   enterTrigger,
-  sidebarFocused,
   renderListHeader,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
-  sidebarFocused?: boolean;
   renderListHeader?: (actions: ReactNode) => ReactNode;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 }) {
@@ -300,11 +300,10 @@ export default function ConversationsPage({
   }, [files, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (sidebarFocused) return; // App handles up/down when sidebar focused
       if (e.key === "ArrowUp") { e.preventDefault(); navigatePrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navigateNext(); }
       if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
@@ -329,7 +328,7 @@ export default function ConversationsPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, navigatePrev, navigateNext, selectedFile, files, sidebarFocused, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
+  }, [active, isMobile, navigatePrev, navigateNext, selectedFile, files, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

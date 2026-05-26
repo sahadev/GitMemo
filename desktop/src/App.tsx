@@ -342,19 +342,10 @@ function App() {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
 
-      if (sidebarFocused) {
-        const idx = pageOrder.indexOf(currentPage);
-        if (e.key === "ArrowUp" && idx > 0) {
-          e.preventDefault();
-          setCurrentPage(pageOrder[idx - 1]);
-        } else if (e.key === "ArrowDown" && idx < pageOrder.length - 1) {
-          e.preventDefault();
-          setCurrentPage(pageOrder[idx + 1]);
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          setSidebarFocused(false);
-          setEnterContentTrigger((n) => n + 1);
-        }
+      if (sidebarFocused && e.key === "ArrowRight") {
+        e.preventDefault();
+        setSidebarFocused(false);
+        setEnterContentTrigger((n) => n + 1);
         return;
       }
 
@@ -395,7 +386,7 @@ function App() {
       unlistenQuickPasteOpenFile.then((fn) => fn());
       unlistenQuickPasteOpenPage.then((fn) => fn());
     };
-  }, [isDesktop, navigateAndFocus, sidebarFocused, currentPage, pageOrder, initialized, routeExternalFile, shortcuts]);
+  }, [navigateAndFocus, sidebarFocused, initialized, routeExternalFile, shortcuts]);
 
   const handleExternalFileTargetConsumed = useCallback(() => {
     setExternalFileOpenTarget(null);
@@ -447,10 +438,10 @@ function App() {
   ) : (
     <>
       {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={navigatePage} active={currentPage === "dashboard"} /></div>}
-      {visitedPages.has("ai-records") && <div style={{ display: currentPage === "ai-records" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><AiRecordsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} sidebarFocused={sidebarFocused} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
-      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
-      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
-      {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("ai-records") && <div style={{ display: currentPage === "ai-records" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><AiRecordsPage active={currentPage === "ai-records"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
+      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage active={currentPage === "notes"} focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
+      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage active={currentPage === "clipboard"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
+      {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage active={currentPage === "claude-config"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}
       {isDesktop && visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
       {isDesktop && visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
@@ -473,7 +464,7 @@ function App() {
       {isDesktop && initialized !== false && (
         <Sidebar
           currentPage={currentPage}
-          onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(true); }}
+          onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
           focused={sidebarFocused}
           syncing={sync.isSyncing}
           syncMsg={sync.message}

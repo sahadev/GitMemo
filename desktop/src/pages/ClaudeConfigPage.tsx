@@ -36,7 +36,7 @@ const cursorTabs: { id: Tab; labelKey: string; folder: string; icon: typeof Brai
   { id: "config", labelKey: "claudeConfig.config", folder: "cursor-config", icon: FileText },
 ];
 
-export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
+export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { active?: boolean; onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
   useRelativeTimeTick();
   const [editor, setEditor] = useState<Editor>("claude");
@@ -146,14 +146,16 @@ export default function ClaudeConfigPage({ onFocusSidebar: _onFocusSidebar, ente
   }, [selectedFile, files]);
 
   useEffect(() => {
+    if (!active) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext]);
+  }, [active, navPrev, navNext]);
 
   const TabIcon = tabs.find((t) => t.id === activeTab)?.icon ?? Brain;
 

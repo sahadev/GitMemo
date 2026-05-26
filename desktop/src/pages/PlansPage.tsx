@@ -20,11 +20,13 @@ import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 export default function PlansPage({
+  active = true,
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
   renderListHeader,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
   renderListHeader?: (actions: ReactNode) => ReactNode;
@@ -178,7 +180,7 @@ export default function PlansPage({
   }, [isMobile, selectedFile, files, t, showToast, openFile, loadFiles]);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -191,7 +193,7 @@ export default function PlansPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, navPrev, navNext, handleDelete, shortcuts.delete_selected]);
+  }, [active, isMobile, navPrev, navNext, handleDelete, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

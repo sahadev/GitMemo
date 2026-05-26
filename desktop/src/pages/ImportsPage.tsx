@@ -243,6 +243,7 @@ export default function ImportsPage({
   }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
 
   useEffect(() => {
+    if (!active) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -255,7 +256,7 @@ export default function ImportsPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navPrev, navNext, selectedFile, handleDelete, shortcuts.delete_selected]);
+  }, [active, navPrev, navNext, selectedFile, handleDelete, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

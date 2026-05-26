@@ -12,14 +12,14 @@ const tabs: { id: AiRecordsTab; labelKey: string; icon: typeof MessageSquare }[]
 ];
 
 export default function AiRecordsPage({
+  active = true,
   onFocusSidebar,
   enterTrigger,
-  sidebarFocused,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
-  sidebarFocused?: boolean;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 }) {
   const { t } = useI18n();
@@ -80,6 +80,7 @@ export default function AiRecordsPage({
   if (activeTab === "plans") {
     return (
       <PlansPage
+        active={active}
         onFocusSidebar={onFocusSidebar}
         enterTrigger={enterTrigger}
         renderListHeader={renderListHeader}
@@ -90,9 +91,9 @@ export default function AiRecordsPage({
 
   return (
     <ConversationsPage
+      active={active}
       onFocusSidebar={onFocusSidebar}
       enterTrigger={enterTrigger}
-      sidebarFocused={sidebarFocused}
       renderListHeader={renderListHeader}
       registerMobileBackHandler={registerMobileBackHandler}
     />
