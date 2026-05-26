@@ -237,7 +237,9 @@ export default function ExternalFilesPage({
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
-        padding: "12px 18px", borderBottom: "1px solid var(--border)",
+        padding: isMobile ? "8px 14px 10px" : "8px 18px 10px",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <FileSymlink size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
