@@ -139,6 +139,7 @@ export default function ClipboardPage({
   const refreshInFlightRef = useRef(false);
   const refreshQueuedRef = useRef(false);
   const detailOpenedFromCrossPageRef = useRef(false);
+  const deletedClipPathsRef = useRef<Set<string>>(new Set());
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
 
@@ -222,7 +223,8 @@ export default function ClipboardPage({
           if (!page.has_more || page.entries.length === 0) break;
         }
 
-        setSavedClips(entries);
+        const visibleEntries = entries.filter((entry) => !deletedClipPathsRef.current.has(entry.path));
+        setSavedClips(visibleEntries);
         setHasMore(entries.length < total);
         if (preserveScroll) restoreScrollAnchor(anchor);
       } else {
@@ -233,7 +235,10 @@ export default function ClipboardPage({
         });
         setSavedClips((prev) => {
           const seen = new Set(prev.map((clip) => clip.path));
-          return [...prev, ...page.entries.filter((clip) => !seen.has(clip.path))];
+          return [
+            ...prev,
+            ...page.entries.filter((clip) => !seen.has(clip.path) && !deletedClipPathsRef.current.has(clip.path)),
+          ];
         });
         setHasMore(page.has_more);
       }
@@ -483,6 +488,7 @@ export default function ClipboardPage({
     try {
       await invoke<NoteResult>("delete_clips", { filePaths: paths });
       showToast(t("clipboard.selectedDeleted", paths.length));
+      paths.forEach((path) => deletedClipPathsRef.current.add(path));
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
       if (selectedFile && paths.includes(selectedFile)) {
         setSelectedFile(null);
@@ -505,6 +511,8 @@ export default function ClipboardPage({
     try {
       await invoke<NoteResult>("delete_clip", { filePath: path });
       showToast(t("clipboard.clipDeleted"));
+      deletedClipPathsRef.current.add(path);
+      setSavedClips((prev) => prev.filter((clip) => clip.path !== path));
       setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
       if (selectedFile === path) {
         setSelectedFile(null);

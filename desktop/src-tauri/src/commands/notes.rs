@@ -75,10 +75,6 @@ fn remove_index_files(dir: &Path, rel_paths: &[String]) {
     }
 }
 
-fn bg_remove_index_files(dir: PathBuf, rel_paths: Vec<String>) {
-    std::thread::spawn(move || remove_index_files(&dir, &rel_paths));
-}
-
 #[derive(Debug, Serialize)]
 pub struct NoteResult {
     pub success: bool,
@@ -963,12 +959,19 @@ fn list_files_page_from_index(
     let total = page.total;
     let offset = requested_offset.min(total);
     let end = offset.saturating_add(limit).min(total);
+    let mut missing_paths = Vec::new();
     let entries = page
         .items
         .into_iter()
         .filter_map(|item| {
             let path = dir.join(&item.file_path);
-            let meta = path.metadata().ok()?;
+            let meta = match path.metadata() {
+                Ok(meta) => meta,
+                Err(_) => {
+                    missing_paths.push(item.file_path);
+                    return None;
+                }
+            };
             Some(build_file_entry(
                 &dir,
                 FileCandidate {
@@ -979,6 +982,10 @@ fn list_files_page_from_index(
             ))
         })
         .collect();
+
+    if !missing_paths.is_empty() {
+        remove_index_files(dir, &missing_paths);
+    }
 
     Ok(FilePage {
         entries,
@@ -1046,7 +1053,7 @@ pub fn delete_note(file_path: String) -> Result<NoteResult, String> {
 pub fn delete_clip(file_path: String) -> Result<NoteResult, String> {
     let dir = sync_dir();
     let norm = remove_clip_file(&dir, &file_path)?;
-    bg_remove_index_file(dir.clone(), norm.clone());
+    remove_index_file(&dir, &norm);
     bg_commit_and_push(format!("delete clip: {}", norm));
 
     Ok(NoteResult {
@@ -1068,7 +1075,7 @@ pub fn delete_clips(file_paths: Vec<String>) -> Result<NoteResult, String> {
         deleted.push(remove_clip_file(&dir, &file_path)?);
     }
 
-    bg_remove_index_files(dir.clone(), deleted.clone());
+    remove_index_files(&dir, &deleted);
     bg_commit_and_push(format!("delete clips: {}", deleted.len()));
 
     Ok(NoteResult {
