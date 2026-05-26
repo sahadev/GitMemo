@@ -2,7 +2,7 @@ use crate::utils::datetime::{frontmatter_record_datetime_raw, record_timestamp_f
 use anyhow::Result;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -812,12 +812,18 @@ pub fn search_smart(
     type_filter: &str,
     limit: usize,
 ) -> Result<Vec<SearchResult>> {
-    let fts_results = search(conn, query, type_filter, limit)?;
-    if fts_results.is_empty() {
-        Ok(search_like(conn, query, type_filter, limit).unwrap_or_default())
-    } else {
-        Ok(fts_results)
+    let mut by_path = HashMap::new();
+    for result in search(conn, query, type_filter, limit)? {
+        by_path.insert(result.file_path.clone(), result);
     }
+    for result in search_like(conn, query, type_filter, limit).unwrap_or_default() {
+        by_path.entry(result.file_path.clone()).or_insert(result);
+    }
+
+    let mut results: Vec<_> = by_path.into_values().collect();
+    results.sort_by(|a, b| b.date.cmp(&a.date).then_with(|| a.file_path.cmp(&b.file_path)));
+    results.truncate(limit);
+    Ok(results)
 }
 
 /// Extract a short snippet around the first occurrence of `needle` in `haystack`.
@@ -1099,6 +1105,52 @@ mod tests {
 
         assert_eq!(limited.len(), 1);
         assert_eq!(limited[0].title, "新内容");
+    }
+
+    #[test]
+    fn test_search_smart_merges_like_matches_when_fts_has_results() {
+        let conn = in_memory_db();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "clips/2026-05-20/fts.md",
+                source_type: "clip",
+                title: "普通密码",
+                content: "密码: token",
+                date: "2026-05-20T09:00:00+08:00",
+                activity_at: "2026-05-20T09:00:00+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "clips/2026-05-25/cjk-substring.md",
+                source_type: "clip",
+                title: "默认密码是",
+                content: "默认密码是：cesa-admin",
+                date: "2026-05-25T20:39:35+08:00",
+                activity_at: "2026-05-25T20:39:35+08:00",
+                activity_ts: chrono::DateTime::parse_from_rfc3339("2026-05-25T20:39:35+08:00")
+                    .unwrap()
+                    .timestamp_millis(),
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+
+        let results = search_smart(&conn, "密码", "all", 10).unwrap();
+
+        assert!(results.iter().any(|r| r.file_path == "clips/2026-05-20/fts.md"));
+        assert!(results
+            .iter()
+            .any(|r| r.file_path == "clips/2026-05-25/cjk-substring.md"));
     }
 
     #[test]
