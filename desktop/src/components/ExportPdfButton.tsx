@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Printer } from "lucide-react";
 import { createRoot, type Root } from "react-dom/client";
 import { MarkdownContent } from "./MarkdownView";
@@ -31,6 +32,14 @@ function waitForImages(container: HTMLElement) {
       });
     }),
   );
+}
+
+async function printDocument() {
+  try {
+    await invoke("print_current_window");
+  } catch {
+    window.print();
+  }
 }
 
 export function ExportPdfButton({ content = "", filePath, title, disabled = false, loadContent }: ExportPdfButtonProps) {
@@ -72,14 +81,14 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
 
       await new Promise((resolve) => window.setTimeout(resolve, 250));
       await waitForImages(host);
-      window.print();
+      await printDocument();
     } finally {
       window.setTimeout(() => {
         root?.unmount();
         host.remove();
         document.title = previousTitle;
         setPrinting(false);
-      }, 400);
+      }, 2000);
     }
   }, [content, disabled, documentTitle, filePath, loadContent, printing]);
 

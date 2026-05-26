@@ -63,6 +63,18 @@ fn get_runtime_platform() -> &'static str {
     }
 }
 
+#[cfg(desktop)]
+#[tauri::command]
+fn print_current_window(window: WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|e| e.to_string())
+}
+
+#[cfg(mobile)]
+#[tauri::command]
+fn print_current_window() -> Result<(), String> {
+    Err("Printing is only available on desktop".into())
+}
+
 #[cfg(mobile)]
 fn configure_mobile_environment(app: &tauri::App) {
     if let Ok(app_data_dir) = app.path().app_data_dir() {
@@ -195,6 +207,7 @@ pub fn run() {
             crash_log::get_crash_logs,
             crash_log::clear_crash_logs,
             get_runtime_platform,
+            print_current_window,
             app_ready,
         ])
         .setup(|app| {
