@@ -168,6 +168,7 @@
     "deletingSelected": "删除中",
     "deleteSelectedConfirm": "确定删除已选择的 {0} 条剪贴板记录？",
     "selectedDeleted": "已删除 {0} 条",
+    "selectedPdfTitle": "剪贴板导出（{0} 条）",
     "deleteClip": "删除",
     "clipDeleted": "已删除",
     "loading": "加载中..."

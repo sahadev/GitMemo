@@ -438,6 +438,20 @@ export default function ClipboardPage({
     }
   }, [creatingNote, deletingSelected, selectedClipPaths, showToast, t]);
 
+  const loadSelectedClipsForPdf = useCallback(async () => {
+    const blocks: string[] = [];
+    for (const path of selectedClipPaths) {
+      const content = await invoke<string>("read_file", { filePath: path });
+      const body = normalizeClipImageLinks(stripClipFrontmatter(content), path);
+      if (body.trim()) blocks.push(body.trim());
+    }
+    if (blocks.length === 0) {
+      showToast(t("clipboard.noSelectedContent"), true);
+      return "";
+    }
+    return blocks.join("\n\n---\n\n");
+  }, [selectedClipPaths, showToast, t]);
+
   const confirmDeleteSelectedClips = useCallback(async () => {
     if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
     const paths = [...selectedClipPaths];
@@ -856,6 +870,11 @@ export default function ClipboardPage({
             >
               <Trash2 size={12} /> {!isMobile && (deletingSelected ? t("clipboard.deletingSelected") : t("clipboard.deleteSelected"))}
             </button>
+            <ExportPdfButton
+              disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
+              loadContent={loadSelectedClipsForPdf}
+              title={t("clipboard.selectedPdfTitle", selectedClipPaths.length)}
+            />
             <button
               type="button"
               disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}

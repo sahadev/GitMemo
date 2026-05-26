@@ -6,10 +6,11 @@ import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
 
 interface ExportPdfButtonProps {
-  content: string;
+  content?: string;
   filePath?: string;
   title?: string;
   disabled?: boolean;
+  loadContent?: () => Promise<string>;
 }
 
 function displayTitle(title?: string, filePath?: string) {
@@ -32,14 +33,14 @@ function waitForImages(container: HTMLElement) {
   );
 }
 
-export function ExportPdfButton({ content, filePath, title, disabled = false }: ExportPdfButtonProps) {
+export function ExportPdfButton({ content = "", filePath, title, disabled = false, loadContent }: ExportPdfButtonProps) {
   const { t } = useI18n();
   const isMobile = usePlatform() === "mobile";
   const [printing, setPrinting] = useState(false);
   const documentTitle = useMemo(() => displayTitle(title, filePath), [filePath, title]);
 
   const handleExport = useCallback(async () => {
-    if (disabled || printing || !content.trim()) return;
+    if (disabled || printing) return;
 
     setPrinting(true);
     const previousTitle = document.title;
@@ -49,6 +50,9 @@ export function ExportPdfButton({ content, filePath, title, disabled = false }: 
 
     let root: Root | null = null;
     try {
+      const exportContent = loadContent ? await loadContent() : content;
+      if (!exportContent.trim()) return;
+
       document.title = documentTitle;
       root = createRoot(host);
       root.render(
@@ -62,7 +66,7 @@ export function ExportPdfButton({ content, filePath, title, disabled = false }: 
               GitMemo
             </div>
           </header>
-          <MarkdownContent content={content} filePath={filePath} />
+          <MarkdownContent content={exportContent} filePath={filePath} />
         </article>,
       );
 
@@ -77,7 +81,9 @@ export function ExportPdfButton({ content, filePath, title, disabled = false }: 
         setPrinting(false);
       }, 400);
     }
-  }, [content, disabled, documentTitle, filePath, printing]);
+  }, [content, disabled, documentTitle, filePath, loadContent, printing]);
+
+  const buttonDisabled = disabled || printing || (!loadContent && !content.trim());
 
   return (
     <button
@@ -86,23 +92,23 @@ export function ExportPdfButton({ content, filePath, title, disabled = false }: 
         e.stopPropagation();
         void handleExport();
       }}
-      disabled={disabled || printing || !content.trim()}
+      disabled={buttonDisabled}
       title={t("common.exportPdf")}
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         gap: 4,
-        width: isMobile ? 38 : undefined,
-        height: isMobile ? 38 : undefined,
-        padding: isMobile ? 0 : "5px 10px",
+        minWidth: isMobile ? 38 : undefined,
+        minHeight: isMobile ? 38 : undefined,
+        padding: isMobile ? "8px 10px" : "5px 10px",
         borderRadius: 6,
         fontSize: 12,
-        cursor: disabled || printing || !content.trim() ? "not-allowed" : "pointer",
+        cursor: buttonDisabled ? "not-allowed" : "pointer",
         background: isMobile ? "transparent" : "var(--bg)",
         border: isMobile ? "none" : "1px solid var(--border)",
         color: "var(--text-secondary)",
-        opacity: disabled || printing || !content.trim() ? 0.45 : 1,
+        opacity: buttonDisabled ? 0.45 : 1,
         flexShrink: 0,
       }}
     >
