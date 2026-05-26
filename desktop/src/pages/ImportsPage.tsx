@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Download, ChevronLeft, Trash2, RefreshCw, Pencil, Save, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -371,51 +372,36 @@ export default function ImportsPage({
                     <ChevronLeft size={16} />
                   </button>
                   {!editing ? (
-                    <button
+                    <DetailIconButton
                       onClick={() => setEditing(true)}
-                      style={{
-                        width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                        borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)",
-                        cursor: "pointer", color: "var(--text)",
-                      }}
                       title="Edit"
                     >
                       <Pencil size={14} />
-                    </button>
+                    </DetailIconButton>
                   ) : (
                     <>
-                      <button
+                      <DetailIconButton
                         onClick={() => setEditing(false)}
-                        style={{
-                          width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                          borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)",
-                          cursor: "pointer", color: "var(--text)",
-                        }}
                         title="Preview"
                       >
                         <Eye size={14} />
-                      </button>
-                      <button
+                      </DetailIconButton>
+                      <DetailIconButton
                         onClick={handleSave}
                         disabled={saving}
-                        style={{
-                          width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                          borderRadius: 6, border: "1px solid var(--accent)", background: "var(--accent)",
-                          cursor: saving ? "default" : "pointer", color: "#fff",
-                          opacity: saving ? 0.6 : 1,
-                        }}
                         title="Save"
+                        tone="accent"
                       >
                         <Save size={14} />
-                      </button>
+                      </DetailIconButton>
                     </>
                   )}
                   <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {selectedFile}
                   </span>
-                  <button onClick={handleDelete} style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
+                  <DetailIconButton onClick={handleDelete} title={t("common.delete")} tone="danger">
                     <Trash2 size={13} />
-                  </button>
+                  </DetailIconButton>
                   {!editing ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}

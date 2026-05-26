@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -366,13 +367,13 @@ export default function PlansPage({
               <span style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 13 : 12, fontWeight: isMobile ? 600 : 400, color: isMobile ? "var(--text)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               </span>
-              {!isMobile && <button
+              {!isMobile && <DetailIconButton
                 onClick={() => void handleDelete()}
-                style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}
                 title={t("plans.delete")}
+                tone="danger"
               >
-                <Trash2 size={13} />
-              </button>}
+                <Trash2 size={14} />
+              </DetailIconButton>}
               {selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}

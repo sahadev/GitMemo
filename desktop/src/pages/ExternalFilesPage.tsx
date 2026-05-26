@@ -6,6 +6,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
@@ -337,83 +338,52 @@ export default function ExternalFilesPage({
                 gap: 8,
                 flexShrink: 0,
               }}>
-                <button
+                <DetailIconButton
                   type="button"
                   onClick={() => void handleImport()}
                   disabled={importing}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32,
-                    borderRadius: 8, cursor: importing ? "not-allowed" : "pointer",
-                    background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                    opacity: importing ? 0.5 : 1,
-                  }}
                   title={t("externalFiles.import")}
                 >
                   <Download size={14} />
-                </button>
+                </DetailIconButton>
                 {editing ? (
                   <>
-                    <button
+                    <DetailIconButton
                       type="button"
                       onClick={() => setEditing(false)}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 32, height: 32,
-                        borderRadius: 8, cursor: "pointer",
-                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                      }}
                       title={t("common.preview")}
                     >
                       <Eye size={14} />
-                    </button>
-                    <button
+                    </DetailIconButton>
+                    <DetailIconButton
                       type="button"
                       onClick={() => void handleSave()}
                       disabled={saving}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 32, height: 32,
-                        borderRadius: 8, cursor: saving ? "not-allowed" : "pointer",
-                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
-                        opacity: saving ? 0.5 : 1,
-                      }}
                       title={t("externalFiles.save")}
+                      tone="accent"
                     >
                       <Save size={14} />
-                    </button>
+                    </DetailIconButton>
                   </>
                 ) : (
-                  <button
+                  <DetailIconButton
                     type="button"
                     onClick={() => setEditing(true)}
                     disabled={!selectedEntry.exists}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: 32, height: 32,
-                      borderRadius: 8, cursor: selectedEntry.exists ? "pointer" : "not-allowed",
-                      background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                      opacity: selectedEntry.exists ? 1 : 0.5,
-                    }}
                     title={t("externalFiles.edit")}
                   >
                     <Pencil size={14} />
-                  </button>
+                  </DetailIconButton>
                 )}
                 <div style={{ flex: 1 }} />
-                <button
+                <DetailIconButton
                   type="button"
                   onClick={() => void handleRemove(selectedEntry.file_path)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32,
-                    borderRadius: 8, cursor: "pointer",
-                    background: "none", border: "none", color: "var(--text-secondary)"
-                  }}
                   title={t("common.delete")}
+                  tone="danger"
                 >
                   <Trash2 size={14} />
-                </button>
+                </DetailIconButton>
                 {!editing ? (
                   <FileMoreActionsMenu
                     absolutePath={selectedEntry.file_path}

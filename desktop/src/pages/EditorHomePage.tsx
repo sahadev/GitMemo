@@ -6,6 +6,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
@@ -464,57 +465,40 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {editing ? (
                       <>
-                        <button
+                        <DetailIconButton
                           type="button"
                           onClick={() => { setEditing(false); setEditContent(fileContent); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                            borderRadius: 6, fontSize: 12, cursor: "pointer",
-                            background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                          }}
+                          title={t("editorHome.cancel")}
                         >
-                          <X size={12} />
-                          {t("editorHome.cancel")}
-                        </button>
-                        <button
+                          <X size={14} />
+                        </DetailIconButton>
+                        <DetailIconButton
                           type="button"
                           onClick={() => void handleSave()}
                           disabled={saving}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                            borderRadius: 6, fontSize: 12, cursor: "pointer",
-                            background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
-                          }}
+                          title={t("editorHome.save")}
+                          tone="accent"
                         >
-                          <Save size={12} />
-                          {t("editorHome.save")}
-                        </button>
+                          <Save size={14} />
+                        </DetailIconButton>
                       </>
                     ) : (
-                      <button
+                      <DetailIconButton
                         type="button"
                         onClick={() => { setEditContent(fileContent); setEditing(true); }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                          borderRadius: 6, fontSize: 12, cursor: "pointer",
-                          background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                        }}
+                        title={t("editorHome.edit")}
                       >
-                        <Pencil size={12} />
-                        {t("editorHome.edit")}
-                      </button>
+                        <Pencil size={14} />
+                      </DetailIconButton>
                     )}
-                    <button
+                    <DetailIconButton
                       type="button"
                       onClick={() => void handleDelete()}
-                      style={{
-                        padding: 6, borderRadius: 4, background: "none", border: "none",
-                        cursor: "pointer", color: "var(--text-secondary)",
-                      }}
                       title={t("common.delete")}
+                      tone="danger"
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </DetailIconButton>
                     {!editing && selectedFileRel ? (
                       <FileMoreActionsMenu
                         absolutePath={fileAbs || undefined}

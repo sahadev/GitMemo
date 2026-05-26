@@ -7,6 +7,7 @@ import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, Refres
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { ExportPdfButton } from "../components/ExportPdfButton";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -935,38 +936,22 @@ export default function ClipboardPage({
               <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {isMobile ? selectedFileName : selectedFile}
               </span>
-              <button
-                type="button"
+              <DetailIconButton
                 title={t("clipboard.deleteClip")}
                 onClick={() => { if (selectedFile) void confirmDeleteClip(selectedFile); }}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                  width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                  padding: isMobile ? 0 : "5px 10px",
-                  borderRadius: 6, fontSize: 12, cursor: "pointer",
-                  background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)",
-                  color: "var(--red)",
-                }}
+                tone="danger"
               >
-                <Trash2 size={isMobile ? 16 : 12} />
-              </button>
-              <button
-                type="button"
+                <Trash2 size={isMobile ? 16 : 14} />
+              </DetailIconButton>
+              <DetailIconButton
                 onClick={() => copyContent(fileContent)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                  width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                  padding: isMobile ? 0 : "5px 12px",
-                  borderRadius: 6, fontSize: 12, cursor: "pointer",
-                  background: copiedId === "detail" ? "var(--bg-success)" : isMobile ? "transparent" : "var(--bg)",
-                  border: isMobile ? "none" : "1px solid var(--border)",
-                  color: copiedId === "detail" ? "var(--green)" : "var(--text-secondary)",
-                }}
+                title={t("clipboard.copy")}
+                tone={copiedId === "detail" ? "success" : "default"}
               >
                 {copiedId === "detail"
-                  ? <><Check size={isMobile ? 16 : 12} /> {!isMobile && t("clipboard.copied")}</>
-                  : <><Copy size={isMobile ? 16 : 12} /> {!isMobile && t("clipboard.copy")}</>}
-              </button>
+                  ? <Check size={isMobile ? 16 : 14} />
+                  : <Copy size={isMobile ? 16 : 14} />}
+              </DetailIconButton>
               {selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}

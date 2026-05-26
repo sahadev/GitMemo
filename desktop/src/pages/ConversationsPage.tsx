@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -550,54 +551,35 @@ export default function ConversationsPage({
               )}
               {!isMobile && (editing ? (
                 <>
-                  <button
+                  <DetailIconButton
                     onClick={() => { setEditing(false); setEditContent(""); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: "pointer",
-                      background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                    }}
                     title={t("common.cancel")}
                   >
-                    <X size={12} />
-                  </button>
-                  <button
+                    <X size={14} />
+                  </DetailIconButton>
+                  <DetailIconButton
                     onClick={() => void handleSaveEdit()}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: "pointer",
-                      background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
-                    }}
                     title={t("conversations.save")}
+                    tone="accent"
                   >
-                    <Save size={12} />
-                    {t("conversations.save")}
-                  </button>
+                    <Save size={14} />
+                  </DetailIconButton>
                 </>
               ) : (
-                <button
+                <DetailIconButton
                   onClick={startEdit}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
-                    borderRadius: 6, fontSize: 12, cursor: "pointer",
-                    background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
-                  }}
                   title={t("conversations.edit")}
                 >
-                  <Pencil size={12} />
-                  {t("conversations.edit")}
-                </button>
+                  <Pencil size={14} />
+                </DetailIconButton>
               ))}
-              {!isMobile && <button
+              {!isMobile && <DetailIconButton
                 onClick={() => void handleDelete()}
-                style={{
-                  padding: 6, borderRadius: 4, background: "none", border: "none",
-                  cursor: "pointer", color: "var(--text-secondary)",
-                }}
                 title={t("conversations.deleteConversation")}
+                tone="danger"
               >
                 <Trash2 size={14} />
-              </button>}
+              </DetailIconButton>}
               {selectedFile && !editing ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}

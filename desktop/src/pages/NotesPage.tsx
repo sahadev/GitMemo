@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Plus, FileText, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -537,21 +538,21 @@ export default function NotesPage({
               </span>
               {editing ? (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={handleSaveEdit} title={t("notes.save")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "var(--bg-success)", color: "var(--green)", border: "none", cursor: "pointer" }}>
-                    <Save size={isMobile ? 16 : 12} /> {!isMobile && t("notes.save")}
-                  </button>
-                  <button onClick={() => setEditing(false)} title={t("common.cancel")} style={{ width: isMobile ? 38 : 22, height: isMobile ? 38 : 22, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
+                  <DetailIconButton onClick={handleSaveEdit} title={t("notes.save")} tone="success">
+                    <Save size={isMobile ? 16 : 14} />
+                  </DetailIconButton>
+                  <DetailIconButton onClick={() => setEditing(false)} title={t("common.cancel")}>
                     <X size={isMobile ? 17 : 14} />
-                  </button>
+                  </DetailIconButton>
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={startEdit} title={t("notes.edit")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined, padding: isMobile ? 0 : "4px 10px", borderRadius: 6, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}>
-                    <Pencil size={isMobile ? 16 : 12} /> {!isMobile && t("notes.edit")}
-                  </button>
-                  <button onClick={handleDelete} title={t("common.delete")} style={{ width: isMobile ? 38 : 22, height: isMobile ? 38 : 22, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--red)" }}>
-                    <Trash2 size={isMobile ? 16 : 13} />
-                  </button>
+                  <DetailIconButton onClick={startEdit} title={t("notes.edit")}>
+                    <Pencil size={isMobile ? 16 : 14} />
+                  </DetailIconButton>
+                  <DetailIconButton onClick={handleDelete} title={t("common.delete")} tone="danger">
+                    <Trash2 size={isMobile ? 16 : 14} />
+                  </DetailIconButton>
                   {selectedFile ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}

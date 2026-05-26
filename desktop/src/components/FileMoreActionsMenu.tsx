@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Check, Ellipsis, FolderOpen, Link2 } from "lucide-react";
+import { DetailIconButton } from "./DetailIconButton";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { useI18n } from "../hooks/useI18n";
-import { usePlatform } from "../hooks/usePlatform";
 import { useToast } from "../hooks/useToast";
 
 interface FileMoreActionsMenuProps {
@@ -28,7 +28,6 @@ export function FileMoreActionsMenu({
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const isMobile = usePlatform() === "mobile";
   const [open, setOpen] = useState(false);
   const [pathCopied, setPathCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -102,29 +101,15 @@ export function FileMoreActionsMenu({
 
   return (
     <div ref={rootRef} style={{ position: "relative", flexShrink: 0 }}>
-      <button
-        type="button"
+      <DetailIconButton
         onClick={(event) => {
           event.stopPropagation();
           setOpen((value) => !value);
         }}
         title={t("common.more")}
-        style={{
-          alignItems: "center",
-          background: isMobile ? "transparent" : "var(--bg)",
-          border: isMobile ? "none" : "1px solid var(--border)",
-          borderRadius: 6,
-          color: "var(--text-secondary)",
-          cursor: "pointer",
-          display: "flex",
-          height: isMobile ? 38 : 32,
-          justifyContent: "center",
-          padding: 0,
-          width: isMobile ? 38 : 32,
-        }}
       >
         <Ellipsis size={16} />
-      </button>
+      </DetailIconButton>
 
       {open ? (
         <div

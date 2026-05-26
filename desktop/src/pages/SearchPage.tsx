@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -217,62 +218,35 @@ export default function SearchPage({
               <>
                 {editing ? (
                   <>
-                    <button
+                    <DetailIconButton
                       onClick={() => { setEditing(false); setEditContent(""); }}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                        width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                        padding: isMobile ? 0 : "5px 10px",
-                        borderRadius: 6, fontSize: 12, cursor: "pointer",
-                        background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
-                      }}
                       title={t("common.cancel")}
                     >
-                      <X size={isMobile ? 16 : 12} />
-                    </button>
-                    <button
+                      <X size={isMobile ? 16 : 14} />
+                    </DetailIconButton>
+                    <DetailIconButton
                       onClick={() => void handleSaveEdit()}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                        width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                        padding: isMobile ? 0 : "5px 10px",
-                        borderRadius: 6, fontSize: 12, cursor: "pointer",
-                        background: isMobile ? "var(--bg-success)" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: isMobile ? "var(--green)" : "var(--accent)",
-                      }}
                       title={t("notes.save")}
+                      tone="success"
                     >
-                      <Save size={isMobile ? 16 : 12} />
-                      {!isMobile && t("notes.save")}
-                    </button>
+                      <Save size={isMobile ? 16 : 14} />
+                    </DetailIconButton>
                   </>
                 ) : (
-                  <button
+                  <DetailIconButton
                     onClick={startEdit}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                      width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                      padding: isMobile ? 0 : "5px 10px",
-                      borderRadius: 6, fontSize: 12, cursor: "pointer",
-                      background: isMobile ? "transparent" : "var(--bg)", border: isMobile ? "none" : "1px solid var(--border)", color: "var(--text-secondary)",
-                    }}
                     title={t("notes.edit")}
                   >
-                    <Pencil size={isMobile ? 16 : 12} />
-                    {!isMobile && t("notes.edit")}
-                  </button>
+                    <Pencil size={isMobile ? 16 : 14} />
+                  </DetailIconButton>
                 )}
-                <button
+                <DetailIconButton
                   onClick={() => void handleDelete()}
-                  style={{
-                    width: isMobile ? 38 : undefined, height: isMobile ? 38 : undefined,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: isMobile ? 0 : 6, borderRadius: 6, background: "none", border: "none",
-                    cursor: "pointer", color: "var(--text-secondary)",
-                  }}
                   title={t("common.delete")}
+                  tone="danger"
                 >
                   <Trash2 size={isMobile ? 16 : 14} />
-                </button>
+                </DetailIconButton>
               </>
             ) : null}
             {selectedFile && !editing ? (
