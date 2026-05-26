@@ -290,7 +290,7 @@ textarea:focus, input:focus {
 
 @media print {
   @page {
-    margin: 14mm;
+    margin: 8mm 14mm 18mm;
   }
 
   body {
@@ -323,6 +323,20 @@ textarea:focus, input:focus {
   .gitmemo-print-document a {
     color: #0057b8;
     text-decoration: underline;
+  }
+
+  .gitmemo-print-document h1,
+  .gitmemo-print-document h2,
+  .gitmemo-print-document h3,
+  .gitmemo-print-document h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .gitmemo-print-document p,
+  .gitmemo-print-document li {
+    orphans: 3;
+    widows: 3;
   }
 }
 
