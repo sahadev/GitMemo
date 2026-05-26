@@ -249,45 +249,23 @@ textarea:focus, input:focus {
 }
 
 .gitmemo-print-header {
-  align-items: flex-start;
+  align-items: flex-end;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
-  gap: 18px;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 24px;
-  padding-bottom: 12px;
-}
-
-.gitmemo-print-heading {
-  min-width: 0;
-}
-
-.gitmemo-print-header h1 {
-  color: #111827;
-  font-size: 22pt;
-  line-height: 1.25;
-  margin: 0 0 6px;
-}
-
-.gitmemo-print-header p {
-  color: #6b7280;
-  font-size: 9pt;
-  margin: 0;
-  word-break: break-all;
+  min-height: 22px;
+  padding-bottom: 8px;
 }
 
 .gitmemo-print-brand {
-  border: 1px solid #d1d5db;
-  border-radius: 999px;
-  color: #374151;
+  color: #6b7280;
   flex-shrink: 0;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9pt;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   line-height: 1;
-  padding: 6px 9px;
-  text-transform: uppercase;
 }
 
 .gitmemo-print-document pre {
@@ -308,7 +286,7 @@ textarea:focus, input:focus {
 
 @media print {
   @page {
-    margin: 8mm 14mm 18mm;
+    margin: 18mm 14mm 18mm;
   }
 
   body {
@@ -329,6 +307,24 @@ textarea:focus, input:focus {
   .gitmemo-print-document {
     max-width: none;
     padding: 0;
+  }
+
+  .gitmemo-print-header {
+    align-items: flex-end;
+    background: #fff;
+    border-bottom: 0.2mm solid #e5e7eb;
+    box-sizing: border-box;
+    height: 10mm;
+    left: 0;
+    margin: 0;
+    padding: 0 0 2mm;
+    position: fixed;
+    right: 0;
+    top: -12mm;
+  }
+
+  .gitmemo-print-brand {
+    font-size: 8pt;
   }
 
   .gitmemo-print-document,
