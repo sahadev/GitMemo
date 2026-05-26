@@ -197,13 +197,21 @@ export default function NotesPage({
 
   // Keyboard nav for file list
   const navPrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
+    if (files.length === 0) return;
+    if (!selectedFile) {
+      void openFile(files[files.length - 1].path);
+      return;
+    }
     const idx = files.findIndex((f) => f.path === selectedFile);
     if (idx > 0) void openFile(files[idx - 1].path);
   }, [selectedFile, files, openFile]);
 
   const navNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
+    if (files.length === 0) return;
+    if (!selectedFile) {
+      void openFile(files[0].path);
+      return;
+    }
     const idx = files.findIndex((f) => f.path === selectedFile);
     if (idx < 0) return;
     if (idx < files.length - 1) {
@@ -283,7 +291,12 @@ export default function NotesPage({
     if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      const isArrowNavigation = e.key === "ArrowUp" || e.key === "ArrowDown";
+      const target = e.target;
+      const isQuickNoteTextarea = target === textareaRef.current;
+      if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
+        if (!isArrowNavigation || !isQuickNoteTextarea || newNote.trim()) return;
+      }
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
       if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
@@ -297,7 +310,7 @@ export default function NotesPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, navPrev, navNext, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
+  }, [isMobile, navPrev, navNext, newNote, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
