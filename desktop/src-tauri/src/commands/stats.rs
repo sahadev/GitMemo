@@ -20,6 +20,97 @@ fn read_md_head(path: &Path) -> String {
     String::from_utf8_lossy(&buf[..n]).into_owned()
 }
 
+fn frontmatter_value<'a>(content: &'a str, key: &str) -> Option<&'a str> {
+    if !content.starts_with("---") {
+        return None;
+    }
+    let rest = &content[3..];
+    let end = rest.find("---")?;
+    let fm = &rest[..end];
+    let prefix = format!("{}:", key);
+    for line in fm.lines() {
+        let line = line.trim();
+        if let Some(v) = line.strip_prefix(&prefix) {
+            let value = v.trim().trim_matches('"').trim_matches('\'').trim();
+            if !value.is_empty() {
+                return Some(value);
+            }
+        }
+    }
+    None
+}
+
+fn markdown_body(content: &str) -> &str {
+    if !content.starts_with("---") {
+        return content;
+    }
+    let Some(end) = content[3..].find("---") else {
+        return content;
+    };
+    content[3 + end + 3..].trim_start()
+}
+
+fn preview_from_body(body: &str) -> String {
+    body.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("!["))
+        .take(3)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .chars()
+        .take(200)
+        .collect::<String>()
+}
+
+fn first_heading(content: &str) -> Option<String> {
+    content
+        .lines()
+        .find_map(|l| l.strip_prefix("# ").map(str::trim))
+        .filter(|s| !s.is_empty())
+        .map(ToString::to_string)
+}
+
+fn file_stem(path: &Path) -> String {
+    path.file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string()
+}
+
+fn is_generated_date_name(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    if bytes.len() < 10 {
+        return false;
+    }
+    bytes[0..4].iter().all(u8::is_ascii_digit)
+        && bytes[4] == b'-'
+        && bytes[5..7].iter().all(u8::is_ascii_digit)
+        && bytes[7] == b'-'
+        && bytes[8..10].iter().all(u8::is_ascii_digit)
+}
+
+fn display_name_for_markdown(path: &Path, rel_path: &str, content: &str) -> String {
+    if let Some(title) = frontmatter_value(content, "title") {
+        return title.to_string();
+    }
+    if let Some(heading) = first_heading(content) {
+        return heading;
+    }
+
+    let fallback = file_stem(path);
+    let body = markdown_body(content);
+    let preview = preview_from_body(body);
+    let is_clip = rel_path.starts_with("clips/");
+    let is_clipboard_image = frontmatter_value(content, "source") == Some("clipboard-image");
+    if !preview.is_empty()
+        && ((is_clip && !is_clipboard_image) || is_generated_date_name(&fallback))
+    {
+        return preview;
+    }
+
+    fallback
+}
+
 /// Count .md files under a directory (recursive).
 fn count_md_files(dir: &Path) -> usize {
     if !dir.exists() {
@@ -198,11 +289,7 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
                 .unwrap_or(std::time::UNIX_EPOCH);
             let (modified, modified_ts) = record_timestamp_for_markdown(&head, modified_time);
 
-            let name = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
+            let name = display_name_for_markdown(path, &rel_path, &head);
 
             let category = if rel_path.starts_with("conversations") {
                 "conversation"
@@ -249,11 +336,7 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
     let now = std::time::SystemTime::now();
     let min_age = std::time::Duration::from_secs(min_age_days * 24 * 60 * 60);
 
-    let folders = [
-        "conversations",
-        "notes/scratch",
-        "notes/manual",
-    ];
+    let folders = ["conversations", "notes/scratch", "notes/manual"];
     let mut candidates: Vec<RecentItem> = Vec::new();
 
     for folder in &folders {
@@ -289,11 +372,7 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
                 .unwrap_or(path)
                 .to_string_lossy()
                 .to_string();
-            let name = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
+            let name = display_name_for_markdown(path, &rel_path, &head);
 
             let category = if rel_path.starts_with("conversations") {
                 "conversation"
@@ -342,4 +421,65 @@ fn get_last_commit(repo_path: &std::path::Path) -> (String, String, String) {
         return (id, msg, String::new());
     };
     (id, msg, datetime.with_timezone(&fixed_offset).to_rfc3339())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recent_display_name_prefers_frontmatter_title() {
+        let content = "---\ntitle: Claude 会话总结\n---\n# fallback\nbody";
+        let name = display_name_for_markdown(
+            Path::new("conversations/session.md"),
+            "conversations/session.md",
+            content,
+        );
+        assert_eq!(name, "Claude 会话总结");
+    }
+
+    #[test]
+    fn recent_display_name_prefers_heading_over_file_stem() {
+        let content = "# 产品核心构成\n\n正文内容";
+        let name = display_name_for_markdown(
+            Path::new("notes/manual/2026-05-27-003.md"),
+            "notes/manual/2026-05-27-003.md",
+            content,
+        );
+        assert_eq!(name, "产品核心构成");
+    }
+
+    #[test]
+    fn recent_display_name_uses_preview_for_generated_note_names() {
+        let content =
+            "---\nupdated: 2026-05-27T15:00:00+08:00\n---\n\n这是一段没有标题的草稿内容。\n第二行";
+        let name = display_name_for_markdown(
+            Path::new("notes/scratch/2026-05-27-003.md"),
+            "notes/scratch/2026-05-27-003.md",
+            content,
+        );
+        assert_eq!(name, "这是一段没有标题的草稿内容。\n第二行");
+    }
+
+    #[test]
+    fn recent_display_name_uses_preview_for_text_clip() {
+        let content = "---\nsource: clipboard\n---\nhttps://example.com/page";
+        let name = display_name_for_markdown(
+            Path::new("clips/15-19-34-http.md"),
+            "clips/15-19-34-http.md",
+            content,
+        );
+        assert_eq!(name, "https://example.com/page");
+    }
+
+    #[test]
+    fn recent_display_name_keeps_file_stem_for_image_clip_without_text_title() {
+        let content = "---\nsource: clipboard-image\n---\n![screenshot](15-23-33-screenshot.png)";
+        let name = display_name_for_markdown(
+            Path::new("clips/15-23-33-screenshot.md"),
+            "clips/15-23-33-screenshot.md",
+            content,
+        );
+        assert_eq!(name, "15-23-33-screenshot");
+    }
 }
