@@ -38,6 +38,16 @@ const en: Record<string, string> = {
   'hero.download': 'Download',
   'hero.github': 'View on GitHub',
 
+  // Core Architecture
+  'core.label': 'How GitMemo is built',
+  'core.title': 'One Git-backed core, many ways to enter',
+  'core.subtitle': 'GitMemo keeps the product simple: desktop, Android, CLI, and MCP are entry points; GitMemo Core handles content, search, and sync; your local Git repo remains the source of truth.',
+  'core.point.clients': 'Desktop and Android are user-facing clients for reading, writing, saving, and syncing.',
+  'core.point.ai': 'Claude, Codex, and Cursor can use CLI or MCP, depending on what the AI environment supports.',
+  'core.point.git': 'Local Git stores the real data, while remote Git provides backup and cross-device sync.',
+  'core.caption': 'A simple product model: clients and AI tools enter through GitMemo Core, then everything lands in your Git repo.',
+  'core.imageAlt': 'Hand-drawn GitMemo architecture diagram showing clients, AI tools, GitMemo Core, local Git, and remote Git',
+
   // Navigation
   'nav.downloads': 'Download',
   'nav.features': 'Features',
@@ -182,6 +192,16 @@ const zh: Record<string, string> = {
   'hero.badge': '免费开源 · 本地优先',
   'hero.download': '下载',
   'hero.github': '在 GitHub 查看',
+
+  // Core Architecture
+  'core.label': '核心构成',
+  'core.title': '一个 Git 原生核心，多种入口',
+  'core.subtitle': 'GitMemo 的产品模型很简单：桌面端、Android、CLI 和 MCP 都是入口层；GitMemo Core 负责内容、搜索和同步；本地 Git 仓库始终是真实数据源。',
+  'core.point.clients': '桌面端和 Android 面向用户，用来阅读、写入、保存和同步内容。',
+  'core.point.ai': 'Claude、Codex、Cursor 可以走 CLI，也可以走 MCP，取决于当前 AI 环境支持哪种入口。',
+  'core.point.git': '本地 Git 保存真实数据，远端 Git 负责备份和多设备同步。',
+  'core.caption': '简单的产品模型：客户端和 AI 工具都通过 GitMemo Core 进入，最终内容进入你自己的 Git 仓库。',
+  'core.imageAlt': '手绘 GitMemo 架构图，展示客户端、AI 工具、GitMemo Core、本地 Git 与远端 Git',
 
   // Navigation
   'nav.downloads': '下载',

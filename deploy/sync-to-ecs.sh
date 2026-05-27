@@ -15,6 +15,7 @@ set -euo pipefail
 #   ECS_DIR   — ECS 上项目目录（默认 /opt/kakacut）
 #   BAIDU_VERIFY_CODE — 百度站长平台验证码（可选，从 ziyuan.baidu.com 获取）
 #   VITE_DOWNLOAD_MANIFEST_URL — OSS downloads.json 地址（可选，配置后下载区优先走 OSS）
+#   VITE_WEBSITE_ASSET_BASE_URL — 官网大图等静态资源域名（可选，配置后从 OSS/CDN 加载）
 #   ANDROID_APK — Android APK 源文件路径（可选，默认自动查找 arm64-v8a release 包）
 # ============================================
 
@@ -151,7 +152,12 @@ build_website() {
     else
         warn "未设置 VITE_DOWNLOAD_MANIFEST_URL，下载区将回退 GitHub Releases"
     fi
-    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" VITE_ANDROID_APK_VERSION="$ANDROID_VERSION" VITE_ANDROID_APK_FILENAME="$ANDROID_APK_FILENAME" npm run build
+    if [ -n "${VITE_WEBSITE_ASSET_BASE_URL:-}" ]; then
+        info "官网静态资源: ${VITE_WEBSITE_ASSET_BASE_URL}"
+    else
+        warn "未设置 VITE_WEBSITE_ASSET_BASE_URL，官网大图将使用站内 fallback 资源"
+    fi
+    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" VITE_WEBSITE_ASSET_BASE_URL="${VITE_WEBSITE_ASSET_BASE_URL:-}" VITE_ANDROID_APK_VERSION="$ANDROID_VERSION" VITE_ANDROID_APK_FILENAME="$ANDROID_APK_FILENAME" npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"

@@ -19,6 +19,27 @@ jobs:
       - run: cargo test --all-features
       - run: cargo clippy -- -D warnings
 
+  sync-website-assets:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OSS SDK
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install oss2
+
+      - name: Sync website assets to Aliyun OSS
+        env:
+          ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+          ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+          ALIYUN_OSS_BUCKET: ${{ secrets.ALIYUN_OSS_BUCKET }}
+          ALIYUN_OSS_REGION: ${{ secrets.ALIYUN_OSS_REGION }}
+          WEBSITE_OSS_PREFIX: website/assets
+        run: python3 scripts/sync_website_assets_to_oss.py
+
   check-version:
     needs: test
     runs-on: ubuntu-latest

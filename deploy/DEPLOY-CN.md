@@ -85,6 +85,24 @@ VITE_DOWNLOAD_MANIFEST_URL=https://你的bucket.oss-cn-hangzhou.aliyuncs.com/dow
 
 `VITE_DOWNLOAD_MANIFEST_URL` 是 Vite 构建期变量，必须在执行 `npm run build` 时存在。部署脚本会读取 `deploy/.env.local` 并注入到构建命令；未配置时下载区会回退 GitHub Releases。
 
+如需让官网大图片等静态资源走 OSS，在 `deploy/.env.local` 中配置公开访问前缀：
+
+```bash
+VITE_WEBSITE_ASSET_BASE_URL=https://你的bucket.oss-cn-hangzhou.aliyuncs.com
+```
+
+官网会从 `${VITE_WEBSITE_ASSET_BASE_URL}/website/assets/...` 加载大图；未配置时使用站内 `website/public/website/assets/` 的 fallback 资源。
+这些资源可通过脚本上传到 OSS：
+
+```bash
+python3 -m pip install oss2
+ALIYUN_ACCESS_KEY_ID=xxx \
+ALIYUN_ACCESS_KEY_SECRET=xxx \
+ALIYUN_OSS_BUCKET=你的bucket \
+ALIYUN_OSS_REGION=cn-hangzhou \
+python3 scripts/sync_website_assets_to_oss.py
+```
+
 Release 下载包不在本地官网部署脚本中同步。构建产物同步 OSS 的逻辑在 GitHub Actions 的 `sync-oss` job 中，`dispatch-release` 触发最终签名发布后会等待 GitHub Release 出现签名后的 `.dmg`。随后 `sync-oss` 从签名 DMG 中重新打包 updater 用的 `.app.tar.gz`，重新生成 `.sig` 和 `latest.json`，同步回 GitHub Release，再上传到 OSS，并按保留策略删除旧版本目录。
 
 需要在 GitHub 仓库中配置这些 Secrets：
