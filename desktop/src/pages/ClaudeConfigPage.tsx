@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Brain, Wrench, FileText, ChevronLeft, ScrollText, BookOpen, RefreshCw } from "lucide-react";
+import { Brain, Wrench, FileText, ScrollText, BookOpen, RefreshCw } from "lucide-react";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -304,27 +305,18 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
           </div>
         ) : (
           <>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "12px 20px", borderBottom: "1px solid var(--border)",
-            }}>
-              <button
-                onClick={() => { setSelectedFile(null); setFileContent(""); }}
-                style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {selectedFile}
-              </span>
-              {selectedFile ? (
+            <FileDetailToolbar
+              title={selectedFile}
+              titleText={selectedFile}
+              onBack={() => { setSelectedFile(null); setFileContent(""); }}
+              more={selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFile.split("/").pop()}
                 />
               ) : null}
-            </div>
+            />
             <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>

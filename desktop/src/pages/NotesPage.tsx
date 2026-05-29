@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ClipboardEvent,
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Plus, FileText, BookOpen, Send, ChevronLeft, Pencil, Save, Trash2, X, RefreshCw } from "lucide-react";
+import { Plus, FileText, BookOpen, Send, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -329,6 +329,10 @@ export default function NotesPage({
     if (!isMobile || !registerMobileBackHandler) return;
     registerMobileBackHandler(() => {
       if (selectedFile) {
+        if (editing) {
+          setEditing(false);
+          return true;
+        }
         if (detailOpenedFromCrossPageRef.current) {
           closeDetail();
           return false;
@@ -339,7 +343,7 @@ export default function NotesPage({
       return false;
     });
     return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
+  }, [closeDetail, editing, isMobile, registerMobileBackHandler, selectedFile]);
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
@@ -531,53 +535,34 @@ export default function NotesPage({
       <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {selectedFile ? (
           <>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: isMobile ? "8px 12px" : "12px 20px", borderBottom: "1px solid var(--border)",
-              flexShrink: 0,
-            }}>
-              <button
-                onClick={closeDetail}
-                style={{
-                  width: isMobile ? 36 : 24, height: isMobile ? 36 : 24, padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)",
-                  flexShrink: 0,
-                }}
-                title={t("common.back")}
-              >
-                <ChevronLeft size={isMobile ? 20 : 16} />
-              </button>
-              <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {isMobile ? selectedFileName : selectedFile}
-              </span>
-              {editing ? (
-                <div style={{ display: "flex", gap: 4 }}>
-                  <DetailIconButton onClick={handleSaveEdit} title={t("notes.save")} tone="success">
-                    <Save size={isMobile ? 16 : 14} />
-                  </DetailIconButton>
-                  <DetailIconButton onClick={() => setEditing(false)} title={t("common.cancel")}>
-                    <X size={isMobile ? 17 : 14} />
-                  </DetailIconButton>
-                </div>
-              ) : (
-                <div style={{ display: "flex", gap: 4 }}>
-                  <DetailIconButton onClick={startEdit} title={t("notes.edit")}>
-                    <Pencil size={isMobile ? 16 : 14} />
-                  </DetailIconButton>
-                  <DetailIconButton onClick={handleDelete} title={t("common.delete")} tone="danger">
-                    <Trash2 size={isMobile ? 16 : 14} />
-                  </DetailIconButton>
-                  {selectedFile ? (
-                    <FileMoreActionsMenu
-                      relPath={selectedFile}
-                      exportContent={fileContent}
-                      exportTitle={selectedFileName}
-                    />
-                  ) : null}
-                </div>
-              )}
-            </div>
+            <FileDetailToolbar
+              title={isMobile ? selectedFileName : selectedFile}
+              titleText={selectedFile}
+              onBack={closeDetail}
+              editing={editing}
+              onEdit={startEdit}
+              onSave={() => void handleSaveEdit()}
+              onCancel={() => setEditing(false)}
+              editTitle={t("notes.edit")}
+              saveTitle={t("notes.save")}
+              actionsAfterEdit={[
+                {
+                  key: "delete",
+                  title: t("common.delete"),
+                  icon: <Trash2 size={isMobile ? 16 : 14} />,
+                  onClick: () => void handleDelete(),
+                  tone: "danger",
+                  hidden: editing,
+                },
+              ]}
+              more={!editing && selectedFile ? (
+                <FileMoreActionsMenu
+                  relPath={selectedFile}
+                  exportContent={fileContent}
+                  exportTitle={selectedFileName}
+                />
+              ) : null}
+            />
             <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px" }}>
               {editing ? (
                 <textarea

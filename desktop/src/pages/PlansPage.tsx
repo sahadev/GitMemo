@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } fro
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Lightbulb, ChevronLeft, Trash2, RefreshCw } from "lucide-react";
+import { Lightbulb, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -342,48 +342,28 @@ export default function PlansPage({
           </div>
         ) : (
           <>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: isMobile ? "8px 12px" : "12px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
-            }}>
-              <button
-                onClick={closeDetail}
-                style={{
-                  width: isMobile ? 36 : 24,
-                  height: isMobile ? 36 : 24,
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 6,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                  flexShrink: 0,
-                }}
-                title={t("common.back")}
-              >
-                <ChevronLeft size={isMobile ? 20 : 16} />
-              </button>
-              <span style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 13 : 12, fontWeight: isMobile ? 600 : 400, color: isMobile ? "var(--text)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
-              </span>
-              {!isMobile && <DetailIconButton
-                onClick={() => void handleDelete()}
-                title={t("plans.delete")}
-                tone="danger"
-              >
-                <Trash2 size={14} />
-              </DetailIconButton>}
-              {selectedFile ? (
+            <FileDetailToolbar
+              title={isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
+              titleText={selectedFile}
+              onBack={closeDetail}
+              actionsAfterEdit={[
+                {
+                  key: "delete",
+                  title: t("plans.delete"),
+                  icon: <Trash2 size={14} />,
+                  onClick: () => void handleDelete(),
+                  tone: "danger",
+                  hidden: isMobile,
+                },
+              ]}
+              more={selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFile.split("/").pop()}
                 />
               ) : null}
-            </div>
+            />
             <div style={{
               flex: 1,
               overflowY: "auto",

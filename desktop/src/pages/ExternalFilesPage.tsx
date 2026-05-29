@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { FileSymlink, Pencil, Save, Eye, RefreshCw, Trash2, Download, Eraser } from "lucide-react";
+import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
@@ -332,61 +332,41 @@ export default function ExternalFilesPage({
             </div>
           ) : (
             <>
-              <div style={{
-                padding: "14px 18px",
-                borderBottom: "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexShrink: 0,
-              }}>
-                <DetailIconButton
-                  type="button"
-                  onClick={() => void handleImport()}
-                  disabled={importing}
-                  title={t("externalFiles.import")}
-                >
-                  <Download size={14} />
-                </DetailIconButton>
-                {editing ? (
-                  <>
-                    <DetailIconButton
-                      type="button"
-                      onClick={() => setEditing(false)}
-                      title={t("common.preview")}
-                    >
-                      <Eye size={14} />
-                    </DetailIconButton>
-                    <DetailIconButton
-                      type="button"
-                      onClick={() => void handleSave()}
-                      disabled={saving}
-                      title={t("externalFiles.save")}
-                      tone="accent"
-                    >
-                      <Save size={14} />
-                    </DetailIconButton>
-                  </>
-                ) : (
-                  <DetailIconButton
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    disabled={!selectedEntry.exists}
-                    title={t("externalFiles.edit")}
-                  >
-                    <Pencil size={14} />
-                  </DetailIconButton>
-                )}
-                <div style={{ flex: 1 }} />
-                <DetailIconButton
-                  type="button"
-                  onClick={() => void handleRemove(selectedEntry.file_path)}
-                  title={t("common.delete")}
-                  tone="danger"
-                >
-                  <Trash2 size={14} />
-                </DetailIconButton>
-                {!editing ? (
+              <FileDetailToolbar
+                title={selectedEntry.file_name}
+                titleText={selectedEntry.file_path}
+                onBack={clearSelection}
+                editing={editing}
+                onEdit={() => setEditing(true)}
+                onSave={() => void handleSave()}
+                onCancel={() => setEditing(false)}
+                editTitle={t("externalFiles.edit")}
+                saveTitle={t("externalFiles.save")}
+                cancelTitle={t("common.preview")}
+                cancelIcon={<Eye size={14} />}
+                editDisabled={!selectedEntry.exists}
+                saveDisabled={saving}
+                saveTone="accent"
+                actionsBeforeEdit={[
+                  {
+                    key: "import",
+                    title: t("externalFiles.import"),
+                    icon: <Download size={14} />,
+                    onClick: () => void handleImport(),
+                    disabled: importing,
+                  },
+                ]}
+                actionsAfterEdit={[
+                  {
+                    key: "remove",
+                    title: t("common.delete"),
+                    icon: <Trash2 size={14} />,
+                    onClick: () => void handleRemove(selectedEntry.file_path),
+                    tone: "danger",
+                    hidden: editing,
+                  },
+                ]}
+                more={!editing ? (
                   <FileMoreActionsMenu
                     absolutePath={selectedEntry.file_path}
                     canReveal={selectedEntry.exists}
@@ -395,7 +375,7 @@ export default function ExternalFilesPage({
                     exportTitle={selectedEntry.file_name}
                   />
                 ) : null}
-              </div>
+              />
 
               <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>
                 {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}

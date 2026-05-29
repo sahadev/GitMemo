@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { FolderOpen, ChevronLeft, File, Folder, RefreshCw, Pencil, Save, Trash2, X, FilePlus2, FolderPlus } from "lucide-react";
+import { FolderOpen, ChevronLeft, File, Folder, RefreshCw, Trash2, FilePlus2, FolderPlus } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
@@ -455,60 +455,39 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
               </div>
             ) : (
               <>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
-                  borderBottom: "1px solid var(--border)", flexShrink: 0,
-                }}>
-                  <span style={{ flex: 1, fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={fileAbs || selectedFileRel}>
-                    {selectedFileRel}
-                  </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {editing ? (
-                      <>
-                        <DetailIconButton
-                          type="button"
-                          onClick={() => { setEditing(false); setEditContent(fileContent); }}
-                          title={t("editorHome.cancel")}
-                        >
-                          <X size={14} />
-                        </DetailIconButton>
-                        <DetailIconButton
-                          type="button"
-                          onClick={() => void handleSave()}
-                          disabled={saving}
-                          title={t("editorHome.save")}
-                          tone="accent"
-                        >
-                          <Save size={14} />
-                        </DetailIconButton>
-                      </>
-                    ) : (
-                      <DetailIconButton
-                        type="button"
-                        onClick={() => { setEditContent(fileContent); setEditing(true); }}
-                        title={t("editorHome.edit")}
-                      >
-                        <Pencil size={14} />
-                      </DetailIconButton>
-                    )}
-                    <DetailIconButton
-                      type="button"
-                      onClick={() => void handleDelete()}
-                      title={t("common.delete")}
-                      tone="danger"
-                    >
-                      <Trash2 size={14} />
-                    </DetailIconButton>
-                    {!editing && selectedFileRel ? (
-                      <FileMoreActionsMenu
-                        absolutePath={fileAbs || undefined}
-                        canExportPdf={isProbablyMarkdown(selectedFileRel)}
-                        exportContent={fileContent}
-                        exportTitle={selectedFileRel.split("/").pop()}
-                      />
-                    ) : null}
-                  </div>
-                </div>
+                <FileDetailToolbar
+                  title={selectedFileRel}
+                  titleText={fileAbs || selectedFileRel}
+                  onBack={clearSelection}
+                  editing={editing}
+                  onEdit={() => { setEditContent(fileContent); setEditing(true); }}
+                  onSave={() => void handleSave()}
+                  onCancel={() => { setEditing(false); setEditContent(fileContent); }}
+                  editTitle={t("editorHome.edit")}
+                  saveTitle={t("editorHome.save")}
+                  cancelTitle={t("editorHome.cancel")}
+                  saveDisabled={saving}
+                  saveTone="accent"
+                  actionsAfterEdit={[
+                    {
+                      key: "delete",
+                      title: t("common.delete"),
+                      icon: <Trash2 size={14} />,
+                      onClick: () => void handleDelete(),
+                      tone: "danger",
+                      hidden: editing,
+                    },
+                  ]}
+                  more={!editing && selectedFileRel ? (
+                    <FileMoreActionsMenu
+                      absolutePath={fileAbs || undefined}
+                      canExportPdf={isProbablyMarkdown(selectedFileRel)}
+                      exportContent={fileContent}
+                      exportTitle={selectedFileRel.split("/").pop()}
+                    />
+                  ) : null}
+                  style={{ padding: "10px 16px" }}
+                />
                 <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
                   {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                   {!fileLoading && fileError ? (

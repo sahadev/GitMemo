@@ -3,11 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Copy, Check, ChevronLeft, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
+import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
-import { DetailIconButton } from "../components/DetailIconButton";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -21,6 +21,7 @@ import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { MOBILE_BOTTOM_CONTENT_PADDING, MOBILE_BOTTOM_SELECTION_PADDING, MOBILE_FIXED_BAR_BOTTOM } from "../utils/mobileLayout";
+import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
 interface ClipboardEvent {
   saved: boolean;
@@ -89,10 +90,6 @@ function ClipImageThumb({ relPath, selected, wide }: { relPath: string; selected
   );
 }
 
-function stripClipFrontmatter(content: string) {
-  return content.replace(/^---[\s\S]*?---\s*/, "").trim();
-}
-
 function normalizeClipImageLinks(content: string, clipPath: string) {
   const clipDir = clipPath.includes("/") ? clipPath.slice(0, clipPath.lastIndexOf("/")) : "";
   return content.replace(/(!\[[^\]]*]\()([^)\s]+)(\))/g, (match, prefix, src, suffix) => {
@@ -125,12 +122,16 @@ export default function ClipboardPage({
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [rawFileContent, setRawFileContent] = useState("");
   const [fileContent, setFileContent] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
   const [creatingNote, setCreatingNote] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const editRef = useRef<HTMLTextAreaElement | null>(null);
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
@@ -349,9 +350,12 @@ export default function ClipboardPage({
     try {
       if (multiSelectMode) return;
       const content = await invoke<string>("read_file", { filePath: path });
-      const body = stripClipFrontmatter(content);
+      const body = stripMarkdownFrontmatter(content);
       setSelectedFile(path);
+      setRawFileContent(content);
       setFileContent(body);
+      setEditing(false);
+      setEditContent("");
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
@@ -433,7 +437,7 @@ export default function ClipboardPage({
 
   const copyClipContent = useCallback(async (path: string) => {
     const content = await invoke<string>("read_file", { filePath: path });
-    await copyContent(stripClipFrontmatter(content), path);
+    await copyContent(stripMarkdownFrontmatter(content), path);
   }, [copyContent]);
 
   const toggleMultiSelectMode = useCallback(() => {
@@ -441,7 +445,10 @@ export default function ClipboardPage({
       if (enabled) setSelectedClipPaths([]);
       else {
         setSelectedFile(null);
+        setRawFileContent("");
         setFileContent("");
+        setEditing(false);
+        setEditContent("");
       }
       return !enabled;
     });
@@ -461,7 +468,7 @@ export default function ClipboardPage({
       const blocks: string[] = [];
       for (const path of selectedClipPaths) {
         const content = await invoke<string>("read_file", { filePath: path });
-        const body = normalizeClipImageLinks(stripClipFrontmatter(content), path);
+        const body = normalizeClipImageLinks(stripMarkdownFrontmatter(content), path);
         if (body.trim()) blocks.push(body.trim());
       }
       if (blocks.length === 0) {
@@ -492,7 +499,10 @@ export default function ClipboardPage({
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
       if (selectedFile && paths.includes(selectedFile)) {
         setSelectedFile(null);
+        setRawFileContent("");
         setFileContent("");
+        setEditing(false);
+        setEditContent("");
       }
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
@@ -516,7 +526,10 @@ export default function ClipboardPage({
       setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
       if (selectedFile === path) {
         setSelectedFile(null);
+        setRawFileContent("");
         setFileContent("");
+        setEditing(false);
+        setEditContent("");
       }
       refreshSavedClipsInPlace();
       void refreshClipboardStatus();
@@ -532,9 +545,40 @@ export default function ClipboardPage({
   const selectedFileName = selectedFile?.split("/").pop() ?? "";
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
+    setRawFileContent("");
     setFileContent("");
+    setEditing(false);
+    setEditContent("");
     detailOpenedFromCrossPageRef.current = false;
   }, []);
+
+  const startEdit = useCallback(() => {
+    if (!selectedFile) return;
+    setEditContent(fileContent);
+    setEditing(true);
+    window.setTimeout(() => editRef.current?.focus(), 50);
+  }, [fileContent, selectedFile]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setEditContent("");
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!selectedFile) return;
+    try {
+      const nextContent = replaceMarkdownBody(rawFileContent, editContent);
+      await invoke<NoteResult>("update_note", { filePath: selectedFile, content: nextContent });
+      setRawFileContent(nextContent);
+      setFileContent(editContent);
+      setEditing(false);
+      setEditContent("");
+      showToast(t("clipboard.saved"));
+      refreshSavedClipsInPlace();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  }, [editContent, rawFileContent, refreshSavedClipsInPlace, selectedFile, showToast, t]);
 
   useEffect(() => {
     if (!isMobile || !registerMobileBackHandler) return;
@@ -545,6 +589,10 @@ export default function ClipboardPage({
         return true;
       }
       if (selectedFile) {
+        if (editing) {
+          cancelEdit();
+          return true;
+        }
         if (detailOpenedFromCrossPageRef.current) {
           closeDetail();
           return false;
@@ -555,7 +603,7 @@ export default function ClipboardPage({
       return false;
     });
     return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, multiSelectMode, registerMobileBackHandler, selectedFile]);
+  }, [cancelEdit, closeDetail, editing, isMobile, multiSelectMode, registerMobileBackHandler, selectedFile]);
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
@@ -935,57 +983,72 @@ export default function ClipboardPage({
           </div>
         ) : (
           <>
-            {/* Detail header */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: isMobile ? "8px 12px" : "10px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
-            }}>
-              <button
-                onClick={closeDetail}
-                style={{
-                  width: isMobile ? 36 : 24, height: isMobile ? 36 : 24, padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)",
-                  flexShrink: 0,
-                }}
-                title={t("common.back")}
-              >
-                <ChevronLeft size={isMobile ? 20 : 16} />
-              </button>
-              <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {isMobile ? selectedFileName : selectedFile}
-              </span>
-              <DetailIconButton
-                title={t("clipboard.deleteClip")}
-                onClick={() => { if (selectedFile) void confirmDeleteClip(selectedFile); }}
-                tone="danger"
-              >
-                <Trash2 size={isMobile ? 16 : 14} />
-              </DetailIconButton>
-              <DetailIconButton
-                onClick={() => copyContent(fileContent)}
-                title={t("clipboard.copy")}
-                tone={copiedId === "detail" ? "success" : "default"}
-              >
-                {copiedId === "detail"
-                  ? <Check size={isMobile ? 16 : 14} />
-                  : <Copy size={isMobile ? 16 : 14} />}
-              </DetailIconButton>
-              {selectedFile ? (
+            <FileDetailToolbar
+              title={isMobile ? selectedFileName : selectedFile}
+              titleText={selectedFile}
+              onBack={closeDetail}
+              editing={editing}
+              onEdit={startEdit}
+              onSave={() => void handleSaveEdit()}
+              onCancel={cancelEdit}
+              editTitle={t("notes.edit")}
+              saveTitle={t("notes.save")}
+              actionsAfterEdit={[
+                {
+                  key: "delete",
+                  title: t("clipboard.deleteClip"),
+                  icon: <Trash2 size={isMobile ? 16 : 14} />,
+                  onClick: () => { if (selectedFile) void confirmDeleteClip(selectedFile); },
+                  tone: "danger",
+                  hidden: editing,
+                },
+                {
+                  key: "copy",
+                  title: t("clipboard.copy"),
+                  icon: copiedId === "detail"
+                    ? <Check size={isMobile ? 16 : 14} />
+                    : <Copy size={isMobile ? 16 : 14} />,
+                  onClick: () => copyContent(fileContent),
+                  tone: copiedId === "detail" ? "success" : "default",
+                  hidden: editing,
+                },
+              ]}
+              more={!editing && selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFileName}
                 />
               ) : null}
-            </div>
+            />
 
             {/* Full content */}
             <div style={{
               flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 24px",
               userSelect: "text",
             }}>
-              <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
+              {editing ? (
+                <textarea
+                  ref={editRef}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                      e.preventDefault();
+                      void handleSaveEdit();
+                    }
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  style={{
+                    width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? 15 : 13,
+                    lineHeight: 1.7, padding: 0, background: "transparent", color: "var(--text)",
+                    border: "none", outline: "none",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  }}
+                />
+              ) : (
+                <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
+              )}
             </div>
           </>
         )}

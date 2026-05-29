@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } fro
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { MessageSquare, Trash2, ChevronLeft, Pencil, Save, X, RefreshCw } from "lucide-react";
+import { MessageSquare, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -499,93 +499,58 @@ export default function ConversationsPage({
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: isMobile ? "8px 12px" : "10px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
-            }}>
-              <button
-                onClick={closeDetail}
-                style={{
-                  width: isMobile ? 36 : 24,
-                  height: isMobile ? 36 : 24,
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 6,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                  flexShrink: 0,
-                }}
-                title={t("common.back")}
-              >
-                <ChevronLeft size={isMobile ? 20 : 16} />
-              </button>
-              <span
-                onClick={() => {
-                  const text = currentMeta?.title || selectedFile || "";
-                  navigator.clipboard.writeText(text);
-                  showToast(t("conversations.copied"));
-                }}
-                style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
-                title={t("conversations.clickToCopy")}
-              >
-                {currentMeta?.title || selectedFile}
-              </span>
-              {currentMeta?.model && (
-                <span style={{
-                  fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                  background: "var(--bg-hover)", color: "var(--accent)",
-                }}>
-                  {currentMeta.model}
-                </span>
-              )}
-              {currentMeta?.messages && (
-                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                  {currentMeta.messages} {t("conversations.msgs")}
-                </span>
-              )}
-              {!isMobile && (editing ? (
+            <FileDetailToolbar
+              title={currentMeta?.title || selectedFile}
+              titleText={selectedFile}
+              onBack={closeDetail}
+              onTitleClick={() => {
+                const text = currentMeta?.title || selectedFile || "";
+                navigator.clipboard.writeText(text);
+                showToast(t("conversations.copied"));
+              }}
+              titleClickLabel={t("conversations.clickToCopy")}
+              titleStyle={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: "var(--text)" }}
+              metadata={(
                 <>
-                  <DetailIconButton
-                    onClick={() => { setEditing(false); setEditContent(""); }}
-                    title={t("common.cancel")}
-                  >
-                    <X size={14} />
-                  </DetailIconButton>
-                  <DetailIconButton
-                    onClick={() => void handleSaveEdit()}
-                    title={t("conversations.save")}
-                    tone="accent"
-                  >
-                    <Save size={14} />
-                  </DetailIconButton>
+                  {currentMeta?.model && (
+                    <span style={{
+                      fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                      background: "var(--bg-hover)", color: "var(--accent)",
+                    }}>
+                      {currentMeta.model}
+                    </span>
+                  )}
+                  {currentMeta?.messages && (
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {currentMeta.messages} {t("conversations.msgs")}
+                    </span>
+                  )}
                 </>
-              ) : (
-                <DetailIconButton
-                  onClick={startEdit}
-                  title={t("conversations.edit")}
-                >
-                  <Pencil size={14} />
-                </DetailIconButton>
-              ))}
-              {!isMobile && <DetailIconButton
-                onClick={() => void handleDelete()}
-                title={t("conversations.deleteConversation")}
-                tone="danger"
-              >
-                <Trash2 size={14} />
-              </DetailIconButton>}
-              {selectedFile && !editing ? (
+              )}
+              editing={editing}
+              onEdit={!isMobile ? startEdit : undefined}
+              onSave={!isMobile ? () => void handleSaveEdit() : undefined}
+              onCancel={!isMobile ? () => { setEditing(false); setEditContent(""); } : undefined}
+              editTitle={t("conversations.edit")}
+              saveTitle={t("conversations.save")}
+              saveTone="accent"
+              actionsAfterEdit={[
+                {
+                  key: "delete",
+                  title: t("conversations.deleteConversation"),
+                  icon: <Trash2 size={14} />,
+                  onClick: () => void handleDelete(),
+                  tone: "danger",
+                  hidden: isMobile || editing,
+                },
+              ]}
+              more={selectedFile && !editing ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   canExportPdf={false}
                 />
               ) : null}
-            </div>
+            />
 
             {/* Messages */}
             <div style={{

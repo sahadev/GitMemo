@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { Search, MessageSquare, StickyNote, ChevronLeft, Clipboard, FileText, Settings, FolderInput, Pencil, Save, X, Trash2 } from "lucide-react";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Search, MessageSquare, StickyNote, Clipboard, FileText, Settings, FolderInput, Trash2, Copy, Check } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -12,6 +13,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
+import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
 interface SearchResultItem {
   source_type: string;
@@ -32,6 +34,15 @@ function isMobileContentPath(path: string) {
     || path.startsWith("imports/");
 }
 
+function sourceTypeFromPath(path: string) {
+  if (path.startsWith("conversations/")) return "conversation";
+  if (path.startsWith("clips/")) return "clip";
+  if (path.startsWith("plans/")) return "plan";
+  if (path.startsWith("imports/")) return "import";
+  if (path.startsWith("claude-config/") || path.startsWith("cursor-config/")) return "config";
+  return path.startsWith("notes/") ? "note" : "unknown";
+}
+
 export default function SearchPage({
   focusTrigger,
   entryTrigger,
@@ -49,15 +60,19 @@ export default function SearchPage({
   const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
   const settings = useAppStore((s) => s.settings);
+  const clipboardWatching = useAppStore((s) => s.clipboardStatus?.watching ?? false);
+  const refreshClipboardStatus = useAppStore((s) => s.refreshClipboardStatus);
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [rawFileContent, setRawFileContent] = useState("");
   const [fileContent, setFileContent] = useState("");
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
+  const [copiedClip, setCopiedClip] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const imeComposingRef = useRef(false);
@@ -119,9 +134,11 @@ export default function SearchPage({
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
-      setFileContent(content);
+      setRawFileContent(content);
+      setFileContent(path.startsWith("clips/") ? stripMarkdownFrontmatter(content) : content);
       setEditing(false);
       setEditContent("");
+      setCopiedClip(false);
     } catch (e) { console.error(e); }
   };
 
@@ -135,42 +152,102 @@ export default function SearchPage({
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
     try {
-      if (isMobile && !selectedFile.startsWith("notes/")) return;
-      await invoke("update_note", { filePath: selectedFile, content: editContent });
+      const nextContent = selectedFile.startsWith("clips/")
+        ? replaceMarkdownBody(rawFileContent, editContent)
+        : editContent;
+      await invoke("update_note", { filePath: selectedFile, content: nextContent });
       setFileContent(editContent);
+      setRawFileContent(nextContent);
       setEditing(false);
       setEditContent("");
       showToast(t("notes.save"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [isMobile, selectedFile, editContent, showToast, t]);
+  }, [rawFileContent, selectedFile, editContent, showToast, t]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
-    if (isMobile && !selectedFile.startsWith("notes/")) return;
-    const confirmed = await ask(t("notes.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
+    const sourceType = sourceTypeFromPath(selectedFile);
+    const confirmKey =
+      sourceType === "clip" ? "clipboard.deleteConfirm" :
+      sourceType === "plan" ? "plans.deleteConfirm" :
+      sourceType === "conversation" ? "conversations.deleteConfirm" :
+      sourceType === "import" ? "imports.deleteConfirm" :
+      "notes.deleteConfirm";
+    const confirmed = await ask(t(confirmKey), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
     try {
-      await invoke("delete_note", { filePath: selectedFile });
+      if (sourceType === "clip") {
+        await invoke("delete_clip", { filePath: selectedFile });
+      } else if (sourceType === "plan") {
+        const deleteSource = await ask(t("plans.deleteSourceConfirm"), {
+          title: t("plans.deleteSource"),
+          kind: "warning",
+        });
+        await invoke("delete_plan", { filePath: selectedFile, deleteSource });
+      } else {
+        await invoke("delete_note", { filePath: selectedFile });
+      }
       setResults((prev) => prev.filter((r) => r.file_path !== selectedFile));
       setSelectedFile(null);
+      setRawFileContent("");
       setFileContent("");
       setEditing(false);
-      showToast(t("notes.noteDeleted"));
+      setEditContent("");
+      showToast(
+        sourceType === "clip" ? t("clipboard.clipDeleted") :
+        sourceType === "plan" ? t("plans.deleted") :
+        sourceType === "conversation" ? t("conversations.deleted") :
+        sourceType === "import" ? t("imports.deleted") :
+        t("notes.noteDeleted")
+      );
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  };
+  }, [selectedFile, showToast, t]);
 
-  const selectedIsNote = selectedFile?.startsWith("notes/") ?? false;
+  const selectedIsClip = selectedFile?.startsWith("clips/") ?? false;
+  const selectedSourceType = selectedFile ? sourceTypeFromPath(selectedFile) : "unknown";
+  const selectedCanEdit = selectedFile ? (
+    selectedSourceType === "note" ||
+    selectedSourceType === "clip" ||
+    selectedSourceType === "import" ||
+    (isDesktop && selectedSourceType === "conversation")
+  ) : false;
+  const selectedCanDelete = selectedFile ? (
+    selectedSourceType === "note" ||
+    selectedSourceType === "clip" ||
+    selectedSourceType === "import" ||
+    (isDesktop && (selectedSourceType === "conversation" || selectedSourceType === "plan"))
+  ) : false;
   const mobileBottomPadding = MOBILE_BOTTOM_CONTENT_PADDING;
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
+    setRawFileContent("");
     setFileContent("");
     setEditing(false);
     setEditContent("");
+    setCopiedClip(false);
   }, []);
+
+  const copySelectedClip = useCallback(async () => {
+    if (!selectedFile?.startsWith("clips/")) return;
+    try {
+      const wasWatching = clipboardWatching;
+      if (wasWatching) await invoke<string>("stop_clipboard_watch");
+      await writeText(stripMarkdownFrontmatter(rawFileContent || fileContent));
+      if (wasWatching) {
+        await new Promise((resolve) => window.setTimeout(resolve, 200));
+        await invoke<string>("start_clipboard_watch");
+        void refreshClipboardStatus();
+      }
+      setCopiedClip(true);
+      window.setTimeout(() => setCopiedClip(false), 1500);
+    } catch (e) {
+      showToast(`Copy failed: ${e}`, true);
+    }
+  }, [clipboardWatching, fileContent, rawFileContent, refreshClipboardStatus, selectedFile, showToast]);
 
   useEffect(() => {
     if (!isMobile || !entryTrigger) return;
@@ -182,82 +259,60 @@ export default function SearchPage({
     if (!isMobile || !registerMobileBackHandler) return;
     registerMobileBackHandler(() => {
       if (selectedFile) {
+        if (editing) {
+          setEditing(false);
+          setEditContent("");
+          return true;
+        }
         closeDetail();
         return true;
       }
       return false;
     });
     return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
+  }, [closeDetail, editing, isMobile, registerMobileBackHandler, selectedFile]);
 
   if (selectedFile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: isMobile ? "8px 12px" : "12px 20px", borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={closeDetail}
-            style={{
-              width: isMobile ? 36 : 24, height: isMobile ? 36 : 24, padding: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 6, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)",
-              flexShrink: 0,
-            }}
-            title={t("common.back")}
-          >
-            <ChevronLeft size={isMobile ? 20 : 16} />
-          </button>
-          <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {isMobile ? selectedFile.split("/").pop() : selectedFile}
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 6 }}>
-            {(isDesktop || selectedIsNote) ? (
-              <>
-                {editing ? (
-                  <>
-                    <DetailIconButton
-                      onClick={() => { setEditing(false); setEditContent(""); }}
-                      title={t("common.cancel")}
-                    >
-                      <X size={isMobile ? 16 : 14} />
-                    </DetailIconButton>
-                    <DetailIconButton
-                      onClick={() => void handleSaveEdit()}
-                      title={t("notes.save")}
-                      tone="success"
-                    >
-                      <Save size={isMobile ? 16 : 14} />
-                    </DetailIconButton>
-                  </>
-                ) : (
-                  <DetailIconButton
-                    onClick={startEdit}
-                    title={t("notes.edit")}
-                  >
-                    <Pencil size={isMobile ? 16 : 14} />
-                  </DetailIconButton>
-                )}
-                <DetailIconButton
-                  onClick={() => void handleDelete()}
-                  title={t("common.delete")}
-                  tone="danger"
-                >
-                  <Trash2 size={isMobile ? 16 : 14} />
-                </DetailIconButton>
-              </>
-            ) : null}
-            {selectedFile && !editing ? (
-              <FileMoreActionsMenu
-                relPath={selectedFile}
-                exportContent={fileContent}
-                exportTitle={selectedFile.split("/").pop()}
-              />
-            ) : null}
-          </div>
-        </div>
+        <FileDetailToolbar
+          title={isMobile ? selectedFile.split("/").pop() : selectedFile}
+          titleText={selectedFile}
+          onBack={closeDetail}
+          editing={editing}
+          onEdit={selectedCanEdit ? startEdit : undefined}
+          onSave={selectedCanEdit ? () => void handleSaveEdit() : undefined}
+          onCancel={selectedCanEdit ? () => { setEditing(false); setEditContent(""); } : undefined}
+          editTitle={t("notes.edit")}
+          saveTitle={t("notes.save")}
+          actionsAfterEdit={[
+            {
+              key: "delete",
+              title: t("common.delete"),
+              icon: <Trash2 size={isMobile ? 16 : 14} />,
+              onClick: () => void handleDelete(),
+              tone: "danger",
+              hidden: editing || !selectedCanDelete,
+            },
+            {
+              key: "copy",
+              title: t("clipboard.copy"),
+              icon: copiedClip
+                ? <Check size={isMobile ? 16 : 14} />
+                : <Copy size={isMobile ? 16 : 14} />,
+              onClick: () => void copySelectedClip(),
+              tone: copiedClip ? "success" : "default",
+              hidden: editing || !selectedIsClip,
+            },
+          ]}
+          more={!editing ? (
+            <FileMoreActionsMenu
+              relPath={selectedFile}
+              exportContent={fileContent}
+              exportTitle={selectedFile.split("/").pop()}
+            />
+          ) : null}
+        />
         <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px", userSelect: "text" }}>
           {editing ? (
             <textarea

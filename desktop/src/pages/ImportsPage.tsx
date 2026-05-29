@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Download, ChevronLeft, Trash2, RefreshCw, Pencil, Save, Eye } from "lucide-react";
+import { Download, Trash2, RefreshCw, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { DetailIconButton } from "../components/DetailIconButton";
+import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -362,55 +362,38 @@ export default function ImportsPage({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
             {selectedFile ? (
               <>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "12px 20px", borderBottom: "1px solid var(--border)",
-                }}>
-              <button
-                    onClick={closeDetail}
-                    style={{ padding: 4, borderRadius: 4, background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)" }}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  {!editing ? (
-                    <DetailIconButton
-                      onClick={() => setEditing(true)}
-                      title="Edit"
-                    >
-                      <Pencil size={14} />
-                    </DetailIconButton>
-                  ) : (
-                    <>
-                      <DetailIconButton
-                        onClick={() => setEditing(false)}
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </DetailIconButton>
-                      <DetailIconButton
-                        onClick={handleSave}
-                        disabled={saving}
-                        title="Save"
-                        tone="accent"
-                      >
-                        <Save size={14} />
-                      </DetailIconButton>
-                    </>
-                  )}
-                  <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedFile}
-                  </span>
-                  <DetailIconButton onClick={handleDelete} title={t("common.delete")} tone="danger">
-                    <Trash2 size={13} />
-                  </DetailIconButton>
-                  {!editing ? (
+                <FileDetailToolbar
+                  title={selectedFile}
+                  titleText={selectedFile}
+                  onBack={closeDetail}
+                  editing={editing}
+                  onEdit={() => setEditing(true)}
+                  onSave={() => void handleSave()}
+                  onCancel={() => setEditing(false)}
+                  editTitle={t("common.edit")}
+                  saveTitle={t("common.save")}
+                  cancelTitle={t("common.preview")}
+                  cancelIcon={<Eye size={14} />}
+                  saveDisabled={saving}
+                  saveTone="accent"
+                  actionsAfterEdit={[
+                    {
+                      key: "delete",
+                      title: t("common.delete"),
+                      icon: <Trash2 size={13} />,
+                      onClick: () => void handleDelete(),
+                      tone: "danger",
+                      hidden: editing,
+                    },
+                  ]}
+                  more={!editing ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}
                       exportContent={fileContent}
                       exportTitle={selectedFile.split("/").pop()}
                     />
                   ) : null}
-                </div>
+                />
                 <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
                   {editing ? (
                     <textarea
