@@ -29,6 +29,13 @@ const LIST_PREVIEW_BYTES: usize = 64 * 1024;
 const DEFAULT_LIST_PAGE_SIZE: usize = 10;
 const MAX_LIST_PAGE_SIZE: usize = 100;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClipKindFilter {
+    All,
+    Text,
+    Image,
+}
+
 pub fn set_app_handle(handle: AppHandle) {
     let _ = APP_HANDLE.set(handle);
 }
@@ -166,6 +173,46 @@ fn frontmatter_value<'a>(content: &'a str, key: &str) -> Option<&'a str> {
     None
 }
 
+fn is_clipboard_image_content(content: &str) -> bool {
+    frontmatter_value(content, "source") == Some("clipboard-image")
+}
+
+fn parse_clip_kind_filter(clip_kind: Option<&str>) -> ClipKindFilter {
+    match clip_kind {
+        Some("image") => ClipKindFilter::Image,
+        Some("text") => ClipKindFilter::Text,
+        _ => ClipKindFilter::All,
+    }
+}
+
+fn should_filter_clip_kind(folder: &str, clip_kind: ClipKindFilter) -> bool {
+    clip_kind != ClipKindFilter::All && folder.trim_matches('/') == "clips"
+}
+
+fn clip_content_matches_kind(content: &str, clip_kind: ClipKindFilter) -> bool {
+    match clip_kind {
+        ClipKindFilter::All => true,
+        ClipKindFilter::Image => is_clipboard_image_content(content),
+        ClipKindFilter::Text => !is_clipboard_image_content(content),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clip_kind_filter_distinguishes_clipboard_images() {
+        let text_clip = "---\nsource: clipboard\n---\n\nhello";
+        let image_clip = "---\nsource: clipboard-image\n---\n\n![screenshot](shot.png)";
+
+        assert!(clip_content_matches_kind(text_clip, ClipKindFilter::Text));
+        assert!(!clip_content_matches_kind(text_clip, ClipKindFilter::Image));
+        assert!(clip_content_matches_kind(image_clip, ClipKindFilter::Image));
+        assert!(!clip_content_matches_kind(image_clip, ClipKindFilter::Text));
+    }
+}
+
 fn extract_markdown_image_path(body: &str) -> Option<String> {
     let idx = body.find("![")?;
     let after = &body[idx + 2..];
@@ -276,7 +323,7 @@ fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
         content.as_str()
     };
 
-    let is_clipboard_image = frontmatter_value(&content, "source") == Some("clipboard-image");
+    let is_clipboard_image = is_clipboard_image_content(&content);
     let (preview, preview_image) = if is_clipboard_image {
         if let Some(img_file) = extract_markdown_image_path(body) {
             let parent = Path::new(&rel_path)
@@ -876,8 +923,9 @@ pub async fn list_files_page(
     folder: String,
     offset: Option<usize>,
     limit: Option<usize>,
+    clip_kind: Option<String>,
 ) -> Result<FilePage, String> {
-    tokio::task::spawn_blocking(move || list_files_page_sync(folder, offset, limit))
+    tokio::task::spawn_blocking(move || list_files_page_sync(folder, offset, limit, clip_kind))
         .await
         .map_err(|e| format!("Task join error: {e}"))?
 }
@@ -886,6 +934,7 @@ fn list_files_page_sync(
     folder: String,
     offset: Option<usize>,
     limit: Option<usize>,
+    clip_kind: Option<String>,
 ) -> Result<FilePage, String> {
     let dir = sync_dir();
     prepare_list_folder(&dir, &folder);
@@ -894,6 +943,17 @@ fn list_files_page_sync(
         .unwrap_or(DEFAULT_LIST_PAGE_SIZE)
         .clamp(1, MAX_LIST_PAGE_SIZE);
     let requested_offset = offset.unwrap_or(0);
+    let clip_kind_filter = parse_clip_kind_filter(clip_kind.as_deref());
+
+    if should_filter_clip_kind(&folder, clip_kind_filter) {
+        return list_files_page_from_filesystem(
+            &dir,
+            &folder,
+            requested_offset,
+            limit,
+            clip_kind_filter,
+        );
+    }
 
     match list_files_page_from_index(&dir, &folder, requested_offset, limit) {
         Ok(page) => {
@@ -901,7 +961,13 @@ fn list_files_page_sync(
             if page.entries.len() >= expected_entries || !folder_has_listed_files(&dir, &folder) {
                 Ok(page)
             } else {
-                list_files_page_from_filesystem(&dir, &folder, requested_offset, limit)
+                list_files_page_from_filesystem(
+                    &dir,
+                    &folder,
+                    requested_offset,
+                    limit,
+                    clip_kind_filter,
+                )
             }
         }
         Err(err) => {
@@ -910,7 +976,13 @@ fn list_files_page_sync(
                 folder,
                 err
             );
-            list_files_page_from_filesystem(&dir, &folder, requested_offset, limit)
+            list_files_page_from_filesystem(
+                &dir,
+                &folder,
+                requested_offset,
+                limit,
+                clip_kind_filter,
+            )
         }
     }
 }
@@ -924,8 +996,17 @@ fn list_files_page_from_filesystem(
     folder: &str,
     requested_offset: usize,
     limit: usize,
+    clip_kind_filter: ClipKindFilter,
 ) -> Result<FilePage, String> {
-    let all_entries = build_file_entries(dir, collect_file_candidates(dir, folder));
+    let mut candidates = collect_file_candidates(dir, folder);
+    if should_filter_clip_kind(folder, clip_kind_filter) {
+        candidates.retain(|candidate| {
+            let content = read_file_head(&candidate.path);
+            clip_content_matches_kind(&content, clip_kind_filter)
+        });
+    }
+
+    let all_entries = build_file_entries(dir, candidates);
     let total = all_entries.len();
     let offset = requested_offset.min(total);
     let end = offset.saturating_add(limit).min(total);
@@ -1103,7 +1184,7 @@ fn remove_clip_file(dir: &Path, file_path: &str) -> Result<String, String> {
     }
 
     if let Ok(content) = std::fs::read_to_string(&full_path) {
-        if frontmatter_value(&content, "source") == Some("clipboard-image") {
+        if is_clipboard_image_content(&content) {
             let body = if content.starts_with("---") {
                 if let Some(end) = content[3..].find("---") {
                     content[3 + end + 3..].trim_start()

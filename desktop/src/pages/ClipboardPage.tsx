@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2 } from "lucide-react";
+import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2, FileText, Image as ImageIcon, Layers } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
@@ -39,6 +39,8 @@ interface NoteResult {
 const CLIP_WATCH_FOLDERS = ["clips"];
 const CLIP_REFRESH_PAGE_SIZE = 100;
 const CLIP_REFRESH_MAX_PRESERVED_ITEMS = 1000;
+
+type ClipFilter = "all" | "text" | "image";
 
 interface ScrollAnchor {
   path: string | null;
@@ -119,6 +121,8 @@ export default function ClipboardPage({
   const [clipsLoading, setClipsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [clipTotal, setClipTotal] = useState<number | null>(null);
+  const [clipFilter, setClipFilter] = useState<ClipFilter>("all");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -218,6 +222,7 @@ export default function ClipboardPage({
               CLIP_REFRESH_PAGE_SIZE,
               Math.max(FILE_PAGE_SIZE, initialTargetCount - entries.length),
             ),
+            clipKind: clipFilter,
           });
           total = page.total;
           entries.push(...page.entries);
@@ -226,6 +231,7 @@ export default function ClipboardPage({
 
         const visibleEntries = entries.filter((entry) => !deletedClipPathsRef.current.has(entry.path));
         setSavedClips(visibleEntries);
+        setClipTotal(total);
         setHasMore(entries.length < total);
         if (preserveScroll) restoreScrollAnchor(anchor);
       } else {
@@ -233,7 +239,9 @@ export default function ClipboardPage({
           folder: "clips",
           offset: savedClipsLengthRef.current,
           limit: FILE_PAGE_SIZE,
+          clipKind: clipFilter,
         });
+        setClipTotal(page.total);
         setSavedClips((prev) => {
           const seen = new Set(prev.map((clip) => clip.path));
           return [
@@ -249,7 +257,7 @@ export default function ClipboardPage({
       if (showBlockingLoading) setClipsLoading(false);
       else setLoadingMore(false);
     }
-  }, [captureScrollAnchor, restoreScrollAnchor]);
+  }, [captureScrollAnchor, clipFilter, restoreScrollAnchor]);
 
   useEffect(() => {
     void loadSavedClips();
@@ -461,6 +469,20 @@ export default function ClipboardPage({
     });
   }, []);
 
+  const changeClipFilter = useCallback((nextFilter: ClipFilter) => {
+    if (nextFilter === clipFilter) return;
+    setClipFilter(nextFilter);
+    setSelectedFile(null);
+    setRawFileContent("");
+    setFileContent("");
+    setEditing(false);
+    setEditContent("");
+    setMultiSelectMode(false);
+    setSelectedClipPaths([]);
+    pendingKeyboardNextIndexRef.current = null;
+    listScrollRef.current?.scrollTo({ top: 0 });
+  }, [clipFilter]);
+
   const createNoteFromSelectedClips = useCallback(async () => {
     if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
     setCreatingNote(true);
@@ -497,6 +519,7 @@ export default function ClipboardPage({
       showToast(t("clipboard.selectedDeleted", paths.length));
       paths.forEach((path) => deletedClipPathsRef.current.add(path));
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
+      setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - paths.length));
       if (selectedFile && paths.includes(selectedFile)) {
         setSelectedFile(null);
         setRawFileContent("");
@@ -523,6 +546,7 @@ export default function ClipboardPage({
       showToast(t("clipboard.clipDeleted"));
       deletedClipPathsRef.current.add(path);
       setSavedClips((prev) => prev.filter((clip) => clip.path !== path));
+      setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - 1));
       setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
       if (selectedFile === path) {
         setSelectedFile(null);
@@ -604,6 +628,18 @@ export default function ClipboardPage({
     });
     return () => registerMobileBackHandler(null);
   }, [cancelEdit, closeDetail, editing, isMobile, multiSelectMode, registerMobileBackHandler, selectedFile]);
+
+  const clipFilterOptions = [
+    { id: "all" as ClipFilter, label: t("clipboard.filterAll"), Icon: Layers },
+    { id: "text" as ClipFilter, label: t("clipboard.filterText"), Icon: FileText },
+    { id: "image" as ClipFilter, label: t("clipboard.filterImage"), Icon: ImageIcon },
+  ];
+  const emptyClipsMessage = clipFilter === "image"
+    ? t("clipboard.noImageClips")
+    : clipFilter === "text"
+      ? t("clipboard.noTextClips")
+      : t("clipboard.noClips");
+  const displayedClipTotal = clipTotal ?? status?.clips_count ?? 0;
 
   return (
     <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
@@ -691,6 +727,54 @@ export default function ClipboardPage({
           </div>
         </div>
 
+        <div style={{
+          display: "flex", alignItems: "center", gap: 4,
+          padding: isMobile ? "8px 12px" : "8px 16px",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}>
+          <div role="tablist" aria-label={t("clipboard.filterLabel")} style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            width: "100%",
+            padding: 2,
+            borderRadius: 7,
+            border: "1px solid var(--border)",
+            background: "var(--bg-hover)",
+          }}>
+            {clipFilterOptions.map(({ id, label, Icon }) => {
+              const activeFilter = clipFilter === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter}
+                  onClick={() => changeClipFilter(id)}
+                  title={label}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    minWidth: 0,
+                    height: isMobile ? 32 : 26,
+                    padding: isMobile ? "0 8px" : "0 6px",
+                    borderRadius: 5,
+                    border: "none",
+                    background: activeFilter ? "var(--bg)" : "transparent",
+                    color: activeFilter ? "var(--accent)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    fontSize: isMobile ? 12 : 11,
+                    fontWeight: activeFilter ? 700 : 500,
+                    boxShadow: activeFilter ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  }}
+                >
+                  <Icon size={isMobile ? 14 : 12} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Clip list */}
         <div ref={listScrollRef} style={{
           flex: 1,
@@ -714,8 +798,8 @@ export default function ClipboardPage({
           ) : savedClips.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 20px", textAlign: "center" }}>
               <Clipboard size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("clipboard.noClips")}</p>
-              {!isMobile && <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>}
+              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{emptyClipsMessage}</p>
+              {!isMobile && clipFilter === "all" && <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>}
             </div>
           ) : (
             <>
@@ -966,7 +1050,7 @@ export default function ClipboardPage({
             padding: "10px 16px", borderTop: "1px solid var(--border)",
             fontSize: 11, color: "var(--text-secondary)", textAlign: "center",
           }}>
-            {t("clipboard.clipsTotal", String(status?.clips_count ?? 0))}
+            {t("clipboard.clipsTotal", String(displayedClipTotal))}
           </div>
         )}
       </div>
