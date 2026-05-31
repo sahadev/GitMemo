@@ -8,6 +8,7 @@ import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -347,6 +348,13 @@ export default function ExternalFilesPage({
                 editDisabled={!selectedEntry.exists}
                 saveDisabled={saving}
                 saveTone="accent"
+                metadata={selectedEntry ? (
+                  <FavoriteButton
+                    absolutePath={selectedEntry.file_path}
+                    title={selectedEntry.file_name}
+                    sourceType="external"
+                  />
+                ) : null}
                 actionsBeforeEdit={[
                   {
                     key: "import",

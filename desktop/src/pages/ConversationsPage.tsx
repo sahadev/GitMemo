@@ -6,6 +6,7 @@ import { MessageSquare, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -525,6 +526,13 @@ export default function ConversationsPage({
                       {currentMeta.messages} {t("conversations.msgs")}
                     </span>
                   )}
+                  {selectedFile ? (
+                    <FavoriteButton
+                      relPath={selectedFile}
+                      title={currentMeta?.title || selectedFile}
+                      sourceType="conversation"
+                    />
+                  ) : null}
                 </>
               )}
               editing={editing}

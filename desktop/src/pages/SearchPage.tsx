@@ -6,6 +6,7 @@ import { Search, MessageSquare, StickyNote, Clipboard, FileText, Settings, Folde
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
@@ -285,6 +286,13 @@ export default function SearchPage({
           onCancel={selectedCanEdit ? () => { setEditing(false); setEditContent(""); } : undefined}
           editTitle={t("notes.edit")}
           saveTitle={t("notes.save")}
+          metadata={selectedFile ? (
+            <FavoriteButton
+              relPath={selectedFile}
+              title={selectedFile.split("/").pop()}
+              sourceType={sourceTypeFromPath(selectedFile)}
+            />
+          ) : null}
           actionsAfterEdit={[
             {
               key: "delete",

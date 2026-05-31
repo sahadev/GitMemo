@@ -34,8 +34,8 @@ fn classify_path(path: &Path, sync_dir: &Path) -> Option<String> {
     let folder = first.as_os_str().to_string_lossy().to_string();
     // Only emit for content folders, skip .git / .metadata
     match folder.as_str() {
-        "conversations" | "notes" | "clips" | "plans" | "claude-config" | "cursor-config"
-        | "imports" => Some(folder),
+        "conversations" | "notes" | "clips" | "plans" | "favorites" | "claude-config"
+        | "cursor-config" | "imports" => Some(folder),
         _ => None,
     }
 }

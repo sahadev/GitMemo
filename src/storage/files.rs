@@ -17,6 +17,7 @@ pub fn sync_dir() -> PathBuf {
 pub fn create_directory_structure(base: &Path) -> Result<()> {
     let dirs = [
         "conversations",
+        "favorites/items",
         "notes/manual",
         "notes/scratch",
         ".metadata",

@@ -1,5 +1,6 @@
 pub mod clipboard;
 pub mod crash_log;
+pub mod favorites;
 pub mod import;
 pub mod init;
 pub mod local_editor;

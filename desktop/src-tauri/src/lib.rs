@@ -1,8 +1,8 @@
 mod commands;
 
 use commands::{
-    clipboard, crash_log, import, init, local_editor, mobile_git_spike, notes, search, settings,
-    stats, watcher,
+    clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes, search,
+    settings, stats, watcher,
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
@@ -133,6 +133,11 @@ pub fn run() {
             notes::delete_clips,
             notes::delete_plan,
             notes::save_pasted_attachment,
+            // Favorites
+            favorites::list_favorites,
+            favorites::get_favorite_status,
+            favorites::set_favorite,
+            favorites::read_favorite_content,
             // Search
             search::search_all,
             search::recent_conversations,

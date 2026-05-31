@@ -5,6 +5,7 @@ import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -309,6 +310,13 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
               title={selectedFile}
               titleText={selectedFile}
               onBack={() => { setSelectedFile(null); setFileContent(""); }}
+              metadata={selectedFile ? (
+                <FavoriteButton
+                  relPath={selectedFile}
+                  title={selectedFile.split("/").pop()}
+                  sourceType="config"
+                />
+              ) : null}
               more={selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}

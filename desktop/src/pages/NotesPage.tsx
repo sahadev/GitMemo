@@ -6,6 +6,7 @@ import { Plus, FileText, BookOpen, Send, Trash2, RefreshCw } from "lucide-react"
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -545,6 +546,13 @@ export default function NotesPage({
               onCancel={() => setEditing(false)}
               editTitle={t("notes.edit")}
               saveTitle={t("notes.save")}
+              metadata={selectedFile ? (
+                <FavoriteButton
+                  relPath={selectedFile}
+                  title={selectedFileName}
+                  sourceType="note"
+                />
+              ) : null}
               actionsAfterEdit={[
                 {
                   key: "delete",

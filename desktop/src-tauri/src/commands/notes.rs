@@ -19,6 +19,7 @@ const CONTENT_FOLDERS: &[&str] = &[
     "notes",
     "clips",
     "plans",
+    "favorites",
     "claude-config",
     "cursor-config",
     "imports",

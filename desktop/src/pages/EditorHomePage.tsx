@@ -8,6 +8,7 @@ import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
@@ -468,6 +469,13 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   cancelTitle={t("editorHome.cancel")}
                   saveDisabled={saving}
                   saveTone="accent"
+                  metadata={selectedFileRel ? (
+                    <FavoriteButton
+                      absolutePath={fileAbs || undefined}
+                      title={selectedFileRel.split("/").pop()}
+                      sourceType="external"
+                    />
+                  ) : null}
                   actionsAfterEdit={[
                     {
                       key: "delete",

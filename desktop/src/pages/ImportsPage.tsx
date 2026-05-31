@@ -6,6 +6,7 @@ import { Download, Trash2, RefreshCw, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -376,6 +377,13 @@ export default function ImportsPage({
                   cancelIcon={<Eye size={14} />}
                   saveDisabled={saving}
                   saveTone="accent"
+                  metadata={selectedFile ? (
+                    <FavoriteButton
+                      relPath={selectedFile}
+                      title={selectedFile.split("/").pop()}
+                      sourceType="import"
+                    />
+                  ) : null}
                   actionsAfterEdit={[
                     {
                       key: "delete",

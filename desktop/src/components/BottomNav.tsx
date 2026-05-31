@@ -5,6 +5,7 @@ import {
   Clipboard,
   MessageSquare,
   Download,
+  Star,
 } from "lucide-react";
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
@@ -14,6 +15,7 @@ const mobileNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string
   { id: "ai-records", icon: MessageSquare, labelKey: "nav.aiRecords" },
   { id: "notes", icon: StickyNote, labelKey: "nav.notes" },
   { id: "clipboard", icon: Clipboard, labelKey: "nav.clipboard" },
+  { id: "favorites", icon: Star, labelKey: "nav.favorites" },
   { id: "imports", icon: Download, labelKey: "nav.imports" },
   { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];

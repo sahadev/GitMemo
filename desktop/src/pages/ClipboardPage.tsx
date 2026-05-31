@@ -8,6 +8,7 @@ import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -1077,6 +1078,13 @@ export default function ClipboardPage({
               onCancel={cancelEdit}
               editTitle={t("notes.edit")}
               saveTitle={t("notes.save")}
+              metadata={selectedFile ? (
+                <FavoriteButton
+                  relPath={selectedFile}
+                  title={selectedFileName}
+                  sourceType="clip"
+                />
+              ) : null}
               actionsAfterEdit={[
                 {
                   key: "delete",

@@ -6,6 +6,7 @@ import { Lightbulb, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -346,6 +347,13 @@ export default function PlansPage({
               title={isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               titleText={selectedFile}
               onBack={closeDetail}
+              metadata={selectedFile ? (
+                <FavoriteButton
+                  relPath={selectedFile}
+                  title={selectedFile.split("/").pop()?.replace(/\.md$/, "") ?? selectedFile}
+                  sourceType="plan"
+                />
+              ) : null}
               actionsAfterEdit={[
                 {
                   key: "delete",
