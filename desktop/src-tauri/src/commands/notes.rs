@@ -1,3 +1,4 @@
+use super::sync_log;
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
@@ -438,6 +439,8 @@ fn bg_commit_and_push(msg: String) {
                 ok: true,
                 message: if result.committed {
                     "Synced".into()
+                } else if result.pushed {
+                    "Pushed".into()
                 } else {
                     "No changes".into()
                 },
@@ -449,6 +452,9 @@ fn bg_commit_and_push(msg: String) {
         };
         if let Some(handle) = APP_HANDLE.get() {
             let _ = handle.emit("git-sync-end", &sync_event);
+        }
+        if !sync_event.ok {
+            sync_log::write_sync_log("background sync", false, &sync_event.message, None);
         }
         // Notify pages to refresh (file watcher may miss git-internal file ops)
         emit_files_changed();
@@ -475,14 +481,14 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
 
     let result = git::commit_and_push(dir, "auto: sync from desktop")
         .map_err(|e| git_error_for_user(e.to_string()))?;
-    if result.committed && result.pushed {
+    if let Some(err) = result.push_error {
+        Err(format!("Push failed: {}", git_error_for_user(err)))
+    } else if result.committed && result.pushed {
         Ok("Synced to Git".into())
+    } else if result.pushed {
+        Ok("Pushed".into())
     } else if result.committed {
-        if let Some(err) = result.push_error {
-            Err(format!("Push failed: {}", git_error_for_user(err)))
-        } else {
-            Ok("Committed".into())
-        }
+        Ok("Committed".into())
     } else if pulled {
         Ok("Pulled latest".into())
     } else {
@@ -497,9 +503,6 @@ fn run_full_sync(dir: &std::path::Path) -> Result<String, String> {
             } else if behind > 0 {
                 return Err(format!("Pull failed: {} commits behind", behind));
             } else if ahead > 0 {
-                if let Some(err) = result.push_error {
-                    return Err(format!("Push failed: {}", git_error_for_user(err)));
-                }
                 return Err(format!("Push failed: {} commits unpushed", ahead));
             }
         }
@@ -1376,9 +1379,13 @@ pub fn save_pasted_attachment(
 
 #[tauri::command]
 pub async fn sync_to_git() -> Result<String, String> {
-    tokio::task::spawn_blocking(|| sync_to_git_blocking())
+    let result = tokio::task::spawn_blocking(|| sync_to_git_blocking())
         .await
-        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| format!("Task join error: {e}"))?;
+    if let Err(err) = &result {
+        sync_log::write_sync_log("manual sync", false, err, None);
+    }
+    result
 }
 
 pub(crate) fn sync_to_git_blocking() -> Result<String, String> {

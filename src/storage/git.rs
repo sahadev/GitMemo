@@ -1421,6 +1421,15 @@ fn commit_and_push_inner(repo_path: &Path, message: &str) -> Result<SyncResult> 
     let committed = if let Some(parent) = current_head_commit(&repo)? {
         // Skip if tree unchanged
         if parent.tree()?.id() == tree_id {
+            if has_remote(repo_path) {
+                let _ = pull_inner(repo_path);
+                let (pushed, push_error) = do_push_with_retry(repo_path);
+                return Ok(SyncResult {
+                    committed: false,
+                    pushed,
+                    push_error,
+                });
+            }
             return Ok(SyncResult::nothing());
         }
         repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent])?;
@@ -2037,5 +2046,95 @@ mod tests {
         assert!(remote_ref_exists(local, "origin/main"));
         checkout_remote_branch(local, "main").unwrap();
         assert!(local.join("remote.md").exists());
+    }
+
+    #[test]
+    fn commit_and_push_pushes_existing_unpushed_commits_when_tree_is_clean() {
+        let remote_tmp = tempfile::tempdir().unwrap();
+        let remote = remote_tmp.path();
+        Command::new("git")
+            .args(["init", "--bare"])
+            .current_dir(remote)
+            .status()
+            .unwrap();
+
+        let local_tmp = tempfile::tempdir().unwrap();
+        let local = local_tmp.path();
+        Command::new("git")
+            .arg("init")
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["branch", "-m", "main"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+
+        std::fs::create_dir_all(local.join(".metadata")).unwrap();
+        std::fs::write(
+            local.join(".metadata").join("config.toml"),
+            format!(
+                "[git]\nremote = \"{}\"\nbranch = \"main\"\n",
+                remote.to_string_lossy()
+            ),
+        )
+        .unwrap();
+        std::fs::write(local.join(".gitignore"), ".metadata/\n").unwrap();
+        std::fs::write(local.join("base.md"), "base").unwrap();
+        Command::new("git")
+            .args(["add", ".gitignore", "base.md"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-m", "base"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["remote", "add", "origin", remote.to_str().unwrap()])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["push", "-u", "origin", "main"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+
+        std::fs::write(local.join("second.md"), "second").unwrap();
+        Command::new("git")
+            .args(["add", "second.md"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+        Command::new("git")
+            .args(["commit", "-m", "second"])
+            .current_dir(local)
+            .status()
+            .unwrap();
+
+        let result = commit_and_push(local, "auto: sync").unwrap();
+        assert!(!result.committed);
+        assert!(result.pushed);
+        assert!(result.push_error.is_none());
+
+        let remote_file = Command::new("git")
+            .args(["--git-dir", remote.to_str().unwrap(), "show", "main:second.md"])
+            .output()
+            .unwrap();
+        assert!(remote_file.status.success());
+        assert_eq!(String::from_utf8_lossy(&remote_file.stdout).trim(), "second");
     }
 }

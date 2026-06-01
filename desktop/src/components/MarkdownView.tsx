@@ -132,11 +132,19 @@ function resolveMarkdownImagePath(src?: string, filePath?: string) {
     : src;
 }
 
+function imageMimeFromSrc(src: string) {
+  const ext = src.split(/[?#]/, 1)[0].split(".").pop()?.toLowerCase() || "png";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "svg") return "image/svg+xml";
+  return `image/${ext}`;
+}
+
 /**
  * Custom img renderer that loads local images via Tauri's read_file_base64.
  */
 function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { filePath?: string }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [localImageState, setLocalImageState] = useState<"ready" | "loading" | "error">("ready");
   const imgRelPath = useMemo(() => resolveMarkdownImagePath(src, filePath), [src, filePath]);
   const imageSaveProps = useLongPressImageSave({
     src: dataUrl ?? src ?? null,
@@ -145,25 +153,41 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
   });
 
   useEffect(() => {
+    let cancelled = false;
     setDataUrl(null);
-    if (!src || !imgRelPath) return;
+    if (!src || !imgRelPath) {
+      setLocalImageState("ready");
+      return;
+    }
 
+    setLocalImageState("loading");
     invoke<string>("read_file_base64", { filePath: imgRelPath })
       .then((b64) => {
-        const ext = src.split(".").pop()?.toLowerCase() || "png";
-        const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
+        if (cancelled) return;
+        const mime = imageMimeFromSrc(src);
         setDataUrl(`data:${mime};base64,${b64}`);
+        setLocalImageState("ready");
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setLocalImageState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [src, imgRelPath]);
 
+  const localImageProps = imgRelPath
+    ? { "data-gitmemo-local-image-state": localImageState }
+    : {};
+
   if (dataUrl) {
-    return <img src={dataUrl} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
+    return <img src={dataUrl} alt={alt ?? ""} {...localImageProps} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
   }
   if (src?.startsWith("http") || src?.startsWith("data:")) {
     return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
   }
-  return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
+  return <img src={src} alt={alt ?? ""} {...localImageProps} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
 }
 
 export function MarkdownContent({ content, filePath }: MarkdownViewProps) {

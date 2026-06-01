@@ -51,6 +51,11 @@ interface MobileGitDiagnosticStep {
   message: string;
 }
 
+interface SyncLogEntry {
+  filename: string;
+  content: string;
+}
+
 function accessTokenHelpUrl(remoteUrl: string): string {
   const lower = remoteUrl.toLowerCase();
   if (lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
@@ -172,6 +177,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [savingRemote, setSavingRemote] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
+  const [showSyncLogs, setShowSyncLogs] = useState(false);
+  const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
+  const [loadingSyncLogs, setLoadingSyncLogs] = useState(false);
+  const [clearingSyncLogs, setClearingSyncLogs] = useState(false);
   const [proxyUrlInput, setProxyUrlInput] = useState("");
   const [editingProxy, setEditingProxy] = useState(false);
   const [updatingClaudeSkills, setUpdatingClaudeSkills] = useState(false);
@@ -209,6 +218,35 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       if (res.ok) setChangelog(await res.json());
     } catch { /* ignore */ }
     setShowChangelog(true);
+  };
+
+  const loadSyncLogs = async () => {
+    setLoadingSyncLogs(true);
+    try {
+      setSyncLogs(await invoke<SyncLogEntry[]>("get_sync_logs"));
+    } catch (e) {
+      showToast(`${t("settings.syncLogsLoadFailed")}: ${e}`, true);
+    } finally {
+      setLoadingSyncLogs(false);
+    }
+  };
+
+  const openSyncLogs = async () => {
+    setShowSyncLogs(true);
+    await loadSyncLogs();
+  };
+
+  const clearSyncLogs = async () => {
+    setClearingSyncLogs(true);
+    try {
+      await invoke<string>("clear_sync_logs");
+      setSyncLogs([]);
+      showToast(t("settings.syncLogsCleared"));
+    } catch (e) {
+      showToast(`${e}`, true);
+    } finally {
+      setClearingSyncLogs(false);
+    }
   };
 
   const toggleAutostart = async () => {
@@ -1296,6 +1334,33 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </div>
             )}
           </div>
+
+          <div style={{ borderTop: "1px solid var(--border)" }} />
+
+          <div style={rowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ScrollText size={15} style={{ color: "var(--text-secondary)" }} />
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.syncLogs")}</p>
+                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncLogsDesc")}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void openSyncLogs()}
+              style={{
+                padding: segmentedButtonPadding,
+                borderRadius: 5,
+                fontSize: 12,
+                cursor: "pointer",
+                background: "var(--bg-hover)",
+                border: "1px solid var(--border)",
+                color: "var(--accent)",
+              }}
+            >
+              {t("settings.openSyncLogs")}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1497,6 +1562,120 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         </div>
       </div>
       {isMobile && <div aria-hidden="true" style={{ height: mobileBottomSpacer }} />}
+
+      {showSyncLogs && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSyncLogs(false); }}
+        >
+          <div style={{
+            width: "90%", maxWidth: 720, maxHeight: "78vh",
+            background: "var(--bg-card)", border: "1px solid var(--border)",
+            borderRadius: 8, display: "flex", flexDirection: "column",
+            boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3)",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--border)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <ScrollText size={15} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{t("settings.syncLogs")}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => void loadSyncLogs()}
+                  disabled={loadingSyncLogs}
+                  style={{
+                    padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                    border: "1px solid var(--border)", background: "transparent",
+                    color: "var(--text-secondary)", cursor: loadingSyncLogs ? "default" : "pointer",
+                    opacity: loadingSyncLogs ? 0.65 : 1,
+                  }}
+                >
+                  {t("common.refresh")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void clearSyncLogs()}
+                  disabled={clearingSyncLogs || syncLogs.length === 0}
+                  style={{
+                    padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                    border: "1px solid var(--border)", background: "transparent",
+                    color: "var(--red)", cursor: clearingSyncLogs || syncLogs.length === 0 ? "default" : "pointer",
+                    opacity: clearingSyncLogs || syncLogs.length === 0 ? 0.55 : 1,
+                  }}
+                >
+                  {t("settings.clearSyncLogs")}
+                </button>
+                <button onClick={() => setShowSyncLogs(false)} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--text-secondary)", padding: 4, borderRadius: 4,
+                }}>
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px 18px" }}>
+              {loadingSyncLogs ? (
+                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
+                  {t("common.loading")}
+                </p>
+              ) : syncLogs.length === 0 ? (
+                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
+                  {t("settings.syncLogsEmpty")}
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {syncLogs.map((entry) => (
+                    <div
+                      key={entry.filename}
+                      style={{
+                        border: "1px solid var(--border)",
+                        borderRadius: 6,
+                        background: "var(--bg)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div style={{
+                        padding: "8px 10px",
+                        borderBottom: "1px solid var(--border)",
+                        fontSize: 11,
+                        color: "var(--text-secondary)",
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {entry.filename}
+                      </div>
+                      <pre style={{
+                        margin: 0,
+                        padding: "10px",
+                        maxHeight: 260,
+                        overflow: "auto",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        color: "var(--text)",
+                        fontSize: 11,
+                        lineHeight: 1.55,
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      }}>
+                        {entry.content}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Changelog Modal */}
       {showChangelog && (

@@ -2,7 +2,7 @@ mod commands;
 
 use commands::{
     clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes, search,
-    settings, stats, watcher,
+    settings, stats, sync_log, watcher,
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
@@ -211,6 +211,9 @@ pub fn run() {
             // Crash logs
             crash_log::get_crash_logs,
             crash_log::clear_crash_logs,
+            // Sync logs
+            sync_log::get_sync_logs,
+            sync_log::clear_sync_logs,
             get_runtime_platform,
             print_current_window,
             app_ready,

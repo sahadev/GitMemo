@@ -25,15 +25,47 @@ function waitForImages(container: HTMLElement) {
   const images = Array.from(container.querySelectorAll("img"));
   if (images.length === 0) return Promise.resolve();
 
+  const decode = (image: HTMLImageElement) => image.decode?.().catch(() => undefined) ?? Promise.resolve();
+
   return Promise.all(
     images.map((image) => {
-      if (image.complete) return Promise.resolve();
+      if (image.complete) return decode(image);
       return new Promise<void>((resolve) => {
-        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("load", () => {
+          void decode(image).finally(() => resolve());
+        }, { once: true });
         image.addEventListener("error", () => resolve(), { once: true });
       });
     }),
   );
+}
+
+function waitForLocalImages(container: HTMLElement, timeoutMs = 10000) {
+  const hasLoadingImages = () =>
+    container.querySelector('img[data-gitmemo-local-image-state="loading"]') !== null;
+
+  if (!hasLoadingImages()) return Promise.resolve();
+
+  return new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timeout);
+      observer.disconnect();
+      resolve();
+    };
+    const observer = new MutationObserver(() => {
+      if (!hasLoadingImages()) finish();
+    });
+    const timeout = window.setTimeout(finish, timeoutMs);
+    observer.observe(container, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-gitmemo-local-image-state", "src"],
+    });
+  });
 }
 
 async function printDocument() {
@@ -114,7 +146,10 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
       });
 
       await waitForNextPaint();
+      await waitForLocalImages(host);
+      await waitForNextPaint();
       await waitForImages(host);
+      await waitForNextPaint();
       const waitForPrint = waitForPrintCompletion();
       await printDocument();
       await waitForPrint;

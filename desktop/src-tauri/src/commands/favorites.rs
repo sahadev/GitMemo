@@ -1,3 +1,4 @@
+use super::sync_log;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::sanitize::git_error_for_user;
 use serde::{Deserialize, Serialize};
@@ -408,6 +409,8 @@ fn bg_commit_and_push(app: AppHandle, msg: String) {
                 ok: true,
                 message: if result.committed {
                     "Synced".into()
+                } else if result.pushed {
+                    "Pushed".into()
                 } else {
                     "No changes".into()
                 },
@@ -418,6 +421,9 @@ fn bg_commit_and_push(app: AppHandle, msg: String) {
             },
         };
         let _ = app.emit("git-sync-end", &sync_event);
+        if !sync_event.ok {
+            sync_log::write_sync_log("background sync", false, &sync_event.message, None);
+        }
         let _ = app.emit(
             "files-changed",
             serde_json::json!({ "folder": FAVORITES_DIR }),

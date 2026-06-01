@@ -234,7 +234,15 @@ textarea:focus, input:focus {
 }
 
 #gitmemo-print-root {
-  display: none;
+  height: 0;
+  left: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: min(760px, 100vw);
+  z-index: -1;
 }
 
 .gitmemo-print-document {
@@ -302,6 +310,13 @@ textarea:focus, input:focus {
 
   #gitmemo-print-root {
     display: block !important;
+    height: auto !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+    position: static !important;
+    width: auto !important;
+    z-index: auto !important;
   }
 
   .gitmemo-print-document {
@@ -338,6 +353,13 @@ textarea:focus, input:focus {
   .gitmemo-print-document a {
     color: #0057b8;
     text-decoration: underline;
+  }
+
+  .gitmemo-print-document img {
+    display: block;
+    height: auto;
+    max-height: 86vh;
+    object-fit: contain;
   }
 
   .gitmemo-print-document h1,

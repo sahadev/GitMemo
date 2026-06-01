@@ -1,3 +1,4 @@
+use super::sync_log;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
 use gitmemo_core::utils::sanitize::git_error_for_user;
@@ -476,9 +477,13 @@ pub fn set_branch(name: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn test_remote_sync() -> Result<String, String> {
-    tokio::task::spawn_blocking(test_remote_sync_blocking)
+    let result = tokio::task::spawn_blocking(test_remote_sync_blocking)
         .await
-        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| format!("Task join error: {e}"))?;
+    if let Err(err) = &result {
+        sync_log::write_sync_log("test remote sync", false, err, None);
+    }
+    result
 }
 
 fn test_remote_sync_blocking() -> Result<String, String> {
