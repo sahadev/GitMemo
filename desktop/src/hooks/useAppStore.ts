@@ -5,7 +5,7 @@ import { error as logPluginError, info as logPluginInfo, warn as logPluginWarn }
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import type { KeyboardShortcuts } from "../utils/shortcuts";
-import { notify } from "../utils/notify";
+import { initNotificationListeners, notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 import { getRuntimePlatform, getRuntimePlatformSync } from "./usePlatform";
 
@@ -297,6 +297,8 @@ export function initAppListeners() {
   if (_initialized) return;
   _initialized = true;
 
+  initNotificationListeners();
+
   // Load all state on startup
   void useAppStoreInternal.getState().init();
   void getRuntimePlatform().then((platform) => {
@@ -315,7 +317,9 @@ export function initAppListeners() {
   // System notification for saved clips. Keep this as a singleton listener so
   // App re-renders and page navigation cannot multiply macOS notifications.
   void listen<{ preview?: string }>("clipboard-saved", ({ payload }) => {
-    void notify("GitMemo Clipboard", payload?.preview || "Clip saved");
+    void notify("GitMemo Clipboard", payload?.preview || "Clip saved", {
+      target: { page: "clipboard" },
+    });
   });
 
   // Apply theme to DOM

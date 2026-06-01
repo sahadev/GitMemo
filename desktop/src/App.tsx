@@ -25,6 +25,11 @@ import { usePlatformFlags } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 import { useI18n } from "./hooks/useI18n";
 import { shortcutMatches, withDefaultShortcuts } from "./utils/shortcuts";
+import {
+  consumeNotificationNavigateTarget,
+  subscribeNotificationNavigate,
+  type NotificationNavigateTarget,
+} from "./utils/notificationNavigation";
 
 declare global {
   interface Window {
@@ -96,6 +101,7 @@ function App() {
   const mobileBackHandlersRef = useRef<Partial<Record<Page, MobileBackHandler>>>({});
   const mobileHistoryGuardActiveRef = useRef(false);
   const performMobileBackRef = useRef<() => boolean>(() => false);
+  const routeNotificationTargetRef = useRef<(target: NotificationNavigateTarget) => void>(() => {});
   const mobileTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useEffect(() => {
@@ -241,6 +247,31 @@ function App() {
   const navigateAndFocus = useCallback((page: Page) => {
     setCurrentPage(page);
     setFocusTrigger((n) => n + 1);
+  }, []);
+
+  const routeNotificationTarget = useCallback((target: NotificationNavigateTarget) => {
+    if (target.aiRecordsTab) setAiRecordsTab(target.aiRecordsTab);
+    if (target.openPath) {
+      setPendingOpenPath(target.openPath);
+      setOpenFilePath(target.openPath);
+    }
+    setEditorOpenTarget(null);
+    setExternalFileOpenTarget(null);
+    if (target.focus) navigateAndFocus(target.page);
+    else navigatePage(target.page);
+  }, [navigateAndFocus, navigatePage, setAiRecordsTab, setPendingOpenPath]);
+
+  useEffect(() => {
+    routeNotificationTargetRef.current = routeNotificationTarget;
+  }, [routeNotificationTarget]);
+
+  useEffect(() => {
+    const handleTarget = (target: NotificationNavigateTarget) => {
+      routeNotificationTargetRef.current(target);
+    };
+    const pendingTarget = consumeNotificationNavigateTarget();
+    if (pendingTarget) handleTarget(pendingTarget);
+    return subscribeNotificationNavigate(handleTarget);
   }, []);
 
   const routeExternalFile = useCallback(async (filePath: string) => {

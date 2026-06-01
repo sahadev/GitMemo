@@ -118,7 +118,9 @@ export function initSyncListeners() {
     const { setFailed, setSuccess, reset, refreshGitStatus } = useSyncStore.getState();
     if (payload?.ok === false) {
       setFailed(payload.message || "Sync failed");
-      void notify("GitMemo Sync Failed", payload.message);
+      void notify("GitMemo Sync Failed", payload.message, {
+        target: { page: "settings" },
+      });
     } else {
       setSuccess(payload?.message || "Synced");
     }
