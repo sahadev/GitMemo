@@ -1,4 +1,4 @@
-import { MessageSquare, Clipboard, Search, Plug, Zap, FileText } from 'lucide-react'
+import { Bot, Clipboard, FileDown, Files, FileText, GitBranch, MonitorSmartphone, Search, Star } from 'lucide-react'
 import FeatureCard from '../components/FeatureCard'
 import FadeIn from '../components/FadeIn'
 import { useI18n } from '../i18n/useI18n'
@@ -7,12 +7,15 @@ export default function Features() {
   const { t } = useI18n()
 
   const features = [
-    { icon: <MessageSquare size={20} />, titleKey: 'feat.conversations.title', descKey: 'feat.conversations.desc' },
-    { icon: <FileText size={20} />, titleKey: 'feat.notes.title', descKey: 'feat.notes.desc' },
-    { icon: <Clipboard size={20} />, titleKey: 'feat.clipboard.title', descKey: 'feat.clipboard.desc' },
-    { icon: <Search size={20} />, titleKey: 'feat.search.title', descKey: 'feat.search.desc' },
-    { icon: <Plug size={20} />, titleKey: 'feat.mcp.title', descKey: 'feat.mcp.desc' },
-    { icon: <Zap size={20} />, titleKey: 'feat.zero.title', descKey: 'feat.zero.desc' },
+    { icon: <Clipboard size={20} />, titleKey: 'cap.clipboard.title', descKey: 'cap.clipboard.desc' },
+    { icon: <FileText size={20} />, titleKey: 'cap.markdown.title', descKey: 'cap.markdown.desc' },
+    { icon: <Star size={20} />, titleKey: 'cap.favorite.title', descKey: 'cap.favorite.desc' },
+    { icon: <Search size={20} />, titleKey: 'cap.search.title', descKey: 'cap.search.desc' },
+    { icon: <MonitorSmartphone size={20} />, titleKey: 'cap.sync.title', descKey: 'cap.sync.desc' },
+    { icon: <Files size={20} />, titleKey: 'cap.files.title', descKey: 'cap.files.desc' },
+    { icon: <FileDown size={20} />, titleKey: 'cap.pdf.title', descKey: 'cap.pdf.desc' },
+    { icon: <Bot size={20} />, titleKey: 'cap.ai.title', descKey: 'cap.ai.desc' },
+    { icon: <GitBranch size={20} />, titleKey: 'cap.git.title', descKey: 'cap.git.desc' },
   ]
 
   return (

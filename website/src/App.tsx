@@ -1,11 +1,10 @@
 import './index.css'
 import TopNav from './sections/TopNav'
 import Hero from './sections/Hero'
+import ScenarioShowcase from './sections/ScenarioShowcase'
 import CoreArchitecture from './sections/CoreArchitecture'
 import Downloads from './sections/Downloads'
-import PainPoints from './sections/PainPoints'
 import Features from './sections/Features'
-import WhatGetsCaptured from './sections/WhatGetsCaptured'
 import HowItWorks from './sections/HowItWorks'
 import Comparison from './sections/Comparison'
 import DesktopApp from './sections/DesktopApp'
@@ -18,11 +17,10 @@ function App() {
     <div className="min-h-screen">
       <TopNav />
       <Hero />
+      <ScenarioShowcase />
+      <Features />
       <CoreArchitecture />
       <Downloads />
-      <PainPoints />
-      <Features />
-      <WhatGetsCaptured />
       <HowItWorks />
       <Comparison />
       <DesktopApp />

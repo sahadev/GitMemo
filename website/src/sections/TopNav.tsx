@@ -7,6 +7,7 @@ export default function TopNav() {
   const { theme, toggleTheme } = useTheme()
 
   const links = [
+    { href: '#scenarios', label: t('nav.scenarios') },
     { href: '#downloads-section', label: t('nav.downloads') },
     { href: '#features', label: t('nav.features') },
     { href: '#comparison', label: t('nav.comparison') },
