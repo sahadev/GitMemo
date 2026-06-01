@@ -37,6 +37,10 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
 
+function notesTabForPath(path: string): NotesTab {
+  return path.startsWith("notes/manual/") ? "manual" : "scratch";
+}
+
 export default function NotesPage({
   active = true,
   focusTrigger,
@@ -192,11 +196,14 @@ export default function NotesPage({
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("notes/")) return;
-    if (pendingOpenPath.startsWith("notes/manual/")) setNotesTab("manual");
-    else setNotesTab("scratch");
+    const targetTab = notesTabForPath(pendingOpenPath);
+    if (activeTab !== targetTab) {
+      setNotesTab(targetTab);
+      return;
+    }
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
-  }, [pendingOpenPath, setNotesTab, openFile, consumePendingOpenPath]);
+  }, [activeTab, pendingOpenPath, setNotesTab, openFile, consumePendingOpenPath]);
 
   // Keyboard nav for file list
   const navPrev = useCallback(() => {

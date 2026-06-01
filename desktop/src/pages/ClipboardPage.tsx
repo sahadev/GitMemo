@@ -23,6 +23,7 @@ import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { MOBILE_BOTTOM_CONTENT_PADDING, MOBILE_BOTTOM_SELECTION_PADDING, MOBILE_FIXED_BAR_BOTTOM } from "../utils/mobileLayout";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
+import type { Page } from "../App";
 
 interface ClipboardEvent {
   saved: boolean;
@@ -107,17 +108,26 @@ export default function ClipboardPage({
   active = true,
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
+  onNavigate,
   registerMobileBackHandler,
 }: {
   active?: boolean;
   onFocusSidebar?: () => void;
   enterTrigger?: number;
+  onNavigate?: (page: Page) => void;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const isMobile = usePlatform() === "mobile";
-  const { clipboardStatus: status, refreshClipboardStatus, pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const {
+    clipboardStatus: status,
+    refreshClipboardStatus,
+    pendingOpenPath,
+    consumePendingOpenPath,
+    setNotesTab,
+    setPendingOpenPath,
+  } = useAppStore();
   const [savedClips, setSavedClips] = useState<FileEntry[]>([]);
   const [clipsLoading, setClipsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -502,12 +512,15 @@ export default function ClipboardPage({
       showToast(result.message);
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
+      setNotesTab("scratch");
+      setPendingOpenPath(result.path);
+      onNavigate?.("notes");
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setCreatingNote(false);
     }
-  }, [creatingNote, deletingSelected, selectedClipPaths, showToast, t]);
+  }, [creatingNote, deletingSelected, onNavigate, selectedClipPaths, setNotesTab, setPendingOpenPath, showToast, t]);
 
   const confirmDeleteSelectedClips = useCallback(async () => {
     if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
