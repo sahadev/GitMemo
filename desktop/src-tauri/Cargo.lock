@@ -1852,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "gitmemo"
-version = "1.0.97"
+version = "1.0.101"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1877,7 +1877,7 @@ dependencies = [
 
 [[package]]
 name = "gitmemo-desktop"
-version = "1.0.97"
+version = "1.0.101"
 dependencies = [
  "anyhow",
  "arboard",

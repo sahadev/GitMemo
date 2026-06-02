@@ -6,6 +6,8 @@ use commands::{
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
+#[cfg(target_os = "macos")]
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -20,6 +22,103 @@ use tauri_plugin_autostart::MacosLauncher;
 
 #[derive(Default)]
 struct PendingExternalOpen(Mutex<Vec<String>>);
+
+#[cfg(desktop)]
+fn versioned_entry_url(entry: &str, version: &str) -> std::path::PathBuf {
+    format!("{entry}?v={version}").into()
+}
+
+#[cfg(desktop)]
+fn version_desktop_window_entry_urls(config: &mut tauri::Config) {
+    let version = env!("CARGO_PKG_VERSION");
+
+    for window in &mut config.app.windows {
+        let entry = match window.label.as_str() {
+            "main" => Some("index.html"),
+            "quick-paste" => Some("/quick-paste.html"),
+            _ => None,
+        };
+
+        if let Some(entry) = entry {
+            window.url = tauri::WebviewUrl::App(versioned_entry_url(entry, version));
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+const WEBVIEW_CACHE_IDENTIFIERS: [&str; 2] = ["dev.gitmemo.desktop", "gitmemo-desktop"];
+
+#[cfg(target_os = "macos")]
+fn remove_path_if_exists(path: &Path) -> bool {
+    if !path.exists() {
+        return true;
+    }
+    let result = if path.is_dir() {
+        std::fs::remove_dir_all(path)
+    } else {
+        std::fs::remove_file(path)
+    };
+    if let Err(e) = result {
+        eprintln!(
+            "Failed to remove WebView cache path {}: {e}",
+            path.display()
+        );
+        false
+    } else {
+        true
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn clear_webview_cache(home: &Path) -> bool {
+    let mut ok = true;
+    for identifier in WEBVIEW_CACHE_IDENTIFIERS {
+        ok &= remove_path_if_exists(&home.join("Library").join("Caches").join(identifier));
+        ok &= remove_path_if_exists(
+            &home
+                .join("Library")
+                .join("HTTPStorages")
+                .join(format!("{identifier}.binarycookies")),
+        );
+    }
+    ok
+}
+
+#[cfg(target_os = "macos")]
+fn clear_webview_cache_after_update() {
+    let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else {
+        return;
+    };
+    let state_dir = home
+        .join("Library")
+        .join("Application Support")
+        .join("dev.gitmemo.desktop");
+    let version_file = state_dir.join("last_webview_cache_version");
+    let current_version = env!("CARGO_PKG_VERSION");
+    let previous_version = std::fs::read_to_string(&version_file)
+        .ok()
+        .map(|s| s.trim().to_string());
+
+    if previous_version.as_deref() != Some(current_version) {
+        if !clear_webview_cache(&home) {
+            return;
+        }
+    }
+
+    if let Err(e) = std::fs::create_dir_all(&state_dir) {
+        eprintln!(
+            "Failed to create GitMemo app state dir {}: {e}",
+            state_dir.display()
+        );
+        return;
+    }
+    if let Err(e) = std::fs::write(&version_file, current_version) {
+        eprintln!(
+            "Failed to write GitMemo WebKit cache version {}: {e}",
+            version_file.display()
+        );
+    }
+}
 
 #[cfg(desktop)]
 fn show_main_window(window: &WebviewWindow) {
@@ -88,6 +187,9 @@ pub fn run() {
     // Install panic hook FIRST — catches any panic from here on
     crash_log::install_panic_hook();
 
+    #[cfg(target_os = "macos")]
+    clear_webview_cache_after_update();
+
     let builder = tauri::Builder::default()
         .manage(PendingExternalOpen::default())
         .plugin(
@@ -114,6 +216,10 @@ pub fn run() {
             Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+
+    let mut context = tauri::generate_context!();
+    #[cfg(desktop)]
+    version_desktop_window_entry_urls(context.config_mut());
 
     let app = builder
         .invoke_handler(tauri::generate_handler![
@@ -254,7 +360,7 @@ pub fn run() {
 
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .unwrap_or_else(|e| {
             let msg = format!("Tauri application failed to build: {e}");
             log::error!("{}", msg);
@@ -421,4 +527,35 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     });
 
     Ok(())
+}
+
+#[cfg(all(test, desktop))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn desktop_entry_urls_include_the_app_version() {
+        let mut config = tauri::Config::default();
+        config.app.windows = vec![
+            tauri::utils::config::WindowConfig {
+                label: "main".into(),
+                ..Default::default()
+            },
+            tauri::utils::config::WindowConfig {
+                label: "quick-paste".into(),
+                ..Default::default()
+            },
+        ];
+
+        version_desktop_window_entry_urls(&mut config);
+
+        assert_eq!(
+            config.app.windows[0].url.to_string(),
+            format!("index.html?v={}", env!("CARGO_PKG_VERSION"))
+        );
+        assert_eq!(
+            config.app.windows[1].url.to_string(),
+            format!("/quick-paste.html?v={}", env!("CARGO_PKG_VERSION"))
+        );
+    }
 }
