@@ -123,6 +123,15 @@ pub struct AppMeta {
     pub recommended_cli_version: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct CliStatus {
+    pub installed: bool,
+    pub path: String,
+    pub version: String,
+    pub recommended_version: String,
+    pub version_matches: bool,
+}
+
 #[cfg(desktop)]
 fn settings_path() -> std::path::PathBuf {
     files::sync_dir().join(".metadata").join(SETTINGS_FILE)
@@ -259,6 +268,103 @@ pub fn get_app_meta() -> Result<AppMeta, String> {
         requires_cli: false,
         recommended_cli_version: env!("CARGO_PKG_VERSION").to_string(),
     })
+}
+
+#[cfg(not(target_os = "android"))]
+fn common_cli_candidates() -> Vec<std::path::PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(path_var) = std::env::var_os("PATH") {
+        candidates.extend(std::env::split_paths(&path_var).map(|path| path.join("gitmemo")));
+    }
+
+    if let Ok(home) = std::env::var("HOME") {
+        let home = std::path::PathBuf::from(home);
+        candidates.push(home.join(".local").join("bin").join("gitmemo"));
+        candidates.push(home.join("bin").join("gitmemo"));
+    }
+
+    candidates.push(std::path::PathBuf::from("/opt/homebrew/bin/gitmemo"));
+    candidates.push(std::path::PathBuf::from("/usr/local/bin/gitmemo"));
+    candidates.push(std::path::PathBuf::from("/usr/bin/gitmemo"));
+    candidates
+}
+
+#[cfg(not(target_os = "android"))]
+fn find_gitmemo_cli() -> Option<String> {
+    for candidate in common_cli_candidates() {
+        if candidate.is_file() {
+            return Some(candidate.to_string_lossy().to_string());
+        }
+    }
+
+    let output = std::process::Command::new("which")
+        .arg("gitmemo")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!path.is_empty()).then_some(path)
+}
+
+#[cfg(not(target_os = "android"))]
+fn cli_version(path: &str) -> String {
+    let Ok(output) = std::process::Command::new(path).arg("--version").output() else {
+        return String::new();
+    };
+    if !output.status.success() {
+        return String::new();
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stdout
+        .split_whitespace()
+        .last()
+        .unwrap_or("")
+        .trim_start_matches('v')
+        .to_string()
+}
+
+#[tauri::command]
+pub fn get_cli_status() -> Result<CliStatus, String> {
+    let recommended_version = env!("CARGO_PKG_VERSION").to_string();
+
+    #[cfg(target_os = "android")]
+    {
+        Ok(CliStatus {
+            installed: false,
+            path: String::new(),
+            version: String::new(),
+            recommended_version,
+            version_matches: false,
+        })
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let Some(path) = find_gitmemo_cli() else {
+            return Ok(CliStatus {
+                installed: false,
+                path: String::new(),
+                version: String::new(),
+                recommended_version,
+                version_matches: false,
+            });
+        };
+        let version = cli_version(&path);
+        let version_matches = !version.is_empty() && version == recommended_version;
+
+        Ok(CliStatus {
+            installed: true,
+            path,
+            version,
+            recommended_version,
+            version_matches,
+        })
+    }
 }
 
 #[cfg(desktop)]

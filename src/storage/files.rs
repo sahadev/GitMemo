@@ -6,6 +6,101 @@ fn local_timestamp(now: &chrono::DateTime<Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
 }
 
+fn looks_like_yaml_frontmatter(content: &str) -> bool {
+    let meaningful_lines: Vec<&str> = content
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect();
+
+    meaningful_lines.is_empty()
+        || meaningful_lines.iter().any(|line| {
+            let Some((key, _)) = line.split_once(':') else {
+                return false;
+            };
+            !key.is_empty()
+                && key
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        })
+}
+
+fn strip_leading_yaml_frontmatter(content: &str) -> Option<&str> {
+    if !content.starts_with("---") {
+        return None;
+    }
+
+    let rest = &content[3..];
+    let rest = rest.strip_prefix('\r').unwrap_or(rest);
+    let rest = rest.strip_prefix('\n')?;
+    let end = rest.find("\n---")?;
+    let frontmatter = &rest[..end];
+    if !looks_like_yaml_frontmatter(frontmatter) {
+        return None;
+    }
+
+    let body = &rest[end + 4..];
+    Some(
+        body.strip_prefix("\r\n")
+            .or_else(|| body.strip_prefix('\n'))
+            .unwrap_or(body),
+    )
+}
+
+fn normalize_heading_text(text: &str) -> String {
+    text.trim()
+        .trim_end_matches('#')
+        .trim_end()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
+fn strip_duplicate_leading_h1<'a>(title: &str, content: &'a str) -> Option<&'a str> {
+    let line_end = content.find('\n').unwrap_or(content.len());
+    let first_line = content[..line_end].trim_end_matches('\r');
+    let heading = first_line.strip_prefix('#')?;
+
+    if heading.starts_with('#') {
+        return None;
+    }
+
+    if normalize_heading_text(heading) != normalize_heading_text(title) {
+        return None;
+    }
+
+    Some(if line_end < content.len() {
+        &content[line_end + 1..]
+    } else {
+        ""
+    })
+}
+
+fn normalize_manual_content(title: &str, content: &str) -> String {
+    let mut body = content
+        .strip_prefix('\u{feff}')
+        .unwrap_or(content)
+        .trim_start();
+    let mut changed = false;
+
+    if let Some(stripped) = strip_leading_yaml_frontmatter(body) {
+        body = stripped.trim_start();
+        changed = true;
+    }
+
+    if let Some(stripped) = strip_duplicate_leading_h1(title, body) {
+        body = stripped.trim_start();
+        changed = true;
+    }
+
+    if changed {
+        body.to_string()
+    } else {
+        content.to_string()
+    }
+}
+
 /// Get the sync directory path
 pub fn sync_dir() -> PathBuf {
     dirs::home_dir()
@@ -217,6 +312,7 @@ pub fn write_manual(base: &Path, title: &str, content: &str, append: bool) -> Re
         std::fs::write(&full_path, updated)?;
     } else {
         let now = Local::now();
+        let content = normalize_manual_content(title, content);
         let md = format!(
             "---\ntitle: {}\ncreated: {}\nupdated: {}\n---\n\n# {}\n\n{}\n",
             title,
@@ -348,6 +444,40 @@ mod tests {
         let content = std::fs::read_to_string(tmp.path().join(&rel)).unwrap();
         assert!(content.contains("title: My Guide"));
         assert!(content.contains("# My Guide"));
+        assert!(content.contains("Guide content here"));
+    }
+
+    #[test]
+    fn test_write_manual_dedupes_duplicate_body_title() {
+        let tmp = tempfile::tempdir().unwrap();
+        let rel = write_manual(
+            tmp.path(),
+            "My Guide",
+            "# My Guide\n\nGuide content here",
+            false,
+        )
+        .unwrap();
+
+        let content = std::fs::read_to_string(tmp.path().join(&rel)).unwrap();
+        assert_eq!(content.matches("# My Guide").count(), 1);
+        assert!(content.contains("Guide content here"));
+    }
+
+    #[test]
+    fn test_write_manual_strips_body_frontmatter_before_deduping_title() {
+        let tmp = tempfile::tempdir().unwrap();
+        let rel = write_manual(
+            tmp.path(),
+            "My Guide",
+            "---\ntitle: My Guide\ndate: 2026-06-02T12:00:00+08:00\n---\n\n# My Guide\n\nGuide content here",
+            false,
+        )
+        .unwrap();
+
+        let content = std::fs::read_to_string(tmp.path().join(&rel)).unwrap();
+        assert_eq!(content.matches("title: My Guide").count(), 1);
+        assert_eq!(content.matches("# My Guide").count(), 1);
+        assert!(!content.contains("date: 2026-06-02T12:00:00+08:00"));
         assert!(content.contains("Guide content here"));
     }
 

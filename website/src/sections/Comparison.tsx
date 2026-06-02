@@ -43,12 +43,20 @@ export default function Comparison() {
         <p className="text-text-secondary text-center max-w-xl mx-auto mb-12">{t('cmp.subtitle')}</p>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[680px] table-fixed overflow-hidden rounded-lg text-sm">
+            <colgroup>
+              <col className="w-[32%]" />
+              <col className="w-[34%]" />
+              <col className="w-[34%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-4 px-4 text-text-secondary font-medium">{t('cmp.feature')}</th>
                 {products.map((p) => (
-                  <th key={p.nameKey} className={`py-4 px-4 font-semibold text-center ${p.highlight ? 'text-accent' : 'text-text'}`}>
+                  <th
+                    key={p.nameKey}
+                    className={`border-l border-border/40 py-4 px-4 font-semibold text-center ${p.highlight ? 'bg-[rgba(0,122,255,0.04)] text-accent' : 'bg-surface-2/35 text-text'}`}
+                  >
                     {t(p.nameKey)}
                   </th>
                 ))}
@@ -59,7 +67,10 @@ export default function Comparison() {
                 <tr key={feat} className="border-b border-border/50">
                   <td className="py-3 px-4 text-text-secondary">{t(feat)}</td>
                   {products.map((p) => (
-                    <td key={p.nameKey} className={`py-3 px-4 text-center ${p.highlight ? 'bg-[rgba(0,122,255,0.04)]' : ''}`}>
+                    <td
+                      key={p.nameKey}
+                      className={`border-l border-border/40 py-3 px-4 text-center ${p.highlight ? 'bg-[rgba(0,122,255,0.04)]' : 'bg-surface-2/35'}`}
+                    >
                       <Cell value={p.values[i]} />
                     </td>
                   ))}

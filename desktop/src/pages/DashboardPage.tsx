@@ -13,9 +13,10 @@ import { MOBILE_DASHBOARD_BOTTOM_PADDING } from "../utils/mobileLayout";
 import {
   MessageSquare, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
-  Activity, Circle, Search,
+  Activity, Circle, Search, ExternalLink, Settings as SettingsIcon,
 } from "lucide-react";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
+import { CLI_INSTALL_URL } from "../utils/cliInstall";
 
 interface AppStats {
   conversations: number;
@@ -75,7 +76,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const { t } = useI18n();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
-  const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
+  const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, cliStatus, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const navigateTo = useCallback((page: Page, notesTab?: NotesTab, aiRecordsTab?: AiRecordsTab) => {
     if (page === "notes" && notesTab) setNotesTab(notesTab);
@@ -102,6 +103,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   // Derived state
   const editorConfigured = isDesktop && (claudeEnabled || cursorEnabled);
+  const cliNeedsAttention = !cliStatus?.installed || (cliStatus.installed && !cliStatus.version_matches);
+  const showCliCapabilityCard = isDesktop && (!editorConfigured || cliNeedsAttention);
+  const cliStatusText = !cliStatus
+    ? t("dashboard.cliCardChecking")
+    : cliStatus.installed
+      ? cliStatus.version_matches
+        ? t("dashboard.cliCardInstalled", cliStatus.version || cliStatus.recommended_version)
+        : t("dashboard.cliCardUpgrade", cliStatus.version || "?", cliStatus.recommended_version)
+      : t("dashboard.cliCardNotInstalled");
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
   const lastCommitBrowseUrl = useMemo(
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
@@ -366,6 +376,110 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           clipboardActive={clipStatus?.watching ?? false}
           editorConfigured={editorConfigured}
         />
+      )}
+
+      {showCliCapabilityCard && (
+        <div style={{
+          ...cardStyle,
+          display: "flex",
+          alignItems: isMobile ? "stretch" : "center",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 16,
+          borderColor: "rgba(0, 122, 255, 0.28)",
+          background: "rgba(0, 122, 255, 0.06)",
+          flexDirection: isMobile ? "column" : "row",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: 6,
+              background: "rgba(0, 122, 255, 0.12)",
+              color: "var(--accent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <Terminal size={17} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <p style={{ fontSize: 14, fontWeight: 700 }}>{t("dashboard.cliCardTitle")}</p>
+                <span style={{
+                  fontSize: 10,
+                  color: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--yellow)",
+                  background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "rgba(245, 158, 11, 0.12)",
+                  border: `1px solid ${cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "rgba(245, 158, 11, 0.28)"}`,
+                  borderRadius: 999,
+                  padding: "2px 7px",
+                  fontWeight: 600,
+                }}>
+                  {cliStatusText}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 5, maxWidth: 620 }}>
+                {t("dashboard.cliCardDesc")}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 9 }}>
+                {[t("dashboard.cliCardFeatureInit"), t("dashboard.cliCardFeatureCapture"), t("dashboard.cliCardFeatureMcp")].map((label) => (
+                  <span key={label} style={{
+                    fontSize: 10,
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 999,
+                    padding: "3px 8px",
+                    background: "var(--bg)",
+                  }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => void openUrl(CLI_INSTALL_URL)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--accent)",
+                background: "var(--accent)",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              <ExternalLink size={13} />
+              {cliStatus?.installed ? t("dashboard.cliCardUpdate") : t("dashboard.cliCardInstall")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate?.("settings")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "var(--bg)",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+              }}
+              title={t("nav.settings")}
+            >
+              <SettingsIcon size={14} />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Stat Cards */}

@@ -114,6 +114,7 @@ messages: {{消息轮次数}}
 **文件要求**：
 
 - 路径：`{sync_dir}/notes/manual/{{标题}}.md`（`title` 简洁、文件名友好，可用英文 kebab-case 或简短中文主题）
+- 使用 GitMemo MCP/CLI 的 manual 工具时，`title` 参数会自动生成元数据和一级标题；`content` 只写正文，不要包含 YAML frontmatter，也不要以同名 `# 标题` 开头
 - 正文应**尽量完整**收录本轮交付的规划/方案要点（不要只在 `conversations/` 里写「详见聊天」而省略 `manual` 正文）
 - 不要把这类长文只留在聊天窗口里；若内容已经足够独立阅读，应转存为 `.md`
 - 仍按上文执行：`conversations/` 的会话同步、`date` ISO 带偏移、保存后静默（不必向用户强调「已保存」）；若启用 GitMemo MCP 则对 `{sync_dir}/` 下变更调用 `cds_sync`
@@ -205,6 +206,7 @@ When this turn's answer includes **substantial, self-contained** content, **in t
 **File requirements**:
 
 - Path: `{sync_dir}/notes/manual/{{title}}.md` (`title` short and filesystem-friendly; English kebab-case or a brief Chinese topic is fine)
+- When using the GitMemo MCP/CLI manual tool, the `title` argument automatically creates metadata and the H1 title; pass only body text in `content`, without YAML frontmatter or a duplicate top-level `# title`
 - The body should **fully** capture the planning / spec delivered this turn (do not only add "see chat" in `conversations/` and skip the full `manual` text)
 - Do not leave this kind of long-form content only in chat; if it stands on its own, turn it into `.md`
 - Still follow the rules above: conversation sync to `conversations/`, ISO `date` with timezone offset, save silently (no need to announce "saved"); if GitMemo MCP is enabled, call `cds_sync` after writes under `{sync_dir}/`
@@ -266,6 +268,7 @@ mod tests {
         assert!(s.contains("Proactive save"));
         assert!(s.contains("无需用户说"));
         assert!(s.contains("notes/manual"));
+        assert!(s.contains("`content` 只写正文"));
     }
 
     #[test]
@@ -274,5 +277,6 @@ mod tests {
         assert!(s.contains("Proactive save (without the user saying"));
         assert!(s.contains("PRD-level"));
         assert!(s.contains("/tmp/.gitmemo/notes/manual"));
+        assert!(s.contains("without YAML frontmatter"));
     }
 }

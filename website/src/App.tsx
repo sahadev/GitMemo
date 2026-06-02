@@ -6,6 +6,7 @@ import ScenarioShowcase from './sections/ScenarioShowcase'
 import CoreArchitecture from './sections/CoreArchitecture'
 import Downloads from './sections/Downloads'
 import Features from './sections/Features'
+import CapabilityMatrix from './sections/CapabilityMatrix'
 import HowItWorks from './sections/HowItWorks'
 import Comparison from './sections/Comparison'
 import DesktopApp from './sections/DesktopApp'
@@ -18,15 +19,16 @@ function App() {
     <div className="min-h-screen">
       <TopNav />
       <Hero />
-      <WhyAiEra />
       <ScenarioShowcase />
-      <Features />
       <CoreArchitecture />
-      <Downloads />
+      <Features />
+      <CapabilityMatrix />
+      <WhyAiEra />
       <HowItWorks />
-      <Comparison />
       <DesktopApp />
       <MobileApp />
+      <Comparison />
+      <Downloads />
       <QuickStart />
       <Footer />
     </div>

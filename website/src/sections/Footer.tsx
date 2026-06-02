@@ -20,20 +20,20 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-border/50">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="GitMemo" className="w-6 h-6 rounded" />
-            <span className="text-sm text-text-secondary">GitMemo &middot; {t('footer.mit')}</span>
+        <div className="grid items-center gap-6 border-t border-border/50 pt-8 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="flex min-w-0 items-center justify-center gap-3 lg:justify-start">
+            <img src="/logo.png" alt="GitMemo" className="h-6 w-6 shrink-0 rounded" />
+            <span className="whitespace-nowrap text-sm text-text-secondary">GitMemo &middot; {t('footer.mit')}</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-text-secondary">
-            <a href="https://github.com/sahadev/GitMemo" className="hover:text-text transition-colors">GitHub</a>
-            <a href="https://github.com/sahadev/GitMemo/releases" className="hover:text-text transition-colors">Releases</a>
-            <a href="/readme/" className="hover:text-text transition-colors">README</a>
-            <a href="/llms.txt" className="hover:text-text transition-colors">{t('footer.llms')}</a>
-            <a href="https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+" className="hover:text-text transition-colors">Feedback</a>
-            <a href="mailto:sahadev@foxmail.com" className="hover:text-text transition-colors">{t('footer.contact')}</a>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-sm text-text-secondary">
+            <a href="https://github.com/sahadev/GitMemo" className="whitespace-nowrap transition-colors hover:text-text">GitHub</a>
+            <a href="https://github.com/sahadev/GitMemo/releases" className="whitespace-nowrap transition-colors hover:text-text">Releases</a>
+            <a href="/readme/" className="whitespace-nowrap transition-colors hover:text-text">README</a>
+            <a href="/llms.txt" className="whitespace-nowrap transition-colors hover:text-text">{t('footer.llms')}</a>
+            <a href="https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+" className="whitespace-nowrap transition-colors hover:text-text">Feedback</a>
+            <a href="mailto:sahadev@foxmail.com" className="whitespace-nowrap transition-colors hover:text-text">{t('footer.contact')}</a>
           </div>
-          <p className="text-xs text-text-secondary">Built with Rust &middot; Tauri &middot; React</p>
+          <p className="whitespace-nowrap text-center text-xs text-text-secondary lg:text-right">Built with Rust &middot; Tauri &middot; React</p>
         </div>
       </div>
     </footer>

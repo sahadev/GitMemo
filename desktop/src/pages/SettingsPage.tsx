@@ -21,6 +21,7 @@ import {
   type KeyboardShortcuts,
   type ShortcutId,
 } from "../utils/shortcuts";
+import { CLI_INSTALL_COMMAND, CLI_INSTALL_URL } from "../utils/cliInstall";
 
 const IMPORT_SIZE_LIMIT_MIN_KB = 500;
 const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
@@ -160,6 +161,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const {
     settings, refreshSettings,
     claudeEnabled, cursorEnabled, refreshIntegrationStatus,
+    cliStatus, refreshCliStatus,
     theme, toggleTheme,
     appMeta,
     updateStatus, updateVersion, updateProgress, updateError,
@@ -170,7 +172,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [editingBranch, setEditingBranch] = useState(false);
   const syncDir = gitStatus?.sync_dir ?? "";
   const gitRemote = gitStatus?.git_remote ?? "";
-  const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | null>(null);
+  const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | "cliCommand" | null>(null);
   const [editingRemote, setEditingRemote] = useState(false);
   const [remoteInput, setRemoteInput] = useState("");
   const [remoteTokenInput, setRemoteTokenInput] = useState("");
@@ -481,7 +483,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     }
   };
 
-  const copyValue = async (value: string, field: "syncDir" | "gitRemote") => {
+  const copyValue = async (value: string, field: "syncDir" | "gitRemote" | "cliCommand") => {
     if (!value) return;
     try {
       await writeText(value);
@@ -498,6 +500,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       refreshGitStatus(),
       refreshSettings(),
       isDesktop ? refreshIntegrationStatus() : Promise.resolve(),
+      isDesktop ? refreshCliStatus() : Promise.resolve(),
     ]);
   };
 
@@ -602,6 +605,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   });
   const mobileBottomSpacer = `calc(${MOBILE_BOTTOM_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom, 0px))`;
   const importFileSizeLimitKb = settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB;
+  const cliStatusLabel = !cliStatus
+    ? t("settings.cliChecking")
+    : cliStatus.installed
+      ? cliStatus.version_matches
+        ? t("settings.cliInstalled", cliStatus.version || cliStatus.recommended_version)
+        : t("settings.cliVersionMismatch", cliStatus.version || "?", cliStatus.recommended_version)
+      : t("settings.cliMissing");
+  const cliStatusColor = !cliStatus
+    ? "var(--text-secondary)"
+    : cliStatus.installed && cliStatus.version_matches
+      ? "var(--green)"
+      : "var(--yellow)";
 
   const languages: { id: Locale; label: string }[] = [
     { id: "en", label: "English" },
@@ -851,6 +866,79 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           {isDesktop && (
             <>
+              <div style={{ borderTop: "1px solid var(--border)" }} />
+
+              {/* CLI capability */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={rowStyle}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    <Terminal size={15} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cliCapability")}</p>
+                      <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.5 }}>
+                        {t("settings.cliCapabilityDesc")}
+                      </p>
+                      <p style={{ fontSize: 11, color: cliStatusColor, marginTop: 4, fontWeight: 600 }}>
+                        {cliStatusLabel}
+                      </p>
+                      {cliStatus?.path && (
+                        <p style={{
+                          fontSize: 10,
+                          color: "var(--text-secondary)",
+                          marginTop: 3,
+                          fontFamily: "ui-monospace, monospace",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: isMobile ? "100%" : 420,
+                        }}>
+                          {cliStatus.path}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => void copyValue(CLI_INSTALL_COMMAND, "cliCommand")}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                        background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                      }}
+                    >
+                      {copiedField === "cliCommand" ? <Check size={11} /> : <Copy size={11} />}
+                      {t("settings.copyInstallCommand")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void openUrl(CLI_INSTALL_URL)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                        background: "var(--accent)", border: "1px solid var(--accent)", color: "#fff", fontWeight: 600,
+                      }}
+                    >
+                      <ExternalLink size={11} />
+                      {t("settings.installCli")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void refreshCliStatus()}
+                      title={t("settings.detectCli")}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 28, height: 28, borderRadius: 5,
+                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div style={{ borderTop: "1px solid var(--border)" }} />
 
               {/* Claude integration */}

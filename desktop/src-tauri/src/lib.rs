@@ -265,6 +265,7 @@ pub fn run() {
             notes::sync_to_git,
             // Settings
             settings::get_app_meta,
+            settings::get_cli_status,
             settings::get_settings,
             settings::set_autostart,
             settings::set_clipboard_autostart,

@@ -25,6 +25,8 @@ fn generate_instruction_zh(sync_dir: &str) -> String {
 
 这条规则的核心是：**大段内容要落盘，简单问答不要落盘。**
 
+若通过 GitMemo CLI/MCP 的 manual 工具保存，`title` 单独传入，`content` 只写正文；不要在 `content` 中包含 YAML frontmatter，也不要以同名 `# {{文档标题}}` 开头，GitMemo 会自动生成这些外层结构。
+
 触发：
 - 调研 / 竞品 / 技术分析形成了成篇结论
 - 输出了较长的方案、设计、教程、复盘、分析
@@ -35,7 +37,7 @@ fn generate_instruction_zh(sync_dir: &str) -> String {
 - 简短确认
 - 纯代码修改 / 调试过程中的零碎交流
 
-保存格式示例：
+直接写入 `.md` 文件时的完整格式示例：
 
 ```markdown
 ---
@@ -65,6 +67,8 @@ Save location: `{sync_dir}/notes/manual/{{title}}.md`
 
 Core rule: **long-form content should be saved as Markdown; simple Q&A should not.**
 
+When saving through the GitMemo CLI/MCP manual tool, pass `title` separately and put only body text in `content`; do not include YAML frontmatter or start `content` with the same `# {{document title}}`, because GitMemo generates those outer structures automatically.
+
 Trigger:
 - Research / analysis with a substantial conclusion
 - A long proposal, design note, tutorial, postmortem, or report-like answer
@@ -75,7 +79,7 @@ Do not trigger:
 - Brief confirmations
 - Fragmented discussion during code edits / debugging
 
-Example format:
+Complete format when writing a `.md` file directly:
 
 ```markdown
 ---
@@ -151,6 +155,7 @@ mod tests {
         assert!(instruction.contains("GitMemo"));
         assert!(instruction.contains("自动捕获"));
         assert!(instruction.contains("YYYY-MM-DDTHH:MM:SS"));
+        assert!(instruction.contains("`content` 只写正文"));
         assert!(!instruction.contains("date: {{YYYY-MM-DD}}"));
     }
 
@@ -162,6 +167,7 @@ mod tests {
         assert!(instruction.contains("GitMemo"));
         assert!(instruction.contains("auto-captured"));
         assert!(instruction.contains("YYYY-MM-DDTHH:MM:SS"));
+        assert!(instruction.contains("only body text in `content`"));
         assert!(!instruction.contains("date: {{YYYY-MM-DD}}"));
     }
 

@@ -76,6 +76,14 @@ export interface AppMeta {
   recommended_cli_version: string;
 }
 
+export interface CliStatus {
+  installed: boolean;
+  path: string;
+  version: string;
+  recommended_version: string;
+  version_matches: boolean;
+}
+
 // ---- Store ----
 
 interface AppStore {
@@ -111,6 +119,8 @@ interface AppStore {
 
   // App meta (version, release)
   appMeta: AppMeta | null;
+  cliStatus: CliStatus | null;
+  refreshCliStatus: () => Promise<void>;
 
   // Update
   updateStatus: "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
@@ -141,6 +151,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   aiRecordsTab: "conversations",
   pendingOpenPath: null,
   appMeta: null,
+  cliStatus: null,
   updateStatus: "idle",
   updateVersion: null,
   updateProgress: 0,
@@ -167,6 +178,13 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
         invoke<boolean>("get_cursor_integration_status").catch(() => false),
       ]);
       set({ claudeEnabled: claude, cursorEnabled: cursor });
+    } catch { /* ignore */ }
+  },
+
+  refreshCliStatus: async () => {
+    try {
+      const status = await invoke<CliStatus>("get_cli_status");
+      set({ cliStatus: status });
     } catch { /* ignore */ }
   },
 
@@ -259,7 +277,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   },
 
   init: async () => {
-    const { refreshClipboardStatus, refreshSettings, refreshIntegrationStatus } = get();
+    const { refreshClipboardStatus, refreshSettings, refreshIntegrationStatus, refreshCliStatus } = get();
     const platform = await getRuntimePlatform();
     const metaPromise = invoke<AppMeta>("get_app_meta").catch(() => null);
     const tasks: Promise<unknown>[] = [
@@ -270,8 +288,10 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
     if (platform === "desktop") {
       tasks.push(refreshIntegrationStatus());
+      tasks.push(refreshCliStatus());
     } else {
       set({ claudeEnabled: false, cursorEnabled: false });
+      set({ cliStatus: null });
     }
 
     await Promise.all(tasks);

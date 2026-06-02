@@ -65,7 +65,7 @@ pub enum Commands {
         /// Manual title
         title: String,
 
-        /// Content (opens editor if omitted)
+        /// Content body (opens editor if omitted; omit frontmatter and top-level title)
         content: Option<String>,
 
         /// Append to existing manual instead of creating new

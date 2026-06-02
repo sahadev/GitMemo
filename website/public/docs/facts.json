@@ -1,7 +1,7 @@
 {
   "name": "GitMemo",
   "description": "Local-first Git-native personal knowledge capture and reuse system.",
-  "version": "v1.0.104",
+  "version": "v1.0.105",
   "website": "https://gitmemo.kakacut.cn",
   "repository": "https://github.com/sahadev/GitMemo",
   "install": {
@@ -15,8 +15,8 @@
   },
   "android": {
     "abi": "arm64-v8a",
-    "filename": "gitmemo-android-v1.0.104-arm64-v8a-release.apk",
-    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.104-arm64-v8a-release.apk",
+    "filename": "gitmemo-android-v1.0.105-arm64-v8a-release.apk",
+    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.105-arm64-v8a-release.apk",
     "sync": "HTTPS remote URL plus access token"
   },
   "data": {
