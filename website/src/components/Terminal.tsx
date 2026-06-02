@@ -12,7 +12,7 @@ const lines = [
   { text: '  [3/4] Enabling Codex log capture...         done', color: '#30d158', delay: 2900 },
   { text: '  [4/4] Configuring MCP server...             done', color: '#30d158', delay: 3400 },
   { text: '', color: '', delay: 3600 },
-  { text: '  GitMemo is ready! Your AI conversations will sync to Git.', color: '#007aff', delay: 3800 },
+  { text: '  GitMemo is ready! Temporary information becomes long-term knowledge.', color: '#007aff', delay: 3800 },
 ]
 
 export default function Terminal() {

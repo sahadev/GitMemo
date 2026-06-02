@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(
     name = "gitmemo",
-    about = "Auto-sync your AI conversations and notes to Git",
+    about = "Capture temporary information into a Git-native personal knowledge system",
     version = env!("CARGO_PKG_VERSION"),
     disable_version_flag = true
 )]

@@ -1,6 +1,7 @@
 import './index.css'
 import TopNav from './sections/TopNav'
 import Hero from './sections/Hero'
+import WhyAiEra from './sections/WhyAiEra'
 import ScenarioShowcase from './sections/ScenarioShowcase'
 import CoreArchitecture from './sections/CoreArchitecture'
 import Downloads from './sections/Downloads'
@@ -17,6 +18,7 @@ function App() {
     <div className="min-h-screen">
       <TopNav />
       <Hero />
+      <WhyAiEra />
       <ScenarioShowcase />
       <Features />
       <CoreArchitecture />

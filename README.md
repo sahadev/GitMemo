@@ -14,6 +14,14 @@ GitMemo is a local-first, Git-native personal knowledge capture and reuse system
 
 Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, and Codex users.
 
+## Why GitMemo Matters in the AI Era
+
+Traditional note apps mostly capture what people intentionally write. In the AI era, valuable knowledge is also produced continuously by AI chats, coding assistants, terminals, browsers, clipboard history, screenshots, external files, and fleeting ideas. Much of it is useful for only a few seconds unless it is captured immediately.
+
+GitMemo exists because those temporary sources need a durable, portable, user-owned home. It first captures the material, stores it as plain files in a Git repository you control, and then makes it searchable, syncable, exportable, and reusable.
+
+That changes the role of the knowledge base: it is no longer only a place for humans to read old notes. It becomes a context layer that humans and AI tools can both return to, so later work can continue from saved facts, decisions, terminal answers, branch summaries, and documents instead of rebuilding context from memory.
+
 ## Features
 
 - **Git-native knowledge capture** — Clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas flow into one directory managed by Git; remote sync stays optional

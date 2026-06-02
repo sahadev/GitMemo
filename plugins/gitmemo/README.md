@@ -1,6 +1,6 @@
 # GitMemo — Claude Code Plugin
 
-> Save AI conversations, notes, and project context into GitMemo.
+> Capture AI conversations, notes, and project context into a Git-native personal knowledge system.
 
 GitMemo is a local-first, Git-native personal knowledge capture and reuse system. In Claude Code, it can save conversations, notes, branch summaries, project context, and long-form AI output as Markdown in a Git repository you control.
 

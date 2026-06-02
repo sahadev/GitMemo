@@ -61,7 +61,7 @@ export default function Hero() {
         className="relative z-10 mt-8"
       >
         <img
-          alt="GitMemo - Save AI conversations and notes into your Git repo. | Product Hunt"
+          alt="GitMemo - Git-native personal knowledge capture for humans and AI. | Product Hunt"
           width="250"
           height="54"
           src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1125906&theme=${theme === 'dark' ? 'dark' : 'light'}`}
