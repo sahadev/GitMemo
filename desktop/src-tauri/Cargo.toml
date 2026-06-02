@@ -75,8 +75,11 @@ tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
 arboard = "3"
 image = { version = "0.25", default-features = false, features = ["png"] }
-notify = { version = "7", features = ["macos_kqueue"] }
+notify = "7"
 
 # macOS: read clipboard on the main thread
 [target.'cfg(target_os = "macos")'.dependencies]
 dispatch2 = "0.3"
+mac-notification-sys = "0.6"
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSObject", "NSString", "NSUserNotification", "NSObjCRuntime"] }

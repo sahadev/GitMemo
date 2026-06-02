@@ -1,8 +1,8 @@
 mod commands;
 
 use commands::{
-    clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes, search,
-    settings, stats, sync_log, watcher,
+    clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes,
+    notifications, search, settings, stats, sync_log, watcher,
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
@@ -121,14 +121,14 @@ fn clear_webview_cache_after_update() {
 }
 
 #[cfg(desktop)]
-fn show_main_window(window: &WebviewWindow) {
+pub(crate) fn show_main_window(window: &WebviewWindow) {
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
 }
 
 #[cfg(desktop)]
-fn show_main_window_from_app(app: &AppHandle) {
+pub(crate) fn show_main_window_from_app(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         show_main_window(&window);
     }
@@ -323,6 +323,7 @@ pub fn run() {
             get_runtime_platform,
             print_current_window,
             app_ready,
+            notifications::send_desktop_notification,
         ])
         .setup(|app| {
             #[cfg(mobile)]

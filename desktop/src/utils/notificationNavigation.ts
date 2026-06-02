@@ -1,5 +1,6 @@
 import type { Page } from "../App";
 import type { AiRecordsTab } from "../hooks/useAppStore";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 const EVENT_NAME = "gitmemo-notification-navigate";
 const STORAGE_KEY = "gitmemo-pending-notification-target";
@@ -98,7 +99,25 @@ export function subscribeNotificationNavigate(handler: (target: NotificationNavi
     if (isNotificationNavigateTarget(detail)) handler(detail);
   };
   window.addEventListener(EVENT_NAME, listener);
-  return () => window.removeEventListener(EVENT_NAME, listener);
+
+  let nativeUnlisten: UnlistenFn | null = null;
+  const nativeListener = listen<NotificationNavigateTarget>(EVENT_NAME, (event) => {
+    if (isNotificationNavigateTarget(event.payload)) handler(event.payload);
+  })
+    .then((unlisten) => {
+      nativeUnlisten = unlisten;
+      return unlisten;
+    })
+    .catch(() => null);
+
+  return () => {
+    window.removeEventListener(EVENT_NAME, listener);
+    if (nativeUnlisten) {
+      nativeUnlisten();
+      return;
+    }
+    void nativeListener.then((unlisten) => unlisten?.());
+  };
 }
 
 let focusFallbackInstalled = false;

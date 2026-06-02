@@ -6,6 +6,7 @@ pub mod init;
 pub mod local_editor;
 pub mod mobile_git_spike;
 pub mod notes;
+pub mod notifications;
 pub mod search;
 pub mod settings;
 pub mod stats;

@@ -4,6 +4,7 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
+import { invoke } from "@tauri-apps/api/core";
 import {
   emitNotificationNavigate,
   installNotificationFocusFallback,
@@ -40,6 +41,15 @@ function extractNotificationTarget(event: unknown): NotificationNavigateTarget |
   const notification = isRecord(event) && isRecord(event.notification) ? event.notification : event;
   if (!isRecord(notification) || !isRecord(notification.extra)) return null;
   return parseNotificationTarget(notification.extra.gitmemoNavigate);
+}
+
+function sendPluginNotification(title: string, body: string | undefined, target?: NotificationNavigateTarget) {
+  sendNotification({
+    title,
+    body,
+    autoCancel: true,
+    extra: target ? { gitmemoNavigate: JSON.stringify(target) } : undefined,
+  });
 }
 
 export function initNotificationListeners() {
@@ -90,10 +100,13 @@ export async function notify(title: string, body?: string, options?: NotifyOptio
   const ok = await ensurePermission();
   if (!ok) return;
   if (options?.target) rememberNotificationNavigateTarget(options.target);
-  sendNotification({
-    title,
-    body,
-    autoCancel: true,
-    extra: options?.target ? { gitmemoNavigate: JSON.stringify(options.target) } : undefined,
-  });
+  try {
+    await invoke("send_desktop_notification", {
+      title,
+      body: normalizedBody || null,
+      target: options?.target ?? null,
+    });
+  } catch {
+    sendPluginNotification(title, body, options?.target);
+  }
 }
