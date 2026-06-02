@@ -72,15 +72,14 @@ pub fn cmd_unpushed(sync_dir: &Path) -> Result<()> {
         return Ok(());
     }
 
-    println!(
-        "\n  {}\n",
-        t.unpushed_heading(logs.len())
-    );
+    println!("\n  {}\n", t.unpushed_heading(logs.len()));
     for log in &logs {
         println!("  {}", log);
     }
     println!();
-    let hint = t.push_hint().replace("{}", &style("gitmemo sync").cyan().to_string());
+    let hint = t
+        .push_hint()
+        .replace("{}", &style("gitmemo sync").cyan().to_string());
     println!("  {}", hint);
     println!();
 
@@ -173,9 +172,16 @@ pub fn cmd_remote(sync_dir: &Path, url: Option<String>, remove: bool) -> Result<
                         .items(&options)
                         .default(0)
                         .interact()?;
-                    match selection { 0 => ssh_url, _ => new_url }
-                } else { new_url }
-            } else { new_url };
+                    match selection {
+                        0 => ssh_url,
+                        _ => new_url,
+                    }
+                } else {
+                    new_url
+                }
+            } else {
+                new_url
+            };
 
             // SSH key check
             let (key_path, is_new_key) = utils::ssh::find_or_generate_key_for_git_url(&new_url)?;
@@ -201,7 +207,9 @@ pub fn cmd_remote(sync_dir: &Path, url: Option<String>, remove: bool) -> Result<
                 match utils::ssh::test_ssh_connection(&key_path, &new_url) {
                     Ok(utils::ssh::SshTestResult::Success(msg)) => {
                         println!("\r  {} {}  ", style("✓").green(), t.ssh_test_ok());
-                        if !msg.is_empty() { println!("    {}", style(&msg).dim()); }
+                        if !msg.is_empty() {
+                            println!("    {}", style(&msg).dim());
+                        }
                     }
                     Ok(utils::ssh::SshTestResult::AuthFailed(_)) => {
                         println!("\r  {} {}  ", style("✗").red(), t.ssh_test_auth_failed());
@@ -217,7 +225,11 @@ pub fn cmd_remote(sync_dir: &Path, url: Option<String>, remove: bool) -> Result<
                         return Ok(());
                     }
                     Ok(utils::ssh::SshTestResult::ConnectionFailed(msg)) => {
-                        println!("\r  {} {}  ", style("✗").red(), t.ssh_test_connection_failed());
+                        println!(
+                            "\r  {} {}  ",
+                            style("✗").red(),
+                            t.ssh_test_connection_failed()
+                        );
                         println!("    {}", style(&msg).dim());
                         return Ok(());
                     }

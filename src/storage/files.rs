@@ -28,10 +28,7 @@ pub fn create_directory_structure(base: &Path) -> Result<()> {
     }
 
     // Create .gitignore
-    std::fs::write(
-        base.join(".gitignore"),
-        ".metadata/\n.ssh/\n.backups/\n",
-    )?;
+    std::fs::write(base.join(".gitignore"), ".metadata/\n.ssh/\n.backups/\n")?;
 
     Ok(())
 }
@@ -186,11 +183,7 @@ pub fn create_scratch(base: &Path, content: &str) -> Result<String> {
     let filename = format!("{}-{:03}.md", date_str, seq);
     let rel_path = format!("notes/scratch/{}", filename);
 
-    let md = format!(
-        "---\ndate: {}\n---\n\n{}\n",
-        local_timestamp(&now),
-        content
-    );
+    let md = format!("---\ndate: {}\n---\n\n{}\n", local_timestamp(&now), content);
 
     write_note(base, &rel_path, &md)?;
     Ok(rel_path)
@@ -201,7 +194,13 @@ pub fn write_manual(base: &Path, title: &str, content: &str, append: bool) -> Re
     // Sanitize title for filename
     let safe_title: String = title
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' || c == ' ' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' || c == ' ' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let safe_title = safe_title.trim().replace(' ', "-");
 

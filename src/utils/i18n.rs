@@ -106,191 +106,481 @@ impl I18n {
 
     // ── Init command ────────────────────────────────────────
 
-    pub fn init_title(&self) -> &str { self.s("init_title") }
-    pub fn select_editor_prompt(&self) -> &str { self.s("select_editor_prompt") }
-    pub fn editor_options(&self) -> Vec<&str> { self.arr("editor_options") }
+    pub fn init_title(&self) -> &str {
+        self.s("init_title")
+    }
+    pub fn select_editor_prompt(&self) -> &str {
+        self.s("select_editor_prompt")
+    }
+    pub fn editor_options(&self) -> Vec<&str> {
+        self.arr("editor_options")
+    }
     #[allow(dead_code)]
-    pub fn select_language_prompt(&self) -> &str { self.s("select_language_prompt") }
-    pub fn unsupported_editor(&self, name: &str) -> String { self.fmt1("unsupported_editor", name) }
-    pub fn not_a_git_repo(&self, path: &str) -> String { self.fmt1("not_a_git_repo", path) }
-    pub fn linked_repo(&self) -> &str { self.s("linked_repo") }
-    pub fn detected_remote(&self) -> &str { self.s("detected_remote") }
-    pub fn git_url_prompt(&self) -> &str { self.s("git_url_prompt") }
-    pub fn local_mode_selected(&self) -> &str { self.s("local_mode_selected") }
-    pub fn local_saved_hint(&self) -> &str { self.s("local_saved_hint") }
-    pub fn sync_mode_local(&self) -> &str { self.s("sync_mode_local") }
-    pub fn remote_current(&self, url: &str) -> String { self.fmt1("remote_current", url) }
-    pub fn remote_none(&self) -> &str { self.s("remote_none") }
-    pub fn remote_set_ok(&self) -> &str { self.s("remote_set_ok") }
-    pub fn remote_pushing(&self) -> &str { self.s("remote_pushing") }
-    pub fn remote_removed(&self) -> &str { self.s("remote_removed") }
-    pub fn remote_same(&self, url: &str) -> String { self.fmt1("remote_same", url) }
-    pub fn opening_browser(&self) -> &str { self.s("opening_browser") }
-    pub fn dir_structure_ready(&self) -> &str { self.s("dir_structure_ready") }
-    pub fn git_repo_ready(&self) -> &str { self.s("git_repo_ready") }
-    pub fn ssh_key_generated(&self) -> &str { self.s("ssh_key_generated") }
-    pub fn ssh_key_exists(&self) -> &str { self.s("ssh_key_exists") }
-    pub fn ssh_url_recommended(&self) -> &str { self.s("ssh_url_recommended") }
-    pub fn use_ssh_url(&self) -> &str { self.s("use_ssh_url") }
-    pub fn keep_https_url(&self) -> &str { self.s("keep_https_url") }
-    pub fn choose_url_prompt(&self) -> &str { self.s("choose_url_prompt") }
-    pub fn testing_ssh(&self) -> &str { self.s("testing_ssh") }
-    pub fn ssh_test_ok(&self) -> &str { self.s("ssh_test_ok") }
-    pub fn ssh_test_auth_failed(&self) -> &str { self.s("ssh_test_auth_failed") }
-    pub fn ssh_test_connection_failed(&self) -> &str { self.s("ssh_test_connection_failed") }
-    pub fn ssh_test_unknown(&self) -> &str { self.s("ssh_test_unknown") }
-    pub fn ssh_test_error(&self) -> &str { self.s("ssh_test_error") }
-    pub fn configs_backed_up(&self) -> &str { self.s("configs_backed_up") }
-    pub fn claude_md_injected(&self) -> &str { self.s("claude_md_injected") }
-    pub fn git_hook_injected(&self) -> &str { self.s("git_hook_injected") }
-    pub fn claude_mcp_registered(&self) -> &str { self.s("claude_mcp_registered") }
-    pub fn save_skill_installed(&self) -> &str { self.s("save_skill_installed") }
-    pub fn claude_session_log_skill_installed(&self) -> &str { self.s("claude_session_log_skill_installed") }
-    pub fn cursor_rules_injected(&self) -> &str { self.s("cursor_rules_injected") }
-    pub fn cursor_save_skill_installed(&self) -> &str { self.s("cursor_save_skill_installed") }
-    pub fn cursor_session_log_skill_installed(&self) -> &str { self.s("cursor_session_log_skill_installed") }
-    pub fn cursor_mcp_registered(&self) -> &str { self.s("cursor_mcp_registered") }
-    pub fn codex_capture_enabled(&self) -> &str { self.s("codex_capture_enabled") }
-    pub fn deploy_key_hint(&self) -> &str { self.s("deploy_key_hint") }
-    pub fn all_set(&self) -> &str { self.s("all_set") }
-    pub fn next_steps(&self) -> &str { self.s("next_steps") }
-    pub fn claude_next_step_1(&self) -> &str { self.s("claude_next_step_1") }
-    pub fn claude_next_step_2(&self) -> &str { self.s("claude_next_step_2") }
-    pub fn cursor_next_step_1(&self) -> &str { self.s("cursor_next_step_1") }
-    pub fn cursor_next_step_2(&self) -> &str { self.s("cursor_next_step_2") }
-    pub fn verify_heading(&self) -> &str { self.s("verify_heading") }
-    pub fn verify_test(&self) -> &str { self.s("verify_test") }
-    pub fn verify_status(&self) -> &str { self.s("verify_status") }
-    pub fn recommend(&self) -> &str { self.s("recommend") }
+    pub fn select_language_prompt(&self) -> &str {
+        self.s("select_language_prompt")
+    }
+    pub fn unsupported_editor(&self, name: &str) -> String {
+        self.fmt1("unsupported_editor", name)
+    }
+    pub fn not_a_git_repo(&self, path: &str) -> String {
+        self.fmt1("not_a_git_repo", path)
+    }
+    pub fn linked_repo(&self) -> &str {
+        self.s("linked_repo")
+    }
+    pub fn detected_remote(&self) -> &str {
+        self.s("detected_remote")
+    }
+    pub fn git_url_prompt(&self) -> &str {
+        self.s("git_url_prompt")
+    }
+    pub fn local_mode_selected(&self) -> &str {
+        self.s("local_mode_selected")
+    }
+    pub fn local_saved_hint(&self) -> &str {
+        self.s("local_saved_hint")
+    }
+    pub fn sync_mode_local(&self) -> &str {
+        self.s("sync_mode_local")
+    }
+    pub fn remote_current(&self, url: &str) -> String {
+        self.fmt1("remote_current", url)
+    }
+    pub fn remote_none(&self) -> &str {
+        self.s("remote_none")
+    }
+    pub fn remote_set_ok(&self) -> &str {
+        self.s("remote_set_ok")
+    }
+    pub fn remote_pushing(&self) -> &str {
+        self.s("remote_pushing")
+    }
+    pub fn remote_removed(&self) -> &str {
+        self.s("remote_removed")
+    }
+    pub fn remote_same(&self, url: &str) -> String {
+        self.fmt1("remote_same", url)
+    }
+    pub fn opening_browser(&self) -> &str {
+        self.s("opening_browser")
+    }
+    pub fn dir_structure_ready(&self) -> &str {
+        self.s("dir_structure_ready")
+    }
+    pub fn git_repo_ready(&self) -> &str {
+        self.s("git_repo_ready")
+    }
+    pub fn ssh_key_generated(&self) -> &str {
+        self.s("ssh_key_generated")
+    }
+    pub fn ssh_key_exists(&self) -> &str {
+        self.s("ssh_key_exists")
+    }
+    pub fn ssh_url_recommended(&self) -> &str {
+        self.s("ssh_url_recommended")
+    }
+    pub fn use_ssh_url(&self) -> &str {
+        self.s("use_ssh_url")
+    }
+    pub fn keep_https_url(&self) -> &str {
+        self.s("keep_https_url")
+    }
+    pub fn choose_url_prompt(&self) -> &str {
+        self.s("choose_url_prompt")
+    }
+    pub fn testing_ssh(&self) -> &str {
+        self.s("testing_ssh")
+    }
+    pub fn ssh_test_ok(&self) -> &str {
+        self.s("ssh_test_ok")
+    }
+    pub fn ssh_test_auth_failed(&self) -> &str {
+        self.s("ssh_test_auth_failed")
+    }
+    pub fn ssh_test_connection_failed(&self) -> &str {
+        self.s("ssh_test_connection_failed")
+    }
+    pub fn ssh_test_unknown(&self) -> &str {
+        self.s("ssh_test_unknown")
+    }
+    pub fn ssh_test_error(&self) -> &str {
+        self.s("ssh_test_error")
+    }
+    pub fn configs_backed_up(&self) -> &str {
+        self.s("configs_backed_up")
+    }
+    pub fn claude_md_injected(&self) -> &str {
+        self.s("claude_md_injected")
+    }
+    pub fn git_hook_injected(&self) -> &str {
+        self.s("git_hook_injected")
+    }
+    pub fn claude_mcp_registered(&self) -> &str {
+        self.s("claude_mcp_registered")
+    }
+    pub fn save_skill_installed(&self) -> &str {
+        self.s("save_skill_installed")
+    }
+    pub fn claude_session_log_skill_installed(&self) -> &str {
+        self.s("claude_session_log_skill_installed")
+    }
+    pub fn cursor_rules_injected(&self) -> &str {
+        self.s("cursor_rules_injected")
+    }
+    pub fn cursor_save_skill_installed(&self) -> &str {
+        self.s("cursor_save_skill_installed")
+    }
+    pub fn cursor_session_log_skill_installed(&self) -> &str {
+        self.s("cursor_session_log_skill_installed")
+    }
+    pub fn cursor_mcp_registered(&self) -> &str {
+        self.s("cursor_mcp_registered")
+    }
+    pub fn codex_capture_enabled(&self) -> &str {
+        self.s("codex_capture_enabled")
+    }
+    pub fn deploy_key_hint(&self) -> &str {
+        self.s("deploy_key_hint")
+    }
+    pub fn all_set(&self) -> &str {
+        self.s("all_set")
+    }
+    pub fn next_steps(&self) -> &str {
+        self.s("next_steps")
+    }
+    pub fn claude_next_step_1(&self) -> &str {
+        self.s("claude_next_step_1")
+    }
+    pub fn claude_next_step_2(&self) -> &str {
+        self.s("claude_next_step_2")
+    }
+    pub fn cursor_next_step_1(&self) -> &str {
+        self.s("cursor_next_step_1")
+    }
+    pub fn cursor_next_step_2(&self) -> &str {
+        self.s("cursor_next_step_2")
+    }
+    pub fn verify_heading(&self) -> &str {
+        self.s("verify_heading")
+    }
+    pub fn verify_test(&self) -> &str {
+        self.s("verify_test")
+    }
+    pub fn verify_status(&self) -> &str {
+        self.s("verify_status")
+    }
+    pub fn recommend(&self) -> &str {
+        self.s("recommend")
+    }
 
     // ── Uninstall command ───────────────────────────────────
 
-    pub fn uninstall_title(&self) -> &str { self.s("uninstall_title") }
-    pub fn claude_md_removed(&self) -> &str { self.s("claude_md_removed") }
-    pub fn git_hook_removed(&self) -> &str { self.s("git_hook_removed") }
-    pub fn claude_mcp_removed(&self) -> &str { self.s("claude_mcp_removed") }
-    pub fn save_skill_removed(&self) -> &str { self.s("save_skill_removed") }
-    pub fn claude_session_log_skill_removed(&self) -> &str { self.s("claude_session_log_skill_removed") }
-    pub fn cursor_rules_removed(&self) -> &str { self.s("cursor_rules_removed") }
-    pub fn cursor_save_skill_removed(&self) -> &str { self.s("cursor_save_skill_removed") }
-    pub fn cursor_session_log_skill_removed(&self) -> &str { self.s("cursor_session_log_skill_removed") }
-    pub fn cursor_mcp_removed(&self) -> &str { self.s("cursor_mcp_removed") }
-    pub fn data_deleted(&self, path: &str) -> String { self.fmt1("data_deleted", path) }
-    pub fn data_preserved(&self, path: &str) -> String { self.fmt1("data_preserved", path) }
+    pub fn uninstall_title(&self) -> &str {
+        self.s("uninstall_title")
+    }
+    pub fn claude_md_removed(&self) -> &str {
+        self.s("claude_md_removed")
+    }
+    pub fn git_hook_removed(&self) -> &str {
+        self.s("git_hook_removed")
+    }
+    pub fn claude_mcp_removed(&self) -> &str {
+        self.s("claude_mcp_removed")
+    }
+    pub fn save_skill_removed(&self) -> &str {
+        self.s("save_skill_removed")
+    }
+    pub fn claude_session_log_skill_removed(&self) -> &str {
+        self.s("claude_session_log_skill_removed")
+    }
+    pub fn cursor_rules_removed(&self) -> &str {
+        self.s("cursor_rules_removed")
+    }
+    pub fn cursor_save_skill_removed(&self) -> &str {
+        self.s("cursor_save_skill_removed")
+    }
+    pub fn cursor_session_log_skill_removed(&self) -> &str {
+        self.s("cursor_session_log_skill_removed")
+    }
+    pub fn cursor_mcp_removed(&self) -> &str {
+        self.s("cursor_mcp_removed")
+    }
+    pub fn data_deleted(&self, path: &str) -> String {
+        self.fmt1("data_deleted", path)
+    }
+    pub fn data_preserved(&self, path: &str) -> String {
+        self.fmt1("data_preserved", path)
+    }
 
     // ── Status command ──────────────────────────────────────
 
-    pub fn status_title(&self) -> &str { self.s("status_title") }
-    pub fn not_initialized(&self) -> &str { self.s("not_initialized") }
-    pub fn data_dir(&self) -> &str { self.s("data_dir") }
-    pub fn git_remote(&self) -> &str { self.s("git_remote") }
-    pub fn git_branch(&self) -> &str { self.s("git_branch") }
-    pub fn conversations_count(&self) -> &str { self.s("conversations_count") }
-    pub fn notes_count(&self) -> &str { self.s("notes_count") }
-    pub fn unpushed_commits(&self, count: usize) -> String { self.fmt_n("unpushed_commits", count) }
-    pub fn sync_ok(&self) -> &str { self.s("sync_ok") }
+    pub fn status_title(&self) -> &str {
+        self.s("status_title")
+    }
+    pub fn not_initialized(&self) -> &str {
+        self.s("not_initialized")
+    }
+    pub fn data_dir(&self) -> &str {
+        self.s("data_dir")
+    }
+    pub fn git_remote(&self) -> &str {
+        self.s("git_remote")
+    }
+    pub fn git_branch(&self) -> &str {
+        self.s("git_branch")
+    }
+    pub fn conversations_count(&self) -> &str {
+        self.s("conversations_count")
+    }
+    pub fn notes_count(&self) -> &str {
+        self.s("notes_count")
+    }
+    pub fn unpushed_commits(&self, count: usize) -> String {
+        self.fmt_n("unpushed_commits", count)
+    }
+    pub fn sync_ok(&self) -> &str {
+        self.s("sync_ok")
+    }
 
     // ── Sync command ────────────────────────────────────────
 
-    pub fn synced_to_git(&self) -> &str { self.s("synced_to_git") }
-    pub fn committed_push_failed(&self, err: &str) -> String { self.fmt1("committed_push_failed", err) }
-    pub fn retry_push_hint(&self) -> &str { self.s("retry_push_hint") }
-    pub fn no_changes(&self) -> &str { self.s("no_changes") }
-    pub fn all_synced(&self) -> &str { self.s("all_synced") }
-    pub fn pushing_commits(&self, count: usize) -> String { self.fmt_n("pushing_commits", count) }
-    pub fn pushed_commits(&self, count: usize) -> String { self.fmt_n("pushed_commits", count) }
-    pub fn push_failed(&self, err: &str) -> String { self.fmt1("push_failed", err) }
+    pub fn synced_to_git(&self) -> &str {
+        self.s("synced_to_git")
+    }
+    pub fn committed_push_failed(&self, err: &str) -> String {
+        self.fmt1("committed_push_failed", err)
+    }
+    pub fn retry_push_hint(&self) -> &str {
+        self.s("retry_push_hint")
+    }
+    pub fn no_changes(&self) -> &str {
+        self.s("no_changes")
+    }
+    pub fn all_synced(&self) -> &str {
+        self.s("all_synced")
+    }
+    pub fn pushing_commits(&self, count: usize) -> String {
+        self.fmt_n("pushing_commits", count)
+    }
+    pub fn pushed_commits(&self, count: usize) -> String {
+        self.fmt_n("pushed_commits", count)
+    }
+    pub fn push_failed(&self, err: &str) -> String {
+        self.fmt1("push_failed", err)
+    }
 
     // ── Unpushed command ────────────────────────────────────
 
-    pub fn no_unpushed(&self) -> &str { self.s("no_unpushed") }
-    pub fn unpushed_heading(&self, count: usize) -> String { self.fmt_n("unpushed_heading", count) }
-    pub fn push_hint(&self) -> &str { self.s("push_hint") }
+    pub fn no_unpushed(&self) -> &str {
+        self.s("no_unpushed")
+    }
+    pub fn unpushed_heading(&self, count: usize) -> String {
+        self.fmt_n("unpushed_heading", count)
+    }
+    pub fn push_hint(&self) -> &str {
+        self.s("push_hint")
+    }
 
     // ── Note commands ───────────────────────────────────────
 
-    pub fn scratch_created(&self, path: &str) -> String { self.fmt1("scratch_created", path) }
-    pub fn content_empty(&self) -> &str { self.s("content_empty") }
-    pub fn manual_saved(&self, path: &str) -> String { self.fmt1("manual_saved", path) }
+    pub fn scratch_created(&self, path: &str) -> String {
+        self.fmt1("scratch_created", path)
+    }
+    pub fn content_empty(&self) -> &str {
+        self.s("content_empty")
+    }
+    pub fn manual_saved(&self, path: &str) -> String {
+        self.fmt1("manual_saved", path)
+    }
 
     // ── Search / Recent ─────────────────────────────────────
 
-    pub fn no_results(&self, query: &str) -> String { self.fmt1("no_results", query) }
-    pub fn found_results(&self, count: usize) -> String { self.fmt_n("found_results", count) }
-    pub fn badge_conversation(&self) -> &str { self.s("badge_conversation") }
-    pub fn badge_note(&self) -> &str { self.s("badge_note") }
-    pub fn no_recent(&self, days: u32) -> String { self.fmt_u32("no_recent", days) }
-    pub fn recent_heading(&self, days: u32) -> String { self.fmt_u32("recent_heading", days) }
+    pub fn no_results(&self, query: &str) -> String {
+        self.fmt1("no_results", query)
+    }
+    pub fn found_results(&self, count: usize) -> String {
+        self.fmt_n("found_results", count)
+    }
+    pub fn badge_conversation(&self) -> &str {
+        self.s("badge_conversation")
+    }
+    pub fn badge_note(&self) -> &str {
+        self.s("badge_note")
+    }
+    pub fn no_recent(&self, days: u32) -> String {
+        self.fmt_u32("no_recent", days)
+    }
+    pub fn recent_heading(&self, days: u32) -> String {
+        self.fmt_u32("recent_heading", days)
+    }
 
     // ── Stats ───────────────────────────────────────────────
 
-    pub fn stats_title(&self) -> &str { self.s("stats_title") }
-    pub fn stats_conversations(&self) -> &str { self.s("stats_conversations") }
-    pub fn stats_manual(&self) -> &str { self.s("stats_manual") }
-    pub fn stats_scratch(&self) -> &str { self.s("stats_scratch") }
-    pub fn stats_storage(&self) -> &str { self.s("stats_storage") }
+    pub fn stats_title(&self) -> &str {
+        self.s("stats_title")
+    }
+    pub fn stats_conversations(&self) -> &str {
+        self.s("stats_conversations")
+    }
+    pub fn stats_manual(&self) -> &str {
+        self.s("stats_manual")
+    }
+    pub fn stats_scratch(&self) -> &str {
+        self.s("stats_scratch")
+    }
+    pub fn stats_storage(&self) -> &str {
+        self.s("stats_storage")
+    }
 
     // ── Reindex ─────────────────────────────────────────────
 
-    pub fn index_rebuilt(&self, count: usize) -> String { self.fmt_n("index_rebuilt", count) }
+    pub fn index_rebuilt(&self, count: usize) -> String {
+        self.fmt_n("index_rebuilt", count)
+    }
 
     // ── Branch command ──────────────────────────────────────
 
-    pub fn branch_current(&self, branch: &str) -> String { self.fmt1("branch_current", branch) }
-    pub fn branch_switched(&self, from: &str, to: &str) -> String { self.fmt2("branch_switched", from, to) }
-    pub fn branch_same(&self, branch: &str) -> String { self.fmt1("branch_same", branch) }
+    pub fn branch_current(&self, branch: &str) -> String {
+        self.fmt1("branch_current", branch)
+    }
+    pub fn branch_switched(&self, from: &str, to: &str) -> String {
+        self.fmt2("branch_switched", from, to)
+    }
+    pub fn branch_same(&self, branch: &str) -> String {
+        self.fmt1("branch_same", branch)
+    }
 
     // ── Global errors ───────────────────────────────────────
 
-    pub fn not_init_error(&self) -> &str { self.s("not_init_error") }
-    pub fn not_init_error_mcp(&self) -> &str { self.s("not_init_error_mcp") }
+    pub fn not_init_error(&self) -> &str {
+        self.s("not_init_error")
+    }
+    pub fn not_init_error_mcp(&self) -> &str {
+        self.s("not_init_error_mcp")
+    }
 
     // ── Upgrade command ─────────────────────────────────────
 
-    pub fn upgrade_checking(&self) -> &str { self.s("upgrade.checking") }
-    pub fn upgrade_current(&self) -> &str { self.s("upgrade.current") }
-    pub fn upgrade_latest(&self) -> &str { self.s("upgrade.latest") }
-    pub fn upgrade_already_latest(&self) -> &str { self.s("upgrade.already_latest") }
-    pub fn upgrade_new_available(&self) -> &str { self.s("upgrade.new_available") }
-    pub fn upgrade_downloading(&self) -> &str { self.s("upgrade.downloading") }
-    pub fn upgrade_installing(&self) -> &str { self.s("upgrade.installing") }
-    pub fn upgrade_success(&self) -> &str { self.s("upgrade.success") }
-    pub fn upgrade_version(&self) -> &str { self.s("upgrade.version") }
-    pub fn upgrade_need_sudo(&self) -> &str { self.s("upgrade.need_sudo") }
-    pub fn upgrade_path_warning(&self) -> &str { self.s("upgrade.path_warning") }
-    pub fn upgrade_old_path(&self) -> &str { self.s("upgrade.old_path") }
-    pub fn upgrade_new_path(&self) -> &str { self.s("upgrade.new_path") }
+    pub fn upgrade_checking(&self) -> &str {
+        self.s("upgrade.checking")
+    }
+    pub fn upgrade_current(&self) -> &str {
+        self.s("upgrade.current")
+    }
+    pub fn upgrade_latest(&self) -> &str {
+        self.s("upgrade.latest")
+    }
+    pub fn upgrade_already_latest(&self) -> &str {
+        self.s("upgrade.already_latest")
+    }
+    pub fn upgrade_new_available(&self) -> &str {
+        self.s("upgrade.new_available")
+    }
+    pub fn upgrade_downloading(&self) -> &str {
+        self.s("upgrade.downloading")
+    }
+    pub fn upgrade_installing(&self) -> &str {
+        self.s("upgrade.installing")
+    }
+    pub fn upgrade_success(&self) -> &str {
+        self.s("upgrade.success")
+    }
+    pub fn upgrade_version(&self) -> &str {
+        self.s("upgrade.version")
+    }
+    pub fn upgrade_need_sudo(&self) -> &str {
+        self.s("upgrade.need_sudo")
+    }
+    pub fn upgrade_path_warning(&self) -> &str {
+        self.s("upgrade.path_warning")
+    }
+    pub fn upgrade_old_path(&self) -> &str {
+        self.s("upgrade.old_path")
+    }
+    pub fn upgrade_new_path(&self) -> &str {
+        self.s("upgrade.new_path")
+    }
 
     // ── MCP tool descriptions ───────────────────────────────
 
-    pub fn mcp_search_desc(&self) -> &str { self.s("mcp_search_desc") }
-    pub fn mcp_search_query_desc(&self) -> &str { self.s("mcp_search_query_desc") }
-    pub fn mcp_search_type_desc(&self) -> &str { self.s("mcp_search_type_desc") }
-    pub fn mcp_search_limit_desc(&self) -> &str { self.s("mcp_search_limit_desc") }
-    pub fn mcp_recent_desc(&self) -> &str { self.s("mcp_recent_desc") }
-    pub fn mcp_recent_limit_desc(&self) -> &str { self.s("mcp_recent_limit_desc") }
-    pub fn mcp_recent_days_desc(&self) -> &str { self.s("mcp_recent_days_desc") }
-    pub fn mcp_read_desc(&self) -> &str { self.s("mcp_read_desc") }
-    pub fn mcp_read_path_desc(&self) -> &str { self.s("mcp_read_path_desc") }
-    pub fn mcp_note_desc(&self) -> &str { self.s("mcp_note_desc") }
-    pub fn mcp_note_content_desc(&self) -> &str { self.s("mcp_note_content_desc") }
-    pub fn mcp_manual_desc(&self) -> &str { self.s("mcp_manual_desc") }
-    pub fn mcp_manual_title_desc(&self) -> &str { self.s("mcp_manual_title_desc") }
-    pub fn mcp_manual_content_desc(&self) -> &str { self.s("mcp_manual_content_desc") }
-    pub fn mcp_manual_append_desc(&self) -> &str { self.s("mcp_manual_append_desc") }
-    pub fn mcp_stats_desc(&self) -> &str { self.s("mcp_stats_desc") }
-    pub fn mcp_sync_desc(&self) -> &str { self.s("mcp_sync_desc") }
-    pub fn mcp_sync_message_desc(&self) -> &str { self.s("mcp_sync_message_desc") }
+    pub fn mcp_search_desc(&self) -> &str {
+        self.s("mcp_search_desc")
+    }
+    pub fn mcp_search_query_desc(&self) -> &str {
+        self.s("mcp_search_query_desc")
+    }
+    pub fn mcp_search_type_desc(&self) -> &str {
+        self.s("mcp_search_type_desc")
+    }
+    pub fn mcp_search_limit_desc(&self) -> &str {
+        self.s("mcp_search_limit_desc")
+    }
+    pub fn mcp_recent_desc(&self) -> &str {
+        self.s("mcp_recent_desc")
+    }
+    pub fn mcp_recent_limit_desc(&self) -> &str {
+        self.s("mcp_recent_limit_desc")
+    }
+    pub fn mcp_recent_days_desc(&self) -> &str {
+        self.s("mcp_recent_days_desc")
+    }
+    pub fn mcp_read_desc(&self) -> &str {
+        self.s("mcp_read_desc")
+    }
+    pub fn mcp_read_path_desc(&self) -> &str {
+        self.s("mcp_read_path_desc")
+    }
+    pub fn mcp_note_desc(&self) -> &str {
+        self.s("mcp_note_desc")
+    }
+    pub fn mcp_note_content_desc(&self) -> &str {
+        self.s("mcp_note_content_desc")
+    }
+    pub fn mcp_manual_desc(&self) -> &str {
+        self.s("mcp_manual_desc")
+    }
+    pub fn mcp_manual_title_desc(&self) -> &str {
+        self.s("mcp_manual_title_desc")
+    }
+    pub fn mcp_manual_content_desc(&self) -> &str {
+        self.s("mcp_manual_content_desc")
+    }
+    pub fn mcp_manual_append_desc(&self) -> &str {
+        self.s("mcp_manual_append_desc")
+    }
+    pub fn mcp_stats_desc(&self) -> &str {
+        self.s("mcp_stats_desc")
+    }
+    pub fn mcp_sync_desc(&self) -> &str {
+        self.s("mcp_sync_desc")
+    }
+    pub fn mcp_sync_message_desc(&self) -> &str {
+        self.s("mcp_sync_message_desc")
+    }
 
     // ── MCP tool responses ──────────────────────────────────
 
-    pub fn mcp_note_created(&self, path: &str) -> String { self.fmt1("mcp_note_created", path) }
-    pub fn mcp_manual_saved(&self, path: &str) -> String { self.fmt1("mcp_manual_saved", path) }
-    pub fn mcp_sync_done(&self) -> &str { self.s("mcp_sync_done") }
-    pub fn mcp_committed_push_failed(&self, err: &str) -> String { self.fmt1("mcp_committed_push_failed", err) }
-    pub fn mcp_pushed_commits(&self, count: usize) -> String { self.fmt_n("mcp_pushed_commits", count) }
-    pub fn mcp_push_failed(&self, err: &str) -> String { self.fmt1("mcp_push_failed", err) }
-    pub fn mcp_all_synced(&self) -> &str { self.s("mcp_all_synced") }
+    pub fn mcp_note_created(&self, path: &str) -> String {
+        self.fmt1("mcp_note_created", path)
+    }
+    pub fn mcp_manual_saved(&self, path: &str) -> String {
+        self.fmt1("mcp_manual_saved", path)
+    }
+    pub fn mcp_sync_done(&self) -> &str {
+        self.s("mcp_sync_done")
+    }
+    pub fn mcp_committed_push_failed(&self, err: &str) -> String {
+        self.fmt1("mcp_committed_push_failed", err)
+    }
+    pub fn mcp_pushed_commits(&self, count: usize) -> String {
+        self.fmt_n("mcp_pushed_commits", count)
+    }
+    pub fn mcp_push_failed(&self, err: &str) -> String {
+        self.fmt1("mcp_push_failed", err)
+    }
+    pub fn mcp_all_synced(&self) -> &str {
+        self.s("mcp_all_synced")
+    }
 }
 
 #[cfg(test)]
@@ -316,7 +606,10 @@ mod tests {
     fn test_format_one_arg() {
         let i18n = I18n::new(Lang::En);
         assert_eq!(i18n.push_failed("timeout"), "Push failed: timeout");
-        assert_eq!(i18n.scratch_created("notes/scratch/test.md"), "Scratch note created: notes/scratch/test.md");
+        assert_eq!(
+            i18n.scratch_created("notes/scratch/test.md"),
+            "Scratch note created: notes/scratch/test.md"
+        );
     }
 
     #[test]

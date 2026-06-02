@@ -42,8 +42,8 @@ with open('{sync_dir}/.metadata/config.toml','rb') as f:
 /// Inject PostToolUse hook into settings.json
 pub fn inject(settings_path: &Path, sync_dir: &str) -> Result<()> {
     let mut settings: Value = if settings_path.exists() {
-        let content = std::fs::read_to_string(settings_path)
-            .context("Failed to read settings.json")?;
+        let content =
+            std::fs::read_to_string(settings_path).context("Failed to read settings.json")?;
         serde_json::from_str(&content).context("Failed to parse settings.json")?
     } else {
         serde_json::json!({})

@@ -60,9 +60,9 @@ fn route_file(_filename: &str, ext: &str) -> (&'static str, FileCategory) {
         "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx" | "csv" | "tsv" | "rtf"
         | "odt" | "ods" | "odp" => ("imports", FileCategory::Document),
         "rs" | "py" | "js" | "ts" | "tsx" | "jsx" | "go" | "java" | "kt" | "swift" | "c"
-        | "cpp" | "h" | "hpp" | "rb" | "php" | "sh" | "bash" | "zsh" | "fish" | "sql"
-        | "yaml" | "yml" | "toml" | "json" | "xml" | "html" | "css" | "scss" | "sass"
-        | "less" | "vue" | "svelte" => ("imports", FileCategory::Code),
+        | "cpp" | "h" | "hpp" | "rb" | "php" | "sh" | "bash" | "zsh" | "fish" | "sql" | "yaml"
+        | "yml" | "toml" | "json" | "xml" | "html" | "css" | "scss" | "sass" | "less" | "vue"
+        | "svelte" => ("imports", FileCategory::Code),
         "txt" | "log" | "text" | "conf" | "cfg" | "ini" | "env" => {
             ("imports", FileCategory::Markdown)
         }
@@ -86,23 +86,75 @@ fn is_supported_directory_import_file(path: &Path) -> bool {
 
     matches!(
         ext.as_str(),
-        "md" | "markdown" | "mdx"
-            | "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "bmp" | "ico" | "avif"
-            | "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx" | "csv" | "tsv" | "rtf"
-            | "odt" | "ods" | "odp"
-            | "rs" | "py" | "js" | "ts" | "tsx" | "jsx" | "go" | "java" | "kt" | "swift"
-            | "c" | "cpp" | "h" | "hpp" | "rb" | "php" | "sh" | "bash" | "zsh" | "fish"
-            | "sql" | "yaml" | "yml" | "toml" | "json" | "xml" | "html" | "css" | "scss"
-            | "sass" | "less" | "vue" | "svelte"
-            | "txt" | "log" | "text" | "conf" | "cfg" | "ini" | "env"
+        "md" | "markdown"
+            | "mdx"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "svg"
+            | "webp"
+            | "bmp"
+            | "ico"
+            | "avif"
+            | "pdf"
+            | "doc"
+            | "docx"
+            | "ppt"
+            | "pptx"
+            | "xls"
+            | "xlsx"
+            | "csv"
+            | "tsv"
+            | "rtf"
+            | "odt"
+            | "ods"
+            | "odp"
+            | "rs"
+            | "py"
+            | "js"
+            | "ts"
+            | "tsx"
+            | "jsx"
+            | "go"
+            | "java"
+            | "kt"
+            | "swift"
+            | "c"
+            | "cpp"
+            | "h"
+            | "hpp"
+            | "rb"
+            | "php"
+            | "sh"
+            | "bash"
+            | "zsh"
+            | "fish"
+            | "sql"
+            | "yaml"
+            | "yml"
+            | "toml"
+            | "json"
+            | "xml"
+            | "html"
+            | "css"
+            | "scss"
+            | "sass"
+            | "less"
+            | "vue"
+            | "svelte"
+            | "txt"
+            | "log"
+            | "text"
+            | "conf"
+            | "cfg"
+            | "ini"
+            | "env"
     )
 }
 
 /// Process a single dropped file: copy to correct location, optionally wrap in markdown
-fn import_single_file(
-    sync_dir: &Path,
-    source_path: &str,
-) -> Result<ImportedFile, String> {
+fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile, String> {
     let source = Path::new(source_path);
     if !source.exists() {
         return Err(format!("File not found: {}", source_path));
@@ -119,17 +171,13 @@ fn import_single_file(
         .to_string_lossy()
         .to_string();
 
-    let file_size = source
-        .metadata()
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let file_size = source.metadata().map(|m| m.len()).unwrap_or(0);
 
     let max_import_file_size = settings::import_file_size_limit_bytes();
     if file_size > max_import_file_size {
         return Err(format!(
             "File too large: {} bytes (max {} bytes)",
-            file_size,
-            max_import_file_size,
+            file_size, max_import_file_size,
         ));
     }
 
@@ -149,7 +197,8 @@ fn import_single_file(
 
     let dest_full = sync_dir.join(&dest_rel);
     if let Some(parent) = dest_full.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
     match &category {
@@ -211,7 +260,8 @@ fn import_single_file(
             let md_full = sync_dir.join(&md_filename);
 
             if let Some(parent) = md_full.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create directory: {}", e))?;
             }
 
             let md = format!(
@@ -224,8 +274,7 @@ fn import_single_file(
                 lang,
                 content
             );
-            std::fs::write(&md_full, &md)
-                .map_err(|e| format!("Failed to write: {}", e))?;
+            std::fs::write(&md_full, &md).map_err(|e| format!("Failed to write: {}", e))?;
 
             return Ok(ImportedFile {
                 original_name: filename,
@@ -236,8 +285,7 @@ fn import_single_file(
         }
         _ => {
             // Binary files (images, PDFs, etc.) → copy directly
-            std::fs::copy(source, &dest_full)
-                .map_err(|e| format!("Failed to copy file: {}", e))?;
+            std::fs::copy(source, &dest_full).map_err(|e| format!("Failed to copy file: {}", e))?;
 
             // Create a companion .md so list_files can discover this import
             let md_path = format!("{}.md", dest_rel);
@@ -247,11 +295,19 @@ fn import_single_file(
                 FileCategory::Document => "document",
                 _ => "file",
             };
-            let actual_name = dest_full.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let actual_name = dest_full
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
             let md = if matches!(&category, FileCategory::Image) {
                 format!(
                     "---\ndate: {}\nsource: import\ntype: {}\noriginal: {}\n---\n\n![{}]({})\n",
-                    local_timestamp(&now), type_label, filename, filename, actual_name
+                    local_timestamp(&now),
+                    type_label,
+                    filename,
+                    filename,
+                    actual_name
                 )
             } else {
                 format!(

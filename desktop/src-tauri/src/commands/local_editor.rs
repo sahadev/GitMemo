@@ -220,7 +220,8 @@ fn read_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
     if raw.trim().is_empty() {
         return Ok(Vec::new());
     }
-    serde_json::from_str::<Vec<ExternalFileEntry>>(&raw).map_err(|e| format!("{}: {}", path.display(), e))
+    serde_json::from_str::<Vec<ExternalFileEntry>>(&raw)
+        .map_err(|e| format!("{}: {}", path.display(), e))
 }
 
 fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), String> {
@@ -235,7 +236,9 @@ fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), Strin
 
 fn save_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, String> {
     let mut entries = read_external_files_index()?;
-    let existing = entries.iter().find(|item| item.file_path == abs_path.to_string_lossy());
+    let existing = entries
+        .iter()
+        .find(|item| item.file_path == abs_path.to_string_lossy());
     let last_opened_at = existing
         .map(|item| item.last_opened_at.clone())
         .unwrap_or_else(now_rfc3339);
@@ -298,8 +301,14 @@ fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
         }
     }
     entries.sort_by(|a, b| {
-        let a_key = a.last_modified_at.as_deref().unwrap_or(a.last_opened_at.as_str());
-        let b_key = b.last_modified_at.as_deref().unwrap_or(b.last_opened_at.as_str());
+        let a_key = a
+            .last_modified_at
+            .as_deref()
+            .unwrap_or(a.last_opened_at.as_str());
+        let b_key = b
+            .last_modified_at
+            .as_deref()
+            .unwrap_or(b.last_opened_at.as_str());
         b_key
             .cmp(a_key)
             .then_with(|| a.file_name.cmp(&b.file_name))
@@ -517,7 +526,10 @@ pub fn open_external_file(file_path: String) -> Result<ExternalFileOpenResult, S
 }
 
 #[tauri::command]
-pub fn save_external_file(file_path: String, content: String) -> Result<ExternalFileWriteResult, String> {
+pub fn save_external_file(
+    file_path: String,
+    content: String,
+) -> Result<ExternalFileWriteResult, String> {
     let abs_path = PathBuf::from(file_path.trim())
         .canonicalize()
         .map_err(|e| e.to_string())?;
@@ -573,7 +585,9 @@ pub fn reveal_external_file_in_finder(file_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn import_external_file_to_anonymous(file_path: String) -> Result<ExternalFileImportResult, String> {
+pub fn import_external_file_to_anonymous(
+    file_path: String,
+) -> Result<ExternalFileImportResult, String> {
     let abs_path = PathBuf::from(file_path.trim())
         .canonicalize()
         .map_err(|e| e.to_string())?;
@@ -592,7 +606,11 @@ pub fn import_external_file_to_anonymous(file_path: String) -> Result<ExternalFi
         .map(|s| s.to_ascii_lowercase());
 
     for index in 0..10_000 {
-        let suffix = if index == 0 { String::new() } else { format!("-{}", index + 1) };
+        let suffix = if index == 0 {
+            String::new()
+        } else {
+            format!("-{}", index + 1)
+        };
         let file_name = match ext.as_deref() {
             Some(ext) if !ext.is_empty() => format!("{}{suffix}.{}", stem, ext),
             _ => format!("{}{suffix}", stem),
@@ -673,9 +691,17 @@ pub fn resolve_editor_file_abs(root: String, rel: String) -> Result<String, Stri
 }
 
 #[tauri::command]
-pub fn create_editor_file(root: String, rel: Option<String>, initial_content: Option<String>) -> Result<EditorWriteResult, String> {
+pub fn create_editor_file(
+    root: String,
+    rel: Option<String>,
+    initial_content: Option<String>,
+) -> Result<EditorWriteResult, String> {
     let base = editor_root_dir(root.trim())?;
-    let path = match rel.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
+    let path = match rel
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
         Some(rel) => resolve_target_under_root(&base, rel)?,
         None if root.trim() == "anonymous" => next_untitled_path(&base)?,
         None => return Err("Invalid path".into()),
@@ -697,7 +723,11 @@ pub fn create_editor_file(root: String, rel: Option<String>, initial_content: Op
 }
 
 #[tauri::command]
-pub fn write_editor_file(root: String, rel: String, content: String) -> Result<EditorWriteResult, String> {
+pub fn write_editor_file(
+    root: String,
+    rel: String,
+    content: String,
+) -> Result<EditorWriteResult, String> {
     let base = editor_root_dir(root.trim())?;
     let path = resolve_target_under_root(&base, rel.trim())?;
     let rel_path = path

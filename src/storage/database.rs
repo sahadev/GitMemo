@@ -821,7 +821,11 @@ pub fn search_smart(
     }
 
     let mut results: Vec<_> = by_path.into_values().collect();
-    results.sort_by(|a, b| b.date.cmp(&a.date).then_with(|| a.file_path.cmp(&b.file_path)));
+    results.sort_by(|a, b| {
+        b.date
+            .cmp(&a.date)
+            .then_with(|| a.file_path.cmp(&b.file_path))
+    });
     results.truncate(limit);
     Ok(results)
 }
@@ -1147,7 +1151,9 @@ mod tests {
 
         let results = search_smart(&conn, "密码", "all", 10).unwrap();
 
-        assert!(results.iter().any(|r| r.file_path == "clips/2026-05-20/fts.md"));
+        assert!(results
+            .iter()
+            .any(|r| r.file_path == "clips/2026-05-20/fts.md"));
         assert!(results
             .iter()
             .any(|r| r.file_path == "clips/2026-05-25/cjk-substring.md"));

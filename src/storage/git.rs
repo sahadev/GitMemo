@@ -2131,10 +2131,18 @@ mod tests {
         assert!(result.push_error.is_none());
 
         let remote_file = Command::new("git")
-            .args(["--git-dir", remote.to_str().unwrap(), "show", "main:second.md"])
+            .args([
+                "--git-dir",
+                remote.to_str().unwrap(),
+                "show",
+                "main:second.md",
+            ])
             .output()
             .unwrap();
         assert!(remote_file.status.success());
-        assert_eq!(String::from_utf8_lossy(&remote_file.stdout).trim(), "second");
+        assert_eq!(
+            String::from_utf8_lossy(&remote_file.stdout).trim(),
+            "second"
+        );
     }
 }

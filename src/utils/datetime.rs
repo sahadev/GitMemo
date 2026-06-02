@@ -148,13 +148,17 @@ mod tests {
 
     #[test]
     fn record_timestamp_prefers_activity_time() {
-        let md = "---\ndate: 2025-01-15T10:00:00+08:00\nupdated: 2025-03-01T09:30:00+08:00\n---\n\nHi";
+        let md =
+            "---\ndate: 2025-01-15T10:00:00+08:00\nupdated: 2025-03-01T09:30:00+08:00\n---\n\nHi";
         let t = SystemTime::UNIX_EPOCH;
         let (s, ms) = record_timestamp_for_markdown(md, t);
         let expected = DateTime::parse_from_rfc3339("2025-03-01T09:30:00+08:00")
             .unwrap()
             .with_timezone(&Local);
-        assert_eq!(s, expected.to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+        assert_eq!(
+            s,
+            expected.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+        );
         assert_eq!(ms, expected.timestamp_millis());
     }
 
@@ -176,7 +180,10 @@ mod tests {
         let t = SystemTime::UNIX_EPOCH
             + std::time::Duration::from_millis(expected.timestamp_millis() as u64);
         let (s, ms) = record_timestamp_for_markdown(md, t);
-        assert_eq!(s, expected.to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+        assert_eq!(
+            s,
+            expected.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+        );
         assert_eq!(ms, expected.timestamp_millis());
     }
 

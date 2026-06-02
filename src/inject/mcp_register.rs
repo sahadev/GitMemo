@@ -7,8 +7,8 @@ const MCP_KEY: &str = "gitmemo";
 /// Register MCP server in ~/.claude.json
 pub fn register(claude_json_path: &Path, binary_path: &str) -> Result<()> {
     let mut config: Value = if claude_json_path.exists() {
-        let content = std::fs::read_to_string(claude_json_path)
-            .context("Failed to read .claude.json")?;
+        let content =
+            std::fs::read_to_string(claude_json_path).context("Failed to read .claude.json")?;
         serde_json::from_str(&content).context("Failed to parse .claude.json")?
     } else {
         serde_json::json!({})
@@ -43,10 +43,7 @@ pub fn unregister(claude_json_path: &Path) -> Result<()> {
     let content = std::fs::read_to_string(claude_json_path)?;
     let mut config: Value = serde_json::from_str(&content)?;
 
-    if let Some(servers) = config
-        .get_mut("mcpServers")
-        .and_then(|v| v.as_object_mut())
-    {
+    if let Some(servers) = config.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
         servers.remove(MCP_KEY);
     }
 

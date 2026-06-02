@@ -1,8 +1,8 @@
 //! Agent skill `gitmemo-session-log`: substantive Q&A summaries as normal conversation markdown
 //! under `conversations/{YYYY-MM}/`, same path rule as CLAUDE.md / global Cursor rule — no extra subfolders.
 
-use anyhow::Result;
 use crate::utils::i18n::Lang;
+use anyhow::Result;
 
 fn skill_zh(sync_dir: &str) -> String {
     format!(

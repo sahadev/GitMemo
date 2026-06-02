@@ -146,13 +146,19 @@ pub fn generate_ssh_key(git_url: String) -> Result<SshKeyCandidate, String> {
 }
 
 #[tauri::command]
-pub async fn init_gitmemo(app_handle: AppHandle, request: InitRequest) -> Result<InitResult, String> {
+pub async fn init_gitmemo(
+    app_handle: AppHandle,
+    request: InitRequest,
+) -> Result<InitResult, String> {
     tokio::task::spawn_blocking(move || init_gitmemo_sync(request, Some(app_handle)))
         .await
         .map_err(|e| format!("Task join error: {e}"))?
 }
 
-fn init_gitmemo_sync(request: InitRequest, app_handle: Option<AppHandle>) -> Result<InitResult, String> {
+fn init_gitmemo_sync(
+    request: InitRequest,
+    app_handle: Option<AppHandle>,
+) -> Result<InitResult, String> {
     let progress = InitProgressReporter::new(app_handle, &request.lang);
     progress.running(
         "prepare",
@@ -406,7 +412,11 @@ fn init_gitmemo_android_sync(
             return Ok(result);
         }
     }
-    progress.ok("validate", "Remote input validated.", "远程仓库信息校验完成。");
+    progress.ok(
+        "validate",
+        "Remote input validated.",
+        "远程仓库信息校验完成。",
+    );
 
     progress.running(
         "directories",
@@ -495,11 +505,7 @@ fn init_gitmemo_android_sync(
         match git::pull(&sync_dir) {
             Ok(true) => {
                 result.add_ok("pull", "Remote content pulled");
-                progress.ok(
-                    "pull",
-                    "Remote content pulled.",
-                    "远程仓库内容已拉取。",
-                );
+                progress.ok("pull", "Remote content pulled.", "远程仓库内容已拉取。");
             }
             Ok(false) => {
                 result.add_ok("pull", "No remote content pulled");
@@ -511,11 +517,7 @@ fn init_gitmemo_android_sync(
             }
             Err(e) => {
                 result.add_err("pull", &format!("Pull failed: {e}"));
-                progress.error(
-                    "pull",
-                    "Remote pull failed.",
-                    "远程仓库拉取失败。",
-                );
+                progress.error("pull", "Remote pull failed.", "远程仓库拉取失败。");
                 return Ok(result);
             }
         }

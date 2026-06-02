@@ -11,12 +11,19 @@ pub fn cmd_status(sync_dir: &Path) -> Result<()> {
     println!();
 
     if !sync_dir.exists() {
-        let msg = t.not_initialized().replace("{}", &style("gitmemo init").bold().to_string());
+        let msg = t
+            .not_initialized()
+            .replace("{}", &style("gitmemo init").bold().to_string());
         println!("  {}", msg);
         return Ok(());
     }
 
-    println!("  {}: {} {}", t.data_dir(), sync_dir.display(), style("✓").green());
+    println!(
+        "  {}: {} {}",
+        t.data_dir(),
+        sync_dir.display(),
+        style("✓").green()
+    );
 
     // Check config
     let config_path = utils::config::Config::config_path();

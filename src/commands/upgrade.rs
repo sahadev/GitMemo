@@ -36,7 +36,12 @@ fn detect_platform() -> Result<&'static str> {
 /// Fetch the latest release info from GitHub
 fn fetch_latest_release() -> Result<Release> {
     let output = Command::new("curl")
-        .args(["-sL", "-H", "Accept: application/vnd.github+json", GITHUB_API_RELEASES])
+        .args([
+            "-sL",
+            "-H",
+            "Accept: application/vnd.github+json",
+            GITHUB_API_RELEASES,
+        ])
         .output()
         .context("Failed to fetch release info from GitHub")?;
 
@@ -44,8 +49,8 @@ fn fetch_latest_release() -> Result<Release> {
         return Err(anyhow!("GitHub API request failed"));
     }
 
-    let release: Release = serde_json::from_slice(&output.stdout)
-        .context("Failed to parse GitHub API response")?;
+    let release: Release =
+        serde_json::from_slice(&output.stdout).context("Failed to parse GitHub API response")?;
 
     Ok(release)
 }
@@ -109,8 +114,16 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
 
     let latest_version = release.tag_name.trim_start_matches('v');
 
-    println!("  {} {}", i18n.upgrade_current(), style(CURRENT_VERSION).yellow());
-    println!("  {} {}", i18n.upgrade_latest(), style(latest_version).green());
+    println!(
+        "  {} {}",
+        i18n.upgrade_current(),
+        style(CURRENT_VERSION).yellow()
+    );
+    println!(
+        "  {} {}",
+        i18n.upgrade_latest(),
+        style(latest_version).green()
+    );
 
     // Compare versions
     if latest_version == CURRENT_VERSION {
@@ -128,7 +141,9 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
     let platform = detect_platform()?;
 
     // Find the matching asset
-    let asset = release.assets.iter()
+    let asset = release
+        .assets
+        .iter()
         .find(|a| a.name == platform)
         .ok_or_else(|| anyhow!("No binary found for platform: {}", platform))?;
 
@@ -161,8 +176,7 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
 
     // Backup current binary if it exists
     if install_path.exists() {
-        fs::copy(&install_path, &backup_path)
-            .context("Failed to backup current binary")?;
+        fs::copy(&install_path, &backup_path).context("Failed to backup current binary")?;
     }
 
     // Try direct replacement
@@ -171,7 +185,11 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
             // Success - clean up backup
             let _ = fs::remove_file(&backup_path);
             println!("\n{}", style(i18n.upgrade_success()).green().bold());
-            println!("  {} {}", i18n.upgrade_version(), style(latest_version).yellow());
+            println!(
+                "  {} {}",
+                i18n.upgrade_version(),
+                style(latest_version).yellow()
+            );
 
             // If we updated a different location than current binary, warn user
             if let Ok(current) = current_binary_path() {
@@ -187,14 +205,22 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
             println!("\n{}", style(i18n.upgrade_need_sudo()).yellow());
 
             let status = Command::new("sudo")
-                .args(["mv", temp_file.to_str().unwrap(), install_path.to_str().unwrap()])
+                .args([
+                    "mv",
+                    temp_file.to_str().unwrap(),
+                    install_path.to_str().unwrap(),
+                ])
                 .status()
                 .context("Failed to execute sudo mv")?;
 
             if status.success() {
                 let _ = fs::remove_file(&backup_path);
                 println!("\n{}", style(i18n.upgrade_success()).green().bold());
-                println!("  {} {}", i18n.upgrade_version(), style(latest_version).yellow());
+                println!(
+                    "  {} {}",
+                    i18n.upgrade_version(),
+                    style(latest_version).yellow()
+                );
             } else {
                 // Restore backup
                 if backup_path.exists() {

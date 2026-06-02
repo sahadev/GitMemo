@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::utils::i18n::Lang;
+use anyhow::Result;
 
 const MARKER_START: &str = "<!-- [gitmemo:start] -->";
 const MARKER_END: &str = "<!-- [gitmemo:end] -->";
