@@ -16,7 +16,7 @@ import desktopScreenshot from '../assets/screenshot-20260409-080849.png'
 import mobileCompare from '../assets/mobile-desktop-compare-20260524.png'
 import { useI18n } from '../i18n/useI18n'
 
-type VisualKind = 'clipboard' | 'terminal' | 'mobile' | 'markdown' | 'aiSave' | 'aiReuse'
+type VisualKind = 'clipboard' | 'terminal' | 'mobile' | 'markdown' | 'aiSave' | 'branch' | 'aiReuse'
 type Tone = 'blue' | 'green' | 'amber' | 'violet' | 'rose' | 'slate'
 
 interface Scenario {
@@ -113,6 +113,15 @@ const scenarios: Scenario[] = [
     pointKeys: ['scenario.aiSave.point1', 'scenario.aiSave.point2'],
     visual: 'aiSave',
     tone: 'rose',
+  },
+  {
+    icon: GitBranch,
+    kickerKey: 'scenario.branch.kicker',
+    titleKey: 'scenario.branch.title',
+    descKey: 'scenario.branch.desc',
+    pointKeys: ['scenario.branch.point1', 'scenario.branch.point2'],
+    visual: 'branch',
+    tone: 'green',
   },
   {
     icon: Bot,
@@ -332,6 +341,47 @@ function AiSaveVisual({ tone }: { tone: Tone }) {
   )
 }
 
+function BranchVisual({ tone }: { tone: Tone }) {
+  const style = toneStyles[tone]
+  return (
+    <Stage tone={tone}>
+      <div className="grid min-h-[318px] items-center gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+        <WindowChrome label="AI collaborator">
+          <div className="space-y-3 bg-[#101316] p-4 font-mono text-[11px] leading-relaxed">
+            <p className="text-[#7f8b99]">metabot + claude + codex</p>
+            <div className="rounded border border-[#30d158]/30 bg-[#30d158]/14 px-3 py-2 text-[#ecfdf5]">
+              Archive the project scene for feature/rcs-group-chat.
+            </div>
+            <p className="text-[#9ae6b4]">✓ branch context archived</p>
+          </div>
+        </WindowChrome>
+
+        <div className="rounded-lg border border-border bg-surface p-5 shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <GitBranch size={15} className={style.text} />
+              <span className="truncate font-mono text-xs font-semibold text-text">feature/rcs-group-chat</span>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${style.bg} ${style.border} ${style.text}`}>context</span>
+          </div>
+          <div className="space-y-3">
+            {[
+              ['Goal', 'RCS group chat workflow and message routing'],
+              ['State', 'Progress, decisions, and open risks saved'],
+              ['Next', 'Read this context before the next AI session'],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded border border-border bg-surface-2 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-text">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Stage>
+  )
+}
+
 function AiReuseVisual({ tone }: { tone: Tone }) {
   const style = toneStyles[tone]
   return (
@@ -384,6 +434,8 @@ function ScenarioVisual({ kind, tone }: { kind: VisualKind; tone: Tone }) {
       return <MarkdownVisual tone={tone} />
     case 'aiSave':
       return <AiSaveVisual tone={tone} />
+    case 'branch':
+      return <BranchVisual tone={tone} />
     case 'aiReuse':
       return <AiReuseVisual tone={tone} />
   }

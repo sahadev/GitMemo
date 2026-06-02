@@ -8,15 +8,18 @@
 
 ## Introduction
 
-> **Your AI chats and notes sync automatically to Git.** GitMemo helps you turn AI conversations, notes, and everyday work into a Git-backed personal knowledge repo.
+> **Turn temporary information into long-term knowledge that is searchable, syncable, and reusable.**
+
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system. It saves clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository you control, so both you and AI tools can search, read, sync, export, and build on them.
 
 Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, and Codex users.
 
 ## Features
 
-- **Git-backed knowledge repo** — AI conversations, notes, and everyday work flow into one directory managed by Git; remote sync stays optional
+- **Git-native knowledge capture** — Clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas flow into one directory managed by Git; remote sync stays optional
 - **Conversation capture for supported AI tools** — Claude Code and Cursor use rules, skills, hooks, and MCP where available; Codex sessions are imported from native local logs with `gitmemo capture`
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
+- **Project scene archival** — Ask MetaBot, Claude, Codex, or Cursor to save the current branch, task goal, progress, risks, and next actions into GitMemo, so future work can resume across tools, devices, and time without rebuilding the context
 - **Multi-editor** — Supports Claude Code, Cursor, and Codex
 - **Notes** — Scratch notes and manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled

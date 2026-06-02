@@ -32,8 +32,8 @@ const en: Record<string, string> = {
   // Hero
   'hero.title1': 'All important records',
   'hero.title2': 'are saved into GitMemo',
-  'hero.subtitle': 'A free, open-source, local-first note-taking app built on Git.',
-  'hero.subtitle2': "Whether it's ideas, screenshots, text, files, or AI output, everything can be saved into your own Git repo for search, sync, and version history.",
+  'hero.subtitle': 'A local-first, Git-native personal knowledge capture and reuse system.',
+  'hero.subtitle2': 'Clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas can be saved into your own Git repo, then searched, synced, exported, and reused by you or AI.',
   'hero.badge': 'Free and open source · local-first',
   'hero.download': 'Download',
   'hero.github': 'View on GitHub',
@@ -82,8 +82,8 @@ const en: Record<string, string> = {
   // Scenarios
   'scenario.label': 'Daily Scenarios',
   'scenario.case': 'Use case',
-  'scenario.title': 'The things you usually lose can become long-term knowledge',
-  'scenario.subtitle': 'Screenshots, copied text, Codex answers, Markdown drafts, files, and AI outputs can all flow into GitMemo, then be searched, synced, exported, and reused.',
+  'scenario.title': 'Temporary information becomes long-term knowledge',
+  'scenario.subtitle': 'Screenshots, copied text, Codex answers, Markdown drafts, files, terminal output, and AI work can all flow into GitMemo, then be searched, synced, exported, and reused.',
   'scenario.clipboard.kicker': 'Capture flow',
   'scenario.clipboard.title': 'Screenshots and copies stop being temporary',
   'scenario.clipboard.desc': 'Turn on clipboard monitoring, then keep taking screenshots or copying text. GitMemo can capture those moments and keep them in your own knowledge repo.',
@@ -109,6 +109,11 @@ const en: Record<string, string> = {
   'scenario.aiSave.desc': 'When an AI assistant produces a meaningful plan, report, analysis, or architecture note, it can save the result into GitMemo instead of leaving it inside a chat window.',
   'scenario.aiSave.point1': 'Long-form AI output can be saved as manuals.',
   'scenario.aiSave.point2': 'Important decisions are versioned in Git.',
+  'scenario.branch.kicker': 'Project memory',
+  'scenario.branch.title': 'Archive the project scene for future AI sessions',
+  'scenario.branch.desc': 'Tell MetaBot, Claude, Codex, or Cursor to save the current branch, task goal, progress, risks, and next actions into GitMemo. Later, another AI session can read that context and continue the work.',
+  'scenario.branch.point1': 'A live project branch becomes reusable long-term memory.',
+  'scenario.branch.point2': 'Switch tools, devices, or time slots without rebuilding the background.',
   'scenario.aiReuse.kicker': 'AI reuse',
   'scenario.aiReuse.title': 'Let AI read old material and create again',
   'scenario.aiReuse.desc': 'Saved notes, clips, files, and conversations are not isolated data. AI tools can read selected GitMemo content, summarize it, rewrite it, or build new work from it.',
@@ -117,8 +122,8 @@ const en: Record<string, string> = {
 
   // Features
   'feat.label': 'Core Capabilities',
-  'feat.title': 'Capture, organize, sync, and reuse',
-  'feat.subtitle': 'The scenarios above are built from a small set of practical capabilities that keep important information moving into your own Git-backed library.',
+  'feat.title': 'Capture, organize, sync, export, and reuse',
+  'feat.subtitle': 'The scenarios above are built from a small set of practical capabilities that move important information into your own Git-native knowledge system.',
   'feat.conversations.title': 'Save AI Conversations',
   'feat.conversations.desc': 'Save Claude Code and Cursor sessions, and import Codex local session logs, as searchable Markdown. Works like a second brain for your AI coding workflows.',
   'feat.notes.title': 'Markdown Notes & Editor',
@@ -227,8 +232,8 @@ const en: Record<string, string> = {
   'start.step3': 'Choose local-only or remote sync (GitHub, GitLab, Gitee)',
 
   // Footer
-  'footer.cta.title': 'Your notes and AI knowledge, finally in one place',
-  'footer.cta.subtitle': 'Join developers who use GitMemo as their daily Markdown editor, note-taking app, and AI conversation archive. Free and open source forever.',
+  'footer.cta.title': 'Temporary information, finally turned into lasting knowledge',
+  'footer.cta.subtitle': 'Use GitMemo to capture clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository you control.',
   'footer.getStarted': 'Get Started',
   'footer.star': 'Star on GitHub',
   'footer.mit': 'Open source under MIT',
@@ -241,9 +246,9 @@ const zh: Record<string, string> = {
   // Hero
   'hero.title1': '所有重要记录',
   'hero.title2': '都轻松存进 GitMemo',
-  'hero.subtitle': '基于Git的开源免费、本地优先的新一代笔记产品',
-  'hero.subtitle2': `无论是灵感、截图、文字、文件 还是 AI 的输出，都能集中保存到自己的 Git 仓库
-  支持搜索、同步以及版本管理。`,
+  'hero.subtitle': '本地优先、Git 原生的个人知识捕获与复用系统',
+  'hero.subtitle2': `剪贴板、截图、Markdown、AI 对话、终端输出、外部文件和灵感记录，都能统一保存到你自己控制的 Git 仓库中
+  让人和 AI 都能搜索、阅读、同步、导出和二次创作。`,
   'hero.badge': '免费开源 · 本地优先',
   'hero.download': '下载',
   'hero.github': '在 GitHub 查看',
@@ -292,8 +297,8 @@ const zh: Record<string, string> = {
   // Scenarios
   'scenario.label': '日常场景',
   'scenario.case': '场景',
-  'scenario.title': '那些最容易丢的内容，可以变成长期知识',
-  'scenario.subtitle': '截图、复制的文字、终端里的 Codex 回答、Markdown 草稿、文件和 AI 输出，都可以进入 GitMemo，之后再搜索、同步、导出和复用。',
+  'scenario.title': '临时信息，可以变成长期知识',
+  'scenario.subtitle': '截图、复制的文字、终端里的 Codex 回答、Markdown 草稿、文件、终端输出和 AI 产物，都可以进入 GitMemo，之后再搜索、同步、导出和复用。',
   'scenario.clipboard.kicker': '捕获流',
   'scenario.clipboard.title': '截图和复制，不再只是临时动作',
   'scenario.clipboard.desc': '开启剪贴板监控后，你可以不停截图、复制文字、复制图片。GitMemo 会把这些瞬间沉淀到自己的知识库里。',
@@ -319,6 +324,11 @@ const zh: Record<string, string> = {
   'scenario.aiSave.desc': '当 AI 产出有价值的方案、报告、分析或架构说明时，可以直接保存进 GitMemo，而不是留在一次性的聊天窗口里。',
   'scenario.aiSave.point1': '长篇 AI 输出可以沉淀为手册。',
   'scenario.aiSave.point2': '重要判断和方案进入 Git 版本管理。',
+  'scenario.branch.kicker': '项目记忆',
+  'scenario.branch.title': '项目现场，随时归档',
+  'scenario.branch.desc': '告诉 MetaBot、Claude、Codex 或 Cursor：把当前分支、任务目标、实现进度、风险和下一步计划保存到 GitMemo。以后换工具、换设备、换时间继续工作时，直接读取上下文。',
+  'scenario.branch.point1': '正在推进的项目分支变成可复用的长期记忆。',
+  'scenario.branch.point2': '未来 AI 续接时，不必重新解释来龙去脉。',
   'scenario.aiReuse.kicker': 'AI 复用',
   'scenario.aiReuse.title': '旧资料还能被 AI 重新读取和创作',
   'scenario.aiReuse.desc': '保存过的笔记、剪贴板、文件和对话不是数据孤岛。AI 可以读取指定内容，继续总结、改写、续写或生成新的文档。',
@@ -327,8 +337,8 @@ const zh: Record<string, string> = {
 
   // Features
   'feat.label': '基础能力',
-  'feat.title': '捕获、整理、同步、复用，一条链路打通',
-  'feat.subtitle': '上面的场景并不是孤立功能，而是由一组简单但完整的能力组合而成，让重要信息持续进入你自己的 Git 知识库。',
+  'feat.title': '捕获、整理、同步、导出、复用，一条链路打通',
+  'feat.subtitle': '上面的场景并不是孤立功能，而是由一组简单但完整的能力组合而成，让重要信息持续进入你自己的 Git 原生知识系统。',
   'feat.conversations.title': '保存 AI 对话',
   'feat.conversations.desc': '保存 Claude Code 和 Cursor 会话，并从 Codex 本机会话日志导入对话，统一变成可搜索的 Markdown。AI 编程工作流的第二大脑。',
   'feat.notes.title': 'Markdown 笔记编辑器',
@@ -437,8 +447,8 @@ const zh: Record<string, string> = {
   'start.step3': '选择本地或远程同步（GitHub、GitLab、Gitee）',
 
   // Footer
-  'footer.cta.title': '笔记、AI 对话、知识管理，终于有了统一的归宿',
-  'footer.cta.subtitle': '加入那些用 GitMemo 作为日常 Markdown 编辑器、笔记应用和 AI 对话归档工具的开发者。免费且永久开源。',
+  'footer.cta.title': '把临时信息，变成长期知识',
+  'footer.cta.subtitle': '用 GitMemo 把剪贴板、截图、Markdown、AI 对话、终端输出、外部文件和灵感记录保存进你自己控制的 Git 仓库。',
   'footer.getStarted': '开始使用',
   'footer.star': '在 GitHub Star',
   'footer.mit': '基于 MIT 许可证开源',

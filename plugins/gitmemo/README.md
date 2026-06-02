@@ -1,12 +1,13 @@
 # GitMemo — Claude Code Plugin
 
-> Auto-sync your AI conversations and notes to Git
+> Save AI conversations, notes, and project context into GitMemo.
 
-GitMemo automatically records your conversations with Claude Code as Markdown files and syncs them to a Git repository. Zero background process. Zero effort.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system. In Claude Code, it can save conversations, notes, branch summaries, project context, and long-form AI output as Markdown in a Git repository you control.
 
 ## What This Plugin Does
 
 - **Auto-record** — Conversations saved as Markdown, completely transparent
+- **Project scene archival** — Save branch names, task goals, progress, risks, and next actions for future AI sessions
 - **Git sync** — Auto commit & push after each file write via native hooks
 - **MCP integration** — Search history and create notes directly from Claude Code
 - **Notes** — Scratch notes and manuals — one command to create

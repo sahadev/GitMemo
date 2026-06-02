@@ -1,6 +1,6 @@
 # GitMemo Technical Architecture
 
-GitMemo is a local-first knowledge store for AI conversations, notes, clipboard captures, imported files, editor plans, and editor configuration snapshots. The project is organized as a shared Rust core with multiple entry points: CLI, MCP server, Tauri desktop app, editor integrations, and a marketing website.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system for clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, ideas, branch summaries, editor plans, and editor configuration snapshots. The project is organized as a shared Rust core with multiple entry points: CLI, MCP server, Tauri desktop app, editor integrations, and a marketing website.
 
 The core product boundary is the GitMemo sync directory, normally `~/.gitmemo`. User data is stored as Markdown and assets in a Git repository. Search and listing use a local SQLite FTS index under `.metadata/`, which is intentionally not synced.
 

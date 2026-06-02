@@ -124,7 +124,7 @@ gitmemo/
 name = "gitmemo"
 version = "0.1.0"
 edition = "2021"
-description = "Auto-sync your AI conversations and notes to Git"
+description = "Local-first Git-native personal knowledge capture and reuse system"
 license = "MIT"
 repository = "https://github.com/sahadev/GitMemo"
 

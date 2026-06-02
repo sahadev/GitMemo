@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitMemo App Design System</title>
+  <style>
+    :root {
+      --bg: #1a1817;
+      --bg-card: #252220;
+      --bg-hover: #302c2c;
+      --border: rgba(253, 252, 252, 0.08);
+      --border-strong: #646262;
+      --text: #fdfcfc;
+      --text-secondary: #9a9898;
+      --accent: #007aff;
+      --green: #30d158;
+      --yellow: #ff9f0a;
+      --red: #ff3b30;
+      --purple: #c084fc;
+      --pink: #f472b6;
+      --radius: 8px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 232px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid var(--border);
+      background: var(--bg-card);
+      padding: 18px 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 6px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    .logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin-top: 18px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .nav a:first-child,
+    .nav a:hover {
+      background: var(--bg-hover);
+      color: var(--accent);
+    }
+
+    .main {
+      min-width: 0;
+      padding: 32px;
+    }
+
+    .hero {
+      max-width: 980px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 10px 0 12px;
+      font-size: 28px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    section {
+      max-width: 980px;
+      padding: 30px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .swatch {
+      min-height: 82px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+
+    .swatch span {
+      display: block;
+      height: 36px;
+    }
+
+    .swatch div {
+      padding: 9px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      word-break: break-word;
+    }
+
+    .mock {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr);
+      min-height: 300px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .mock-sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 12px;
+    }
+
+    .mock-nav {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .mock-nav div {
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .mock-nav div:first-child {
+      background: var(--bg-hover);
+      color: var(--accent);
+    }
+
+    .mock-main {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-width: 0;
+    }
+
+    .mock-list {
+      border-right: 1px solid var(--border);
+      background: #1d1b1a;
+    }
+
+    .mock-row {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mock-row.active {
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+
+    .mock-detail {
+      min-width: 0;
+      background: var(--bg);
+    }
+
+    .toolbar {
+      min-height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+    }
+
+    .markdown {
+      padding: 22px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, "PingFang SC", sans-serif;
+      line-height: 1.72;
+    }
+
+    .markdown h3 {
+      font-family: inherit;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .markdown code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--pink);
+      background: color-mix(in srgb, var(--pink) 16%, transparent);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      color: var(--text-secondary);
+    }
+
+    .rule strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 7px;
+      background: var(--accent);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+    }
+
+    .do-dont {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .do-dont ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .main { padding: 20px; }
+      .grid, .two, .palette, .do-dont { grid-template-columns: 1fr; }
+      .mock { grid-template-columns: 1fr; }
+      .mock-main { grid-template-columns: 1fr; }
+      .mock-sidebar, .mock-list { border-right: 0; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">G</div>
+        <div>GitMemo App Design</div>
+      </div>
+      <nav class="nav">
+        <a href="#overview">01 概览</a>
+        <a href="#surface">02 界面模型</a>
+        <a href="#color">03 颜色</a>
+        <a href="#type">04 排版</a>
+        <a href="#layout">05 布局</a>
+        <a href="#components">06 组件</a>
+        <a href="#rules">07 规则</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header id="overview" class="hero">
+        <div class="eyebrow">Desktop and Android · Design System v1.0</div>
+        <h1>GitMemo 软件本身应像一个安静、耐用、密集但不拥挤的知识工作台。</h1>
+        <p>官网负责场景叙事；软件负责日常捕获、搜索、阅读、编辑、同步和归档。应用内部不要做营销式 hero，也不要用装饰性视觉抢占工作空间。</p>
+      </header>
+
+      <section id="surface">
+        <h2>界面模型</h2>
+        <div class="mock">
+          <div class="mock-sidebar">
+            <strong>GitMemo</strong>
+            <div class="mock-nav">
+              <div>Dashboard</div>
+              <div>Search</div>
+              <div>AI Records</div>
+              <div>Notes</div>
+              <div>Clipboard</div>
+              <div>Settings</div>
+            </div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-list">
+              <div class="mock-row active">
+                <strong>feature/rcs-group-chat</strong>
+                <div class="small">plans · updated just now</div>
+              </div>
+              <div class="mock-row">
+                <strong>Codex terminal answer</strong>
+                <div class="small">clips · 2026-06-02</div>
+              </div>
+              <div class="mock-row">
+                <strong>Android sync note</strong>
+                <div class="small">manual · synced</div>
+              </div>
+            </div>
+            <div class="mock-detail">
+              <div class="toolbar">
+                <span>notes/manual/branch-context.md</span>
+                <span class="icon-row"><span class="icon">✎</span><span class="icon">★</span><span class="icon">↧</span></span>
+              </div>
+              <div class="markdown">
+                <h3>Branch Context</h3>
+                <p>应用内容区优先服务阅读与编辑。Markdown 视图使用系统比例字体，路径、元数据、按钮与导航保持等宽字体。</p>
+                <p>代码、路径和命令使用 <code>JetBrains Mono</code>，内容可选择、可复制、可导出。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="color">
+        <h2>颜色系统</h2>
+        <div class="palette">
+          <div class="swatch"><span style="background:#1a1817"></span><div>--bg<br>#1a1817</div></div>
+          <div class="swatch"><span style="background:#252220"></span><div>--bg-card<br>#252220</div></div>
+          <div class="swatch"><span style="background:#302c2c"></span><div>--bg-hover<br>#302c2c</div></div>
+          <div class="swatch"><span style="background:#007aff"></span><div>--accent<br>#007aff</div></div>
+          <div class="swatch"><span style="background:#30d158"></span><div>--green<br>#30d158</div></div>
+          <div class="swatch"><span style="background:#f472b6"></span><div>--pink<br>#f472b6</div></div>
+        </div>
+        <p style="margin-top:14px">颜色只表达真实语义：蓝色用于主操作和搜索，黄色用于手册/计划/警告，紫色用于 scratch，粉色用于剪贴板，绿色用于成功，红色用于失败或危险。</p>
+      </section>
+
+      <section id="type">
+        <h2>排版规则</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>应用外壳</h3>
+            <p>侧边栏、列表、按钮、路径、设置和元数据使用 JetBrains Mono，保持开发者工具的精确感。</p>
+          </div>
+          <div class="card">
+            <h3>阅读表面</h3>
+            <p>Markdown 阅读和 PDF 导出使用系统比例字体。长文阅读优先，行高约 1.72。</p>
+          </div>
+          <div class="card">
+            <h3>字号</h3>
+            <p>应用内部标题控制在 16-20px；列表标题 13-15px；元数据 10-11px。不要使用官网式大标题。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="layout">
+        <h2>布局原则</h2>
+        <div class="rule-list">
+          <div class="rule"><span class="dot"></span><div><strong>Desktop</strong>固定左侧栏，内容使用列表/详情分栏；列表宽度可调整；详情区保持稳定工具栏。</div></div>
+          <div class="rule"><span class="dot"></span><div><strong>Mobile</strong>使用底部导航和列表/详情栈，不把桌面分栏硬塞到手机上。</div></div>
+          <div class="rule"><span class="dot"></span><div><strong>页面密度</strong>桌面内容 padding 为 20px 28px；移动端为 14px；固定格式控件要有稳定尺寸。</div></div>
+        </div>
+      </section>
+
+      <section id="components">
+        <h2>组件规范</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Sidebar</h3>
+            <p>200px 宽；图标 16px；导航行 10px 16px；激活态使用 hover 面和 accent 文本。</p>
+          </div>
+          <div class="card">
+            <h3>Toolbar</h3>
+            <p>紧凑、稳定、路径可截断。常用动作用图标按钮：返回、编辑、保存、收藏、导出、更多。</p>
+          </div>
+          <div class="card">
+            <h3>Cards</h3>
+            <p>只用于统计、设置组、导入结果、搜索结果等真实分组。半径 6-8px，无重阴影。</p>
+          </div>
+          <div class="card">
+            <h3>Lists</h3>
+            <p>整行可点击，用 border-bottom 分隔。标题单行截断，预览最多两行，元数据始终可见。</p>
+          </div>
+          <div class="card">
+            <h3>Markdown</h3>
+            <p>内容可选择。代码块用背景、边框和 6px 半径；图片最大宽度 100%，半径 4px。</p>
+          </div>
+          <div class="card">
+            <h3>PDF</h3>
+            <p>导出时使用白底、深色文字、系统字体、12pt 正文和约 760px 最大宽度，不带应用外壳。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="rules">
+        <h2>执行规则</h2>
+        <div class="do-dont">
+          <div class="card">
+            <h3><span class="badge">Do</span></h3>
+            <ul>
+              <li>保持安静、密集、可预测。</li>
+              <li>使用真实路径、时间、数量和同步状态。</li>
+              <li>优先用边框和背景变化建立结构。</li>
+              <li>尊重桌面与 Android 的导航差异。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><span class="badge">Don't</span></h3>
+            <ul>
+              <li>不要在应用里加入营销 hero。</li>
+              <li>不要使用重阴影、装饰渐变或嵌套卡片。</li>
+              <li>不要隐藏关键元数据。</li>
+              <li>不要让 Markdown、代码、路径和文件名横向溢出。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

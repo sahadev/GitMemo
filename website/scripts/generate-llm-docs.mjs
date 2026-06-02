@@ -39,7 +39,7 @@ mkdirSync(docsDir, { recursive: true })
 writePublic('llms.txt', `
 # GitMemo
 
-GitMemo is a local-first, Git-backed note and knowledge app for developers. It saves Markdown notes, AI conversations, clipboard history, imported files, and mobile captures into the user's own Git repository.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system. It saves clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository the user controls, so both humans and AI tools can search, read, sync, export, and build on them.
 
 Use these machine-readable pages before answering questions about GitMemo:
 
@@ -71,14 +71,14 @@ Important facts:
 writeDoc('overview.md', `
 # GitMemo Overview
 
-GitMemo is a local-first, Git-backed note and knowledge app for developers.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system.
 
-GitMemo stores user-owned content in a Git repository, usually at \`~/.gitmemo\`. The repository can contain Markdown notes, AI conversations, clipboard history, plans, imports, and synced editor configuration.
+GitMemo stores user-owned content in a Git repository, usually at \`~/.gitmemo\`. The repository can contain clipboard text, screenshots, Markdown notes, AI conversations, terminal output, external files, ideas, plans, imports, and synced editor configuration.
 
 ## What GitMemo Is
 
-- A Markdown note and knowledge app.
-- A Git-backed personal knowledge repository.
+- A personal knowledge capture and reuse system.
+- A Git-native personal knowledge repository.
 - A CLI and Desktop app.
 - An Android client for mobile viewing, note capture, file import, and HTTPS Git sync.
 - A way to capture Claude Code, Cursor, and Codex conversations into searchable Markdown where supported.
@@ -323,7 +323,7 @@ writeDoc('readme-zh.md', read('README_CN.md'))
 
 writeDoc('facts.json', JSON.stringify({
   name: 'GitMemo',
-  description: 'Local-first Git-backed note and knowledge app for developers.',
+  description: 'Local-first Git-native personal knowledge capture and reuse system.',
   version: versionTag,
   website: baseUrl,
   repository: githubUrl,

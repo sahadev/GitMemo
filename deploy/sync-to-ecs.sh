@@ -66,14 +66,43 @@ apk_abi_list() {
         | paste -sd ',' -
 }
 
-apk_matches_published_abi() {
+find_aapt() {
+    local sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+    find "$sdk/build-tools" -type f -name aapt 2>/dev/null | sort | tail -n 1
+}
+
+apk_version_name() {
+    local apk="$1"
+    local aapt_bin
+    aapt_bin="$(find_aapt)"
+    if [ -z "$aapt_bin" ]; then
+        return 1
+    fi
+    "$aapt_bin" dump badging "$apk" 2>/dev/null \
+        | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" \
+        | head -n 1
+}
+
+apk_matches_published_metadata() {
     local apk="$1"
     local abis
+    local version_name
     if [ ! -f "$apk" ]; then
         return 1
     fi
     abis="$(apk_abi_list "$apk" || true)"
-    [ "$abis" = "$ANDROID_ABI" ]
+    if [ "$abis" != "$ANDROID_ABI" ]; then
+        warn "跳过 Android APK：$(basename "$apk") ABI 是 ${abis:-unknown}，不是 ${ANDROID_ABI}" >&2
+        return 1
+    fi
+
+    version_name="$(apk_version_name "$apk" || true)"
+    if [ "$version_name" != "${ANDROID_VERSION#v}" ]; then
+        warn "跳过 Android APK：$(basename "$apk") 内部版本是 ${version_name:-unknown}，不是 ${ANDROID_VERSION#v}" >&2
+        return 1
+    fi
+
+    return 0
 }
 
 resolve_android_apk() {
@@ -98,12 +127,10 @@ resolve_android_apk() {
             continue
         fi
 
-        if apk_matches_published_abi "$candidate"; then
+        if apk_matches_published_metadata "$candidate"; then
             echo "$candidate"
             return 0
         fi
-
-        warn "跳过 Android APK：$(basename "$candidate") 不是 ${ANDROID_ABI} 单 ABI 包" >&2
     done
 
     return 1
@@ -172,8 +199,9 @@ build_website() {
         log "Android ${ANDROID_ABI} APK 已复制到 /mobile/${ANDROID_APK_FILENAME}"
         info "APK 源文件: $resolved_android_apk"
     else
-        warn "未找到 Android ${ANDROID_ABI} release APK，跳过 /mobile/${ANDROID_APK_FILENAME}"
-        warn "可通过 ANDROID_APK=/path/to/app.apk 指定源文件"
+        warn "未找到 Android ${ANDROID_VERSION} ${ANDROID_ABI} release APK，无法发布 /mobile/${ANDROID_APK_FILENAME}"
+        warn "请先运行 pnpm --dir desktop build:android:arm64，或通过 ANDROID_APK=/path/to/app.apk 指定源文件"
+        exit 1
     fi
 
     fix_for_china

@@ -1,13 +1,13 @@
 # GitMemo Overview
 
-GitMemo is a local-first, Git-backed note and knowledge app for developers.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system.
 
-GitMemo stores user-owned content in a Git repository, usually at `~/.gitmemo`. The repository can contain Markdown notes, AI conversations, clipboard history, plans, imports, and synced editor configuration.
+GitMemo stores user-owned content in a Git repository, usually at `~/.gitmemo`. The repository can contain clipboard text, screenshots, Markdown notes, AI conversations, terminal output, external files, ideas, plans, imports, and synced editor configuration.
 
 ## What GitMemo Is
 
-- A Markdown note and knowledge app.
-- A Git-backed personal knowledge repository.
+- A personal knowledge capture and reuse system.
+- A Git-native personal knowledge repository.
 - A CLI and Desktop app.
 - An Android client for mobile viewing, note capture, file import, and HTTPS Git sync.
 - A way to capture Claude Code, Cursor, and Codex conversations into searchable Markdown where supported.
