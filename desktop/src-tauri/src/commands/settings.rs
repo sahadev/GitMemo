@@ -281,7 +281,35 @@ fn common_cli_candidates() -> Vec<std::path::PathBuf> {
     if let Ok(home) = std::env::var("HOME") {
         let home = std::path::PathBuf::from(home);
         candidates.push(home.join(".local").join("bin").join("gitmemo"));
+        candidates.push(home.join(".cargo").join("bin").join("gitmemo"));
+        candidates.push(home.join(".bun").join("bin").join("gitmemo"));
+        candidates.push(home.join(".volta").join("bin").join("gitmemo"));
+        candidates.push(home.join(".asdf").join("shims").join("gitmemo"));
+        candidates.push(home.join(".npm-global").join("bin").join("gitmemo"));
+        candidates.push(home.join("Library").join("pnpm").join("gitmemo"));
+        candidates.push(
+            home.join(".local")
+                .join("share")
+                .join("pnpm")
+                .join("gitmemo"),
+        );
         candidates.push(home.join("bin").join("gitmemo"));
+        if let Ok(entries) = std::fs::read_dir(home.join(".nvm").join("versions").join("node")) {
+            for entry in entries.flatten() {
+                candidates.push(entry.path().join("bin").join("gitmemo"));
+            }
+        }
+        if let Ok(entries) = std::fs::read_dir(home.join(".fnm").join("node-versions")) {
+            for entry in entries.flatten() {
+                candidates.push(
+                    entry
+                        .path()
+                        .join("installation")
+                        .join("bin")
+                        .join("gitmemo"),
+                );
+            }
+        }
     }
 
     candidates.push(std::path::PathBuf::from("/opt/homebrew/bin/gitmemo"));
@@ -298,8 +326,18 @@ fn find_gitmemo_cli() -> Option<String> {
         }
     }
 
-    let output = std::process::Command::new("which")
-        .arg("gitmemo")
+    if let Ok(output) = std::process::Command::new("which").arg("gitmemo").output() {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(path);
+            }
+        }
+    }
+
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+    let output = std::process::Command::new(shell)
+        .args(["-lc", "command -v gitmemo"])
         .output()
         .ok()?;
     if !output.status.success() {
@@ -307,7 +345,10 @@ fn find_gitmemo_cli() -> Option<String> {
     }
 
     let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    (!path.is_empty()).then_some(path)
+    if path.is_empty() || !std::path::Path::new(&path).is_file() {
+        return None;
+    }
+    Some(path)
 }
 
 #[cfg(not(target_os = "android"))]

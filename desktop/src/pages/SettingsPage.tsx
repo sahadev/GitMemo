@@ -21,7 +21,7 @@ import {
   type KeyboardShortcuts,
   type ShortcutId,
 } from "../utils/shortcuts";
-import { CLI_INSTALL_COMMAND, CLI_INSTALL_URL } from "../utils/cliInstall";
+import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 
 const IMPORT_SIZE_LIMIT_MIN_KB = 500;
 const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
@@ -489,7 +489,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       await writeText(value);
       setCopiedField(field);
       window.setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1500);
-      showToast(t("common.copied"));
+      showToast(field === "cliCommand" ? t("settings.cliCommandCopied") : t("common.copied"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -909,18 +909,6 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     >
                       {copiedField === "cliCommand" ? <Check size={11} /> : <Copy size={11} />}
                       {t("settings.copyInstallCommand")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void openUrl(CLI_INSTALL_URL)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 5,
-                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
-                        background: "var(--accent)", border: "1px solid var(--accent)", color: "#fff", fontWeight: 600,
-                      }}
-                    >
-                      <ExternalLink size={11} />
-                      {t("settings.installCli")}
                     </button>
                     <button
                       type="button"

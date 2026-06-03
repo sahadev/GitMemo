@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
 import { useAppStore, type AiRecordsTab, type NotesTab } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -13,10 +15,10 @@ import { MOBILE_DASHBOARD_BOTTOM_PADDING } from "../utils/mobileLayout";
 import {
   MessageSquare, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
-  Activity, Circle, Search, ExternalLink, Settings as SettingsIcon,
+  Activity, Circle, Search, Settings as SettingsIcon, Copy, X,
 } from "lucide-react";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
-import { CLI_INSTALL_URL } from "../utils/cliInstall";
+import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 
 interface AppStats {
   conversations: number;
@@ -49,6 +51,7 @@ const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
+const CLI_CARD_DISMISSED_KEY = "gitmemo-dashboard-cli-card-dismissed";
 const mobileContentCategories = new Set(["conversation", "manual", "scratch", "clip", "plan"]);
 
 const formatSize = (sizeKb: number) => (
@@ -72,8 +75,13 @@ function saveCache(c: DashboardCache) {
   try { sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(c)); } catch {}
 }
 
+function loadCliCardDismissed() {
+  try { return localStorage.getItem(CLI_CARD_DISMISSED_KEY) === "true"; } catch { return false; }
+}
+
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
   const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, cliStatus, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
@@ -100,11 +108,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [error, setError] = useState("");
   const [reviewItem, setReviewItem] = useState<RecentItem | null>(null);
   const [reviewPreview, setReviewPreview] = useState("");
+  const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
 
   // Derived state
   const editorConfigured = isDesktop && (claudeEnabled || cursorEnabled);
   const cliNeedsAttention = !cliStatus?.installed || (cliStatus.installed && !cliStatus.version_matches);
-  const showCliCapabilityCard = isDesktop && (!editorConfigured || cliNeedsAttention);
+  const showCliCapabilityCard = isDesktop && !cliCardDismissed && cliNeedsAttention;
   const cliStatusText = !cliStatus
     ? t("dashboard.cliCardChecking")
     : cliStatus.installed
@@ -117,6 +126,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
     [gitStatus?.git_remote, gitStatus?.last_commit_id],
   );
+  const copyCliInstallCommand = useCallback(async () => {
+    try {
+      await writeText(CLI_INSTALL_COMMAND);
+      showToast(t("dashboard.cliCardCommandCopied"));
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  }, [showToast, t]);
+  const dismissCliCard = useCallback(() => {
+    setCliCardDismissed(true);
+    try { localStorage.setItem(CLI_CARD_DISMISSED_KEY, "true"); } catch {}
+  }, []);
 
   // Load content stats only (no git status — that comes from global useSync)
   const loadData = useCallback(async () => {
@@ -422,26 +443,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 5, maxWidth: 620 }}>
                 {t("dashboard.cliCardDesc")}
               </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 9 }}>
-                {[t("dashboard.cliCardFeatureInit"), t("dashboard.cliCardFeatureCapture"), t("dashboard.cliCardFeatureMcp")].map((label) => (
-                  <span key={label} style={{
-                    fontSize: 10,
-                    color: "var(--text-secondary)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 999,
-                    padding: "3px 8px",
-                    background: "var(--bg)",
-                  }}>
-                    {label}
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => void openUrl(CLI_INSTALL_URL)}
+              onClick={() => void copyCliInstallCommand()}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -456,8 +463,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 fontWeight: 600,
               }}
             >
-              <ExternalLink size={13} />
-              {cliStatus?.installed ? t("dashboard.cliCardUpdate") : t("dashboard.cliCardInstall")}
+              <Copy size={13} />
+              {t("dashboard.cliCardCopyInstallCommand")}
             </button>
             <button
               type="button"
@@ -477,6 +484,26 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               title={t("nav.settings")}
             >
               <SettingsIcon size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={dismissCliCard}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "var(--bg)",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+              }}
+              title={t("dashboard.cliCardDismiss")}
+              aria-label={t("dashboard.cliCardDismiss")}
+            >
+              <X size={14} />
             </button>
           </div>
         </div>
