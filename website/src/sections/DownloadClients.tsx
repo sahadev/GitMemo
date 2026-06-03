@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/useI18n'
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
-const FIXED_ANDROID_VERSION = (import.meta.env.VITE_ANDROID_APK_VERSION || 'v1.0.105').trim()
+const FIXED_ANDROID_VERSION = (import.meta.env.VITE_ANDROID_APK_VERSION || '').trim()
 const FIXED_ANDROID_ABI = 'arm64-v8a'
 const STABLE_ANDROID_APK_URL = `https://gitmemo.kakacut.cn/mobile/gitmemo-android-${FIXED_ANDROID_ABI}-release.apk`
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
@@ -59,7 +59,7 @@ const downloads: DownloadItem[] = [
     icon: Smartphone,
     fallbackHref: STABLE_ANDROID_APK_URL,
     ext: '.apk',
-    fixedVersion: FIXED_ANDROID_VERSION,
+    fixedVersion: FIXED_ANDROID_VERSION || undefined,
   },
 ]
 
