@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ComponentProps } from "react";
+import { isValidElement, useState, useEffect, useRef, useCallback, useMemo, type ComponentProps, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -115,6 +115,81 @@ function prepareMarkdown(markdown: string) {
   return preserveParagraphLineIndents(stripFrontmatter(markdown));
 }
 
+type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+
+function textFromReactNode(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textFromReactNode).join("");
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return textFromReactNode(node.props.children);
+  }
+  return "";
+}
+
+function headingSlug(text: string) {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/[\s]+/g, "-")
+    .replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~，。、《》？；：‘’“”（）【】！￥…—·、]/g, "");
+}
+
+function uniqueHeadingId(text: string, counts: Map<string, number>) {
+  const base = headingSlug(text) || "heading";
+  const count = counts.get(base) ?? 0;
+  counts.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count}`;
+}
+
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function findHeadingByText(root: ParentNode, target: string) {
+  const normalizedTarget = safeDecodeURIComponent(target).trim();
+  if (!normalizedTarget) return null;
+
+  const headings = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  for (const heading of headings) {
+    const headingText = heading.textContent?.trim() ?? "";
+    if (
+      headingText === normalizedTarget ||
+      headingSlug(headingText) === headingSlug(normalizedTarget)
+    ) {
+      return heading as HTMLElement;
+    }
+  }
+  return null;
+}
+
+function findFragmentTarget(root: HTMLElement, hash: string) {
+  const raw = hash.slice(1);
+  if (!raw) return null;
+
+  const decoded = safeDecodeURIComponent(raw);
+  const candidates = Array.from(new Set([raw, decoded, headingSlug(decoded)]));
+
+  for (const candidate of candidates) {
+    const target = root.querySelector<HTMLElement>(`#${CSS.escape(candidate)}`);
+    if (target) return target;
+  }
+
+  return findHeadingByText(root, decoded);
+}
+
+function scrollToFragment(anchor: HTMLAnchorElement, href: string) {
+  const target = findFragmentTarget(anchor.closest(".markdown-body") ?? document.body, href);
+  if (!target) return false;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
+}
+
 function resolveMarkdownImagePath(src?: string, filePath?: string) {
   if (!src || !filePath) return null;
   if (src.startsWith("http") || src.startsWith("data:")) return null;
@@ -192,17 +267,34 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
 
 export function MarkdownContent({ content, filePath }: MarkdownViewProps) {
   const body = prepareMarkdown(content);
+  const headingIdCounts = new Map<string, number>();
+  const renderHeading = (Tag: HeadingTag) =>
+    ({ children, id, ...rest }: ComponentProps<typeof Tag>) => (
+      <Tag {...rest} id={id ?? uniqueHeadingId(textFromReactNode(children), headingIdCounts)}>
+        {children}
+      </Tag>
+    );
 
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
+        h1: renderHeading("h1"),
+        h2: renderHeading("h2"),
+        h3: renderHeading("h3"),
+        h4: renderHeading("h4"),
+        h5: renderHeading("h5"),
+        h6: renderHeading("h6"),
         img: (props) => <LocalImage {...props} filePath={filePath} />,
         a: ({ href, children, ...rest }) => (
           <a
             {...rest}
             href={href}
             onClick={(e) => {
+              if (href?.startsWith("#")) {
+                if (scrollToFragment(e.currentTarget, href)) e.preventDefault();
+                return;
+              }
               if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
                 e.preventDefault();
                 void openUrl(href);
