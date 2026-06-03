@@ -50,7 +50,6 @@ fn strip_leading_yaml_frontmatter(content: &str) -> Option<&str> {
 fn normalize_heading_text(text: &str) -> String {
     text.trim()
         .trim_end_matches('#')
-        .trim_end()
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
