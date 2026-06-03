@@ -1,7 +1,7 @@
 [package]
 name = "gitmemo-desktop"
 
-version = "1.0.107"
+version = "1.0.108"
 description = "GitMemo Desktop - Local-first Git-native personal knowledge capture"
 authors = ["GitMemo Team"]
 edition = "2021"
