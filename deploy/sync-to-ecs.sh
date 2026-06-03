@@ -32,6 +32,7 @@ fi
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
 ANDROID_VERSION="${ANDROID_VERSION:-v${PROJECT_VERSION}}"
 ANDROID_APK_FILENAME="${ANDROID_APK_FILENAME:-gitmemo-android-${ANDROID_VERSION}-${ANDROID_ABI}-release.apk}"
+ANDROID_STABLE_APK_FILENAME="${ANDROID_STABLE_APK_FILENAME:-gitmemo-android-${ANDROID_ABI}-release.apk}"
 ECS_IP="${ECS_IP:-101.200.217.80}"
 ECS_USER="${ECS_USER:-root}"
 ECS_DIR="${ECS_DIR:-/opt/kakacut}"
@@ -196,7 +197,9 @@ build_website() {
     if [ -n "$resolved_android_apk" ]; then
         mkdir -p "$SCRIPT_DIR/dist/gitmemo/mobile"
         cp "$resolved_android_apk" "$SCRIPT_DIR/dist/gitmemo/mobile/$ANDROID_APK_FILENAME"
+        cp "$resolved_android_apk" "$SCRIPT_DIR/dist/gitmemo/mobile/$ANDROID_STABLE_APK_FILENAME"
         log "Android ${ANDROID_ABI} APK 已复制到 /mobile/${ANDROID_APK_FILENAME}"
+        log "Android ${ANDROID_ABI} 稳定下载别名已复制到 /mobile/${ANDROID_STABLE_APK_FILENAME}"
         info "APK 源文件: $resolved_android_apk"
     else
         warn "未找到 Android ${ANDROID_VERSION} ${ANDROID_ABI} release APK，无法发布 /mobile/${ANDROID_APK_FILENAME}"
