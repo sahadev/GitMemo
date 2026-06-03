@@ -897,7 +897,15 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       )}
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isMobile ? "flex-start" : "flex-end",
+                    gap: 6,
+                    flexWrap: "wrap",
+                    flexShrink: 0,
+                    maxWidth: "100%",
+                  }}>
                     <button
                       type="button"
                       onClick={() => void copyValue(CLI_INSTALL_COMMAND, "cliCommand")}
@@ -905,6 +913,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         display: "flex", alignItems: "center", gap: 5,
                         padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {copiedField === "cliCommand" ? <Check size={11} /> : <Copy size={11} />}
