@@ -4,14 +4,27 @@ import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "./ClipboardPrivacyDialog";
 import {
-  Check, MessageSquare, Clipboard, Cloud, Code2, X, ChevronRight, PartyPopper,
+  Check, MessageSquare, Clipboard, Cloud, Code2,
 } from "lucide-react";
 import type { Page } from "../App";
+import {
+  OnboardingActionButton,
+  OnboardingCard,
+  OnboardingCheck,
+  OnboardingDismissButton,
+  OnboardingHeader,
+  OnboardingItemCopy,
+  OnboardingItemIcon,
+  OnboardingItemRow,
+  OnboardingList,
+  OnboardingProgress,
+  OnboardingTitleRow,
+} from "./domain/onboarding/OnboardingChecklistComponents";
 
 interface ChecklistItem {
   id: string;
   icon: typeof Check;
-  iconColor: string;
+  iconTone: "success" | "accent" | "pink" | "yellow";
   labelKey: string;
   descKey: string;
   action?: () => void;
@@ -153,14 +166,14 @@ export function OnboardingChecklist({
     {
       id: "install",
       icon: Check,
-      iconColor: "var(--green)",
+      iconTone: "success",
       labelKey: "onboarding.installDone",
       descKey: "onboarding.installDoneDesc",
     },
     {
       id: "save",
       icon: MessageSquare,
-      iconColor: "var(--accent)",
+      iconTone: "accent",
       labelKey: "onboarding.firstSave",
       descKey: editorConfigured ? "onboarding.firstSaveDesc" : "onboarding.firstSaveNeedEditorDesc",
       action: editorConfigured ? undefined : () => onNavigate("settings"),
@@ -169,7 +182,7 @@ export function OnboardingChecklist({
     {
       id: "clipboard",
       icon: Clipboard,
-      iconColor: "var(--pink)",
+      iconTone: "pink",
       labelKey: "onboarding.enableClipboard",
       descKey: "onboarding.enableClipboardDesc",
       action: startClipboard,
@@ -178,7 +191,7 @@ export function OnboardingChecklist({
     {
       id: "remote",
       icon: Cloud,
-      iconColor: "var(--accent)",
+      iconTone: "accent",
       labelKey: "onboarding.connectRemote",
       descKey: "onboarding.connectRemoteDesc",
       action: () => onNavigate("settings"),
@@ -187,7 +200,7 @@ export function OnboardingChecklist({
     {
       id: "editor",
       icon: Code2,
-      iconColor: "var(--yellow)",
+      iconTone: "yellow",
       labelKey: "onboarding.configureEditor",
       descKey: "onboarding.configureEditorDesc",
       action: () => onNavigate("settings"),
@@ -197,125 +210,51 @@ export function OnboardingChecklist({
 
   return (
     <>
-    <div style={{
-      padding: "var(--gm-section-gap-lg)",
-      borderRadius: "var(--gm-radius-md)",
-      border: `1px solid ${allDone ? "color-mix(in srgb, var(--green) 34%, var(--border))" : "color-mix(in srgb, var(--accent) 34%, var(--border))"}`,
-      background: allDone
-        ? "color-mix(in srgb, var(--green) 8%, var(--bg-card))"
-        : "color-mix(in srgb, var(--accent) 8%, var(--bg-card))",
-      marginBottom: "var(--gm-section-gap)",
-    }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allDone ? 0 : "var(--gm-section-gap)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
-          {allDone && <PartyPopper size={18} style={{ color: "var(--green)" }} />}
-          <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: "var(--gm-space-1)" }}>
-            {allDone ? t("onboarding.allDone") : t("onboarding.title")}
-          </h3>
-          {!allDone && (
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-              {completedCount}/{allItems.length}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={dismiss}
-          style={{
-            display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
-            padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)", borderRadius: "var(--gm-radius-md)",
-            border: "1px solid var(--border)", background: "transparent",
-            color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
-          }}
-        >
-          <X size={12} /> {allDone && countdown !== null ? `${countdown}s` : t("onboarding.dismiss")}
-        </button>
-      </div>
+    <OnboardingCard done={allDone}>
+      <OnboardingHeader done={allDone}>
+        <OnboardingTitleRow
+          done={allDone}
+          title={allDone ? t("onboarding.allDone") : t("onboarding.title")}
+          count={`${completedCount}/${allItems.length}`}
+        />
+        <OnboardingDismissButton onClick={dismiss}>
+          {allDone && countdown !== null ? `${countdown}s` : t("onboarding.dismiss")}
+        </OnboardingDismissButton>
+      </OnboardingHeader>
 
       {!allDone && (
         <>
-        {/* Progress bar */}
-        <div style={{
-          height: 4, borderRadius: "var(--gm-radius-xs)", background: "var(--border)",
-          marginBottom: "var(--gm-section-gap)", overflow: "hidden",
-        }}>
-          <div style={{
-            height: "100%",
-            width: `${(completedCount / allItems.length) * 100}%`,
-            background: "var(--accent)",
-            borderRadius: "var(--gm-radius-xs)",
-            transition: "width 0.3s ease",
-          }} />
-        </div>
+        <OnboardingProgress value={(completedCount / allItems.length) * 100} />
 
-        {/* Items */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
+        <OnboardingList>
           {items.map(item => {
             const done = state.completed.includes(item.id);
             const Icon = item.icon;
             return (
-              <div
+              <OnboardingItemRow
                 key={item.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--gm-card-header-gap)",
-                  padding: "var(--gm-row-pad-y-comfort) var(--gm-card-pad-mobile)",
-                  borderRadius: "var(--gm-radius-md)",
-                  background: done ? "transparent" : "var(--bg-card)",
-                  border: done ? "none" : "1px solid var(--border)",
-                  opacity: done ? 0.6 : 1,
-                  transition: "all 0.2s",
-                }}
+                done={done}
               >
-                {/* Checkbox */}
-                <div style={{
-                  width: 22, height: 22, borderRadius: "var(--gm-radius-md)",
-                  border: `2px solid ${done ? "var(--green)" : "var(--border)"}`,
-                  background: done ? "color-mix(in srgb, var(--green) 14%, var(--bg-card))" : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  {done && <Check size={12} style={{ color: "var(--green)" }} />}
-                </div>
+                <OnboardingCheck done={done} />
+                <OnboardingItemIcon icon={Icon} tone={item.iconTone} />
+                <OnboardingItemCopy
+                  done={done}
+                  title={t(item.labelKey)}
+                  description={t(item.descKey)}
+                />
 
-                {/* Icon + text */}
-                <Icon size={16} style={{ color: item.iconColor, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: "var(--gm-font-sm)", fontWeight: 600,
-                    textDecoration: done ? "line-through" : "none",
-                    color: done ? "var(--text-secondary)" : "var(--text)",
-                  }}>
-                    {t(item.labelKey)}
-                  </div>
-                  <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>
-                    {t(item.descKey)}
-                  </div>
-                </div>
-
-                {/* Action button */}
                 {!done && item.action && (
-                  <button
-                    onClick={item.action}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
-                      padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-md)",
-                      border: "none", background: "var(--accent)",
-                      color: "var(--gm-color-on-accent)", fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                      cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t(item.actionLabelKey!)} <ChevronRight size={12} />
-                  </button>
+                  <OnboardingActionButton onClick={item.action}>
+                    {t(item.actionLabelKey!)}
+                  </OnboardingActionButton>
                 )}
-              </div>
+              </OnboardingItemRow>
             );
           })}
-        </div>
+        </OnboardingList>
         </>
       )}
-    </div>
+    </OnboardingCard>
     {showPrivacyDialog && (
       <ClipboardPrivacyDialog
         onConfirm={() => {

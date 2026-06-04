@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { useI18n } from "../hooks/useI18n";
 import { Shield, X, Check } from "lucide-react";
+import { AppIcon } from "./base/AppIcon";
+import { Button } from "./base/Button";
 
 const PRIVACY_CONFIRMED_KEY = "gitmemo-clipboard-privacy-confirmed";
 
@@ -23,100 +25,58 @@ export function ClipboardPrivacyDialog({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--gm-overlay-soft)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="gm-privacy-backdrop"
       onClick={onCancel}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          padding: "var(--gm-space-14) var(--gm-space-12)",
-          borderRadius: "var(--gm-radius-lg)",
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "var(--gm-shadow-modal)",
-        }}
+        className="gm-privacy-dialog"
       >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-6)", marginBottom: "var(--gm-space-10)" }}>
-          <div style={{
-            width: "var(--gm-icon-empty-lg)", height: "var(--gm-icon-empty-lg)", borderRadius: "var(--gm-radius-md)",
-            background: "color-mix(in srgb, var(--accent) 14%, var(--bg-card))",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Shield size="var(--gm-icon-xl)" style={{ color: "var(--accent)" }} />
+        <div className="gm-privacy-header">
+          <div className="gm-privacy-icon">
+            <AppIcon icon={Shield} size="xl" />
           </div>
-          <div>
-            <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: "var(--gm-space-1)" }}>
+          <div className="gm-privacy-copy">
+            <h3 className="gm-privacy-title">
               {t("privacy.title")}
             </h3>
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
+            <p className="gm-privacy-subtitle">
               {t("privacy.subtitle")}
             </p>
           </div>
-          <button
+          <Button
+            variant="icon"
             onClick={onCancel}
-            className="gm-icon-button"
-            style={{
-              marginLeft: "auto",
-              minHeight: "var(--gm-control-height-xs)",
-              minWidth: "var(--gm-control-height-xs)",
-            }}
-          >
-            <X size="var(--gm-icon-sm)" />
-          </button>
+            className="gm-privacy-close"
+            icon={X}
+            iconSize="sm"
+          />
         </div>
 
-        {/* Points */}
-        <div style={{
-          display: "flex", flexDirection: "column", gap: "var(--gm-space-6)",
-          marginBottom: "var(--gm-space-12)", padding: "var(--gm-space-8)",
-          borderRadius: "var(--gm-radius-md)", background: "var(--bg-hover)",
-        }}>
+        <div className="gm-privacy-points">
           {["privacy.point1", "privacy.point2", "privacy.point3", "privacy.point4"].map(key => (
-            <div key={key} style={{ display: "flex", gap: "var(--gm-space-5)", alignItems: "flex-start" }}>
-              <Check size="var(--gm-icon-xs)" style={{ color: "var(--green)", flexShrink: 0, marginTop: "var(--gm-space-1)" }} />
-              <span style={{ fontSize: "var(--gm-font-sm)", color: "var(--text)", lineHeight: "var(--gm-leading-normal)" }}>
+            <div key={key} className="gm-privacy-point">
+              <AppIcon icon={Check} size="xs" tone="success" />
+              <span className="gm-privacy-point-text">
                 {t(key)}
               </span>
             </div>
           ))}
         </div>
 
-        {/* Buttons */}
-        <div style={{ display: "flex", gap: "var(--gm-space-5)" }}>
-          <button
+        <div className="gm-privacy-actions">
+          <Button
+            variant="secondary"
             onClick={onCancel}
-            style={{
-              flex: 1, padding: "var(--gm-space-5) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)",
-              border: "1px solid var(--border)", background: "transparent",
-              color: "var(--text)", fontSize: "var(--gm-font-sm)", fontWeight: 600,
-              cursor: "pointer",
-            }}
           >
             {t("privacy.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={onConfirm}
-            style={{
-              flex: 1, padding: "var(--gm-space-5) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)",
-              border: "none", background: "var(--accent)",
-              color: "var(--gm-color-on-accent)", fontSize: "var(--gm-font-sm)", fontWeight: 600,
-              cursor: "pointer",
-            }}
           >
             {t("privacy.enable")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -25,9 +25,36 @@ import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { useTimedCopy } from "../hooks/useTimedCopy";
-import { LocalImagePreview } from "../components/domain/files/LocalImagePreview";
+import {
+  ClipboardClipActionButton,
+  ClipboardClipButton,
+  ClipboardClipItem,
+  ClipboardClipMetaRow,
+  ClipboardClipMetaSpacer,
+  ClipboardClipMetaText,
+  ClipboardClipPreviewWrap,
+  ClipboardClipText,
+  ClipboardDetailPane,
+  ClipboardDetailScroll,
+  ClipboardEditor,
+  ClipboardEmptyDetail,
+  ClipboardEmptyState,
+  ClipboardFilterBar,
+  ClipboardFilterButton,
+  ClipboardFooterTotal,
+  ClipboardListBody,
+  ClipboardListLoading,
+  ClipboardListPane,
+  ClipboardPageFrame,
+  ClipboardSelectionAction,
+  ClipboardSelectionBar,
+  ClipboardSelectionCount,
+  ClipboardSelectionToggle,
+  ClipboardStatusBadge,
+  ClipboardToolbarButton,
+} from "../components/domain/clipboard/ClipboardComponents";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
-import { MOBILE_BOTTOM_CONTENT_PADDING, MOBILE_BOTTOM_SELECTION_PADDING, MOBILE_FIXED_BAR_BOTTOM } from "../utils/mobileLayout";
+import { ClipImageThumb } from "../components/domain/files/ClipImageThumb";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 import type { Page } from "../App";
@@ -49,26 +76,6 @@ interface ScrollAnchor {
   path: string | null;
   offsetTop: number;
   scrollTop: number;
-}
-
-function ClipImageThumb({ relPath, selected, wide }: { relPath: string; selected: boolean; wide?: boolean }) {
-  const w = wide ? "100%" : 56;
-  const h = wide ? 80 : 40;
-  return (
-    <LocalImagePreview
-      relPath={relPath}
-      selected={selected}
-      placeholderStyle={{ width: w, height: h, flexShrink: 0, borderRadius: "var(--gm-radius-sm)", background: "var(--bg-hover)" }}
-      style={{
-        width: w,
-        height: h,
-        objectFit: "cover",
-        borderRadius: "var(--gm-radius-sm)",
-        flexShrink: 0,
-        border: `1px solid ${selected ? "var(--gm-selection-border)" : "var(--border)"}`,
-      }}
-    />
-  );
 }
 
 function normalizeClipImageLinks(content: string, clipPath: string) {
@@ -523,8 +530,6 @@ export default function ClipboardPage({
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
-  const mobileBottomPadding = MOBILE_BOTTOM_CONTENT_PADDING;
-  const mobileSelectionBottomPadding = MOBILE_BOTTOM_SELECTION_PADDING;
   const selectedFileName = selectedFile?.split("/").pop() ?? "";
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
@@ -591,10 +596,10 @@ export default function ClipboardPage({
       ? t("clipboard.noTextClips")
       : t("clipboard.noClips");
   const displayedClipTotal = clipTotal ?? status?.clips_count ?? 0;
+  const selectionActionsDisabled = selectedClipPaths.length === 0 || creatingNote || deletingSelected;
 
   return (
-    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      {/* Privacy confirmation dialog */}
+    <ClipboardPageFrame>
       {showPrivacyDialog && (
         <ClipboardPrivacyDialog
           onConfirm={() => {
@@ -610,142 +615,80 @@ export default function ClipboardPage({
         panelKey="clipboard"
         defaultWidth={340}
         left={showList && (
-          <div style={{
-            display: "flex", flexDirection: "column", flexShrink: 0,
-            background: "var(--gm-color-bg-surface)",
-            width: "100%", flex: 1, minWidth: 0,
-            height: "100%", minHeight: 0, overflow: "hidden", position: "relative",
-          }}>
+          <ClipboardListPane>
             <PaneHeader
               icon={Clipboard}
               title={t("clipboard.title")}
               afterTitle={!isMobile && status ? (
-                <span style={{
-                  padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", fontSize: "var(--gm-font-2xs)", fontWeight: 500,
-                  background: status.watching ? "var(--bg-success)" : "var(--bg-hover)",
-                  color: status.watching ? "var(--green)" : "var(--text-secondary)",
-                  whiteSpace: "nowrap",
-                }}>
+                <ClipboardStatusBadge watching={status.watching}>
                   {status.watching ? t("clipboard.watching") : t("clipboard.stopped")}
-                </span>
+                </ClipboardStatusBadge>
               ) : null}
               actions={(
                 <>
-                  <button className="gm-toolbar-button" onClick={toggleMultiSelectMode} title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")} style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                    width: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
-                    height: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
-                    borderRadius: "var(--gm-radius-md)", cursor: "pointer",
-                    color: multiSelectMode ? "var(--accent)" : "var(--text-secondary)",
-                  }}>
-                    {multiSelectMode ? <X size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} /> : <ListChecks size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />}
-                  </button>
-                  <button className="gm-toolbar-button" onClick={() => { setRefreshTrigger((t) => t + 1); void refreshClipboardStatus(); if (selectedFile) void openFile(selectedFile); }} title={t("common.refresh")} style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                    width: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
-                    height: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
-                    borderRadius: "var(--gm-radius-md)", cursor: "pointer",
-                  }}>
-                    <RefreshCw size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />
-                  </button>
+                  <ClipboardToolbarButton
+                    mobile={isMobile}
+                    icon={multiSelectMode ? X : ListChecks}
+                    active={multiSelectMode}
+                    onClick={toggleMultiSelectMode}
+                    title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")}
+                  />
+                  <ClipboardToolbarButton
+                    mobile={isMobile}
+                    icon={RefreshCw}
+                    onClick={() => {
+                      setRefreshTrigger((t) => t + 1);
+                      void refreshClipboardStatus();
+                      if (selectedFile) void openFile(selectedFile);
+                    }}
+                    title={t("common.refresh")}
+                  />
                   {!isMobile && (
                     <>
-                      <button className="gm-toolbar-button" onClick={saveNow} title={t("clipboard.saveCurrentClipboard")} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                        width: "var(--gm-control-height-sm)", height: "var(--gm-control-height-sm)",
-                        borderRadius: "var(--gm-radius-md)", cursor: "pointer",
-                      }}>
-                        <Save size="var(--gm-icon-xs)" />
-                      </button>
-                      <button className="gm-toolbar-button" onClick={toggleWatch} title={status?.watching ? t("common.stop") : t("common.start")} style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                        width: "var(--gm-control-height-sm)", height: "var(--gm-control-height-sm)",
-                        borderRadius: "var(--gm-radius-md)", cursor: "pointer",
-                        color: status?.watching ? "var(--red)" : "var(--green)",
-                      }}>
-                        {status?.watching ? <Square size="var(--gm-icon-xs)" /> : <Play size="var(--gm-icon-xs)" />}
-                      </button>
+                      <ClipboardToolbarButton
+                        mobile={isMobile}
+                        icon={Save}
+                        onClick={saveNow}
+                        title={t("clipboard.saveCurrentClipboard")}
+                      />
+                      <ClipboardToolbarButton
+                        mobile={isMobile}
+                        icon={status?.watching ? Square : Play}
+                        tone={status?.watching ? "danger" : "success"}
+                        onClick={toggleWatch}
+                        title={status?.watching ? t("common.stop") : t("common.start")}
+                      />
                     </>
                   )}
                 </>
               )}
             />
 
-            <div style={{
-              display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
-              padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-card-header-gap)" : "var(--gm-icon-text-gap) var(--gm-list-header-pad-x)",
-              borderBottom: "1px solid var(--border)",
-              flexShrink: 0,
-              background: "var(--bg-card)",
-            }}>
-              <div role="tablist" aria-label={t("clipboard.filterLabel")} style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                width: "100%",
-                padding: "var(--gm-space-1)",
-                borderRadius: "var(--gm-radius-lg)",
-                border: "1px solid var(--border)",
-                background: "var(--bg)",
-              }}>
-                {clipFilterOptions.map(({ id, label, Icon }) => {
-                  const activeFilter = clipFilter === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeFilter}
-                      onClick={() => changeClipFilter(id)}
-                      title={label}
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
-                        minWidth: 0,
-                        height: isMobile ? 32 : 26,
-                        padding: isMobile ? "0 8px" : "0 6px",
-                        borderRadius: "var(--gm-radius-md)",
-                        border: "none",
-                        background: activeFilter ? "var(--bg)" : "transparent",
-                        color: activeFilter ? "var(--accent)" : "var(--text-secondary)",
-                        cursor: "pointer",
-                        fontSize: "var(--gm-font-xs)",
-                        fontWeight: activeFilter ? 700 : 500,
-                        boxShadow: activeFilter ? "var(--gm-shadow-control)" : "none",
-                      }}
-                    >
-                      <Icon size={isMobile ? 14 : 12} style={{ flexShrink: 0 }} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <ClipboardFilterBar mobile={isMobile} label={t("clipboard.filterLabel")}>
+              {clipFilterOptions.map(({ id, label, Icon }) => (
+                <ClipboardFilterButton
+                  key={id}
+                  icon={Icon}
+                  label={label}
+                  active={clipFilter === id}
+                  mobile={isMobile}
+                  onClick={() => changeClipFilter(id)}
+                  title={label}
+                />
+              ))}
+            </ClipboardFilterBar>
 
-            {/* Clip list */}
-            <div ref={listScrollRef} style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: "auto",
-              paddingBottom: isMobile
-                ? (multiSelectMode ? mobileSelectionBottomPadding : mobileBottomPadding)
-                : multiSelectMode ? 58 : 0,
-            }}>
+            <ClipboardListBody refNode={listScrollRef} mobile={isMobile} selecting={multiSelectMode}>
               {clipsLoading ? (
-                <div
-                  style={{
-                    minHeight: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
+                <ClipboardListLoading>
                   <Loading compact text={t("clipboard.loading")} />
-                </div>
+                </ClipboardListLoading>
               ) : savedClips.length === 0 ? (
-                <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
-                  <Clipboard size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
-                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{emptyClipsMessage}</p>
-                  {!isMobile && clipFilter === "all" && <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>{t("clipboard.autoCapture")}</p>}
-                </div>
+                <ClipboardEmptyState
+                  icon={Clipboard}
+                  title={emptyClipsMessage}
+                  description={!isMobile && clipFilter === "all" ? t("clipboard.autoCapture") : undefined}
+                />
               ) : (
                 <>
                   {savedClips.map((file) => {
@@ -753,63 +696,32 @@ export default function ClipboardPage({
                     const selectionOrder = selectedClipPaths.indexOf(file.path);
                     const clipSelected = selectionOrder >= 0;
                     const active = multiSelectMode ? clipSelected : selected;
-                    const metaColor = "var(--text-secondary)";
-                    const actionColor = copiedId === file.path
-                      ? "var(--green)"
-                      : "var(--text-secondary)";
-                    const actionSize = isMobile ? 32 : 22;
+                    const copied = copiedId === file.path;
                     return (
-                      <div
+                      <ClipboardClipItem
                         key={file.path}
+                        active={active}
+                        selecting={multiSelectMode}
                         onClick={() => {
                           if (multiSelectMode) toggleClipSelection(file.path);
                         }}
-                        style={{
-                          position: "relative",
-                          borderBottom: "1px solid var(--border)",
-                          background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                          color: "var(--text)",
-                          borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
-                          transition: "background 0.15s",
-                          cursor: multiSelectMode ? "pointer" : undefined,
-                        }}
                       >
                         {multiSelectMode && (
-                          <button
-                            type="button"
+                          <ClipboardSelectionToggle
+                            selected={clipSelected}
+                            order={selectionOrder}
+                            mobile={isMobile}
                             aria-label={clipSelected ? t("common.cancel") : t("clipboard.selectMode")}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               toggleClipSelection(file.path);
                             }}
-                            style={{
-                              position: "absolute",
-                              right: isMobile ? 16 : 18,
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              zIndex: 2,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              width: isMobile ? 44 : 32, height: isMobile ? 44 : 32, cursor: "pointer",
-                              border: "none", background: "transparent", color: "inherit", padding: 0,
-                            }}
-                          >
-                            <span style={{
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              width: isMobile ? 26 : 22, height: isMobile ? 26 : 22, borderRadius: "var(--gm-radius-pill)",
-                              border: `1px solid ${clipSelected ? "var(--accent)" : "var(--border)"}`,
-                              background: clipSelected ? "color-mix(in srgb, var(--accent) 12%, var(--bg-card))" : "var(--bg)",
-                              color: clipSelected ? "var(--accent)" : "var(--text-secondary)",
-                              fontSize: "var(--gm-font-xs)", fontWeight: 700,
-                              boxShadow: active ? "none" : "var(--gm-shadow-control-strong)",
-                            }}>
-                              {clipSelected ? selectionOrder + 1 : ""}
-                            </span>
-                          </button>
+                          />
                         )}
-                        <button
-                          type="button"
-                          ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
+                        <ClipboardClipButton
+                          mobile={isMobile}
+                          refNode={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                           onClick={() => {
                             if (!multiSelectMode) void openFile(file.path);
                           }}
@@ -826,51 +738,24 @@ export default function ClipboardPage({
                             e.preventDefault();
                             void copyClipContent(file.path);
                           }}
-                          style={{
-                            position: "relative",
-                            display: "block", width: "100%", textAlign: "left",
-                            padding: isMobile
-                              ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x) var(--gm-icon-text-gap)"
-                              : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x) var(--gm-space-3)",
-                            cursor: "pointer",
-                            border: "none", background: "transparent",
-                            color: "inherit",
-                          }}
                         >
-                          {file.preview_image ? (
-                            <div style={{ minWidth: 0 }}>
+                          <ClipboardClipPreviewWrap>
+                            {file.preview_image ? (
                               <ClipImageThumb relPath={file.preview_image} selected={active} wide />
-                            </div>
-                          ) : (
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{
-                                fontSize: "var(--gm-font-sm)", whiteSpace: "pre-wrap",
-                                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                                overflow: "hidden", lineHeight: "var(--gm-leading-normal)", wordBreak: "break-all",
-                              }}>
-                                {file.preview || file.name}
-                              </p>
-                            </div>
-                          )}
-                        </button>
-                        <div style={{
-                          display: "flex", alignItems: "center", gap: "var(--gm-control-gap)",
-                          minHeight: actionSize,
-                          padding: isMobile
-                            ? "0 var(--gm-card-pad-mobile) var(--gm-nav-item-gap) var(--gm-list-row-pad-x)"
-                            : "0 var(--gm-list-row-pad-x) var(--gm-icon-text-gap)",
-                        }}>
-                          <span style={{ fontSize: "var(--gm-font-xs)", color: metaColor }}>
-                            {relativeTime(file.modified, t)}
-                          </span>
-                          {file.preview_image ? (
-                            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {file.name}
-                            </span>
-                          ) : null}
-                          <span style={{ flex: 1 }} />
-                          <button
-                            type="button"
+                            ) : (
+                              <ClipboardClipText>{file.preview || file.name}</ClipboardClipText>
+                            )}
+                          </ClipboardClipPreviewWrap>
+                        </ClipboardClipButton>
+                        <ClipboardClipMetaRow mobile={isMobile}>
+                          <ClipboardClipMetaText>{relativeTime(file.modified, t)}</ClipboardClipMetaText>
+                          {file.preview_image ? <ClipboardClipMetaText muted>{file.name}</ClipboardClipMetaText> : null}
+                          <ClipboardClipMetaSpacer />
+                          <ClipboardClipActionButton
+                            mobile={isMobile}
+                            icon={copied ? Check : Copy}
+                            tone={copied ? "success" : "default"}
+                            hidden={multiSelectMode}
                             title={t("clipboard.copy")}
                             aria-hidden={multiSelectMode}
                             tabIndex={multiSelectMode ? -1 : undefined}
@@ -880,18 +765,12 @@ export default function ClipboardPage({
                               if (multiSelectMode) return;
                               void copyClipContent(file.path);
                             }}
-                            style={{
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              width: actionSize, height: actionSize, cursor: multiSelectMode ? "default" : "pointer",
-                              border: "none", background: "transparent", color: actionColor,
-                              opacity: multiSelectMode ? 0 : 1,
-                              pointerEvents: multiSelectMode ? "none" : "auto",
-                            }}
-                          >
-                            {copiedId === file.path ? <Check size={isMobile ? 16 : 14} /> : <Copy size={isMobile ? 16 : 14} />}
-                          </button>
-                          <button
-                            type="button"
+                          />
+                          <ClipboardClipActionButton
+                            mobile={isMobile}
+                            icon={Trash2}
+                            tone={active ? "danger" : "default"}
+                            hidden={multiSelectMode}
                             title={t("clipboard.deleteClip")}
                             aria-hidden={multiSelectMode}
                             tabIndex={multiSelectMode ? -1 : undefined}
@@ -901,19 +780,9 @@ export default function ClipboardPage({
                               if (multiSelectMode) return;
                               void confirmDeleteClip(file.path);
                             }}
-                            style={{
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              width: actionSize, height: actionSize, cursor: multiSelectMode ? "default" : "pointer",
-                              border: "none", background: "transparent",
-                              color: active ? "var(--red)" : "var(--text-secondary)",
-                              opacity: multiSelectMode ? 0 : 1,
-                              pointerEvents: multiSelectMode ? "none" : "auto",
-                            }}
-                          >
-                            <Trash2 size={isMobile ? 16 : 14} />
-                          </button>
-                        </div>
-                      </div>
+                          />
+                        </ClipboardClipMetaRow>
+                      </ClipboardClipItem>
                     );
                   })}
                   {hasMore && (
@@ -928,89 +797,43 @@ export default function ClipboardPage({
                   )}
                 </>
               )}
-            </div>
+            </ClipboardListBody>
 
             {multiSelectMode ? (
-              <div style={{
-                display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)",
-                padding: isMobile
-                  ? "var(--gm-nav-item-gap) var(--gm-card-header-gap)"
-                  : "var(--gm-nav-item-gap) var(--gm-card-header-gap)",
-                borderTop: "1px solid var(--border)",
-                background: "var(--bg)",
-                position: isMobile ? "fixed" : "absolute",
-                left: 0,
-                right: 0,
-                bottom: isMobile ? MOBILE_FIXED_BAR_BOTTOM : 0,
-                zIndex: 29,
-                boxShadow: isMobile ? "var(--gm-shadow-bottom)" : "var(--gm-shadow-bottom-soft)",
-              }}>
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)",
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
+              <ClipboardSelectionBar mobile={isMobile}>
+                <ClipboardSelectionCount>
                   {t("clipboard.selectedCount", selectedClipPaths.length)}
-                </span>
-                <button
-                  type="button"
-                  disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
+                </ClipboardSelectionCount>
+                <ClipboardSelectionAction
+                  mobile={isMobile}
+                  icon={Trash2}
+                  tone="danger"
+                  hideLabelOnMobile
+                  disabled={selectionActionsDisabled}
                   onClick={() => void confirmDeleteSelectedClips()}
                   title={t("clipboard.deleteSelected")}
                   aria-label={t("clipboard.deleteSelected")}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
-                    minWidth: isMobile ? 38 : undefined,
-                    minHeight: isMobile ? 38 : undefined,
-                    padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-nav-item-gap)" : "var(--gm-control-pad-y) var(--gm-nav-item-gap)",
-                    borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
-                    cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
-                    background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--gm-danger-soft)",
-                    border: "1px solid var(--border)",
-                    color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "var(--red)",
-                    opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
-                  }}
                 >
-                  <Trash2 size={12} /> {!isMobile && (deletingSelected ? t("clipboard.deletingSelected") : t("clipboard.deleteSelected"))}
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
+                  {deletingSelected ? t("clipboard.deletingSelected") : t("clipboard.deleteSelected")}
+                </ClipboardSelectionAction>
+                <ClipboardSelectionAction
+                  mobile={isMobile}
+                  icon={FilePlus2}
+                  disabled={selectionActionsDisabled}
                   onClick={() => void createNoteFromSelectedClips()}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
-                    minHeight: isMobile ? 38 : undefined,
-                    padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-card-header-gap)" : "var(--gm-control-pad-y) var(--gm-nav-item-gap)",
-                    borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
-                    cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
-                    background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--accent)",
-                    border: "1px solid var(--border)",
-                    color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "var(--gm-color-on-accent)",
-                    opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
-                  }}
                 >
-                  <FilePlus2 size={12} /> {creatingNote ? t("clipboard.creatingNote") : t("clipboard.saveSelectedToNote")}
-                </button>
-              </div>
+                  {creatingNote ? t("clipboard.creatingNote") : t("clipboard.saveSelectedToNote")}
+                </ClipboardSelectionAction>
+              </ClipboardSelectionBar>
             ) : (
-              !isMobile && <div style={{
-                padding: "var(--gm-nav-item-gap) var(--gm-list-header-pad-x)", borderTop: "1px solid var(--border)",
-                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", textAlign: "center",
-              }}>
-                {t("clipboard.clipsTotal", String(displayedClipTotal))}
-              </div>
+              !isMobile && <ClipboardFooterTotal>{t("clipboard.clipsTotal", String(displayedClipTotal))}</ClipboardFooterTotal>
             )}
-          </div>
+          </ClipboardListPane>
         )}
-
         right={showDetail && (
-          <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+          <ClipboardDetailPane>
             {!selectedFile ? (
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ textAlign: "center" }}>
-                  <Clipboard size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("clipboard.selectToView")}</p>
-                </div>
-              </div>
+              <ClipboardEmptyDetail icon={Clipboard}>{t("clipboard.selectToView")}</ClipboardEmptyDetail>
             ) : (
               <>
                 <FileDetailToolbar
@@ -1064,18 +887,11 @@ export default function ClipboardPage({
                   ) : null}
                 />
 
-                {/* Full content */}
-                <div style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  padding: isMobile
-                    ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
-                    : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-                  userSelect: "text",
-                }}>
+                <ClipboardDetailScroll mobile={isMobile}>
                   {editing ? (
-                    <textarea
-                      ref={editRef}
+                    <ClipboardEditor
+                      refNode={editRef}
+                      mobile={isMobile}
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       onKeyDown={(e) => {
@@ -1085,22 +901,16 @@ export default function ClipboardPage({
                         }
                         if (e.key === "Escape") cancelEdit();
                       }}
-                      className="gm-code-editor"
-                      style={{
-                        width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                        padding: 0,
-                        border: "none", outline: "none",
-                      }}
                     />
                   ) : (
                     <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
                   )}
-                </div>
+                </ClipboardDetailScroll>
               </>
             )}
-          </div>
+          </ClipboardDetailPane>
         )}
       />
-    </div>
+    </ClipboardPageFrame>
   );
 }

@@ -1,14 +1,59 @@
-import { useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n, Locale } from "../hooks/useI18n";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import {
-  Globe, HardDrive, Cloud, GitBranch, Code2, Check, ChevronRight,
-  Loader2, Copy, AlertCircle, Rocket, ExternalLink, KeyRound,
+  Globe, HardDrive, Cloud, GitBranch, Code2, ChevronRight,
+  Loader2, Copy, Rocket, ExternalLink, KeyRound,
 } from "lucide-react";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
+import { AppIcon } from "./base/AppIcon";
+import {
+  SetupBadge,
+  SetupBadgeRow,
+  SetupBrand,
+  SetupButton,
+  SetupButtonRow,
+  SetupCandidateList,
+  SetupCenteredBlock,
+  SetupCheck,
+  SetupCheckbox,
+  SetupDoneIcon,
+  SetupFieldHint,
+  SetupHeroIcon,
+  SetupInfoPanel,
+  SetupInfoRow,
+  SetupInlineActions,
+  SetupInput,
+  SetupLanguageMark,
+  SetupLogBody,
+  SetupLogIcon,
+  SetupLogItem,
+  SetupLogPanel,
+  SetupOptionButton,
+  SetupOptionCopy,
+  SetupOptionIcon,
+  SetupPanel,
+  SetupPlatformButton,
+  SetupPlatformGrid,
+  SetupPublicKeyBox,
+  SetupResultList,
+  SetupResultRow,
+  SetupRunningLayout,
+  SetupSectionLabel,
+  SetupSidebar,
+  SetupSidebarStack,
+  SetupStack,
+  SetupStepItem,
+  SetupStepList,
+  SetupText,
+  SetupTip,
+  SetupTitle,
+  SetupValueGrid,
+  SetupValueRow,
+  SetupWizardFrame,
+} from "./domain/setup/SetupWizardComponents";
 
 interface InitStep {
   name: string;
@@ -242,140 +287,6 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     setTimeout(() => setSshKeyCopied(false), 2000);
   }, []);
 
-  const containerStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "stretch",
-    justifyContent: "stretch",
-    minHeight: "100%",
-    height: "100%",
-    flex: 1,
-    width: "100%",
-    minWidth: 0,
-    boxSizing: "border-box",
-  };
-
-  const cardStyle: React.CSSProperties = {
-    width: "100%",
-    height: "100%",
-    minHeight: 0,
-    borderRadius: "var(--gm-radius-none)",
-    background: "var(--bg-card)",
-    border: "none",
-    display: isMobile ? "flex" : "grid",
-    flexDirection: isMobile ? "column" : undefined,
-    gridTemplateColumns: isMobile ? undefined : step === "done" ? "var(--gm-size-setup-sidebar-width-done) minmax(0, 1fr)" : "var(--gm-size-setup-sidebar-width) minmax(0, 1fr)",
-    overflow: "hidden",
-    boxShadow: "none",
-  };
-
-  const btnPrimary: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "var(--gm-space-4)",
-    width: "100%",
-    padding: "var(--gm-space-6) var(--gm-space-10)",
-    borderRadius: "var(--gm-radius-md)",
-    border: "1px solid var(--accent)",
-    background: "var(--accent)",
-    color: "var(--gm-color-on-accent)",
-    fontSize: "var(--gm-font-sm)",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "opacity 0.15s",
-  };
-
-  const btnSecondary: React.CSSProperties = {
-    ...btnPrimary,
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-  };
-
-  const buttonRowStyle: React.CSSProperties = {
-    display: "flex",
-    gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-5)",
-    alignItems: "stretch",
-    flexWrap: "nowrap",
-    width: "100%",
-  };
-
-  const navBackButtonStyle: React.CSSProperties = {
-    ...btnSecondary,
-    width: "auto",
-    minWidth: isMobile ? "var(--gm-size-setup-nav-back-min-width-mobile)" : "var(--gm-size-setup-nav-back-min-width)",
-    flex: "0 0 auto",
-    padding: isMobile ? "var(--gm-space-5) var(--gm-space-7)" : "var(--gm-space-5) var(--gm-space-10)",
-    whiteSpace: "nowrap",
-  };
-
-  const navPrimaryButtonStyle: React.CSSProperties = {
-    ...btnPrimary,
-    width: "auto",
-    flex: "1 1 0",
-    minWidth: 0,
-    whiteSpace: "nowrap",
-  };
-
-  const optionCard = (selected: boolean): React.CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--gm-space-7)",
-    padding: isMobile ? "var(--gm-space-6) var(--gm-space-7)" : "var(--gm-space-7) var(--gm-space-10)",
-    borderRadius: "var(--gm-radius-md)",
-    border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
-    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
-    cursor: "pointer",
-    transition: "all 0.15s",
-    width: "100%",
-    minWidth: 0,
-    textAlign: "left",
-  });
-
-  const badgeStyle = (tone: "accent" | "success" | "warning" | "muted" = "muted"): React.CSSProperties => {
-    const color = tone === "accent"
-      ? "var(--accent)"
-      : tone === "success"
-        ? "var(--green)"
-        : tone === "warning"
-          ? "var(--yellow)"
-          : "var(--text-secondary)";
-
-    return {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "var(--gm-control-height-xs)",
-      padding: "var(--gm-space-2) var(--gm-space-4)",
-      borderRadius: "var(--gm-radius-md)",
-      border: "1px solid var(--border)",
-      background: "var(--bg)",
-      color,
-      fontSize: "var(--gm-font-xs)",
-      fontWeight: 700,
-      whiteSpace: "nowrap",
-    };
-  };
-
-  const infoSurfaceStyle: React.CSSProperties = {
-    padding: isMobile ? "var(--gm-space-6) var(--gm-space-7)" : "var(--gm-space-7) var(--gm-space-8)",
-    borderRadius: "var(--gm-radius-md)",
-    border: "1px solid var(--border)",
-    background: "var(--bg)",
-  };
-
-  const setupValueStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "var(--gm-space-5)",
-    padding: "var(--gm-space-4) var(--gm-space-5)",
-    borderRadius: "var(--gm-radius-md)",
-    border: "1px solid var(--border)",
-    background: "var(--bg)",
-    minWidth: 0,
-  };
-
   const steps: WizardStep[] = isDesktop
     ? ["language", "storage", ...(isSshRemote ? ["ssh_key" as const] : []), "editors"]
     : ["language", "storage"];
@@ -438,886 +349,455 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
               ? t("setup.tipSave")
               : t("setup.tipSettingUp");
 
-  const renderPanel = (content: ReactNode) => (
-    <div style={{
-      padding: isMobile ? `var(--gm-space-10) var(--gm-space-10) ${MOBILE_BOTTOM_CONTENT_PADDING}` : "var(--gm-space-14) var(--gm-space-16) var(--gm-space-12)",
-      overflowY: "auto",
-      minWidth: 0,
-      minHeight: 0,
-      height: isMobile ? "auto" : "100%",
-      flex: 1,
-      overscrollBehavior: "contain",
-      WebkitOverflowScrolling: "touch",
-    }}>
-      <div style={{
-        width: "100%",
-        maxWidth: isMobile ? "none" : "var(--gm-size-setup-panel-max-width)",
-        margin: "0 auto",
-      }}>
-        {content}
-      </div>
-    </div>
+  const sidebar = (
+    <SetupSidebar mobile={isMobile}>
+      <SetupSidebarStack>
+        <SetupBrand title={stepTitles[step]} description={stepDescriptions[step]} />
+        {!isMobile && (
+          <SetupValueGrid>
+            <SetupValueRow label={t("dashboard.storage")} value="~/.gitmemo" />
+            <SetupValueRow
+              label={t("settings.remoteRepo")}
+              value={storageMode === "remote" ? (selectedPlatformMeta?.label ?? "Git") : t("settings.noRemote")}
+            />
+            <SetupValueRow
+              label={t("dashboard.syncStatus")}
+              value={storageMode === "remote" ? t("setup.remoteMode") : t("setup.localMode")}
+            />
+          </SetupValueGrid>
+        )}
+      </SetupSidebarStack>
+
+      {showStepIndicator && (
+        <SetupStepList mobile={isMobile}>
+          {navSteps.map(({ key, label, active, complete }, index) => (
+            <SetupStepItem
+              key={key}
+              index={index}
+              label={label}
+              active={active}
+              complete={complete}
+              mobile={isMobile}
+            />
+          ))}
+        </SetupStepList>
+      )}
+
+      {!isMobile && <SetupTip title={t("setup.tipTitle")}>{sidebarTip}</SetupTip>}
+    </SetupSidebar>
   );
 
-  const candidateListStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--gm-space-4)",
-    marginBottom: "var(--gm-space-6)",
-    maxHeight: "var(--gm-size-setup-candidate-list-max-height)",
-    overflowY: "auto",
-    paddingRight: "var(--gm-space-2)",
-  };
-
-  const initLogIcon = (status: string) => {
-    if (status === "ok") return <Check size={14} style={{ color: "var(--green)", flexShrink: 0 }} />;
-    if (status === "error") return <AlertCircle size={14} style={{ color: "var(--red)", flexShrink: 0 }} />;
-    return <Loader2 size={14} style={{ color: "var(--accent)", flexShrink: 0, animation: "spin 1s linear infinite" }} />;
-  };
-
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <aside style={{
-          padding: isMobile ? "var(--gm-space-8) var(--gm-space-8) var(--gm-space-6)" : "var(--gm-space-14) var(--gm-space-12) var(--gm-space-14)",
-          borderRight: isMobile ? "none" : "1px solid var(--border)",
-          borderBottom: isMobile ? "1px solid var(--border)" : "none",
-          background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
-          display: "flex",
-          flexDirection: "column",
-          gap: isMobile ? "var(--gm-space-6)" : "var(--gm-space-10)",
-          minWidth: 0,
-          flexShrink: 0,
-        }}>
-          <div style={{ display: "grid", gap: isMobile ? "var(--gm-space-5)" : "var(--gm-space-7)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-6)", minWidth: 0 }}>
-              <div style={{
-                width: "var(--gm-size-setup-logo-box)",
-                height: "var(--gm-size-setup-logo-box)",
-                borderRadius: "var(--gm-radius-lg)",
-                border: "1px solid var(--border-strong)",
-                background: "var(--bg)",
-                color: "var(--accent)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "var(--gm-font-sm)",
-                fontWeight: 800,
-                flexShrink: 0,
-              }}>
-                GM
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700, color: "var(--accent)", marginBottom: "var(--gm-space-2)", letterSpacing: 0 }}>
-                  GitMemo Setup
-                </div>
-                <h2 style={{
-                  fontSize: isMobile ? "var(--gm-font-lg)" : "var(--gm-font-xl)",
-                  fontWeight: 700,
-                  margin: 0,
-                  lineHeight: 1.25,
-                  overflowWrap: "anywhere",
-                }}>
-                  {stepTitles[step]}
-                </h2>
-              </div>
-            </div>
-            <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
-              {stepDescriptions[step]}
-            </p>
-            {!isMobile && (
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={setupValueStyle}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("dashboard.storage")}</span>
-                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    ~/.gitmemo
-                  </strong>
-                </div>
-                <div style={setupValueStyle}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("settings.remoteRepo")}</span>
-                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {storageMode === "remote" ? (selectedPlatformMeta?.label ?? "Git") : t("settings.noRemote")}
-                  </strong>
-                </div>
-                <div style={setupValueStyle}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("dashboard.syncStatus")}</span>
-                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)" }}>
-                    {storageMode === "remote" ? t("setup.remoteMode") : t("setup.localMode")}
-                  </strong>
-                </div>
-              </div>
-            )}
-          </div>
+    <SetupWizardFrame mobile={isMobile} done={step === "done"} sidebar={sidebar}>
+      {step === "language" && (
+        <SetupPanel mobile={isMobile}>
+          <SetupHeroIcon icon={Globe} />
+          <SetupStack gap="lg">
+            <SetupStack gap="sm">
+              <SetupOptionButton selected={lang === "en"} onClick={() => handleLangSelect("en")}>
+                <SetupLanguageMark>EN</SetupLanguageMark>
+                <SetupOptionCopy title="English" />
+                <SetupCheck selected={lang === "en"} />
+              </SetupOptionButton>
+              <SetupOptionButton selected={lang === "zh"} onClick={() => handleLangSelect("zh")}>
+                <SetupLanguageMark>ZH</SetupLanguageMark>
+                <SetupOptionCopy title="中文" />
+                <SetupCheck selected={lang === "zh"} />
+              </SetupOptionButton>
+            </SetupStack>
+            <SetupButton onClick={() => setStep("storage")} icon={ChevronRight} iconPosition="end">
+              {t("setup.next")}
+            </SetupButton>
+          </SetupStack>
+        </SetupPanel>
+      )}
 
-          {showStepIndicator && (
-            <div style={{
-              display: "flex",
-              flexDirection: isMobile ? "row" : "column",
-              gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-5)",
-              overflowX: isMobile ? "auto" : undefined,
-              paddingBottom: isMobile ? "var(--gm-space-1)" : undefined,
-            }}>
-              {navSteps.map(({ key, label, active, complete }, index) => (
-                <div
-                  key={key}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-6)",
-                    padding: isMobile ? "var(--gm-space-4) var(--gm-space-5)" : "var(--gm-space-5) var(--gm-space-6)",
-                    borderRadius: "var(--gm-radius-md)",
-                    background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                    border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 42%, var(--border))" : "transparent"}`,
-                    flex: isMobile ? "0 0 auto" : undefined,
-                    minWidth: 0,
-                  }}
-                >
-                  <div style={{
-                    width: "var(--gm-size-setup-step-index)",
-                    height: "var(--gm-size-setup-step-index)",
-                    borderRadius: "var(--gm-radius-md)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "var(--gm-font-xs)",
-                    fontWeight: 700,
-                    background: complete || active ? "var(--accent)" : "var(--bg)",
-                    border: `1px solid ${complete || active ? "var(--accent)" : "var(--border)"}`,
-                    color: complete || active ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
-                    flexShrink: 0,
-                  }}>
-                    {complete ? <Check size={14} /> : index + 1}
-                  </div>
-                  <div style={{
-                    fontSize: isMobile ? "var(--gm-font-xs)" : "var(--gm-font-sm)",
-                    fontWeight: 600,
-                    color: active ? "var(--text)" : "var(--text-secondary)",
-                    whiteSpace: isMobile ? "nowrap" : undefined,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>
-                    {label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {step === "storage" && (
+        <SetupPanel mobile={isMobile}>
+          <SetupHeroIcon icon={HardDrive} />
+          <SetupBadgeRow>
+            <SetupBadge tone="success">{t("setup.localMode")}</SetupBadge>
+            <SetupBadge tone="accent">Git</SetupBadge>
+            <SetupBadge tone={storageMode === "remote" ? "warning" : "muted"}>
+              {storageMode === "remote" ? t("setup.remoteMode") : t("settings.noRemote")}
+            </SetupBadge>
+          </SetupBadgeRow>
 
-          {!isMobile && <div style={{
-            marginTop: "auto",
-            ...infoSurfaceStyle,
-            fontSize: "var(--gm-font-xs)",
-            color: "var(--text-secondary)",
-            lineHeight: "var(--gm-leading-relaxed)",
-          }}>
-            <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: "var(--gm-space-3)" }}>{t("setup.tipTitle")}</div>
-            {sidebarTip}
-          </div>}
-        </aside>
+          <SetupStack gap="lg">
+            <SetupStack gap="sm">
+              <SetupOptionButton selected={storageMode === "local"} compact onClick={() => setStorageMode("local")}>
+                <SetupOptionIcon icon={HardDrive} tone="success" />
+                <SetupOptionCopy title={t("setup.localMode")} description={t("setup.localModeDesc")} />
+                <SetupCheck selected={storageMode === "local"} />
+              </SetupOptionButton>
+              <SetupOptionButton selected={storageMode === "remote"} compact onClick={() => setStorageMode("remote")}>
+                <SetupOptionIcon icon={Cloud} tone="accent" />
+                <SetupOptionCopy title={t("setup.remoteMode")} description={t("setup.remoteModeDesc")} />
+                <SetupCheck selected={storageMode === "remote"} />
+              </SetupOptionButton>
+            </SetupStack>
 
-        <section style={{
-          minWidth: 0,
-          minHeight: 0,
-          flex: isMobile ? 1 : undefined,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}>
-          {step === "language" && renderPanel(
-            <div>
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
-                <Globe size={36} style={{ color: "var(--accent)", marginBottom: 12, display: "block", margin: "0 auto 12px" }} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-                <button style={optionCard(lang === "en")} onClick={() => handleLangSelect("en")}>
-                  <span style={{ fontSize: "var(--gm-font-2xl)" }}>EN</span>
-                  <div>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>English</div>
-                  </div>
-                  {lang === "en" && <Check size={18} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
-                </button>
-                <button style={optionCard(lang === "zh")} onClick={() => handleLangSelect("zh")}>
-                  <span style={{ fontSize: "var(--gm-font-2xl)" }}>ZH</span>
-                  <div>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>中文</div>
-                  </div>
-                  {lang === "zh" && <Check size={18} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
-                </button>
-              </div>
-              <button style={btnPrimary} onClick={() => setStep("storage")}>
-                {t("setup.next")} <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
-
-          {step === "storage" && renderPanel(
-            <div>
-              <div style={{ textAlign: "center", marginBottom: 22 }}>
-                <HardDrive size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
-              </div>
-
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 16 }}>
-                <span style={badgeStyle("success")}>{t("setup.localMode")}</span>
-                <span style={badgeStyle("accent")}>Git</span>
-                <span style={badgeStyle(storageMode === "remote" ? "warning" : "muted")}>
-                  {storageMode === "remote" ? t("setup.remoteMode") : t("settings.noRemote")}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                <button style={{ ...optionCard(storageMode === "local"), padding: "12px 16px" }} onClick={() => setStorageMode("local")}>
-                  <HardDrive size={20} style={{ color: "var(--green)", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("setup.localMode")}</div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.localModeDesc")}</div>
-                  </div>
-                  {storageMode === "local" && <Check size={18} style={{ color: "var(--accent)" }} />}
-                </button>
-                <button style={{ ...optionCard(storageMode === "remote"), padding: "12px 16px" }} onClick={() => setStorageMode("remote")}>
-                  <Cloud size={20} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("setup.remoteMode")}</div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.remoteModeDesc")}</div>
-                  </div>
-                  {storageMode === "remote" && <Check size={18} style={{ color: "var(--accent)" }} />}
-                </button>
-              </div>
-
-              {storageMode === "remote" && (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                    {t("setup.platformTitle")}
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-                    {(Object.keys(PLATFORM_META) as GitPlatform[]).map(item => {
-                      const meta = PLATFORM_META[item];
-                      const selected = platform === item;
-                      return (
-                        <button
-                          key={item}
-                          onClick={() => setPlatform(item)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "8px 12px",
-                            borderRadius: "var(--gm-radius-pill)",
-                            border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
-                            background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                            cursor: "pointer",
-                            transition: "all 0.15s",
-                            color: selected ? "var(--accent)" : "var(--text)",
-                          }}
-                        >
-                          <div style={{ width: 8, height: 8, borderRadius: "var(--gm-radius-sm)", background: meta.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>
-                            {item === "other" ? t("setup.platformOther") : meta.label}
-                          </span>
-                          {selected && <Check size={12} style={{ color: "var(--accent)" }} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {platform && (
-                    <>
-                      {selectedPlatformMeta && platform !== "other" && (
-                        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
-                          {t("setup.repoLimit")}: {selectedPlatformMeta.repoLimit}
-                          {" · "}
-                          {t("setup.fileLimit")}: {selectedPlatformMeta.fileLimit}
-                          {" · "}
-                          {t("setup.freeStorage")}: {selectedPlatformMeta.freeStorage}
-                        </p>
-                      )}
-                      <input
-                        type="text"
-                        value={gitUrl}
-                        onChange={(e) => setGitUrl(e.target.value)}
-                        placeholder={gitUrlPlaceholder}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          borderRadius: "var(--gm-radius-lg)",
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-input)",
-                          color: "var(--text)",
-                          fontSize: "var(--gm-font-sm)",
-                          fontFamily: "ui-monospace, monospace",
-                          outline: "none",
-                          boxSizing: "border-box",
-                        }}
+            {storageMode === "remote" && (
+              <SetupStack gap="sm">
+                <SetupSectionLabel>{t("setup.platformTitle")}</SetupSectionLabel>
+                <SetupPlatformGrid>
+                  {(Object.keys(PLATFORM_META) as GitPlatform[]).map(item => {
+                    const meta = PLATFORM_META[item];
+                    return (
+                      <SetupPlatformButton
+                        key={item}
+                        selected={platform === item}
+                        platform={item}
+                        label={item === "other" ? t("setup.platformOther") : meta.label}
+                        onClick={() => setPlatform(item)}
                       />
-                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
-                        {isMobile ? t("setup.mobileGitUrlHint") : t("setup.gitUrlHint")}
-                      </p>
-                      {isMobile && (
-                        <>
-                          <input
-                            type="text"
-                            value={accessToken}
-                            onChange={(e) => setAccessToken(e.target.value)}
-                            placeholder={t("setup.mobileAccessToken")}
-                            style={{
-                              width: "100%",
-                              padding: "10px 12px",
-                              borderRadius: "var(--gm-radius-lg)",
-                              border: "1px solid var(--border)",
-                              background: "var(--bg-input)",
-                              color: "var(--text)",
-                              fontSize: "var(--gm-font-sm)",
-                              outline: "none",
-                              boxSizing: "border-box",
-                              marginTop: 10,
-                            }}
-                          />
-                          <p style={{
-                            fontSize: "var(--gm-font-xs)",
-                            color: trimmedGitUrl && !isHttpsRemote ? "var(--red)" : "var(--text-secondary)",
-                            marginTop: 6,
-                            lineHeight: 1.5,
-                          }}>
-                            {trimmedGitUrl && !isHttpsRemote ? t("setup.mobileHttpsRequired") : t("setup.mobileTokenHint")}
-                          </p>
-                          <div style={{
-                            marginTop: 10,
-                            padding: "10px 12px",
-                            borderRadius: "var(--gm-radius-lg)",
-                            border: "1px solid var(--border)",
-                            background: "var(--bg-hover)",
-                          }}>
-                            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                              <KeyRound size={14} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
-                              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                                {t("setup.mobileTokenGuide")}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
+                    );
+                  })}
+                </SetupPlatformGrid>
+
+                {platform && (
+                  <SetupStack gap="sm">
+                    {selectedPlatformMeta && platform !== "other" && (
+                      <SetupFieldHint>
+                        {t("setup.repoLimit")}: {selectedPlatformMeta.repoLimit}
+                        {" · "}
+                        {t("setup.fileLimit")}: {selectedPlatformMeta.fileLimit}
+                        {" · "}
+                        {t("setup.freeStorage")}: {selectedPlatformMeta.freeStorage}
+                      </SetupFieldHint>
+                    )}
+                    <SetupInput
+                      type="text"
+                      value={gitUrl}
+                      onChange={(e) => setGitUrl(e.target.value)}
+                      placeholder={gitUrlPlaceholder}
+                    />
+                    <SetupFieldHint>
+                      {isMobile ? t("setup.mobileGitUrlHint") : t("setup.gitUrlHint")}
+                    </SetupFieldHint>
+
+                    {isMobile && (
+                      <>
+                        <SetupInput
+                          type="text"
+                          value={accessToken}
+                          onChange={(e) => setAccessToken(e.target.value)}
+                          placeholder={t("setup.mobileAccessToken")}
+                        />
+                        <SetupFieldHint tone={trimmedGitUrl && !isHttpsRemote ? "danger" : "muted"}>
+                          {trimmedGitUrl && !isHttpsRemote ? t("setup.mobileHttpsRequired") : t("setup.mobileTokenHint")}
+                        </SetupFieldHint>
+                        <SetupInfoPanel>
+                          <SetupStack gap="sm">
+                            <SetupInfoRow>
+                              <AppIcon icon={KeyRound} size="xs" tone="accent" />
+                              <SetupText>{t("setup.mobileTokenGuide")}</SetupText>
+                            </SetupInfoRow>
+                            <SetupButton
+                              variant="secondary"
+                              icon={ExternalLink}
+                              iconPosition="end"
                               onClick={() => void openUrl(accessTokenHelpUrl(trimmedGitUrl, platform))}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 5,
-                                marginTop: 8,
-                                width: "100%",
-                                padding: "8px 10px",
-                                borderRadius: "var(--gm-radius-md)",
-                                border: "1px solid var(--border)",
-                                background: "var(--bg)",
-                                color: "var(--accent)",
-                                fontSize: "var(--gm-font-xs)",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
                             >
-                              <ExternalLink size={12} /> {t("setup.createAccessToken")}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
+                              {t("setup.createAccessToken")}
+                            </SetupButton>
+                          </SetupStack>
+                        </SetupInfoPanel>
+                      </>
+                    )}
+                  </SetupStack>
+                )}
+              </SetupStack>
+            )}
 
-              <div style={buttonRowStyle}>
-                <button style={navBackButtonStyle} onClick={() => setStep("language")}>
-                  {t("setup.back")}
-                </button>
-                <button
-                  style={{
-                    ...navPrimaryButtonStyle,
-                    opacity: remoteReady ? 1 : 0.5,
-                  }}
-                  disabled={!remoteReady}
-                  onClick={() => {
-                    setSshKeyCopied(false);
-                    if (isMobile) {
-                      void runInit();
-                    } else {
-                      void loadSshCandidates();
-                    }
-                  }}
-                >
-                  {scanningSsh ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : t("setup.next")}
-                  {!scanningSsh && <ChevronRight size={16} />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === "ssh_key" && renderPanel(
-            <div>
-              <div style={{ textAlign: "center", marginBottom: 14 }}>
-                <KeyRound size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
-              </div>
-
-              {sshScanError && (
-                <div style={{
-                  marginBottom: 12,
-                  padding: "10px 12px",
-                  borderRadius: "var(--gm-radius-lg)",
-                  border: "1px solid var(--red)",
-                  color: "var(--red)",
-                  background: "color-mix(in srgb, var(--red) 10%, var(--bg-card))",
-                  fontSize: "var(--gm-font-xs)",
-                  lineHeight: 1.5,
-                }}>
-                  {sshScanError}
-                </div>
-              )}
-
-              <div style={candidateListStyle}>
-                {sshCandidates.map(candidate => (
-                  <button
-                    key={candidate.path}
-                    style={{ ...optionCard(selectedSshKeyPath === candidate.path), alignItems: "flex-start" }}
-                    onClick={() => {
-                      setSelectedSshKeyPath(candidate.path);
-                      setSshKeyCopied(false);
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, wordBreak: "break-all" }}>{candidate.path}</span>
-                        {candidate.recommended && (
-                          <span style={{
-                            fontSize: "var(--gm-font-2xs)",
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: "var(--gm-radius-pill)",
-                            background: "color-mix(in srgb, var(--accent) 14%, var(--bg-card))",
-                            color: "var(--accent)",
-                          }}>
-                            {t("setup.recommended")}
-                          </span>
-                        )}
-                      </div>
-                      {candidate.reason && (
-                        <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 4 }}>
-                          {candidate.reason}
-                        </div>
-                      )}
-                    </div>
-                    {selectedSshKeyPath === candidate.path && <Check size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                <button
-                  style={{ ...btnSecondary, flex: 1, opacity: generatingSshKey ? 0.7 : 1 }}
-                  disabled={generatingSshKey}
-                  onClick={() => {
-                    setSshKeyCopied(false);
-                    void generateSshKey();
-                  }}
-                >
-                  {generatingSshKey ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <KeyRound size={16} />}
-                  {t("setup.generateSshKey")}
-                </button>
-                <button
-                  style={{ ...btnSecondary, width: "auto", padding: "10px 14px" }}
-                  onClick={() => {
-                    setSshKeyCopied(false);
+            <SetupButtonRow>
+              <SetupButton variant="secondary" layout="nav-back" onClick={() => setStep("language")}>
+                {t("setup.back")}
+              </SetupButton>
+              <SetupButton
+                layout="nav-primary"
+                disabled={!remoteReady}
+                icon={scanningSsh ? Loader2 : ChevronRight}
+                iconPosition="end"
+                iconSpin={scanningSsh}
+                onClick={() => {
+                  setSshKeyCopied(false);
+                  if (isMobile) {
+                    void runInit();
+                  } else {
                     void loadSshCandidates();
+                  }
+                }}
+              >
+                {t("setup.next")}
+              </SetupButton>
+            </SetupButtonRow>
+          </SetupStack>
+        </SetupPanel>
+      )}
+
+      {step === "ssh_key" && (
+        <SetupPanel mobile={isMobile}>
+          <SetupHeroIcon icon={KeyRound} />
+          <SetupStack gap="lg">
+            {sshScanError && (
+              <SetupInfoPanel tone="danger">
+                <SetupText tone="danger">{sshScanError}</SetupText>
+              </SetupInfoPanel>
+            )}
+
+            <SetupCandidateList>
+              {sshCandidates.map(candidate => (
+                <SetupOptionButton
+                  key={candidate.path}
+                  selected={selectedSshKeyPath === candidate.path}
+                  className="gm-setup-option-top"
+                  onClick={() => {
+                    setSelectedSshKeyPath(candidate.path);
+                    setSshKeyCopied(false);
                   }}
                 >
-                  {t("common.refresh")}
-                </button>
-              </div>
+                  <div className="gm-setup-option-copy">
+                    <div className="gm-setup-candidate-head">
+                      <span className="gm-setup-candidate-path">{candidate.path}</span>
+                      {candidate.recommended && <SetupBadge tone="accent">{t("setup.recommended")}</SetupBadge>}
+                    </div>
+                    {candidate.reason && <div className="gm-setup-candidate-reason">{candidate.reason}</div>}
+                  </div>
+                  <SetupCheck selected={selectedSshKeyPath === candidate.path} />
+                </SetupOptionButton>
+              ))}
+            </SetupCandidateList>
 
-              {selectedSshCandidate && (
-                <div style={{
-                  marginBottom: 10,
-                  padding: "10px 12px",
-                  borderRadius: "var(--gm-radius-lg)",
-                  border: "1px dashed var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: "var(--gm-font-xs)",
-                  color: "var(--text-secondary)",
-                }}>
-                  <GitBranch size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedSshCandidate.public_key}
-                  </span>
-                  <button
-                    onClick={() => copySshKey(selectedSshCandidate.public_key)}
-                    style={{
-                      marginLeft: "auto",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "4px 10px",
-                      borderRadius: "var(--gm-radius-md)",
-                      border: "1px solid var(--border)",
-                      background: "transparent",
-                      color: "var(--text-secondary)",
-                      fontSize: "var(--gm-font-xs)",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Copy size={12} /> {sshKeyCopied ? t("setup.copied") : t("setup.copy")}
-                  </button>
-                </div>
-              )}
+            <SetupInlineActions>
+              <SetupButton
+                variant="secondary"
+                disabled={generatingSshKey}
+                icon={generatingSshKey ? Loader2 : KeyRound}
+                iconSpin={generatingSshKey}
+                onClick={() => {
+                  setSshKeyCopied(false);
+                  void generateSshKey();
+                }}
+              >
+                {t("setup.generateSshKey")}
+              </SetupButton>
+              <SetupButton
+                variant="secondary"
+                layout="auto"
+                className="gm-setup-button-compact"
+                onClick={() => {
+                  setSshKeyCopied(false);
+                  void loadSshCandidates();
+                }}
+              >
+                {t("common.refresh")}
+              </SetupButton>
+            </SetupInlineActions>
 
-              {sshCandidates.length === 0 && !scanningSsh && (
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.5 }}>
-                  {t("setup.noSshKeysFound")}
-                </p>
-              )}
-
-              <div style={buttonRowStyle}>
-                <button style={navBackButtonStyle} onClick={() => setStep("storage")}>
-                  {t("setup.back")}
-                </button>
-                <button
-                  style={{ ...navPrimaryButtonStyle, opacity: selectedSshKeyPath ? 1 : 0.5 }}
-                  disabled={!selectedSshKeyPath}
-                  onClick={() => setStep("editors")}
+            {selectedSshCandidate && (
+              <SetupPublicKeyBox>
+                <AppIcon icon={GitBranch} size="xs" tone="accent" />
+                <span>{selectedSshCandidate.public_key}</span>
+                <SetupButton
+                  variant="ghost"
+                  layout="auto"
+                  className="gm-setup-button-compact"
+                  icon={Copy}
+                  onClick={() => copySshKey(selectedSshCandidate.public_key)}
                 >
-                  {t("setup.next")} <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+                  {sshKeyCopied ? t("setup.copied") : t("setup.copy")}
+                </SetupButton>
+              </SetupPublicKeyBox>
+            )}
 
-          {step === "editors" && renderPanel(
-            <div>
-              <div style={{ textAlign: "center", marginBottom: 22 }}>
-                <Code2 size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-                <button style={optionCard(editors.includes("claude"))} onClick={() => toggleEditor("claude")}>
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "var(--gm-radius-sm)",
-                    border: `2px solid ${editors.includes("claude") ? "var(--accent)" : "var(--border)"}`,
-                    background: editors.includes("claude") ? "var(--accent)" : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    {editors.includes("claude") && <Check size={12} color="var(--gm-color-on-accent)" />}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Claude Code</div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.claudeDesc")}</div>
-                  </div>
-                </button>
-                <button style={optionCard(editors.includes("cursor"))} onClick={() => toggleEditor("cursor")}>
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "var(--gm-radius-sm)",
-                    border: `2px solid ${editors.includes("cursor") ? "var(--accent)" : "var(--border)"}`,
-                    background: editors.includes("cursor") ? "var(--accent)" : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    {editors.includes("cursor") && <Check size={12} color="var(--gm-color-on-accent)" />}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Cursor</div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.cursorDesc")}</div>
-                  </div>
-                </button>
-                <button style={optionCard(editors.includes("codex"))} onClick={() => toggleEditor("codex")}>
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "var(--gm-radius-sm)",
-                    border: `2px solid ${editors.includes("codex") ? "var(--accent)" : "var(--border)"}`,
-                    background: editors.includes("codex") ? "var(--accent)" : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    {editors.includes("codex") && <Check size={12} color="var(--gm-color-on-accent)" />}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Codex</div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.codexDesc")}</div>
-                  </div>
-                </button>
-              </div>
-              <div style={buttonRowStyle}>
-                <button style={navBackButtonStyle} onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>
-                  {t("setup.back")}
-                </button>
-                <button style={navPrimaryButtonStyle} onClick={runInit}>
-                  <Rocket size={16} /> {t("setup.startSetup")}
-                </button>
-              </div>
-              <p style={{
-                fontSize: "var(--gm-font-xs)",
-                color: "var(--text-secondary)",
-                textAlign: "center",
-                marginTop: 10,
-                visibility: editors.length === 0 ? "visible" : "hidden",
-              }}>
+            {sshCandidates.length === 0 && !scanningSsh && (
+              <SetupText>{t("setup.noSshKeysFound")}</SetupText>
+            )}
+
+            <SetupButtonRow>
+              <SetupButton variant="secondary" layout="nav-back" onClick={() => setStep("storage")}>
+                {t("setup.back")}
+              </SetupButton>
+              <SetupButton
+                layout="nav-primary"
+                disabled={!selectedSshKeyPath}
+                icon={ChevronRight}
+                iconPosition="end"
+                onClick={() => setStep("editors")}
+              >
+                {t("setup.next")}
+              </SetupButton>
+            </SetupButtonRow>
+          </SetupStack>
+        </SetupPanel>
+      )}
+
+      {step === "editors" && (
+        <SetupPanel mobile={isMobile}>
+          <SetupHeroIcon icon={Code2} />
+          <SetupStack gap="lg">
+            <SetupStack gap="sm">
+              <SetupOptionButton selected={editors.includes("claude")} onClick={() => toggleEditor("claude")}>
+                <SetupCheckbox checked={editors.includes("claude")} />
+                <SetupOptionCopy title="Claude Code" description={t("setup.claudeDesc")} />
+              </SetupOptionButton>
+              <SetupOptionButton selected={editors.includes("cursor")} onClick={() => toggleEditor("cursor")}>
+                <SetupCheckbox checked={editors.includes("cursor")} />
+                <SetupOptionCopy title="Cursor" description={t("setup.cursorDesc")} />
+              </SetupOptionButton>
+              <SetupOptionButton selected={editors.includes("codex")} onClick={() => toggleEditor("codex")}>
+                <SetupCheckbox checked={editors.includes("codex")} />
+                <SetupOptionCopy title="Codex" description={t("setup.codexDesc")} />
+              </SetupOptionButton>
+            </SetupStack>
+
+            <SetupButtonRow>
+              <SetupButton variant="secondary" layout="nav-back" onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>
+                {t("setup.back")}
+              </SetupButton>
+              <SetupButton layout="nav-primary" icon={Rocket} onClick={runInit}>
+                {t("setup.startSetup")}
+              </SetupButton>
+            </SetupButtonRow>
+            {editors.length === 0 && (
+              <SetupText align="center" className="gm-setup-skip-hint">
                 {t("setup.skipEditorsHint")}
-              </p>
-            </div>
-          )}
+              </SetupText>
+            )}
+          </SetupStack>
+        </SetupPanel>
+      )}
 
-          {step === "running" && renderPanel(
-            <div style={{
-              minHeight: "100%",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 18,
-              padding: isMobile ? "28px 0" : "48px 0",
-            }}>
-              <div style={{ textAlign: "center" }}>
-                <Loader2
-                  size={isMobile ? 40 : 48}
-                  style={{
-                    color: "var(--accent)",
-                    animation: "spin 1s linear infinite",
-                    display: "block",
-                    margin: "0 auto 16px",
-                  }}
-                />
-                <h2 style={{ fontSize: isMobile ? "var(--gm-font-xl)" : "var(--gm-font-2xl)", fontWeight: 700, marginBottom: 8 }}>{t("setup.settingUp")}</h2>
-                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                  {latestInitLog?.message ?? (isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"))}
-                </p>
-              </div>
+      {step === "running" && (
+        <SetupPanel mobile={isMobile}>
+          <SetupRunningLayout>
+            <SetupCenteredBlock>
+              <AppIcon icon={Loader2} size={isMobile ? "empty-lg" : "hero"} tone="accent" spin className="gm-setup-running-spinner" />
+              <h2 className="gm-setup-running-title">{t("setup.settingUp")}</h2>
+              <SetupText align="center">
+                {latestInitLog?.message ?? (isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"))}
+              </SetupText>
+            </SetupCenteredBlock>
 
-              <div style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--gm-radius-lg)",
-                background: "var(--bg-hover)",
-                overflow: "hidden",
-              }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  padding: "12px 14px",
-                  borderBottom: "1px solid var(--border)",
-                }}>
-                  <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700 }}>{t("setup.initLogTitle")}</span>
-                  <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                    {t("setup.initLogCount", initLogs.length)}
-                  </span>
-                </div>
-                <div
-                  ref={initLogRef}
-                  style={{
-                    maxHeight: isMobile ? 230 : 260,
-                    overflowY: "auto",
-                    padding: "10px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
+            <SetupLogPanel title={t("setup.initLogTitle")} count={t("setup.initLogCount", initLogs.length)}>
+              <SetupLogBody refNode={initLogRef}>
+                {initLogs.length === 0 ? (
+                  <SetupText>{t("setup.initWaitingLog")}</SetupText>
+                ) : initLogs.map((item, index) => (
+                  <SetupLogItem
+                    key={`${item.step}-${index}`}
+                    icon={<SetupLogIcon status={item.status} />}
+                    message={item.message}
+                    step={item.step}
+                    error={item.status === "error"}
+                  />
+                ))}
+              </SetupLogBody>
+            </SetupLogPanel>
+
+            <SetupText align="center">{t("setup.initLongRunningHint")}</SetupText>
+          </SetupRunningLayout>
+        </SetupPanel>
+      )}
+
+      {step === "done" && (
+        <SetupPanel mobile={isMobile}>
+          {error ? (
+            <SetupCenteredBlock padded>
+              <SetupDoneIcon error />
+              <SetupTitle tone="danger">{t("setup.failed")}</SetupTitle>
+              <SetupText align="center" tone="danger">{error}</SetupText>
+              <SetupButton onClick={() => { setError(""); setStep(retryStep); }}>
+                {t("setup.retry")}
+              </SetupButton>
+            </SetupCenteredBlock>
+          ) : (
+            <SetupStack gap="lg">
+              <SetupCenteredBlock>
+                <SetupDoneIcon error={showSetupError} />
+                <SetupTitle tone={showSetupError ? "danger" : "default"}>
+                  {showSetupError ? t("setup.failed") : t("setup.complete")}
+                </SetupTitle>
+                <SetupText align="center">
+                  {showSetupError
+                    ? (storageMode === "remote"
+                        ? (isMobile
+                            ? t("setup.mobileRemoteErrorDesc")
+                            : "Setup did not complete. Check the failed steps below, make sure your SSH key is ready in the remote repository, then retry.")
+                        : "Setup did not complete. Review the failed steps below and retry.")
+                    : t("setup.completeDesc")}
+                </SetupText>
+              </SetupCenteredBlock>
+
+              {result && result.steps.length > 0 && (
+                <SetupResultList>
+                  {result.steps.map((item, index) => (
+                    <SetupResultRow key={index} ok={item.ok} message={item.message} />
+                  ))}
+                </SetupResultList>
+              )}
+
+              {isDesktop && result?.ssh_public_key && doneDeployKeysUrl && (
+                <SetupInfoPanel tone="dashed">
+                  <SetupStack gap="sm">
+                    <SetupInfoRow>
+                      <AppIcon icon={GitBranch} size="xs" tone="accent" />
+                      <SetupOptionCopy title={t("setup.sshKeyTitle")} />
+                      <SetupButton
+                        variant="ghost"
+                        layout="auto"
+                        className="gm-setup-button-compact"
+                        icon={Copy}
+                        onClick={() => copySshKey(result.ssh_public_key)}
+                      >
+                        {sshKeyCopied ? t("setup.copied") : t("setup.copy")}
+                      </SetupButton>
+                    </SetupInfoRow>
+                    <code className="gm-setup-code-block">{result.ssh_public_key}</code>
+                    <SetupFieldHint>{t("setup.sshKeyHint")}</SetupFieldHint>
+                    <SetupFieldHint tone="warning">{t("setup.sshWriteAccess")}</SetupFieldHint>
+                    <SetupButton
+                      variant="secondary"
+                      layout="auto"
+                      className="gm-setup-button-compact"
+                      icon={ExternalLink}
+                      iconPosition="end"
+                      onClick={() => void openUrl(doneDeployKeysUrl)}
+                    >
+                      {t("setup.openDeployKeys")}
+                    </SetupButton>
+                  </SetupStack>
+                </SetupInfoPanel>
+              )}
+
+              {setupSucceeded ? (
+                <SetupButton
+                  disabled={entering}
+                  icon={entering ? Loader2 : ChevronRight}
+                  iconPosition="end"
+                  iconSpin={entering}
+                  onClick={() => {
+                    setEntering(true);
+                    onComplete(result?.needs_remote_sync);
                   }}
                 >
-                  {initLogs.length === 0 ? (
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("setup.initWaitingLog")}</p>
-                  ) : initLogs.map((item, index) => (
-                    <div key={`${item.step}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                      {initLogIcon(item.status)}
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{
-                          fontSize: "var(--gm-font-xs)",
-                          color: item.status === "error" ? "var(--red)" : "var(--text)",
-                          lineHeight: 1.5,
-                          wordBreak: "break-word",
-                        }}>
-                          {item.message}
-                        </p>
-                        <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: 2 }}>
-                          {item.step}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6, textAlign: "center" }}>
-                {t("setup.initLongRunningHint")}
-              </p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
+                  {entering ? t("setup.pleaseWait") : t("setup.enterApp")}
+                </SetupButton>
+              ) : (
+                <SetupStack gap="sm">
+                  <SetupButton onClick={() => setStep(retryStep)}>
+                    {t("setup.retry")}
+                  </SetupButton>
+                  <SetupButton variant="secondary" onClick={() => setStep("language")}>
+                    Start over
+                  </SetupButton>
+                </SetupStack>
+              )}
+            </SetupStack>
           )}
-
-          {step === "done" && renderPanel(
-            error ? (
-              <div style={{ textAlign: "center", marginBottom: 24, paddingTop: 60 }}>
-                <AlertCircle size={40} style={{ color: "var(--red)", marginBottom: 12 }} />
-                <h2 style={{ fontSize: "var(--gm-font-lg)", fontWeight: 700, marginBottom: 8, color: "var(--red)" }}>{t("setup.failed")}</h2>
-                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", marginBottom: 16 }}>{error}</p>
-                <button style={btnPrimary} onClick={() => { setError(""); setStep(retryStep); }}>
-                  {t("setup.retry")}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div style={{ textAlign: "center", marginBottom: 20 }}>
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "var(--gm-radius-pill)",
-                    background: showSetupError
-                      ? "color-mix(in srgb, var(--red) 14%, var(--bg-card))"
-                      : "color-mix(in srgb, var(--green) 14%, var(--bg-card))",
-                    margin: "0 auto 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                    {showSetupError ? (
-                      <AlertCircle size={28} style={{ color: "var(--red)" }} />
-                    ) : (
-                      <Check size={28} style={{ color: "var(--green)" }} />
-                    )}
-                  </div>
-                  <h2 style={{
-                    fontSize: "var(--gm-font-xl)",
-                    fontWeight: 700,
-                    marginBottom: 6,
-                    color: showSetupError ? "var(--red)" : "var(--text)",
-                  }}>
-                    {showSetupError ? t("setup.failed") : t("setup.complete")}
-                  </h2>
-                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-                    {showSetupError
-                      ? (storageMode === "remote"
-                          ? (isMobile
-                              ? t("setup.mobileRemoteErrorDesc")
-                              : "Setup did not complete. Check the failed steps below, make sure your SSH key is ready in the remote repository, then retry.")
-                          : "Setup did not complete. Review the failed steps below and retry.")
-                      : t("setup.completeDesc")}
-                  </p>
-                </div>
-
-                {result && result.steps.length > 0 && (
-                  <div style={{
-                    marginBottom: 16,
-                    padding: "12px 16px",
-                    borderRadius: "var(--gm-radius-lg)",
-                    background: "var(--bg-hover)",
-                    maxHeight: 220,
-                    overflowY: "auto",
-                  }}>
-                    {result.steps.map((item, index) => (
-                      <div key={index} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: "var(--gm-font-xs)" }}>
-                        {item.ok ? (
-                          <Check size={14} style={{ color: "var(--green)", flexShrink: 0 }} />
-                        ) : (
-                          <AlertCircle size={14} style={{ color: "var(--red)", flexShrink: 0 }} />
-                        )}
-                        <span style={{ color: item.ok ? "var(--text)" : "var(--red)" }}>{item.message}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {isDesktop && result?.ssh_public_key && doneDeployKeysUrl && (
-                  <div style={{
-                    marginBottom: 16,
-                    padding: "12px 16px",
-                    borderRadius: "var(--gm-radius-lg)",
-                    border: "1px dashed var(--border)",
-                    maxHeight: 220,
-                    overflowY: "auto",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <GitBranch size={14} style={{ color: "var(--accent)" }} />
-                      <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>{t("setup.sshKeyTitle")}</span>
-                      <button
-                        onClick={() => copySshKey(result.ssh_public_key)}
-                        style={{
-                          marginLeft: "auto",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "4px 10px",
-                          borderRadius: "var(--gm-radius-md)",
-                          border: "1px solid var(--border)",
-                          background: "transparent",
-                          color: "var(--text-secondary)",
-                          fontSize: "var(--gm-font-xs)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Copy size={12} /> {sshKeyCopied ? t("setup.copied") : t("setup.copy")}
-                      </button>
-                    </div>
-                    <code style={{ display: "block", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", wordBreak: "break-all", lineHeight: 1.4 }}>
-                      {result.ssh_public_key}
-                    </code>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 8 }}>{t("setup.sshKeyHint")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--yellow)", marginTop: 6, fontWeight: 600 }}>
-                      {t("setup.sshWriteAccess")}
-                    </p>
-                    <button
-                      onClick={() => void openUrl(doneDeployKeysUrl)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginTop: 8,
-                        padding: "6px 12px",
-                        borderRadius: "var(--gm-radius-md)",
-                        border: "1px solid var(--border)",
-                        background: "transparent",
-                        color: "var(--accent)",
-                        fontSize: "var(--gm-font-xs)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <ExternalLink size={12} /> {t("setup.openDeployKeys")}
-                    </button>
-                  </div>
-                )}
-
-                {setupSucceeded ? (
-                  <button
-                    style={{ ...btnPrimary, opacity: entering ? 0.7 : 1 }}
-                    disabled={entering}
-                    onClick={() => {
-                      setEntering(true);
-                      onComplete(result?.needs_remote_sync);
-                    }}
-                  >
-                    {entering ? (
-                      <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> {t("setup.pleaseWait")}</>
-                    ) : (
-                      <>{t("setup.enterApp")} <ChevronRight size={16} /></>
-                    )}
-                  </button>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <button style={btnPrimary} onClick={() => setStep(retryStep)}>
-                      {t("setup.retry")}
-                    </button>
-                    <button style={btnSecondary} onClick={() => setStep("language")}>
-                      Start over
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          )}
-        </section>
-      </div>
-    </div>
+        </SetupPanel>
+      )}
+    </SetupWizardFrame>
   );
 }

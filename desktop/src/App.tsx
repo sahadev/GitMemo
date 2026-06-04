@@ -470,29 +470,24 @@ function App() {
     <SetupWizard onComplete={handleSetupComplete} />
   ) : (
     <>
-      {visitedPages.has("dashboard") && <div style={{ display: currentPage === "dashboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><DashboardPage onNavigate={navigatePage} active={currentPage === "dashboard"} /></div>}
-      {visitedPages.has("ai-records") && <div style={{ display: currentPage === "ai-records" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><AiRecordsPage active={currentPage === "ai-records"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
-      {visitedPages.has("notes") && <div style={{ display: currentPage === "notes" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><NotesPage active={currentPage === "notes"} focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
-      {visitedPages.has("clipboard") && <div style={{ display: currentPage === "clipboard" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClipboardPage active={currentPage === "clipboard"} onNavigate={navigatePage} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
-      {visitedPages.has("favorites") && <div style={{ display: currentPage === "favorites" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><FavoritesPage registerMobileBackHandler={(handler) => registerMobileBackHandler("favorites", handler)} /></div>}
-      {isDesktop && visitedPages.has("claude-config") && <div style={{ display: currentPage === "claude-config" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ClaudeConfigPage active={currentPage === "claude-config"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
-      {visitedPages.has("imports") && <div style={{ display: currentPage === "imports" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}
-      {isDesktop && visitedPages.has("editor-home") && <div style={{ display: currentPage === "editor-home" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
-      {isDesktop && visitedPages.has("external-files") && <div style={{ display: currentPage === "external-files" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
-      {visitedPages.has("search") && <div style={{ display: currentPage === "search" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SearchPage focusTrigger={focusTrigger} entryTrigger={searchEntryTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} registerMobileBackHandler={(handler) => registerMobileBackHandler("search", handler)} /></div>}
-      {visitedPages.has("settings") && <div style={{ display: currentPage === "settings" ? "flex" : "none", flex: 1, minHeight: 0, minWidth: 0 }}><SettingsPage onNavigate={navigatePage} /></div>}
+      {visitedPages.has("dashboard") && <div className="gm-app-page-mount" data-active={currentPage === "dashboard" ? "true" : "false"}><DashboardPage onNavigate={navigatePage} active={currentPage === "dashboard"} /></div>}
+      {visitedPages.has("ai-records") && <div className="gm-app-page-mount" data-active={currentPage === "ai-records" ? "true" : "false"}><AiRecordsPage active={currentPage === "ai-records"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
+      {visitedPages.has("notes") && <div className="gm-app-page-mount" data-active={currentPage === "notes" ? "true" : "false"}><NotesPage active={currentPage === "notes"} focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
+      {visitedPages.has("clipboard") && <div className="gm-app-page-mount" data-active={currentPage === "clipboard" ? "true" : "false"}><ClipboardPage active={currentPage === "clipboard"} onNavigate={navigatePage} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
+      {visitedPages.has("favorites") && <div className="gm-app-page-mount" data-active={currentPage === "favorites" ? "true" : "false"}><FavoritesPage registerMobileBackHandler={(handler) => registerMobileBackHandler("favorites", handler)} /></div>}
+      {isDesktop && visitedPages.has("claude-config") && <div className="gm-app-page-mount" data-active={currentPage === "claude-config" ? "true" : "false"}><ClaudeConfigPage active={currentPage === "claude-config"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
+      {visitedPages.has("imports") && <div className="gm-app-page-mount" data-active={currentPage === "imports" ? "true" : "false"}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}
+      {isDesktop && visitedPages.has("editor-home") && <div className="gm-app-page-mount" data-active={currentPage === "editor-home" ? "true" : "false"}><EditorHomePage openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
+      {isDesktop && visitedPages.has("external-files") && <div className="gm-app-page-mount" data-active={currentPage === "external-files" ? "true" : "false"}><ExternalFilesPage openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
+      {visitedPages.has("search") && <div className="gm-app-page-mount" data-active={currentPage === "search" ? "true" : "false"}><SearchPage focusTrigger={focusTrigger} entryTrigger={searchEntryTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} registerMobileBackHandler={(handler) => registerMobileBackHandler("search", handler)} /></div>}
+      {visitedPages.has("settings") && <div className="gm-app-page-mount" data-active={currentPage === "settings" ? "true" : "false"}><SettingsPage onNavigate={navigatePage} /></div>}
     </>
   );
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: isMobile ? "column" : "row",
-      height: isMobile ? "100dvh" : "100vh",
-      width: "100vw",
-      overflow: "hidden",
-      background: "var(--gm-color-bg-page)",
-    }}
+    <div
+      className="gm-app-shell"
+      data-mobile={isMobile ? "true" : "false"}
       onTouchStart={handleMobileTouchStart}
       onTouchEnd={handleMobileTouchEnd}
     >
@@ -508,15 +503,7 @@ function App() {
         />
       )}
       <main
-        style={{
-          flex: 1,
-          overflow: "hidden",
-          display: "flex",
-          minWidth: 0,
-          minHeight: 0,
-          boxSizing: "border-box",
-          background: "var(--gm-color-bg-page)",
-        }}
+        className="gm-app-main"
         onClick={() => setSidebarFocused(false)}
       >
         {pageContent}

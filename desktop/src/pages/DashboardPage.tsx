@@ -230,38 +230,38 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   ];
 
   const syncStatus = (() => {
-    if (!gitStatus) return { text: t("dashboard.loading"), color: "var(--text-secondary)" };
+    if (!gitStatus) return { text: t("dashboard.loading"), tone: "secondary" as const };
     if (gitStatus.behind > 0 && gitStatus.unpushed > 0) {
       return {
         text: t("dashboard.diverged", String(gitStatus.unpushed), String(gitStatus.behind)),
-        color: "var(--yellow)",
+        tone: "warning" as const,
       };
     }
     if (gitStatus.behind > 0) {
       return {
         text: t("dashboard.behind", String(gitStatus.behind)),
-        color: "var(--red)",
+        tone: "danger" as const,
       };
     }
     if (gitStatus.unpushed > 0) {
       return {
         text: `${gitStatus.unpushed} ${t("dashboard.unpushed")}`,
-        color: "var(--yellow)",
+        tone: "warning" as const,
       };
     }
     return {
       text: t("dashboard.synced"),
-      color: "var(--green)",
+      tone: "success" as const,
     };
   })();
   const mobileSyncText = isSyncing
     ? t("sidebar.syncing")
     : syncMessage || (gitStatus?.git_remote ? syncStatus.text : t("dashboard.noRemote"));
-  const mobileSyncColor = isSyncing
-    ? "var(--accent)"
+  const mobileSyncTone = isSyncing
+    ? "accent"
     : syncMessage
-      ? (isFailed ? "var(--red)" : "var(--green)")
-      : (gitStatus?.git_remote ? syncStatus.color : "var(--text-secondary)");
+      ? (isFailed ? "danger" : "success")
+      : (gitStatus?.git_remote ? syncStatus.tone : "secondary");
 
   return (
     <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
@@ -308,23 +308,22 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         <div className="gm-dashboard-card gm-dashboard-mobile-sync">
           <div className="gm-dashboard-mobile-sync-main">
             <div className="gm-dashboard-mobile-sync-head">
-              <RefreshCw size={14} style={{ color: mobileSyncColor, animation: isSyncing ? "spin 1s linear infinite" : undefined }} />
+              <AppIcon icon={RefreshCw} size="xs" tone={mobileSyncTone} spin={isSyncing} />
               <span className="gm-muted-text">{t("dashboard.syncStatus")}</span>
             </div>
-            <p className="gm-dashboard-mobile-sync-value" style={{ color: mobileSyncColor }}>
+            <p className="gm-dashboard-mobile-sync-value" data-tone={mobileSyncTone}>
               {mobileSyncText}
             </p>
           </div>
-          <button
-            type="button"
+          <Button
+            variant={gitStatus?.git_remote ? "primary" : "secondary"}
             disabled={!gitStatus?.git_remote || isSyncing}
             onClick={() => void triggerSync()}
-            className={gitStatus?.git_remote ? "gm-button-primary" : "gm-button-secondary"}
-            style={{ cursor: !gitStatus?.git_remote || isSyncing ? "default" : "pointer", opacity: isSyncing ? 0.7 : 1, flexShrink: 0 }}
+            icon={RefreshCw}
+            iconSpin={isSyncing}
           >
-            <RefreshCw size={14} style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined} />
             {gitStatus?.git_remote ? t("sidebar.syncToGit") : t("dashboard.noRemote")}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -340,18 +339,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {showCliCapabilityCard && (
         <div className="gm-dashboard-card gm-dashboard-cli-card">
-          <div className="gm-inline-cluster" style={{ alignItems: "flex-start", minWidth: 0 }}>
+          <div className="gm-inline-cluster gm-inline-cluster-start">
             <div className="gm-icon-box gm-icon-box-accent">
               <AppIcon icon={Terminal} size="md" />
             </div>
-            <div style={{ minWidth: 0 }}>
+            <div className="gm-min-0">
               <div className="gm-inline-cluster-wrap">
                 <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>
                 <Badge tone={cliStatus?.installed && cliStatus.version_matches ? "success" : "warning"}>
                   {cliStatusText}
                 </Badge>
               </div>
-              <p className="gm-muted-text" style={{ marginTop: "var(--gm-space-3)", maxWidth: "var(--gm-size-dashboard-cli-desc-max-width)" }}>
+              <p className="gm-muted-text gm-dashboard-cli-desc">
                 {t("dashboard.cliCardDesc")}
               </p>
             </div>
@@ -411,11 +410,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         {/* Sync Status */}
         <div className="gm-dashboard-card">
           <div className="gm-card-head">
-            <RefreshCw size={14} style={{ color: "var(--text-secondary)" }} />
+            <AppIcon icon={RefreshCw} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.syncStatus")}</span>
           </div>
           <p className="gm-dashboard-value">
-            <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
+            <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatus.text}</span>
           </p>
           <p className="gm-dashboard-meta">
             {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
@@ -425,7 +424,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         {/* Last Commit */}
         <div className="gm-dashboard-card">
           <div className="gm-card-head">
-            <GitCommit size={14} style={{ color: "var(--text-secondary)" }} />
+            <AppIcon icon={GitCommit} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.lastCommit")}</span>
           </div>
           {lastCommitBrowseUrl && gitStatus?.last_commit_id ? (

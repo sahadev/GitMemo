@@ -8,6 +8,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 import { localImageDataUrl } from "../utils/localImages";
+import { AppIcon } from "./base/AppIcon";
 
 export interface MarkdownViewProps {
   content: string;
@@ -293,7 +294,7 @@ export function MarkdownContent({ content, filePath }: MarkdownViewProps) {
                 void openUrl(href);
               }
             }}
-            style={{ cursor: "pointer" }}
+            className="gm-markdown-link"
           >
             {children}
           </a>
@@ -336,7 +337,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
     <div className="markdown-body">
       {findOpen && (
         <div className="gm-find-bar">
-          <Search size={14} style={{ color: "var(--text-secondary)" }} />
+          <AppIcon icon={Search} size="xs" tone="secondary" />
           <input
             ref={findInputRef}
             value={findQuery}

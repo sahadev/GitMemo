@@ -3,19 +3,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { Kbd } from "./components/base/Kbd";
 import {
-  Search,
-  TerminalSquare,
-  FileSearch,
-  MessageSquare,
-  StickyNote,
-  Clipboard,
-  FileText,
-  Settings,
-  RefreshCw,
-  PanelLeft,
-  FolderInput,
-} from "lucide-react";
+  QuickPasteCommandIcon,
+  QuickPasteLoadingIcon,
+  QuickPasteModeIcon,
+  QuickPasteResultButton,
+  QuickPasteSourceIcon,
+} from "./components/domain/quick-paste/QuickPasteComponents";
 import { useToast } from "./hooks/useToast";
 
 interface SearchResultItem {
@@ -56,31 +51,6 @@ function getMode(query: string): Mode {
 function getQueryValue(query: string, mode: Mode) {
   if (mode === "search") return query.trim();
   return query.slice(1).trim();
-}
-
-function sourceIcon(sourceType: string) {
-  switch (sourceType) {
-    case "conversation":
-      return <MessageSquare size={14} style={{ color: "var(--gm-category-blue)" }} />;
-    case "clip":
-      return <Clipboard size={14} style={{ color: "var(--gm-category-green)" }} />;
-    case "plan":
-      return <FileText size={14} style={{ color: "var(--gm-category-yellow)" }} />;
-    case "config":
-      return <Settings size={14} style={{ color: "var(--gm-category-gray)" }} />;
-    case "import":
-      return <FolderInput size={14} style={{ color: "var(--gm-category-teal)" }} />;
-    default:
-      return <StickyNote size={14} style={{ color: "var(--gm-category-green)" }} />;
-  }
-}
-
-function Kbd({ children }: { children: string }) {
-  return (
-    <kbd className="gm-kbd">
-      {children}
-    </kbd>
-  );
 }
 
 export default function QuickPaste() {
@@ -289,17 +259,6 @@ export default function QuickPaste() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [executeSelected, hideWindow, visibleItems.length]);
 
-  const modeColors = {
-    search: "var(--gm-category-blue)",
-    command: "var(--gm-category-yellow)",
-    file: "var(--gm-category-green)",
-  };
-  const modeMeta = {
-    search: { icon: <Search size={16} style={{ color: modeColors.search }} />, label: "Search" },
-    command: { icon: <TerminalSquare size={16} style={{ color: modeColors.command }} />, label: "Command" },
-    file: { icon: <FileSearch size={16} style={{ color: modeColors.file }} />, label: "Files" },
-  }[mode];
-
   return (
     <div
       data-tauri-drag-region
@@ -311,20 +270,16 @@ export default function QuickPaste() {
       <div className="gm-quick-paste-panel">
         {/* Input area */}
         <div className="gm-quick-paste-input-row">
-          {modeMeta.icon}
+          <QuickPasteModeIcon mode={mode} />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
             className="gm-quick-paste-input"
-            style={{
-              caretColor: modeColors[mode],
-            }}
+            data-mode={mode}
           />
-          {loading && (
-            <RefreshCw size={14} style={{ color: "var(--text-secondary)", animation: "spin 1s linear infinite" }} />
-          )}
+          {loading && <QuickPasteLoadingIcon />}
         </div>
 
         {/* Divider */}
@@ -347,64 +302,35 @@ export default function QuickPaste() {
           ) : mode === "command" ? (
             (visibleItems as CommandItem[]).map((item, index) => {
               const selected = index === selectedIndex;
-              const icon =
-                item.id === "sync" ? <RefreshCw size={14} style={{ color: "var(--gm-category-blue)" }} /> :
-                item.id === "settings" ? <Settings size={14} style={{ color: "var(--gm-category-gray)" }} /> :
-                <PanelLeft size={14} style={{ color: "var(--gm-category-green)" }} />;
-
               return (
-                <button
+                <QuickPasteResultButton
                   key={item.id}
+                  selected={selected}
+                  tone="command"
+                  icon={<QuickPasteCommandIcon commandId={item.id} />}
+                  title={item.title}
+                  subtitle={item.subtitle}
+                  meta={selected ? "Enter" : undefined}
                   onClick={() => executeCommand(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`gm-quick-paste-result${selected ? " is-selected" : ""}`}
-                  style={{
-                    borderLeft: selected ? `2px solid ${modeColors.command}` : "2px solid transparent",
-                  }}
-                >
-                  <div className="gm-quick-paste-icon">
-                    {icon}
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{item.title}</div>
-                    <div className="gm-quick-paste-muted" style={{ marginTop: "var(--gm-space-1)" }}>{item.subtitle}</div>
-                  </div>
-                  {selected && <span className="gm-quick-paste-muted">Enter</span>}
-                </button>
+                />
               );
             })
           ) : (
             (visibleItems as SearchResultItem[]).map((item, index) => {
               const selected = index === selectedIndex;
               return (
-                <button
+                <QuickPasteResultButton
                   key={`${item.file_path}-${index}`}
+                  selected={selected}
+                  tone={mode}
+                  icon={<QuickPasteSourceIcon sourceType={item.source_type} />}
+                  title={item.title}
+                  subtitle={mode === "file" ? item.file_path : item.snippet || item.file_path}
+                  meta={item.date}
                   onClick={() => (mode === "file" ? executeFileResult(item) : executeSearchResult(item))}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`gm-quick-paste-result${selected ? " is-selected" : ""}`}
-                  style={{
-                    borderLeft: selected ? `2px solid ${modeColors[mode]}` : "2px solid transparent",
-                  }}
-                >
-                  <div className="gm-quick-paste-icon">
-                    {sourceIcon(item.source_type)}
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      fontSize: "var(--gm-font-sm)", fontWeight: 500,
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                      {item.title}
-                    </div>
-                    <div style={{
-                      marginTop: "var(--gm-space-1)",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }} className="gm-quick-paste-muted">
-                      {mode === "file" ? item.file_path : item.snippet || item.file_path}
-                    </div>
-                  </div>
-                  <span className="gm-quick-paste-muted" style={{ flexShrink: 0 }}>{item.date}</span>
-                </button>
+                />
               );
             })
           )}

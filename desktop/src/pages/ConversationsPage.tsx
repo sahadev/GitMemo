@@ -472,12 +472,7 @@ export default function ConversationsPage({
                     }
                   }}
                   spellCheck={false}
-                  className="gm-code-editor gm-code-editor-box"
-                  style={{
-                    width: "100%",
-                    minHeight: "100%",
-                    resize: "none",
-                  }}
+                  className="gm-code-editor gm-code-editor-box gm-code-textarea"
                 />
               ) : messages.length > 0 ? (
                 <>

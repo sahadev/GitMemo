@@ -1,9 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { Download, FileText, Image, Code2, File, FolderOpen, Check, X } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
+import {
+  DropAction,
+  DropActionsGrid,
+  DropBody,
+  DropCard,
+  DropEmptyChoice,
+  DropHead,
+  DropHeadCopy,
+  DropHeadRow,
+  DropHeroIcon,
+  DropHint,
+  DropIconButton,
+  DropOverlay,
+  DropProgressToast,
+  DropResultToast,
+  DropSummary,
+  DropToastBody,
+  DropToastErrorRow,
+  DropToastHead,
+  DropToastRow,
+  dropCloseIcon,
+  dropImportIcon,
+  dropOpenIcon,
+} from "./domain/dropzone/DropZoneComponents";
 
 interface ImportedFile {
   original_name: string;
@@ -30,21 +53,6 @@ interface DropZoneProps {
 
 interface PendingDrop {
   paths: string[];
-}
-
-function categoryIcon(cat: string) {
-  switch (cat) {
-    case "Markdown":
-      return <FileText size={14} style={{ color: "var(--accent)" }} />;
-    case "Image":
-      return <Image size={14} style={{ color: "var(--green)" }} />;
-    case "Code":
-      return <Code2 size={14} style={{ color: "var(--yellow)" }} />;
-    case "Document":
-      return <File size={14} style={{ color: "var(--purple)" }} />;
-    default:
-      return <File size={14} style={{ color: "var(--text-secondary)" }} />;
-  }
 }
 
 function formatSize(bytes: number): string {
@@ -163,187 +171,97 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
 
   if (overlayActive) {
     return (
-      <div
-        className="gm-drop-overlay"
+      <DropOverlay
         onClick={() => {
           if (!importing && !opening && pendingDrop) clearPendingDrop();
         }}
       >
-        <div className="gm-drop-card" onClick={(e) => e.stopPropagation()}>
-          <div className="gm-drop-head">
-            <div className="gm-drop-head-row">
-              <div className="gm-drop-hero-icon">
-                <Download size="var(--gm-icon-xl)" />
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="gm-drop-title">{t("dropzone.title")}</div>
-                <div className="gm-drop-description">
-                  {t("dropzone.chooseMode")}
-                </div>
-              </div>
+        <DropCard onClick={(e) => e.stopPropagation()}>
+          <DropHead>
+            <DropHeadRow>
+              <DropHeroIcon />
+              <DropHeadCopy title={t("dropzone.title")} description={t("dropzone.chooseMode")} />
               {pendingDrop ? (
-                <button
-                  type="button"
+                <DropIconButton
+                  icon={dropCloseIcon}
                   onClick={clearPendingDrop}
                   disabled={importing || opening}
-                  className="gm-icon-button"
-                  style={{
-                    cursor: importing || opening ? "default" : "pointer",
-                  }}
-                >
-                  <X size="var(--gm-icon-md)" />
-                </button>
+                />
               ) : null}
-            </div>
-          </div>
+            </DropHeadRow>
+          </DropHead>
 
-          <div className="gm-drop-body">
+          <DropBody>
             {pendingDrop ? (
               <>
-                <div className="gm-drop-summary">
-                  <div className="gm-drop-summary-title">
-                    {dropCopy.title}
-                  </div>
-                  <div className="gm-drop-summary-subtitle">
-                    {dropCopy.subtitle}
-                  </div>
-                </div>
+                <DropSummary title={dropCopy.title} subtitle={dropCopy.subtitle} />
 
-                <div className="gm-drop-actions-grid" style={{ gridTemplateColumns: canOpen ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)" }}>
+                <DropActionsGrid dual={canOpen}>
                   {canOpen ? (
-                    <button
-                      type="button"
+                    <DropAction
+                      icon={dropOpenIcon}
+                      tone="accent"
+                      label={t("dropzone.openAction")}
+                      description={t("dropzone.openDesc")}
                       onClick={() => void handleOpen(pendingDrop.paths)}
                       disabled={importing || opening}
-                      className="gm-drop-action"
-                      style={{
-                        cursor: importing || opening ? "default" : "pointer",
-                      }}
-                    >
-                      <div className="gm-drop-action-head" style={{ color: "var(--accent)" }}>
-                        <FolderOpen size="var(--gm-icon-md)" />
-                        <span className="gm-drop-action-title">{t("dropzone.openAction")}</span>
-                      </div>
-                      <div className="gm-drop-action-description">
-                        {t("dropzone.openDesc")}
-                      </div>
-                    </button>
+                    />
                   ) : null}
 
-                  <button
-                    type="button"
+                  <DropAction
+                    icon={dropImportIcon}
+                    tone="success"
+                    label={t("dropzone.importAction")}
+                    description={t("dropzone.importDesc")}
                     onClick={() => void handleImport(pendingDrop.paths)}
                     disabled={importing || opening}
-                    className="gm-drop-action"
-                    style={{
-                        cursor: importing || opening ? "default" : "pointer",
-                      }}
-                    >
-                    <div className="gm-drop-action-head" style={{ color: "var(--green)" }}>
-                      <Download size="var(--gm-icon-md)" />
-                      <span className="gm-drop-action-title">{t("dropzone.importAction")}</span>
-                    </div>
-                    <div className="gm-drop-action-description">
-                      {t("dropzone.importDesc")}
-                    </div>
-                  </button>
-                </div>
+                  />
+                </DropActionsGrid>
 
-                <div className="gm-drop-hint">
-                  {t("dropzone.routeHint")}
-                </div>
-                <div className="gm-drop-hint gm-drop-size-hint">
-                  {t("dropzone.sizeLimit", maxImportSizeLabel)}
-                </div>
+                <DropHint>{t("dropzone.routeHint")}</DropHint>
+                <DropHint size>{t("dropzone.sizeLimit", maxImportSizeLabel)}</DropHint>
               </>
             ) : (
-              <div className="gm-drop-empty-choice">
-                <div className="gm-card-title" style={{ color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
-                <div className="gm-drop-description">
-                  {t("dropzone.dragHint")}
-                </div>
-              </div>
+              <DropEmptyChoice title={t("dropzone.dropToChoose")} description={t("dropzone.dragHint")} />
             )}
-          </div>
-        </div>
-      </div>
+          </DropBody>
+        </DropCard>
+      </DropOverlay>
     );
   }
 
   if (importing || opening) {
-    return (
-      <div
-        className="gm-floating-toast gm-toast-fixed gm-toast-progress"
-      >
-        <div className="gm-spinner-sm" />
-        <span className="gm-card-title">{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
-      </div>
-    );
+    return <DropProgressToast>{importing ? t("dropzone.importing") : t("dropzone.opening")}</DropProgressToast>;
   }
 
   if (result) {
     const hasErrors = result.errors.length > 0;
     return (
-      <div
-        className="gm-floating-toast gm-toast-fixed gm-toast-result"
-      >
-        <div className="gm-toast-head">
-          {hasErrors ? (
-            <X size="var(--gm-icon-sm)" style={{ color: "var(--red)", flexShrink: 0 }} />
-          ) : (
-            <Check size="var(--gm-icon-sm)" style={{ color: "var(--green)", flexShrink: 0 }} />
-          )}
-          <span className="gm-toast-title">
-            {result.imported.length > 0
-              ? t("dropzone.imported", String(result.imported.length))
-              : t("dropzone.importFailed")}
-          </span>
-          <button
-            type="button"
-            onClick={() => setResult(null)}
-            className="gm-icon-button"
-            style={{
-              marginLeft: "auto",
-              minHeight: "var(--gm-control-height-xs)",
-              minWidth: "var(--gm-control-height-xs)",
-            }}
-          >
-            <X size="var(--gm-icon-xs)" style={{ color: "var(--text-secondary)" }} />
-          </button>
-        </div>
+      <DropResultToast>
+        <DropToastHead
+          error={hasErrors}
+          title={result.imported.length > 0
+            ? t("dropzone.imported", String(result.imported.length))
+            : t("dropzone.importFailed")}
+          onClose={() => setResult(null)}
+        />
 
-        <div className="gm-toast-body-scroll">
+        <DropToastBody>
           {result.imported.map((f, i) => (
-            <div
+            <DropToastRow
               key={i}
-              className="gm-toast-row"
-              style={{ borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)" }}
-            >
-              <div style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }}>{categoryIcon(f.category)}</div>
-              <div className="gm-toast-row-main">
-                <p className="gm-toast-row-title">
-                  {f.original_name}
-                </p>
-                <p className="gm-toast-row-path">
-                  → {f.dest_path}
-                </p>
-              </div>
-              <span className="gm-toast-row-size">
-                {formatSize(f.size)}
-              </span>
-            </div>
+              last={i === result.imported.length - 1 && result.errors.length === 0}
+              category={f.category}
+              name={f.original_name}
+              path={f.dest_path}
+              size={formatSize(f.size)}
+            />
           ))}
           {result.errors.map((err, i) => (
-            <div
-              key={`err-${i}`}
-              className="gm-toast-error-row"
-            >
-              <X size="var(--gm-icon-2xs)" style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }} />
-              <span>{err}</span>
-            </div>
+            <DropToastErrorRow key={`err-${i}`}>{err}</DropToastErrorRow>
           ))}
-        </div>
-      </div>
+        </DropToastBody>
+      </DropResultToast>
     );
   }
 

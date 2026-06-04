@@ -14,6 +14,7 @@ import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
+import { AppIcon } from "./base/AppIcon";
 
 interface SidebarProps {
   currentPage: Page;
@@ -42,6 +43,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
   const { t } = useI18n();
   const { appMeta } = useAppStore();
   const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
+  const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
 
   return (
     <div className="gm-sidebar">
@@ -49,7 +51,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
       <div className="gm-sidebar-brand">
         <div className="gm-sidebar-brand-main">
           <img src="/logo.png" alt="GitMemo" {...logoSaveProps} className="gm-sidebar-logo" style={logoSaveProps.style} />
-          <div style={{ minWidth: 0 }}>
+          <div className="gm-sidebar-brand-copy">
             <span className="gm-sidebar-brand-title">GitMemo</span>
             <span className="gm-sidebar-brand-subtitle">local Git memory</span>
           </div>
@@ -82,20 +84,9 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           onClick={onSync}
           disabled={syncing}
           className="gm-sidebar-sync-button"
-          style={{
-            background: syncing
-              ? "var(--gm-sync-shimmer-bg)"
-              : syncMsg
-              ? syncFailed ? "var(--bg-danger)" : "var(--bg-success)"
-              : "var(--bg)",
-            backgroundSize: syncing ? "200% 100%" : undefined,
-            animation: syncing ? "shimmer 1.5s linear infinite" : undefined,
-            color: syncing ? "var(--gm-color-on-accent)" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--text-secondary)",
-            border: `1px solid ${syncing ? "transparent" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--border)"}`,
-            cursor: syncing ? "default" : "pointer",
-          }}
+          data-status={syncStatus}
         >
-          <RefreshCw size={14} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
+          <AppIcon icon={RefreshCw} size="xs" spin={syncing} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
         <p className="gm-sidebar-version">
