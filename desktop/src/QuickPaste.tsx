@@ -333,11 +333,11 @@ export default function QuickPaste() {
         {/* Results */}
         <div ref={listRef} className="gm-quick-paste-list">
           {!loading && visibleItems.length === 0 ? (
-            <div style={{ padding: "24px 10px", textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
+            <div className="gm-quick-paste-empty">
               {modeQuery ? "No results" : (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div className="gm-quick-paste-empty-stack">
                   <span>Type to search</span>
-                  <div className="gm-quick-paste-muted" style={{ display: "flex", gap: 8 }}>
+                  <div className="gm-quick-paste-muted gm-quick-paste-empty-shortcuts">
                     <span><Kbd>&gt;</Kbd> commands</span>
                     <span><Kbd>@</Kbd> files</span>
                   </div>
@@ -412,9 +412,9 @@ export default function QuickPaste() {
 
         {/* Footer */}
         <div className="gm-quick-paste-footer">
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↵</Kbd> {mode === "search" ? "copy" : mode === "file" ? "open" : "run"}</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}><Kbd>esc</Kbd> close</span>
+          <span className="gm-quick-paste-footer-hint"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+          <span className="gm-quick-paste-footer-hint"><Kbd>↵</Kbd> {mode === "search" ? "copy" : mode === "file" ? "open" : "run"}</span>
+          <span className="gm-quick-paste-footer-hint gm-quick-paste-footer-hint-end"><Kbd>esc</Kbd> close</span>
         </div>
       </div>
     </div>

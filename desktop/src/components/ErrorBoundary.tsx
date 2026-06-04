@@ -28,18 +28,11 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="gm-error-shell">
           <div className="gm-error-panel">
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-5)" }}>
-              <div style={{
-                width: "var(--gm-space-5)",
-                height: "var(--gm-space-5)",
-                borderRadius: "999px",
-                background: "var(--red)",
-                boxShadow: "var(--gm-shadow-danger-ring)",
-                flexShrink: 0,
-              }} />
-              <h2 style={{ color: "var(--text)", fontSize: "var(--gm-font-lg)", margin: 0 }}>Something went wrong</h2>
+            <div className="gm-error-head">
+              <div className="gm-error-dot" />
+              <h2 className="gm-error-title">Something went wrong</h2>
             </div>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", marginTop: "var(--gm-space-5)" }}>
+            <p className="gm-error-copy">
               GitMemo hit a render error. You can retry the current view below.
             </p>
             <pre className="gm-error-log">
@@ -48,9 +41,8 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error?.stack}
             </pre>
             <button
-              className="gm-toolbar-button"
+              className="gm-toolbar-button gm-error-action"
               onClick={() => this.setState({ hasError: false, error: null })}
-              style={{ marginTop: "var(--gm-space-8)", padding: "var(--gm-space-3) var(--gm-space-7)", color: "var(--text)" }}
             >
               Try again
             </button>

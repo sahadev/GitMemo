@@ -491,6 +491,7 @@ function App() {
       height: isMobile ? "100dvh" : "100vh",
       width: "100vw",
       overflow: "hidden",
+      background: "var(--gm-color-bg-page)",
     }}
       onTouchStart={handleMobileTouchStart}
       onTouchEnd={handleMobileTouchEnd}
@@ -514,6 +515,7 @@ function App() {
           minWidth: 0,
           minHeight: 0,
           boxSizing: "border-box",
+          background: "var(--gm-color-bg-page)",
         }}
         onClick={() => setSidebarFocused(false)}
       >

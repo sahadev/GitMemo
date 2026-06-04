@@ -171,25 +171,13 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
       >
         <div className="gm-drop-card" onClick={(e) => e.stopPropagation()}>
           <div className="gm-drop-head">
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-7)" }}>
-              <div
-                style={{
-                  width: "var(--gm-icon-hero)",
-                  height: "var(--gm-icon-hero)",
-                  borderRadius: "var(--gm-radius-lg)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "color-mix(in srgb, var(--accent) 14%, transparent)",
-                  color: "var(--accent)",
-                  flexShrink: 0,
-                }}
-              >
+            <div className="gm-drop-head-row">
+              <div className="gm-drop-hero-icon">
                 <Download size="var(--gm-icon-xl)" />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: "var(--gm-font-xl)", fontWeight: 700, color: "var(--text)" }}>{t("dropzone.title")}</div>
-                <div style={{ marginTop: "var(--gm-space-3)", fontSize: "var(--gm-font-sm)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+                <div className="gm-drop-title">{t("dropzone.title")}</div>
+                <div className="gm-drop-description">
                   {t("dropzone.chooseMode")}
                 </div>
               </div>
@@ -212,28 +200,16 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
           <div className="gm-drop-body">
             {pendingDrop ? (
               <>
-                <div
-                  style={{
-                    padding: "var(--gm-space-7) var(--gm-space-8)",
-                    borderRadius: "var(--gm-radius-md)",
-                    background: "var(--bg)",
-                    border: "1px solid var(--border)",
-                    marginBottom: "var(--gm-space-12)",
-                  }}
-                >
-                  <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, color: "var(--text)", wordBreak: "break-word" }}>
+                <div className="gm-drop-summary">
+                  <div className="gm-drop-summary-title">
                     {dropCopy.title}
                   </div>
-                  <div style={{ marginTop: "var(--gm-space-3)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", color: "var(--text-secondary)" }}>
+                  <div className="gm-drop-summary-subtitle">
                     {dropCopy.subtitle}
                   </div>
                 </div>
 
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: canOpen ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
-                  gap: "var(--gm-space-8)",
-                }}>
+                <div className="gm-drop-actions-grid" style={{ gridTemplateColumns: canOpen ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)" }}>
                   {canOpen ? (
                     <button
                       type="button"
@@ -244,11 +220,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                         cursor: importing || opening ? "default" : "pointer",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", color: "var(--accent)" }}>
+                      <div className="gm-drop-action-head" style={{ color: "var(--accent)" }}>
                         <FolderOpen size="var(--gm-icon-md)" />
-                        <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.openAction")}</span>
+                        <span className="gm-drop-action-title">{t("dropzone.openAction")}</span>
                       </div>
-                      <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+                      <div className="gm-drop-action-description">
                         {t("dropzone.openDesc")}
                       </div>
                     </button>
@@ -263,27 +239,27 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                         cursor: importing || opening ? "default" : "pointer",
                       }}
                     >
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", color: "var(--green)" }}>
+                    <div className="gm-drop-action-head" style={{ color: "var(--green)" }}>
                       <Download size="var(--gm-icon-md)" />
-                      <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.importAction")}</span>
+                      <span className="gm-drop-action-title">{t("dropzone.importAction")}</span>
                     </div>
-                    <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+                    <div className="gm-drop-action-description">
                       {t("dropzone.importDesc")}
                     </div>
                   </button>
                 </div>
 
-                <div style={{ marginTop: "var(--gm-space-10)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+                <div className="gm-drop-hint">
                   {t("dropzone.routeHint")}
                 </div>
-                <div style={{ marginTop: "var(--gm-space-4)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+                <div className="gm-drop-hint gm-drop-size-hint">
                   {t("dropzone.sizeLimit", maxImportSizeLabel)}
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", padding: "var(--gm-space-10) var(--gm-space-0) var(--gm-space-3)" }}>
-                <div style={{ fontSize: "var(--gm-font-lg)", fontWeight: 700, color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
-                <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-sm)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
+              <div className="gm-drop-empty-choice">
+                <div className="gm-card-title" style={{ color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
+                <div className="gm-drop-description">
                   {t("dropzone.dragHint")}
                 </div>
               </div>
@@ -297,26 +273,10 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
   if (importing || opening) {
     return (
       <div
-        className="gm-floating-toast"
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--gm-card-header-gap)",
-          padding: "var(--gm-space-6) var(--gm-space-8)",
-        }}
+        className="gm-floating-toast gm-toast-fixed gm-toast-progress"
       >
-        <div style={{
-          width: 16,
-          height: 16,
-          border: "2px solid color-mix(in srgb, var(--accent) 26%, transparent)",
-          borderTopColor: "var(--accent)",
-          borderRadius: "999px",
-          animation: "spin 1s linear infinite",
-        }} />
-        <span style={{ fontSize: "var(--gm-font-sm)" }}>{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
+        <div className="gm-spinner-sm" />
+        <span className="gm-card-title">{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
       </div>
     );
   }
@@ -325,31 +285,15 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
     const hasErrors = result.errors.length > 0;
     return (
       <div
-        className="gm-floating-toast"
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          width: 440,
-          maxWidth: "calc(100vw - 32px)",
-          overflow: "hidden",
-        }}
+        className="gm-floating-toast gm-toast-fixed gm-toast-result"
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--gm-nav-item-gap)",
-            padding: "var(--gm-space-7) var(--gm-space-8)",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
+        <div className="gm-toast-head">
           {hasErrors ? (
             <X size="var(--gm-icon-sm)" style={{ color: "var(--red)", flexShrink: 0 }} />
           ) : (
             <Check size="var(--gm-icon-sm)" style={{ color: "var(--green)", flexShrink: 0 }} />
           )}
-          <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>
+          <span className="gm-toast-title">
             {result.imported.length > 0
               ? t("dropzone.imported", String(result.imported.length))
               : t("dropzone.importFailed")}
@@ -368,28 +312,23 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
           </button>
         </div>
 
-        <div style={{ maxHeight: 260, overflowY: "auto" }}>
+        <div className="gm-toast-body-scroll">
           {result.imported.map((f, i) => (
             <div
               key={i}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "var(--gm-card-header-gap)",
-                padding: "var(--gm-space-7) var(--gm-space-8)",
-                borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)",
-              }}
+              className="gm-toast-row"
+              style={{ borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)" }}
             >
               <div style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }}>{categoryIcon(f.category)}</div>
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--gm-space-2)" }}>
-                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div className="gm-toast-row-main">
+                <p className="gm-toast-row-title">
                   {f.original_name}
                 </p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: "var(--gm-leading-normal)" }}>
+                <p className="gm-toast-row-path">
                   → {f.dest_path}
                 </p>
               </div>
-              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", flexShrink: 0, marginTop: "var(--gm-space-1)" }}>
+              <span className="gm-toast-row-size">
                 {formatSize(f.size)}
               </span>
             </div>
@@ -397,16 +336,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
           {result.errors.map((err, i) => (
             <div
               key={`err-${i}`}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "var(--gm-nav-item-gap)",
-                padding: "var(--gm-space-7) var(--gm-space-8)",
-                color: "var(--red)",
-                fontSize: "var(--gm-font-xs)",
-                lineHeight: "var(--gm-leading-normal)",
-                wordBreak: "break-word",
-              }}
+              className="gm-toast-error-row"
             >
               <X size="var(--gm-icon-2xs)" style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }} />
               <span>{err}</span>

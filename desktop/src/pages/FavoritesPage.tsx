@@ -138,7 +138,7 @@ export default function FavoritesPage({
       minWidth: 0,
       minHeight: 0,
       overflow: "hidden",
-      background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+      background: "var(--gm-color-bg-surface)",
     }}>
       <PaneHeader
         icon={Star}

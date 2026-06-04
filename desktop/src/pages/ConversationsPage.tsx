@@ -391,7 +391,7 @@ export default function ConversationsPage({
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column",
-        flexShrink: 0, background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        flexShrink: 0, background: "var(--gm-color-bg-surface)",
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
@@ -585,19 +585,11 @@ export default function ConversationsPage({
                     }
                   }}
                   spellCheck={false}
+                  className="gm-code-editor gm-code-editor-box"
                   style={{
                     width: "100%",
                     minHeight: "100%",
                     resize: "none",
-                    padding: "var(--gm-section-gap)",
-                    borderRadius: "var(--gm-radius-md)",
-                    border: "1px solid var(--border)",
-                    background: "var(--bg-card)",
-                    color: "var(--text)",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: "var(--gm-font-sm)",
-                    lineHeight: "var(--gm-leading-relaxed)",
-                    outline: "none",
                   }}
                 />
               ) : messages.length > 0 ? (

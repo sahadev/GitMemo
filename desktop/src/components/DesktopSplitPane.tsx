@@ -1,27 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { usePlatform } from "../hooks/usePlatform";
-
-const desktopPaneStyle: CSSProperties = {
-  display: "flex",
-  height: "100%",
-  minWidth: 0,
-  minHeight: 0,
-  flex: 1,
-  background: "var(--bg)",
-};
-
-const mobilePaneStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  height: "100%",
-  minWidth: 0,
-  minHeight: 0,
-  flex: 1,
-  overflow: "hidden",
-  background: "var(--bg)",
-};
 
 export function DesktopSplitPane({
   panelKey,
@@ -43,7 +22,7 @@ export function DesktopSplitPane({
 
   if (isMobile) {
     return (
-      <div style={mobilePaneStyle}>
+      <div className="gm-split-pane gm-split-pane-mobile">
         {left}
         {right}
       </div>
@@ -51,15 +30,15 @@ export function DesktopSplitPane({
   }
 
   return (
-    <div style={desktopPaneStyle}>
-      <div style={{ width: panel.width, height: "100%", display: "flex", flexDirection: "column", flexShrink: 0, minWidth: 0, minHeight: 0, overflow: "hidden", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
+    <div className="gm-split-pane">
+      <div className="gm-split-pane-left" style={{ width: panel.width }}>
         {left}
       </div>
-      <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
-        <div style={panel.handleLineStyle} />
-        <div style={panel.handleHoverStyle} />
+      <div onMouseDown={panel.onMouseDown} className="gm-split-resizer">
+        <div className="gm-split-resizer-line" />
+        <div className="gm-split-resizer-hit" />
       </div>
-      <div style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden", background: "var(--bg)" }}>
+      <div className="gm-split-pane-right">
         {right}
       </div>
     </div>

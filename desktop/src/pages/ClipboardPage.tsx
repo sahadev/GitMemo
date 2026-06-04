@@ -676,7 +676,7 @@ export default function ClipboardPage({
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        background: "var(--gm-color-bg-surface)",
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden", position: "relative",
       }}>
@@ -1156,11 +1156,11 @@ export default function ClipboardPage({
                     }
                     if (e.key === "Escape") cancelEdit();
                   }}
+                  className="gm-code-editor"
                   style={{
                     width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                    lineHeight: "var(--gm-leading-reading)", padding: 0, background: "transparent", color: "var(--text)",
+                    padding: 0,
                     border: "none", outline: "none",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}
                 />
               ) : (

@@ -10,7 +10,7 @@ interface LoadingProps {
 export function Loading({ text, compact }: LoadingProps) {
   if (compact) {
     return (
-      <div className="gm-loading" style={{ gap: "var(--gm-icon-text-gap)", padding: "var(--gm-section-gap-lg) var(--gm-section-gap)", fontSize: "var(--gm-font-xs)", justifyContent: "flex-start" }}>
+      <div className="gm-loading gm-loading-compact">
         <Loader2 size={14} style={{ animation: "spin 1s linear infinite", color: "var(--accent)", flexShrink: 0 }} />
         {text && <span>{text}</span>}
       </div>
@@ -18,18 +18,9 @@ export function Loading({ text, compact }: LoadingProps) {
   }
 
   return (
-    <div className="gm-loading" style={{
-      flex: 1,
-      flexDirection: "column",
-      gap: "var(--gm-card-header-gap)",
-      width: "100%",
-      height: "100%",
-      minWidth: 0,
-      minHeight: 0,
-      boxSizing: "border-box",
-    }}>
+    <div className="gm-loading gm-loading-full">
       <Loader2 size={24} style={{ animation: "spin 1s linear infinite", color: "var(--accent)" }} />
-      {text && <p style={{ fontSize: "var(--gm-font-sm)" }}>{text}</p>}
+      {text && <p className="gm-loading-text">{text}</p>}
     </div>
   );
 }

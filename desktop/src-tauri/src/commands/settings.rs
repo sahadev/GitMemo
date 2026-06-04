@@ -369,6 +369,33 @@ fn cli_version(path: &str) -> String {
         .to_string()
 }
 
+fn parse_version_core(version: &str) -> Option<(u64, u64, u64)> {
+    let version = version.trim().trim_start_matches('v');
+    let core = version
+        .split(|c: char| !(c.is_ascii_digit() || c == '.'))
+        .next()
+        .unwrap_or("");
+    let mut parts = core.split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next().unwrap_or("0").parse().ok()?;
+    let patch = parts.next().unwrap_or("0").parse().ok()?;
+    Some((major, minor, patch))
+}
+
+fn cli_version_is_compatible(installed: &str, recommended: &str) -> bool {
+    if installed.is_empty() {
+        return false;
+    }
+
+    match (
+        parse_version_core(installed),
+        parse_version_core(recommended),
+    ) {
+        (Some(installed), Some(recommended)) => installed >= recommended,
+        _ => installed == recommended,
+    }
+}
+
 #[tauri::command]
 pub fn get_cli_status() -> Result<CliStatus, String> {
     let recommended_version = env!("CARGO_PKG_VERSION").to_string();
@@ -396,7 +423,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
             });
         };
         let version = cli_version(&path);
-        let version_matches = !version.is_empty() && version == recommended_version;
+        let version_matches = cli_version_is_compatible(&version, &recommended_version);
 
         Ok(CliStatus {
             installed: true,
@@ -969,4 +996,23 @@ pub fn remove_cursor_integration() -> Result<String, String> {
     }
 
     Ok("disabled".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cli_version_is_compatible, parse_version_core};
+
+    #[test]
+    fn parses_version_core_with_prefix_and_suffix() {
+        assert_eq!(parse_version_core("v1.2.3"), Some((1, 2, 3)));
+        assert_eq!(parse_version_core("1.2.3-beta.1"), Some((1, 2, 3)));
+    }
+
+    #[test]
+    fn cli_version_compatibility_accepts_equal_or_newer_versions() {
+        assert!(cli_version_is_compatible("1.0.108", "1.0.108"));
+        assert!(cli_version_is_compatible("1.0.109", "1.0.107"));
+        assert!(cli_version_is_compatible("1.1.0", "1.0.109"));
+        assert!(!cli_version_is_compatible("1.0.106", "1.0.107"));
+    }
 }

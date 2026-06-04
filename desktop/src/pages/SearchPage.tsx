@@ -343,11 +343,10 @@ export default function SearchPage({
                   void handleSaveEdit();
                 }
               }}
+              className="gm-code-editor"
               style={{
                 width: "100%", height: "100%", resize: "none", padding: 0,
-                background: "transparent", border: "none", color: "var(--text)",
-                fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
-                outline: "none",
+                border: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
               }}
             />
           ) : (
@@ -366,7 +365,7 @@ export default function SearchPage({
           ? "var(--gm-space-7) var(--gm-space-7) var(--gm-space-6)"
           : "var(--gm-section-gap-lg) var(--gm-page-pad-x) var(--gm-section-gap)",
         borderBottom: "1px solid var(--border)",
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        background: "var(--gm-color-bg-surface)",
         minHeight: isMobile ? undefined : "var(--gm-page-header-height)",
         display: "flex",
         alignItems: "center",

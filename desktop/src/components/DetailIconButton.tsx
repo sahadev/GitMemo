@@ -17,6 +17,7 @@ const toneColor: Record<DetailIconButtonTone, string> = {
 
 export function DetailIconButton({
   children,
+  className,
   disabled,
   style,
   tone = "default",
@@ -30,9 +31,9 @@ export function DetailIconButton({
     <button
       type={type}
       disabled={disabled}
+      className={["gm-detail-icon-button", className].filter(Boolean).join(" ")}
       style={{
         alignItems: "center",
-        background: "transparent",
         border: "none",
         borderRadius: "var(--gm-radius-md)",
         color: toneColor[tone],

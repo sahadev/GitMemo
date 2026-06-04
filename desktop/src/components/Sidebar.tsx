@@ -44,39 +44,20 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
   const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
 
   return (
-    <div
-      className="gm-app-surface"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: 216,
-        borderRight: "1px solid var(--border)",
-        height: "100%",
-        background: "color-mix(in srgb, var(--bg-card) 90%, var(--bg) 10%)",
-      }}
-    >
+    <div className="gm-sidebar">
       {/* Logo */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          minHeight: 62,
-          padding: "var(--gm-space-6) var(--gm-space-8)",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", minWidth: 0 }}>
-          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: "var(--gm-icon-result)", height: "var(--gm-icon-result)", borderRadius: "var(--gm-radius-md)", ...logoSaveProps.style }} />
+      <div className="gm-sidebar-brand">
+        <div className="gm-sidebar-brand-main">
+          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} className="gm-sidebar-logo" style={logoSaveProps.style} />
           <div style={{ minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 800, fontSize: "var(--gm-font-md)", lineHeight: "var(--gm-leading-tight)" }}>GitMemo</span>
-            <span style={{ display: "block", color: "var(--text-secondary)", fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-1)" }}>local Git memory</span>
+            <span className="gm-sidebar-brand-title">GitMemo</span>
+            <span className="gm-sidebar-brand-subtitle">local Git memory</span>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: "var(--gm-nav-stack-gap)", flex: 1, padding: "var(--gm-space-5) var(--gm-space-5) var(--gm-space-4)", overflowY: "auto" }}>
+      <nav className="gm-sidebar-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.id;
@@ -84,49 +65,26 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--gm-nav-item-gap)",
-                width: "100%",
-                minHeight: "var(--gm-control-height-lg)",
-                padding: "var(--gm-nav-item-pad-y) var(--gm-nav-item-pad-x)",
-                fontSize: "var(--gm-font-sm)",
-                background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                color: active ? "var(--text)" : "var(--text-secondary)",
-                fontWeight: active ? 700 : 500,
-                border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 44%, var(--border))" : "transparent"}`,
-                borderLeft: active && focused ? "3px solid var(--accent)" : "3px solid transparent",
-                borderRadius: "var(--gm-radius-md)",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 0.15s",
-              }}
+              className="gm-sidebar-nav-item"
+              data-active={active ? "true" : "false"}
+              data-focused={active && focused ? "true" : "false"}
             >
-              <Icon size={16} style={{ color: active ? "var(--accent)" : "currentColor", flexShrink: 0 }} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t(item.labelKey)}</span>
+              <Icon className="gm-sidebar-nav-icon" size={16} />
+              <span className="gm-sidebar-nav-label">{t(item.labelKey)}</span>
             </button>
           );
         })}
       </nav>
 
       {/* Sync button + version */}
-      <div style={{ padding: "var(--gm-card-header-gap)", borderTop: "1px solid var(--border)", background: "var(--bg-card)" }}>
+      <div className="gm-sidebar-footer">
         <button
           onClick={onSync}
           disabled={syncing}
+          className="gm-sidebar-sync-button"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--gm-icon-text-gap)",
-            width: "100%",
-            minHeight: "var(--gm-control-height-lg)",
-            padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x)",
-            borderRadius: "var(--gm-radius-md)",
-            fontSize: "var(--gm-font-xs)",
             background: syncing
-              ? "linear-gradient(90deg, var(--bg-hover) 0%, var(--accent) 50%, var(--bg-hover) 100%)"
+              ? "var(--gm-sync-shimmer-bg)"
               : syncMsg
               ? syncFailed ? "var(--bg-danger)" : "var(--bg-success)"
               : "var(--bg)",
@@ -135,17 +93,15 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             color: syncing ? "var(--gm-color-on-accent)" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--text-secondary)",
             border: `1px solid ${syncing ? "transparent" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--border)"}`,
             cursor: syncing ? "default" : "pointer",
-            transition: "all 0.3s",
-            fontWeight: 700,
           }}
         >
           <RefreshCw size={14} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
-        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: "var(--gm-space-4)", color: "var(--text-secondary)", opacity: 0.6 }}>
+        <p className="gm-sidebar-version">
           GitMemo Desktop v{appMeta?.version ?? "—"}
         </p>
-        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)", opacity: 0.5 }}>
+        <p className="gm-sidebar-release-time">
           {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
       </div>

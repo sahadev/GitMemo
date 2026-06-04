@@ -253,7 +253,7 @@ export default function PlansPage({
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        background: "var(--gm-color-bg-surface)",
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>

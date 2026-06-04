@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -191,11 +192,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   if (error) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
-        <div style={{ textAlign: "center", padding: "0 var(--gm-space-16)" }}>
-          <GitBranch size={48} style={{ color: "var(--gm-color-muted-icon)", margin: "0 auto var(--gm-space-8)" }} />
-          <p style={{ fontSize: "var(--gm-font-md)", color: "var(--red)", marginBottom: "var(--gm-space-4)" }}>{error}</p>
-          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
+      <div className="gm-center-state">
+        <div className="gm-center-state-panel">
+          <GitBranch size="var(--gm-icon-hero)" style={{ color: "var(--gm-color-muted-icon)", margin: "0 auto var(--gm-space-8)" }} />
+          <p className="gm-state-error-text">{error}</p>
+          <p className="gm-state-muted-text">
             {t("dashboard.initHint")}
           </p>
         </div>
@@ -222,13 +223,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "var(--pink)", page: "clipboard" },
     { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "ai-records", aiRecordsTab: "plans" },
   ];
-
-  const cardStyle = {
-    background: "var(--bg-card)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--gm-radius-md)",
-    padding: isMobile ? "var(--gm-card-pad-mobile)" : "var(--gm-card-pad-y) var(--gm-card-pad-x)",
-  };
 
   const syncStatus = (() => {
     if (!gitStatus) return { text: t("dashboard.loading"), color: "var(--text-secondary)" };
@@ -276,23 +270,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       minHeight: 0,
       boxSizing: "border-box",
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "var(--gm-page-header-height)", marginBottom: "var(--gm-section-gap)" }}>
+      <div className="gm-dashboard-header">
         <h1 className="gm-page-title">{t("dashboard.title")}</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-toolbar-gap)" }}>
+        <div className="gm-dashboard-actions">
           {isMobile && (
             <button
               type="button"
               onClick={() => onNavigate?.("search")}
               title={t("nav.search")}
               className="gm-toolbar-button"
-              style={{
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: "var(--gm-control-height-lg)",
-                minHeight: "var(--gm-control-height-lg)",
-              }}
             >
               <Search size="var(--gm-icon-lg)" />
             </button>
@@ -302,17 +288,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             onClick={handleRefresh}
             title={t("common.refresh")}
             className="gm-toolbar-button"
-            style={{ padding: 0, display: "flex", alignItems: "center" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
           >
             <RefreshCw size="var(--gm-icon-xs)" />
           </button>
           {isDesktop && clipStatus && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: "var(--gm-control-gap)",
-              padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-pill)",
-              background: clipStatus.watching ? "var(--bg-success)" : "var(--bg-hover)",
+            <div className="gm-status-pill" style={{
+              background: clipStatus.watching ? "var(--bg-success)" : "var(--gm-color-bg-elevated)",
+              borderColor: clipStatus.watching ? "var(--gm-success-border)" : "var(--border)",
               cursor: "pointer",
             }} onClick={() => onNavigate?.("clipboard")}>
               <Circle
@@ -332,28 +314,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       </div>
 
       {isMobile && (
-        <div style={{
-          ...cardStyle,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--gm-card-content-gap)",
-          marginBottom: "var(--gm-section-gap)",
-        }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-space-2)" }}>
+        <div className="gm-dashboard-card gm-dashboard-mobile-sync">
+          <div className="gm-dashboard-mobile-sync-main">
+            <div className="gm-dashboard-mobile-sync-head">
               <RefreshCw size={14} style={{ color: mobileSyncColor, animation: isSyncing ? "spin 1s linear infinite" : undefined }} />
-              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
+              <span className="gm-muted-text">{t("dashboard.syncStatus")}</span>
             </div>
-            <p style={{
-              fontSize: "var(--gm-font-sm)",
-              fontWeight: 700,
-              color: mobileSyncColor,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "100%",
-            }}>
+            <p className="gm-dashboard-mobile-sync-value" style={{ color: mobileSyncColor }}>
               {mobileSyncText}
             </p>
           </div>
@@ -361,23 +328,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             type="button"
             disabled={!gitStatus?.git_remote || isSyncing}
             onClick={() => void triggerSync()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "var(--gm-control-gap)",
-              minHeight: "var(--gm-control-height-xl)",
-              padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)",
-              borderRadius: "var(--gm-radius-md)",
-              border: `1px solid ${gitStatus?.git_remote ? "var(--accent)" : "var(--border)"}`,
-              background: gitStatus?.git_remote ? "var(--accent)" : "var(--bg-hover)",
-              color: gitStatus?.git_remote ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
-              cursor: !gitStatus?.git_remote || isSyncing ? "default" : "pointer",
-              opacity: isSyncing ? 0.7 : 1,
-              flexShrink: 0,
-              fontSize: "var(--gm-font-xs)",
-              fontWeight: 600,
-            }}
+            className={gitStatus?.git_remote ? "gm-button-primary" : "gm-button-secondary"}
+            style={{ cursor: !gitStatus?.git_remote || isSyncing ? "default" : "pointer", opacity: isSyncing ? 0.7 : 1, flexShrink: 0 }}
           >
             <RefreshCw size={14} style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined} />
             {gitStatus?.git_remote ? t("sidebar.syncToGit") : t("dashboard.noRemote")}
@@ -396,68 +348,35 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {showCliCapabilityCard && (
-        <div style={{
-          ...cardStyle,
-          display: "flex",
-          alignItems: isMobile ? "stretch" : "center",
-          justifyContent: "space-between",
-          gap: "var(--gm-card-content-gap)",
-          marginBottom: "var(--gm-section-gap)",
-          borderColor: "var(--gm-accent-border)",
-          background: "var(--gm-accent-muted)",
-          flexDirection: isMobile ? "column" : "row",
-        }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--gm-card-header-gap)", minWidth: 0 }}>
-            <div style={{
-              width: "var(--gm-control-height-md)",
-              height: "var(--gm-control-height-md)",
-              borderRadius: "var(--gm-radius-md)",
-              background: "var(--gm-accent-soft)",
-              color: "var(--accent)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}>
+        <div className="gm-dashboard-card gm-dashboard-cli-card">
+          <div className="gm-inline-cluster" style={{ alignItems: "flex-start", minWidth: 0 }}>
+            <div className="gm-icon-box gm-icon-box-accent">
               <Terminal size={18} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", flexWrap: "wrap" }}>
-                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 700 }}>{t("dashboard.cliCardTitle")}</p>
-                <span style={{
-                  fontSize: "var(--gm-font-2xs)",
-                  color: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--yellow)",
-                  background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "var(--gm-warning-soft)",
-                  border: `1px solid ${cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--gm-warning-border)"}`,
-                  borderRadius: "var(--gm-radius-pill)",
-                  padding: "var(--gm-space-1) var(--gm-space-3)",
-                  fontWeight: 600,
-                }}>
+              <div className="gm-inline-cluster-wrap">
+                <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>
+                <span
+                  className="gm-status-badge"
+                  style={{
+                    color: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--yellow)",
+                    background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "var(--gm-warning-soft)",
+                    borderColor: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--gm-warning-border)",
+                  }}
+                >
                   {cliStatusText}
                 </span>
               </div>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)", marginTop: "var(--gm-space-3)", maxWidth: 620 }}>
+              <p className="gm-muted-text" style={{ marginTop: "var(--gm-space-3)", maxWidth: "var(--gm-size-dashboard-cli-desc-max-width)" }}>
                 {t("dashboard.cliCardDesc")}
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-toolbar-gap)", flexShrink: 0 }}>
+          <div className="gm-dashboard-cli-copy-actions">
             <button
               type="button"
               onClick={() => void copyCliInstallCommand()}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--gm-control-gap)",
-                padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)",
-                borderRadius: "var(--gm-radius-md)",
-                border: "1px solid var(--accent)",
-                background: "var(--accent)",
-                color: "var(--gm-color-on-accent)",
-                cursor: "pointer",
-                fontSize: "var(--gm-font-xs)",
-                fontWeight: 600,
-              }}
+              className="gm-button-primary"
             >
               <Copy size={14} />
               {t("dashboard.cliCardCopyInstallCommand")}
@@ -465,18 +384,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <button
               type="button"
               onClick={() => onNavigate?.("settings")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "var(--gm-control-height-md)",
-                height: "var(--gm-control-height-md)",
-                borderRadius: "var(--gm-radius-md)",
-                border: "none",
-                background: "transparent",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-              }}
+              className="gm-icon-button"
               title={t("nav.settings")}
             >
               <SettingsIcon size={14} />
@@ -484,18 +392,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <button
               type="button"
               onClick={dismissCliCard}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "var(--gm-control-height-md)",
-                height: "var(--gm-control-height-md)",
-                borderRadius: "var(--gm-radius-md)",
-                border: "none",
-                background: "transparent",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-              }}
+              className="gm-icon-button"
               title={t("dashboard.cliCardDismiss")}
               aria-label={t("dashboard.cliCardDismiss")}
             >
@@ -506,24 +403,24 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: "var(--gm-section-gap)", marginBottom: "var(--gm-section-gap)" }}>
+      <div className="gm-dashboard-stat-grid">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
             <div
               key={card.label}
               onClick={() => card.page && navigateTo(card.page, card.notesTab, card.aiRecordsTab)}
-              style={{
-                ...cardStyle,
-                cursor: card.page ? "pointer" : "default",
-                transition: "background 0.15s",
-              }}
+              className="gm-dashboard-card gm-dashboard-stat-card"
+              style={{ "--gm-item-color": card.color, cursor: card.page ? "pointer" : "default" } as CSSProperties}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
-                <Icon size={18} style={{ color: card.color, flexShrink: 0 }} />
-                <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
+              <div aria-hidden="true" className="gm-dashboard-stat-rail" />
+              <div className="gm-dashboard-stat-head">
+                <span className="gm-dashboard-icon-box">
+                  <Icon size={16} style={{ color: "var(--gm-item-color)", flexShrink: 0 }} />
+                </span>
+                <span className="gm-section-title">{card.label}</span>
               </div>
-              <p style={{ fontSize: "var(--gm-font-2xl)", fontWeight: 700, letterSpacing: 0 }}>{card.value}</p>
+              <p className="gm-dashboard-stat-value">{card.value}</p>
             </div>
           );
         })}
@@ -531,12 +428,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Empty state guide */}
       {contentFileCount === 0 && displayedRecent.length === 0 && (
-        <div style={{
-          padding: "var(--gm-section-gap-lg) var(--gm-space-12)", borderRadius: "var(--gm-radius-md)", marginBottom: "var(--gm-section-gap)",
-          border: "1px dashed color-mix(in srgb, var(--accent) 44%, var(--border))",
-          background: "color-mix(in srgb, var(--accent) 7%, var(--bg-card))",
-          textAlign: "center",
-        }}>
+        <div className="gm-dashboard-empty-guide">
           <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: "var(--gm-space-3)" }}>{t("dashboard.emptyGuideTitle")}</p>
           <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-relaxed)" }}>
             {isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc")}
@@ -546,66 +438,43 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Git Info — only when remote is configured */}
       {gitStatus?.git_remote && (
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: isMobile ? "var(--gm-card-header-gap)" : "var(--gm-section-gap)", marginBottom: "var(--gm-section-gap)" }}>
+      <div className="gm-dashboard-git-grid">
         {/* Sync Status */}
-        <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
+        <div className="gm-dashboard-card">
+          <div className="gm-card-head">
             <RefreshCw size={14} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
+            <span className="gm-section-title">{t("dashboard.syncStatus")}</span>
           </div>
-          <p style={{
-            fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)",
-            fontWeight: 700,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
+          <p className="gm-dashboard-value">
             <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
           </p>
-          <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p className="gm-dashboard-meta">
             {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
           </p>
         </div>
 
         {/* Last Commit */}
-        <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
+        <div className="gm-dashboard-card">
+          <div className="gm-card-head">
             <GitCommit size={14} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
+            <span className="gm-section-title">{t("dashboard.lastCommit")}</span>
           </div>
           {lastCommitBrowseUrl && gitStatus?.last_commit_id ? (
             <button
               type="button"
               title={t("dashboard.openCommitPage")}
               onClick={() => void openUrl(lastCommitBrowseUrl)}
-              style={{
-                display: "block", width: "100%", textAlign: "left", padding: 0, margin: 0,
-                fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)", fontWeight: 700, fontFamily: "ui-monospace, monospace",
-                color: "var(--accent)", background: "none", border: "none", cursor: "pointer",
-                textDecoration: "underline", textDecorationColor: "transparent",
-                transition: "text-decoration-color 0.15s",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.textDecorationColor = "var(--accent)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.textDecorationColor = "transparent"; }}
+              className="gm-dashboard-mono-link"
             >
               {gitStatus.last_commit_id}
             </button>
           ) : (
-            <p style={{
-              fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)",
-              fontWeight: 700,
-              fontFamily: "ui-monospace, monospace",
-              color: "var(--accent)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
+            <p className="gm-dashboard-mono-value">
               {gitStatus?.last_commit_id || "—"}
             </p>
           )}
           {gitStatus?.last_commit_time && (
-            <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p className="gm-dashboard-meta">
               {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
             </p>
           )}
@@ -614,17 +483,17 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Recent Activity — full width */}
-      <div style={{ ...cardStyle, marginBottom: "var(--gm-section-gap)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
+      <div className="gm-dashboard-card" style={{ marginBottom: "var(--gm-section-gap)" }}>
+          <div className="gm-card-head">
             <Activity size={14} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.recentActivity")}</span>
+            <span className="gm-section-title">{t("dashboard.recentActivity")}</span>
           </div>
           {displayedRecent.length === 0 ? (
             <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", padding: "var(--gm-card-header-gap) 0" }}>
               {t("dashboard.noActivity")}
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-nav-stack-gap)" }}>
+            <div className="gm-dashboard-activity-list">
               {displayedRecent.map((item) => {
                 const cfg = categoryConfig[item.category] || categoryConfig.scratch;
                 const Icon = cfg.icon;
@@ -633,26 +502,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     key={item.path}
                     type="button"
                     onClick={() => openRecord(item)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "var(--gm-row-gap)",
-                      minHeight: isMobile ? 44 : undefined,
-                      padding: isMobile ? "var(--gm-row-pad-y-comfort) 0" : "var(--gm-row-pad-y) 0", borderRadius: "var(--gm-radius-md)",
-                      background: "transparent", border: "none",
-                      cursor: "pointer", textAlign: "left",
-                      color: "var(--text)", width: "100%",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.background = "var(--bg-hover)"; }}
-                    onMouseLeave={(e) => { if (!isMobile) e.currentTarget.style.background = "transparent"; }}
+                    className="gm-dashboard-activity-row"
                   >
-                    <Icon size={isMobile ? 14 : 12} style={{ color: cfg.color, flexShrink: 0 }} />
-                    <span style={{
-                      flex: 1, fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-xs)", overflow: "hidden",
-                      textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
+                    <span className="gm-dashboard-activity-icon">
+                      <Icon size={isMobile ? 14 : 12} style={{ color: cfg.color, flexShrink: 0 }} />
+                    </span>
+                    <span className="gm-dashboard-activity-title">
                       {item.name}
                     </span>
-                    <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", flexShrink: 0 }}>
+                    <span className="gm-dashboard-activity-time">
                       {relativeTime(item.modified, t)}
                     </span>
                   </button>
@@ -664,12 +522,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Today's Review */}
       {showReviewItem && reviewItem && (
-        <div style={{ ...cardStyle, marginBottom: "var(--gm-section-gap)", cursor: "pointer" }}
+        <div className="gm-dashboard-card" style={{ marginBottom: "var(--gm-section-gap)", cursor: "pointer" }}
           onClick={() => openRecord(reviewItem)}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
+          <div className="gm-card-head">
             <RefreshCw size={14} style={{ color: "var(--yellow)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.todayReview")}</span>
+            <span className="gm-section-title">{t("dashboard.todayReview")}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -685,16 +543,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   }
                 }).catch(() => {});
               }}
-              style={{
-                marginLeft: "auto", padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-sm)",
-                border: "1px solid var(--border)", background: "transparent",
-                color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
-              }}
+              className="gm-button-ghost"
+              style={{ marginLeft: "auto", minHeight: "var(--gm-control-height-xs)" }}
             >
               {t("dashboard.shuffle")}
             </button>
           </div>
-          <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: "var(--gm-space-2)" }}>{reviewItem.name}</p>
+          <p className="gm-card-title" style={{ marginBottom: "var(--gm-space-2)" }}>{reviewItem.name}</p>
           {reviewPreview && (
             <p style={{
               fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)",
@@ -711,44 +566,41 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Quick Info */}
-      <div style={{
-        padding: "var(--gm-card-pad-y) var(--gm-card-pad-x)", borderRadius: "var(--gm-radius-md)",
-        border: "1px dashed var(--border)", background: "transparent",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-card-header-gap)" }}>
+      <div className="gm-dashboard-quick-info">
+        <div className="gm-card-head">
           <Zap size={14} style={{ color: "var(--text-secondary)" }} />
-          <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.quickInfo")}</span>
+          <span className="gm-section-title">{t("dashboard.quickInfo")}</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "var(--gm-card-header-gap)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
+        <div className="gm-dashboard-quick-grid">
+          <div className="gm-dashboard-quick-row">
             <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span className="gm-dashboard-quick-text">
               {gitStatus?.sync_dir}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
+          <div className="gm-dashboard-quick-row">
             <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={gitStatus?.git_remote}>
+            <span className="gm-dashboard-quick-text" title={gitStatus?.git_remote}>
               {gitStatus?.git_remote || t("dashboard.noRemote")}
             </span>
           </div>
           {isDesktop && (
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
+            <div className="gm-dashboard-quick-row">
               <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
+              <span className="gm-dashboard-quick-text">
                 CLI: gitmemo --help
               </span>
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
+          <div className="gm-dashboard-quick-row">
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
+            <span className="gm-dashboard-quick-text">
               {t("dashboard.totalFiles", String(displayedFileCount))}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
+          <div className="gm-dashboard-quick-row">
             <HardDrive size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
+            <span className="gm-dashboard-quick-text">
               {formatSize(displayedRepoSizeKb)}
             </span>
           </div>

@@ -1,4 +1,4 @@
-import { Bot, Clipboard, FileDown, Files, FileText, GitBranch, MonitorSmartphone, Search, Star } from 'lucide-react'
+import { Bot, Clipboard, FileDown, Files, FileText, GitBranch, MonitorSmartphone, Search, Settings2, Star } from 'lucide-react'
 import FeatureCard from '../components/FeatureCard'
 import FadeIn from '../components/FadeIn'
 import { useI18n } from '../i18n/useI18n'
@@ -15,6 +15,7 @@ export default function Features() {
     { icon: <Files size={20} />, titleKey: 'cap.files.title', descKey: 'cap.files.desc', tagKeys: ['platform.desktop', 'platform.android'] },
     { icon: <FileDown size={20} />, titleKey: 'cap.pdf.title', descKey: 'cap.pdf.desc', tagKeys: ['platform.desktop'] },
     { icon: <Bot size={20} />, titleKey: 'cap.ai.title', descKey: 'cap.ai.desc', tagKeys: ['platform.cli', 'platform.mcp'] },
+    { icon: <Settings2 size={20} />, titleKey: 'cap.preferences.title', descKey: 'cap.preferences.desc', tagKeys: ['platform.desktop'] },
     { icon: <GitBranch size={20} />, titleKey: 'cap.git.title', descKey: 'cap.git.desc', tagKeys: ['platform.desktop', 'platform.cli', 'platform.android'] },
   ]
 

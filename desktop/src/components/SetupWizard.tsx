@@ -263,7 +263,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     border: "none",
     display: isMobile ? "flex" : "grid",
     flexDirection: isMobile ? "column" : undefined,
-    gridTemplateColumns: isMobile ? undefined : step === "done" ? "300px minmax(0, 1fr)" : "280px minmax(0, 1fr)",
+    gridTemplateColumns: isMobile ? undefined : step === "done" ? "var(--gm-size-setup-sidebar-width-done) minmax(0, 1fr)" : "var(--gm-size-setup-sidebar-width) minmax(0, 1fr)",
     overflow: "hidden",
     boxShadow: "none",
   };
@@ -272,9 +272,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: "var(--gm-space-4)",
     width: "100%",
-    padding: "12px 20px",
+    padding: "var(--gm-space-6) var(--gm-space-10)",
     borderRadius: "var(--gm-radius-md)",
     border: "1px solid var(--accent)",
     background: "var(--accent)",
@@ -294,7 +294,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
   const buttonRowStyle: React.CSSProperties = {
     display: "flex",
-    gap: isMobile ? 8 : 10,
+    gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-5)",
     alignItems: "stretch",
     flexWrap: "nowrap",
     width: "100%",
@@ -303,9 +303,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const navBackButtonStyle: React.CSSProperties = {
     ...btnSecondary,
     width: "auto",
-    minWidth: isMobile ? 72 : 86,
+    minWidth: isMobile ? "var(--gm-size-setup-nav-back-min-width-mobile)" : "var(--gm-size-setup-nav-back-min-width)",
     flex: "0 0 auto",
-    padding: isMobile ? "10px 14px" : "10px 20px",
+    padding: isMobile ? "var(--gm-space-5) var(--gm-space-7)" : "var(--gm-space-5) var(--gm-space-10)",
     whiteSpace: "nowrap",
   };
 
@@ -320,8 +320,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const optionCard = (selected: boolean): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
-    gap: 14,
-    padding: isMobile ? "12px 14px" : "14px 18px",
+    gap: "var(--gm-space-7)",
+    padding: isMobile ? "var(--gm-space-6) var(--gm-space-7)" : "var(--gm-space-7) var(--gm-space-10)",
     borderRadius: "var(--gm-radius-md)",
     border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
     background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
@@ -345,8 +345,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      minHeight: 24,
-      padding: "4px 8px",
+      minHeight: "var(--gm-control-height-xs)",
+      padding: "var(--gm-space-2) var(--gm-space-4)",
       borderRadius: "var(--gm-radius-md)",
       border: "1px solid var(--border)",
       background: "var(--bg)",
@@ -358,7 +358,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   };
 
   const infoSurfaceStyle: React.CSSProperties = {
-    padding: isMobile ? "12px 14px" : "14px 16px",
+    padding: isMobile ? "var(--gm-space-6) var(--gm-space-7)" : "var(--gm-space-7) var(--gm-space-8)",
     borderRadius: "var(--gm-radius-md)",
     border: "1px solid var(--border)",
     background: "var(--bg)",
@@ -368,8 +368,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
-    padding: "8px 10px",
+    gap: "var(--gm-space-5)",
+    padding: "var(--gm-space-4) var(--gm-space-5)",
     borderRadius: "var(--gm-radius-md)",
     border: "1px solid var(--border)",
     background: "var(--bg)",
@@ -440,7 +440,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
   const renderPanel = (content: ReactNode) => (
     <div style={{
-      padding: isMobile ? `18px 18px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "28px 30px 24px",
+      padding: isMobile ? `var(--gm-space-10) var(--gm-space-10) ${MOBILE_BOTTOM_CONTENT_PADDING}` : "var(--gm-space-14) var(--gm-space-16) var(--gm-space-12)",
       overflowY: "auto",
       minWidth: 0,
       minHeight: 0,
@@ -451,7 +451,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     }}>
       <div style={{
         width: "100%",
-        maxWidth: isMobile ? "none" : 720,
+        maxWidth: isMobile ? "none" : "var(--gm-size-setup-panel-max-width)",
         margin: "0 auto",
       }}>
         {content}
@@ -462,11 +462,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const candidateListStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "column",
-    gap: 8,
-    marginBottom: 12,
-    maxHeight: 260,
+    gap: "var(--gm-space-4)",
+    marginBottom: "var(--gm-space-6)",
+    maxHeight: "var(--gm-size-setup-candidate-list-max-height)",
     overflowY: "auto",
-    paddingRight: 4,
+    paddingRight: "var(--gm-space-2)",
   };
 
   const initLogIcon = (status: string) => {
@@ -479,21 +479,21 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     <div style={containerStyle}>
       <div style={cardStyle}>
         <aside style={{
-          padding: isMobile ? "16px 16px 12px" : "28px 22px 26px",
+          padding: isMobile ? "var(--gm-space-8) var(--gm-space-8) var(--gm-space-6)" : "var(--gm-space-14) var(--gm-space-12) var(--gm-space-14)",
           borderRight: isMobile ? "none" : "1px solid var(--border)",
           borderBottom: isMobile ? "1px solid var(--border)" : "none",
           background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
           display: "flex",
           flexDirection: "column",
-          gap: isMobile ? 12 : 18,
+          gap: isMobile ? "var(--gm-space-6)" : "var(--gm-space-10)",
           minWidth: 0,
           flexShrink: 0,
         }}>
-          <div style={{ display: "grid", gap: isMobile ? 10 : 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ display: "grid", gap: isMobile ? "var(--gm-space-5)" : "var(--gm-space-7)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-6)", minWidth: 0 }}>
               <div style={{
-                width: 36,
-                height: 36,
+                width: "var(--gm-size-setup-logo-box)",
+                height: "var(--gm-size-setup-logo-box)",
                 borderRadius: "var(--gm-radius-lg)",
                 border: "1px solid var(--border-strong)",
                 background: "var(--bg)",
@@ -508,7 +508,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 GM
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700, color: "var(--accent)", marginBottom: 4, letterSpacing: 0 }}>
+                <div style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700, color: "var(--accent)", marginBottom: "var(--gm-space-2)", letterSpacing: 0 }}>
                   GitMemo Setup
                 </div>
                 <h2 style={{
@@ -553,9 +553,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             <div style={{
               display: "flex",
               flexDirection: isMobile ? "row" : "column",
-              gap: isMobile ? 8 : 10,
+              gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-5)",
               overflowX: isMobile ? "auto" : undefined,
-              paddingBottom: isMobile ? 2 : undefined,
+              paddingBottom: isMobile ? "var(--gm-space-1)" : undefined,
             }}>
               {navSteps.map(({ key, label, active, complete }, index) => (
                 <div
@@ -563,8 +563,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: isMobile ? 8 : 12,
-                    padding: isMobile ? "8px 10px" : "10px 12px",
+                    gap: isMobile ? "var(--gm-space-4)" : "var(--gm-space-6)",
+                    padding: isMobile ? "var(--gm-space-4) var(--gm-space-5)" : "var(--gm-space-5) var(--gm-space-6)",
                     borderRadius: "var(--gm-radius-md)",
                     background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                     border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 42%, var(--border))" : "transparent"}`,
@@ -573,8 +573,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   }}
                 >
                   <div style={{
-                    width: 24,
-                    height: 24,
+                    width: "var(--gm-size-setup-step-index)",
+                    height: "var(--gm-size-setup-step-index)",
                     borderRadius: "var(--gm-radius-md)",
                     display: "flex",
                     alignItems: "center",
@@ -608,9 +608,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             ...infoSurfaceStyle,
             fontSize: "var(--gm-font-xs)",
             color: "var(--text-secondary)",
-            lineHeight: 1.6,
+            lineHeight: "var(--gm-leading-relaxed)",
           }}>
-            <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{t("setup.tipTitle")}</div>
+            <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: "var(--gm-space-3)" }}>{t("setup.tipTitle")}</div>
             {sidebarTip}
           </div>}
         </aside>

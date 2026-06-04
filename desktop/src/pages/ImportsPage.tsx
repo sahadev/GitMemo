@@ -269,7 +269,7 @@ export default function ImportsPage({
         panelKey="imports"
         defaultWidth={300}
         left={showList && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "var(--gm-color-bg-surface)" }}>
             <PaneHeader
               icon={Download}
               title={t("imports.title")}
@@ -413,11 +413,10 @@ export default function ImportsPage({
                           void handleSave();
                         }
                       }}
+                      className="gm-code-editor gm-code-editor-min"
                       style={{
                         width: "100%", height: "100%", resize: "none", padding: 0,
-                        background: "transparent", border: "none", color: "var(--text)",
-                        fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
-                        outline: "none", minHeight: 420,
+                        border: "none",
                       }}
                     />
                   ) : (

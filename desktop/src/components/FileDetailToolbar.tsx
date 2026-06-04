@@ -96,7 +96,7 @@ export function FileDetailToolbar({
       display: "flex",
       alignItems: "center",
       borderBottom: "1px solid var(--border)",
-      background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+      background: "var(--gm-color-bg-surface)",
       flexShrink: 0,
       gap: "var(--gm-toolbar-gap)",
       minWidth: 0,

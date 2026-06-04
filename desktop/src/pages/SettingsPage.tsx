@@ -118,30 +118,10 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   return (
     <button
       onClick={onToggle}
-      style={{
-        width: 44,
-        height: 24,
-        borderRadius: "var(--gm-radius-pill)",
-        background: enabled ? "var(--accent)" : "var(--bg-hover)",
-        position: "relative",
-        border: "none",
-        cursor: "pointer",
-        transition: "background 0.2s",
-        flexShrink: 0,
-      }}
+      className="gm-switch"
+      data-enabled={enabled ? "true" : "false"}
     >
-      <div
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: "var(--gm-radius-pill)",
-          background: "var(--gm-color-on-accent)",
-          position: "absolute",
-          top: 3,
-          left: enabled ? 23 : 3,
-          transition: "left 0.2s",
-        }}
-      />
+      <div className="gm-switch-thumb" />
     </button>
   );
 }
@@ -787,7 +767,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     fontSize: "var(--gm-font-xs)",
                     color: savingImportLimit ? "var(--text-secondary)" : "var(--accent)",
                     fontWeight: 600,
-                    fontFamily: "ui-monospace, monospace",
+                    fontFamily: "var(--gm-font-mono)",
                   }}>
                     {formatImportSizeLimit(importFileSizeLimitKb)}
                   </span>
@@ -853,7 +833,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   style={{
                     flex: 1, maxWidth: isMobile ? "100%" : 320, ...mobileFieldStyle,
                     background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
-                    fontFamily: "ui-monospace, monospace",
+                    fontFamily: "var(--gm-font-mono)",
                   }}
                 />
                 <button
@@ -891,7 +871,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                           fontSize: "var(--gm-font-2xs)",
                           color: "var(--text-secondary)",
                           marginTop: "var(--gm-space-2)",
-                          fontFamily: "ui-monospace, monospace",
+                          fontFamily: "var(--gm-font-mono)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -1047,7 +1027,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 style={{
                   width: isMobile ? "100%" : 120, ...mobileFieldStyle,
                   background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
-                  fontFamily: "ui-monospace, monospace",
+                  fontFamily: "var(--gm-font-mono)",
                 }}
               />
             ) : (
@@ -1056,7 +1036,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 style={{
                   padding: segmentedButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                   background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
-                  fontFamily: "ui-monospace, monospace",
+                  fontFamily: "var(--gm-font-mono)",
                 }}
               >
                 {branch || "main"}
@@ -1096,7 +1076,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 {copiedField === "syncDir" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
                 <span style={{
                   fontSize: "var(--gm-font-xs)",
-                  fontFamily: "ui-monospace, monospace",
+                  fontFamily: "var(--gm-font-mono)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -1106,7 +1086,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </button>
             ) : (
               <span style={{
-                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontFamily: "ui-monospace, monospace",
+                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontFamily: "var(--gm-font-mono)",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200,
               }}>
                 —
@@ -1147,7 +1127,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     style={{
                       width: isMobile ? "100%" : 280, ...mobileFieldStyle,
                       background: "var(--bg)", border: "1px solid var(--accent)", color: "var(--text)",
-                      fontFamily: "ui-monospace, monospace",
+                      fontFamily: "var(--gm-font-mono)",
                     }}
                   />
                   {isMobile && (
@@ -1226,7 +1206,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   >
                     {copiedField === "gitRemote" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
                     <span style={{
-                      fontSize: "var(--gm-font-xs)", fontFamily: "ui-monospace, monospace",
+                      fontSize: "var(--gm-font-xs)", fontFamily: "var(--gm-font-mono)",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }} title={gitRemote}>
                       {gitRemote}
@@ -1511,7 +1491,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                           border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
                           background: recording ? "var(--bg-hover)" : "var(--bg)",
                           color: recording ? "var(--accent)" : "var(--text)",
-                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          fontFamily: "var(--gm-font-mono)",
                           fontSize: "var(--gm-font-xs)",
                           cursor: saving ? "default" : "pointer",
                           opacity: saving ? 0.65 : 1,
@@ -1737,7 +1717,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         borderBottom: "1px solid var(--border)",
                         fontSize: "var(--gm-font-xs)",
                         color: "var(--text-secondary)",
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontFamily: "var(--gm-font-mono)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -1754,7 +1734,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         color: "var(--text)",
                         fontSize: "var(--gm-font-xs)",
                         lineHeight: "var(--gm-leading-relaxed)",
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        fontFamily: "var(--gm-font-mono)",
                       }}>
                         {entry.content}
                       </pre>

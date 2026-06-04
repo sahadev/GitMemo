@@ -83,7 +83,7 @@ export function FileMoreActionsMenu({
   if (!showReveal && !showCopyPath && !showExportPdf) return null;
 
   return (
-    <div ref={rootRef} style={{ position: "relative", flexShrink: 0 }}>
+    <div ref={rootRef} className="gm-menu-anchor">
       <DetailIconButton
         onClick={(event) => {
           event.stopPropagation();
@@ -96,14 +96,7 @@ export function FileMoreActionsMenu({
 
       {open ? (
         <div
-          className="gm-menu-popover"
-          style={{
-            minWidth: 178,
-            position: "absolute",
-            right: 0,
-            top: 38,
-            zIndex: 50,
-          }}
+          className="gm-menu-popover gm-file-menu-popover"
         >
           {showReveal ? (
             <button type="button" onClick={() => void handleReveal()} className="gm-menu-item">

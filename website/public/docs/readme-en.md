@@ -10,7 +10,7 @@
 
 > **Turn temporary information into long-term knowledge that is searchable, syncable, and reusable.**
 
-GitMemo is a local-first, Git-native personal knowledge capture and reuse system. It saves clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository you control, so both you and AI tools can search, read, sync, export, and build on them.
+GitMemo is a local-first, Git-native personal knowledge capture and reuse system. It saves clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository you control, so both you and AI tools can search, read, sync, export, and build on them. Supported AI working preferences and editor context, such as global `CLAUDE.md`, Claude memory/skills, and Cursor rules/skills, can also be versioned in that same knowledge repo.
 
 Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, and Codex users.
 
@@ -28,6 +28,7 @@ That changes the role of the knowledge base: it is no longer only a place for hu
 - **Conversation capture for supported AI tools** — Claude Code and Cursor use rules, skills, hooks, and MCP where available; Codex sessions are imported from native local logs with `gitmemo capture`
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
 - **Project scene archival** — Ask MetaBot, Claude, Codex, or Cursor to save the current branch, task goal, progress, risks, and next actions into GitMemo, so future work can resume across tools, devices, and time without rebuilding the context
+- **AI preference and config sync** — Keep user-authored AI working rules, global `CLAUDE.md`, Claude memory/skills, Cursor rules/skills, and related MCP config searchable, versioned, and portable
 - **Multi-editor** — Supports Claude Code, Cursor, and Codex
 - **Notes** — Scratch notes and manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
@@ -134,6 +135,12 @@ There are three supported capture paths:
 
 To verify Codex capture without writing files, run `gitmemo capture --dry-run` after using Codex.
 
+### AI Preferences as Synced Context
+
+It is accurate to say that GitMemo can help sync AI usage preferences, with one important nuance: GitMemo syncs the user-authored preference and context files used by supported AI tools, not a model's hidden internal state.
+
+For example, a global `CLAUDE.md` may describe your preferred language, Feishu MCP usage, GitMemo habits, Prisma safety rules, or commit-and-push workflow. GitMemo can preserve that kind of operating context alongside Claude memory, skills, project memory, Cursor rules, Cursor skills, and MCP config under `claude-config/` and `cursor-config/`. Once those files are in the GitMemo repo, they become searchable, versioned, backed up, and available across devices or future AI sessions.
+
 ### Verify It Works
 
 ```bash
@@ -186,7 +193,14 @@ gitmemo uninstall          # Remove configs (keeps data)
 │   ├── CLAUDE.md           # Global Claude instructions
 │   ├── memory/             # Claude's auto-memory
 │   ├── skills/             # Custom skills
+│   ├── root-docs/           # Root-level Claude Markdown docs
 │   └── projects/           # Per-project memory
+├── cursor-config/          # Cursor-related rules, skills, MCP config, and docs
+│   ├── rules/              # Cursor rules (.mdc)
+│   ├── skills/             # Cursor skills
+│   ├── root-docs/           # Root-level Cursor Markdown docs
+│   ├── projects/           # Per-project docs, references, and specs
+│   └── mcp.json            # Cursor MCP config when present
 └── .metadata/              # Search index (not synced)
 ```
 
@@ -204,8 +218,8 @@ GitMemo can capture and organize **8 types** of knowledge from supported workflo
 | **Design Docs** | Architecture designs, API specs | `notes/manual/` |
 | **Clipboard** | Text snippets, code, URLs (auto) | `clips/` |
 | **Imported Files** | Drag & drop — Markdown, code, PDFs | `imports/` |
-| **AI Memory** | Claude's auto-memory & project context | `claude-config/memory/` |
-| **Skills & Config** | Custom skills, CLAUDE.md instructions | `claude-config/skills/` |
+| **AI Memory** | Claude's auto-memory & project context | `claude-config/memory/`, `claude-config/projects/` |
+| **AI Preferences & Rules** | Global `CLAUDE.md`, Cursor rules, MCP config, custom skills | `claude-config/`, `cursor-config/` |
 
 No manual copying. No export buttons. Supported sources can flow into your sync directory and be tracked by Git automatically.
 

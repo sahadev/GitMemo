@@ -170,7 +170,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         left={(
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        background: "var(--gm-color-bg-surface)",
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         <PaneHeader

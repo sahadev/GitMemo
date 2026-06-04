@@ -315,7 +315,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         left={(
           <div style={{
             display: "flex", flexDirection: "column", flexShrink: 0,
-            background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+            background: "var(--gm-color-bg-surface)",
           }}>
             <div style={{ display: "flex", gap: "var(--gm-space-2)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)", borderBottom: "1px solid var(--border)" }}>
               {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
@@ -503,19 +503,17 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
+                        className="gm-code-editor gm-code-editor-min"
                         style={{
                           width: "100%", height: "100%", resize: "none", padding: 0,
-                          background: "transparent", border: "none", color: "var(--text)",
-                          fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
-                          outline: "none", minHeight: 420,
+                          border: "none",
                         }}
                       />
                     ) : isProbablyMarkdown(selectedFileRel) ? (
                       <MarkdownView content={fileContent} />
                     ) : (
-                      <pre style={{
+                      <pre className="gm-mono-text" style={{
                         margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", whiteSpace: "pre-wrap", wordBreak: "break-word",
-                        fontFamily: "ui-monospace, monospace", color: "var(--text)",
                       }}>
                         {fileContent}
                       </pre>

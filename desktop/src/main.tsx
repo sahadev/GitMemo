@@ -1,11 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { MantineProvider, createTheme } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initSyncListeners } from "./hooks/useSync";
 import { initAppListeners } from "./hooks/useAppStore";
+import { gitmemoTheme } from "./theme";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "./index.css";
@@ -22,15 +23,10 @@ window.addEventListener("unhandledrejection", (e) => {
 initSyncListeners();
 initAppListeners();
 
-const theme = createTheme({
-  primaryColor: "blue",
-  fontFamily: "inherit",
-});
-
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <MantineProvider theme={theme} defaultColorScheme="auto">
+      <MantineProvider theme={gitmemoTheme} defaultColorScheme="auto">
         <Notifications position="bottom-center" autoClose={2500} />
         <App />
       </MantineProvider>

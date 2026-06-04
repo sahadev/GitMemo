@@ -29,23 +29,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
   const { t } = useI18n();
 
   return (
-    <nav className="gm-app-surface" style={{
-      position: "fixed",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 30,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-around",
-      borderTop: "1px solid var(--border)",
-      background: "color-mix(in srgb, var(--bg-card) 92%, var(--bg) 8%)",
-      padding: "var(--gm-space-3) var(--gm-space-3) calc(var(--gm-space-3) + env(safe-area-inset-bottom, 0px))",
-      flexShrink: 0,
-      width: "100%",
-      boxSizing: "border-box",
-      boxShadow: "var(--gm-shadow-bottom)",
-    }}>
+    <nav className="gm-bottom-nav">
       {mobileNavItems.map((item) => {
         const Icon = item.icon;
         const active = currentPage === item.id;
@@ -54,27 +38,11 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
             key={item.id}
             type="button"
             onClick={() => onNavigate(item.id)}
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "var(--gm-space-2)",
-              padding: "var(--gm-space-4) var(--gm-space-1) var(--gm-space-3)",
-              background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-              border: "none",
-              borderRadius: "var(--gm-radius-md)",
-              cursor: "pointer",
-              color: active ? "var(--text)" : "var(--text-secondary)",
-              minHeight: "calc(var(--gm-control-height-lg) + var(--gm-card-header-gap))",
-              justifyContent: "center",
-              minWidth: 0,
-            }}
+            className="gm-bottom-nav-item"
+            data-active={active ? "true" : "false"}
           >
-            <Icon size={18} style={{ color: active ? "var(--accent)" : "currentColor", flexShrink: 0 }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500, lineHeight: "var(--gm-leading-tight)", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {t(item.labelKey)}
-            </span>
+            <Icon size={18} style={{ color: "currentColor", flexShrink: 0 }} />
+            <span className="gm-bottom-nav-label">{t(item.labelKey)}</span>
           </button>
         );
       })}

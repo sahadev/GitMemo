@@ -362,7 +362,7 @@ export default function NotesPage({
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", height: "100%",
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        background: "var(--gm-color-bg-surface)",
         width: "100%", flex: 1, minWidth: 0,
         minHeight: 0, overflow: "hidden",
       }}>
@@ -587,11 +587,11 @@ export default function NotesPage({
                     if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
                     if (e.key === "Escape") setEditing(false);
                   }}
+                  className="gm-code-editor"
                   style={{
                     width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                    lineHeight: "var(--gm-leading-reading)", padding: 0, background: "transparent", color: "var(--text)",
+                    padding: 0,
                     border: "none", outline: "none",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}
                 />
               ) : (

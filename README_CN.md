@@ -10,7 +10,7 @@
 
 > **把临时信息变成可搜索、可同步、可复用的长期知识。**
 
-GitMemo 是一个本地优先、Git 原生的个人知识捕获与复用系统。它把剪贴板、截图、Markdown、AI 对话、终端输出、外部文件和灵感记录统一保存到用户自己控制的 Git 仓库中，让人和 AI 都能搜索、阅读、同步、导出和二次创作。
+GitMemo 是一个本地优先、Git 原生的个人知识捕获与复用系统。它把剪贴板、截图、Markdown、AI 对话、终端输出、外部文件和灵感记录统一保存到用户自己控制的 Git 仓库中，让人和 AI 都能搜索、阅读、同步、导出和二次创作。已支持的 AI 工作偏好和编辑器上下文，例如全局 `CLAUDE.md`、Claude memory/skills、Cursor rules/skills，也可以进入同一个知识仓库并由 Git 管理。
 
 它提供 CLI 和 Desktop 两种使用形态，并以本地优先的方式服务 Claude Code、Cursor 和 Codex 用户。
 
@@ -28,6 +28,7 @@ GitMemo 成立的原因，是这些临时来源需要一个长期、可迁移、
 - **面向已支持 AI 工具的对话捕获** — Claude Code 和 Cursor 使用规则、技能、hooks 与 MCP；Codex 会话通过 `gitmemo capture` 从本机原生日志导入
 - **搜索与复用** — 通过 CLI、Desktop 或 MCP 搜索已保存内容，而不是让它们淹没在聊天记录里
 - **项目现场，随时归档** — 让 MetaBot、Claude、Codex 或 Cursor 把当前分支、任务目标、实现进度、风险和下一步计划保存到 GitMemo；以后换工具、换设备、换时间继续工作时，直接读取上下文，不再从零回忆
+- **AI 偏好与配置同步** — 把用户自己写下的 AI 工作规则、全局 `CLAUDE.md`、Claude memory/skills、Cursor rules/skills 和相关 MCP 配置纳入搜索、版本管理和多端同步
 - **多编辑器** — 同时支持 Claude Code、Cursor 与 Codex
 - **笔记功能** — 便签和手册，一行命令创建
 - **剪贴板捕获** — Desktop 可在启用后本地监控并捕获剪贴板中的文本和图片
@@ -134,6 +135,12 @@ GitMemo 现在有三条捕获路径：
 
 如需只验证 Codex 捕获而不写文件，可在使用 Codex 后运行 `gitmemo capture --dry-run`。
 
+### AI 使用偏好如何同步
+
+可以说 GitMemo 支持同步 AI 使用偏好，但更准确的表述是：GitMemo 同步的是用户写进已支持 AI 工具配置里的偏好与上下文文件，而不是模型内部不可见的状态。
+
+例如，全局 `CLAUDE.md` 里可能写着中文沟通偏好、飞书 MCP 使用方式、GitMemo 工作规则、Prisma 安全红线、代码修改后的提交/推送习惯等。这类用户自定义的 AI 工作偏好，可以和 Claude memory、skills、项目记忆、Cursor rules、Cursor skills、MCP 配置一起进入 `claude-config/` 与 `cursor-config/`。这些文件进入 GitMemo 仓库后，就可以被搜索、版本化、备份、跨设备同步，并在新机器或后续 AI 会话中重新作为上下文使用。
+
 ### 验证是否生效
 
 ```bash
@@ -186,7 +193,14 @@ gitmemo uninstall          # 移除配置（保留数据）
 │   ├── CLAUDE.md           # 全局 Claude 指令
 │   ├── memory/             # Claude 的自动记忆
 │   ├── skills/             # 自定义技能
+│   ├── root-docs/           # Claude 根目录下的 Markdown 文档
 │   └── projects/           # 项目级记忆
+├── cursor-config/          # 与 Cursor 同步的 rules、skills、MCP 配置和文档
+│   ├── rules/              # Cursor rules（.mdc）
+│   ├── skills/             # Cursor skills
+│   ├── root-docs/           # Cursor 根目录下的 Markdown 文档
+│   ├── projects/           # 项目级 docs、references、specs
+│   └── mcp.json            # 已存在时同步的 Cursor MCP 配置
 └── .metadata/              # 搜索索引（不同步）
 ```
 
@@ -204,8 +218,8 @@ GitMemo 可在已支持工作流中捕获并整理 **8 类知识产物**：
 | **设计文档** | 架构设计、API 设计 | `notes/manual/` |
 | **剪贴板** | 文本片段、代码、URL（自动） | `clips/` |
 | **导入文件** | 拖拽导入 — Markdown、代码、PDF | `imports/` |
-| **AI 记忆** | Claude 的自动记忆和项目上下文 | `claude-config/memory/` |
-| **技能与配置** | 自定义技能、CLAUDE.md 指令 | `claude-config/skills/` |
+| **AI 记忆** | Claude 的自动记忆和项目上下文 | `claude-config/memory/`、`claude-config/projects/` |
+| **AI 偏好与规则** | 全局 `CLAUDE.md`、Cursor rules、MCP 配置、自定义 skills | `claude-config/`、`cursor-config/` |
 
 无需手动复制，无需导出按钮，已支持来源可自动流入同步目录并由 Git 跟踪。
 
