@@ -8,6 +8,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -225,18 +226,19 @@ export default function PlansPage({
       <button
         onClick={() => loadFiles()}
         title={t("common.refresh")}
+        className="gm-toolbar-button"
         style={{
-          background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: "var(--gm-radius-sm)",
+          background: "transparent", border: "none", cursor: "pointer", padding: 0, borderRadius: "var(--gm-radius-md)",
           color: "var(--text-secondary)", display: "flex", alignItems: "center",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
       >
-        <RefreshCw size={14} />
+        <RefreshCw size="var(--gm-icon-xs)" />
       </button>
       <span style={{
         fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-        padding: "2px 8px", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
+        padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
       }}>
         {hasMore ? `${files.length} / ${totalFiles}` : files.length}
       </span>
@@ -256,15 +258,7 @@ export default function PlansPage({
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {renderListHeader ? renderListHeader(listHeaderActions) : (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
-            borderBottom: "1px solid var(--border)",
-            flexShrink: 0,
-          }}>
-            <Lightbulb size={18} style={{ color: "var(--accent)" }} />
-            <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
-            {listHeaderActions}
-          </div>
+          <PaneHeader icon={Lightbulb} title={t("nav.plans")} actions={listHeaderActions} />
         )}
 
         <div style={{
@@ -276,10 +270,10 @@ export default function PlansPage({
           {loading ? (
             <Loading compact text={t("common.loading")} />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: 32 }}>
-              <Lightbulb size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+            <div className="gm-empty-state" style={{ padding: "var(--gm-space-16)" }}>
+              <Lightbulb size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.empty")}</p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
                 {t("plans.emptyDesc")}
               </p>
             </div>
@@ -295,7 +289,10 @@ export default function PlansPage({
                   style={{
                     display: "block", width: "100%", textAlign: "left",
                     minHeight: isMobile ? 56 : undefined,
-                    padding: isMobile ? "14px 16px" : "12px 16px", cursor: "pointer",
+                    padding: isMobile
+                      ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x)"
+                      : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
+                    cursor: "pointer",
                     background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                     border: "none", borderBottom: "1px solid var(--border)",
                     borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
@@ -305,7 +302,7 @@ export default function PlansPage({
                   <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {f.name.replace(/\.md$/, "")}
                   </p>
-                  <p style={{ fontSize: "var(--gm-font-xs)", marginTop: 4, color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)" }}>
                     {relativeTime(f.modified, t)}
                   </p>
                 </button>
@@ -318,7 +315,7 @@ export default function PlansPage({
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
                 style={{
-                  width: "100%", padding: "12px 16px", border: "none",
+                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
                   fontSize: "var(--gm-font-xs)", fontWeight: 600,
@@ -339,7 +336,7 @@ export default function PlansPage({
         {!selectedFile ? (
           <div className="gm-empty-state" style={{ flex: 1 }}>
             <div style={{ textAlign: "center" }}>
-              <Lightbulb size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+              <Lightbulb size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.selectToView")}</p>
             </div>
           </div>
@@ -349,6 +346,10 @@ export default function PlansPage({
               title={isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               titleText={selectedFile}
               onBack={closeDetail}
+              onRefresh={() => {
+                void loadFiles();
+                if (selectedFile) void openFile(selectedFile);
+              }}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
@@ -377,7 +378,9 @@ export default function PlansPage({
             <div style={{
               flex: 1,
               overflowY: "auto",
-              padding: isMobile ? `16px 16px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "20px 28px",
+              padding: isMobile
+                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
+                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
               userSelect: "text",
             }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />

@@ -24,7 +24,7 @@ export function DetailIconButton({
   ...props
 }: DetailIconButtonProps) {
   const isMobile = usePlatform() === "mobile";
-  const size = isMobile ? 38 : 32;
+  const size = isMobile ? "var(--gm-control-height-xl)" : "var(--gm-control-height-sm)";
 
   return (
     <button
@@ -32,8 +32,8 @@ export function DetailIconButton({
       disabled={disabled}
       style={{
         alignItems: "center",
-        background: "var(--bg)",
-        border: "1px solid var(--border)",
+        background: "transparent",
+        border: "none",
         borderRadius: "var(--gm-radius-md)",
         color: toneColor[tone],
         cursor: disabled ? "not-allowed" : "pointer",

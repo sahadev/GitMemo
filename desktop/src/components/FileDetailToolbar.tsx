@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ChevronLeft, Pencil, Save, X } from "lucide-react";
+import { ChevronLeft, Pencil, RefreshCw, Save, X } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
@@ -24,6 +24,9 @@ interface FileDetailToolbarProps {
   titleClickLabel?: string;
   titleStyle?: CSSProperties;
   metadata?: ReactNode;
+  onRefresh?: () => void;
+  refreshTitle?: string;
+  refreshDisabled?: boolean;
   editing?: boolean;
   onEdit?: () => void;
   onSave?: () => void;
@@ -64,6 +67,9 @@ export function FileDetailToolbar({
   titleClickLabel,
   titleStyle,
   metadata,
+  onRefresh,
+  refreshTitle,
+  refreshDisabled,
   editing = false,
   onEdit,
   onSave,
@@ -92,9 +98,11 @@ export function FileDetailToolbar({
       borderBottom: "1px solid var(--border)",
       background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
       flexShrink: 0,
-      gap: 8,
+      gap: "var(--gm-toolbar-gap)",
       minWidth: 0,
-      padding: isMobile ? "8px 12px" : "10px 20px",
+      padding: isMobile
+        ? "var(--gm-space-4) var(--gm-space-6)"
+        : "var(--gm-space-5) var(--gm-space-10)",
       ...style,
     }}>
       {onBack ? (
@@ -120,6 +128,16 @@ export function FileDetailToolbar({
       >
         {title}
       </span>
+      {onRefresh && !editing ? (
+        <DetailIconButton
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshDisabled}
+          title={refreshTitle ?? t("common.refresh")}
+        >
+          <RefreshCw size={iconSize} />
+        </DetailIconButton>
+      ) : null}
       {metadata}
       {actionsBeforeEdit.filter((action) => !action.hidden).map((action) => (
         <ToolbarActionButton key={action.key} action={action} />

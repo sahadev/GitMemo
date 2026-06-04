@@ -8,6 +8,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
@@ -366,15 +367,15 @@ export default function ConversationsPage({
         onClick={() => loadFiles()}
         title={t("common.refresh")}
         className="gm-toolbar-button"
-        style={{ padding: 4, display: "flex", alignItems: "center", minWidth: 28, minHeight: 28 }}
+        style={{ padding: 0, display: "flex", alignItems: "center" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
       >
-        <RefreshCw size={14} />
+        <RefreshCw size="var(--gm-icon-xs)" />
       </button>
       <span style={{
         fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-        padding: "2px 8px", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
+        padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
       }}>
         {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
         {hasMore ? ` / ${totalFiles}` : ""}
@@ -395,15 +396,7 @@ export default function ConversationsPage({
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
         {renderListHeader ? renderListHeader(listHeaderActions) : (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "12px 14px" : "16px 16px 12px",
-            borderBottom: "1px solid var(--border)",
-            flexShrink: 0,
-          }}>
-            <MessageSquare size={18} style={{ color: "var(--accent)" }} />
-            <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, flex: 1 }}>{t("conversations.title")}</span>
-            {listHeaderActions}
-          </div>
+          <PaneHeader icon={MessageSquare} title={t("conversations.title")} actions={listHeaderActions} />
         )}
 
         {/* List */}
@@ -416,8 +409,8 @@ export default function ConversationsPage({
           {loading ? (
             <Loading compact text={t("conversations.loading")} />
           ) : files.length === 0 ? (
-            <div style={{ padding: 32, textAlign: "center" }}>
-              <MessageSquare size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+            <div style={{ padding: "var(--gm-space-16)", textAlign: "center" }}>
+              <MessageSquare size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("conversations.empty")}</p>
             </div>
           ) : (
@@ -433,17 +426,20 @@ export default function ConversationsPage({
                   style={{
                     display: "block", width: "100%", textAlign: "left",
                     minHeight: isMobile ? 58 : undefined,
-                    padding: isMobile ? "14px 16px" : "12px 16px", cursor: "pointer",
+                    padding: isMobile
+                      ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x)"
+                      : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
+                    cursor: "pointer",
                     background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                     border: "none", borderBottom: "1px solid var(--border)",
                     borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
                     color: "var(--text)", transition: "background 0.15s",
                   }}
                 >
-                  <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: "var(--gm-space-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {meta?.title || f.name.replace(/\.md$/, "")}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                       {relativeTime(f.modified, t)}
                     </span>
@@ -472,7 +468,7 @@ export default function ConversationsPage({
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
                 style={{
-                  width: "100%", padding: "12px 16px", border: "none",
+                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
                   fontSize: "var(--gm-font-xs)", fontWeight: 600,
@@ -493,7 +489,7 @@ export default function ConversationsPage({
         {!selectedFile ? (
           <div className="gm-empty-state" style={{ flex: 1 }}>
             <div style={{ textAlign: "center" }}>
-              <MessageSquare size={48} style={{ color: "var(--border)", margin: "0 auto 16px" }} />
+              <MessageSquare size={48} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-section-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("conversations.selectToView")}</p>
             </div>
           </div>
@@ -503,6 +499,10 @@ export default function ConversationsPage({
               title={currentMeta?.title || selectedFile}
               titleText={selectedFile}
               onBack={closeDetail}
+              onRefresh={() => {
+                void loadFiles();
+                if (selectedFile) void openFile(selectedFile);
+              }}
               onTitleClick={() => {
                 const text = currentMeta?.title || selectedFile || "";
                 navigator.clipboard.writeText(text);
@@ -514,7 +514,7 @@ export default function ConversationsPage({
                 <>
                   {currentMeta?.model && (
                     <span style={{
-                      fontSize: "var(--gm-font-xs)", padding: "2px 8px", borderRadius: "var(--gm-radius-sm)",
+                      fontSize: "var(--gm-font-xs)", padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-sm)",
                       background: "var(--bg-hover)", color: "var(--accent)",
                     }}>
                       {currentMeta.model}
@@ -563,7 +563,9 @@ export default function ConversationsPage({
             <div style={{
               flex: 1,
               overflowY: "auto",
-              padding: isMobile ? `16px 16px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "20px 24px",
+              padding: isMobile
+                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
+                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
               userSelect: "text",
             }}>
               {editing ? (
@@ -587,21 +589,21 @@ export default function ConversationsPage({
                     width: "100%",
                     minHeight: "100%",
                     resize: "none",
-                    padding: 16,
+                    padding: "var(--gm-section-gap)",
                     borderRadius: "var(--gm-radius-md)",
                     border: "1px solid var(--border)",
                     background: "var(--bg-card)",
                     color: "var(--text)",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                     fontSize: "var(--gm-font-sm)",
-                    lineHeight: 1.6,
+                    lineHeight: "var(--gm-leading-relaxed)",
                     outline: "none",
                   }}
                 />
               ) : messages.length > 0 ? (
                 <>
                   {introContent ? (
-                    <div style={{ marginBottom: 20 }}>
+                    <div style={{ marginBottom: "var(--gm-section-gap-lg)" }}>
                       <MarkdownView content={introContent} filePath={selectedFile ?? undefined} />
                     </div>
                   ) : null}
@@ -609,16 +611,16 @@ export default function ConversationsPage({
                     <div
                       key={i}
                       style={{
-                        marginBottom: 20,
-                        padding: "14px 16px",
+                        marginBottom: "var(--gm-section-gap-lg)",
+                        padding: "var(--gm-space-7) var(--gm-section-gap)",
                         borderRadius: "var(--gm-radius-md)",
                         borderLeft: `3px solid ${msg.role === "user" ? "var(--accent)" : "var(--green)"}`,
                         background: msg.role === "user" ? "var(--bg-hover)" : "transparent",
                       }}
                     >
                       <div style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        marginBottom: 10, fontSize: "var(--gm-font-xs)", fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)",
+                        marginBottom: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", fontWeight: 600,
                       }}>
                         <span style={{ color: msg.role === "user" ? "var(--accent)" : "var(--green)" }}>
                           {msg.role === "user" ? t("conversations.user") : t("conversations.assistant")}

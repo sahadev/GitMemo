@@ -2,7 +2,7 @@ import { useEffect, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Settings, Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X, Download, RefreshCw, Wifi, RotateCcw } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, Check, MessageCircle, ScrollText, X, Download, RefreshCw, Wifi, RotateCcw } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -563,20 +563,26 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     background: "color-mix(in srgb, var(--bg-card) 94%, var(--bg) 6%)",
     border: "1px solid var(--border)",
     borderRadius: "var(--gm-radius-md)",
-    padding: isMobile ? "16px 14px" : "20px 24px",
+    padding: isMobile ? "var(--gm-card-pad-y) var(--gm-card-pad-mobile)" : "var(--gm-section-gap-lg) var(--gm-space-12)",
   };
 
   const rowStyle = {
     display: "flex" as const,
     alignItems: isMobile ? "flex-start" as const : "center" as const,
     justifyContent: "space-between" as const,
-    gap: isMobile ? 10 : 12,
+    gap: isMobile ? "var(--gm-nav-item-gap)" : "var(--gm-card-header-gap)",
     flexDirection: isMobile ? "column" as const : "row" as const,
   };
-  const segmentedButtonPadding = isMobile ? "8px 12px" : "4px 12px";
-  const compactButtonPadding = isMobile ? "8px 10px" : "4px 8px";
+  const segmentedButtonPadding = isMobile
+    ? "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)"
+    : "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)";
+  const compactButtonPadding = isMobile
+    ? "var(--gm-control-pad-y-lg) var(--gm-control-pad-x)"
+    : "var(--gm-control-pad-y) var(--gm-row-pad-x)";
   const mobileFieldStyle = {
-    padding: isMobile ? "10px 12px" : "4px 8px",
+    padding: isMobile
+      ? "var(--gm-row-pad-y-comfort) var(--gm-control-pad-x-lg)"
+      : "var(--gm-control-pad-y) var(--gm-row-pad-x)",
     borderRadius: "var(--gm-radius-md)",
     fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-xs)",
   };
@@ -625,7 +631,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
   return (
     <div className="gm-page gm-page-scroll" style={{
-      padding: isMobile ? "14px 14px 14px" : "20px 32px 32px",
+      padding: isMobile
+        ? "var(--gm-page-pad-mobile-y) var(--gm-page-pad-mobile-x) var(--gm-page-pad-mobile-y)"
+        : "var(--gm-page-pad-y) var(--gm-page-pad-x) var(--gm-page-pad-bottom)",
       overflowY: "auto",
       height: "100%",
       width: "100%",
@@ -637,27 +645,26 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       WebkitOverflowScrolling: "touch",
       scrollPaddingBottom: isMobile ? mobileBottomSpacer : undefined,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <Settings size={20} style={{ color: "var(--text-secondary)" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", minHeight: "var(--gm-page-header-height)", marginBottom: "var(--gm-section-gap)" }}>
         <h1 className="gm-page-title" style={{ flex: 1 }}>{t("settings.title")}</h1>
         <button
           type="button"
           onClick={() => void handleRefresh()}
           title={t("common.refresh")}
           className="gm-toolbar-button"
-          style={{ cursor: "pointer", padding: 6, display: "flex", alignItems: "center" }}
+          style={{ cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
         >
-          <RefreshCw size={14} />
+          <RefreshCw size="var(--gm-icon-xs)" />
         </button>
       </div>
 
       <div style={cardStyle}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-section-gap)" }}>
           {/* Theme */}
           <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
               {theme === "dark" ? (
                 <Moon size={16} style={{ color: "var(--text-secondary)" }} />
               ) : (
@@ -665,7 +672,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               )}
               <div>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.appearance")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>
                   {t("settings.appearanceDesc", t(`settings.${theme}`))}
                 </p>
               </div>
@@ -677,14 +684,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           {/* Language */}
           <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
               <Globe size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.language")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.languageDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.languageDesc")}</p>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ display: "flex", gap: "var(--gm-space-2)" }}>
               {languages.map((lang) => (
                 <button
                   key={lang.id}
@@ -708,11 +715,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Launch at login */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Power size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.launchAtLoginDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
@@ -726,11 +733,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Clipboard autostart */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Clipboard size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.clipboardAutostartDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
@@ -744,11 +751,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Import file size limit */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Download size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.importFileSizeLimit")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>
                       {t(
                         "settings.importFileSizeLimitDesc",
                         formatImportSizeLimit(IMPORT_SIZE_LIMIT_MIN_KB),
@@ -760,7 +767,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <div style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: "var(--gm-nav-item-gap)",
                   width: isMobile ? "100%" : 280,
                 }}>
                   <input
@@ -791,11 +798,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Control copy/paste compatibility */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Clipboard size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.controlCopyPasteDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
@@ -806,16 +813,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
           {/* Network proxy */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
             <div style={rowStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                 <Wifi size={16} style={{ color: "var(--text-secondary)" }} />
                 <div>
                   <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.proxy")}</p>
-                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.proxyDesc")}</p>
+                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.proxyDesc")}</p>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 4 }}>
+              <div style={{ display: "flex", gap: "var(--gm-space-2)" }}>
                 {(["system", "none", "custom"] as const).map((mode) => (
                   <button
                     key={mode}
@@ -833,7 +840,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </div>
             </div>
             {(settings?.proxy_mode === "custom" || editingProxy) && (
-              <div style={{ display: "flex", alignItems: isMobile ? "stretch" : "center", gap: 6, paddingLeft: isMobile ? 0 : 25, flexDirection: isMobile ? "column" : "row" }}>
+              <div style={{ display: "flex", alignItems: isMobile ? "stretch" : "center", gap: "var(--gm-control-gap)", paddingLeft: isMobile ? 0 : 25, flexDirection: isMobile ? "column" : "row" }}>
                 <input
                   autoFocus
                   value={proxyUrlInput || settings?.proxy_url || ""}
@@ -867,23 +874,23 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <div style={{ borderTop: "1px solid var(--border)" }} />
 
               {/* CLI capability */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
                 <div style={rowStyle}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", minWidth: 0 }}>
                     <Terminal size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.cliCapability")}</p>
-                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.5 }}>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)", lineHeight: "var(--gm-leading-normal)" }}>
                         {t("settings.cliCapabilityDesc")}
                       </p>
-                      <p style={{ fontSize: "var(--gm-font-xs)", color: cliStatusColor, marginTop: 4, fontWeight: 600 }}>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: cliStatusColor, marginTop: "var(--gm-space-2)", fontWeight: 600 }}>
                         {cliStatusLabel}
                       </p>
                       {cliStatus?.path && (
                         <p style={{
                           fontSize: "var(--gm-font-2xs)",
                           color: "var(--text-secondary)",
-                          marginTop: 3,
+                          marginTop: "var(--gm-space-2)",
                           fontFamily: "ui-monospace, monospace",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -899,7 +906,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     display: "flex",
                     alignItems: "center",
                     justifyContent: isMobile ? "flex-start" : "flex-end",
-                    gap: 6,
+                    gap: "var(--gm-control-gap)",
                     flexWrap: "wrap",
                     flexShrink: 0,
                     maxWidth: "100%",
@@ -908,7 +915,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       type="button"
                       onClick={() => void copyValue(CLI_INSTALL_COMMAND, "cliCommand")}
                       style={{
-                        display: "flex", alignItems: "center", gap: 5,
+                        display: "flex", alignItems: "center", gap: "var(--gm-control-gap)",
                         padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         whiteSpace: "nowrap",
@@ -923,12 +930,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       title={t("settings.detectCli")}
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 28, height: 28, borderRadius: "var(--gm-radius-md)",
-                        background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
+                        width: "var(--gm-control-height-xs)", height: "var(--gm-control-height-xs)", borderRadius: "var(--gm-radius-md)",
+                        background: "transparent", border: "none", color: "var(--text-secondary)",
                         cursor: "pointer",
                       }}
                     >
-                      <RefreshCw size={12} />
+                      <RefreshCw size="var(--gm-icon-2xs)" />
                     </button>
                   </div>
                 </div>
@@ -938,21 +945,21 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Claude integration */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Terminal size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.claudeIntegration")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.claudeIntegrationDesc")}</p>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
                   {claudeEnabled && (
                     <button
                       type="button"
                       onClick={() => void updateClaudeSkills()}
                       disabled={updatingClaudeSkills}
                       style={{
-                        padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingClaudeSkills ? "default" : "pointer",
+                        padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingClaudeSkills ? "default" : "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         opacity: updatingClaudeSkills ? 0.6 : 1,
                       }}
@@ -968,21 +975,21 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Cursor integration */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <Code size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.cursorIntegrationDesc")}</p>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
                   {cursorEnabled && (
                     <button
                       type="button"
                       onClick={() => void updateCursorSkills()}
                       disabled={updatingCursorSkills}
                       style={{
-                        padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingCursorSkills ? "default" : "pointer",
+                        padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingCursorSkills ? "default" : "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         opacity: updatingCursorSkills ? 0.6 : 1,
                       }}
@@ -998,18 +1005,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
               {/* Local editor dirs */}
               <div style={rowStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
                   <FolderOpen size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
                     <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.localDirs")}</p>
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.localDirsDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.localDirsDesc")}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onNavigate?.("editor-home")}
                   style={{
-                    padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                    padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                     background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                   }}
                 >
@@ -1023,11 +1030,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           {/* Git branch */}
           <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
               <GitBranch size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.syncBranch")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncBranchDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.syncBranchDesc")}</p>
               </div>
             </div>
             {editingBranch ? (
@@ -1061,11 +1068,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           {/* Data directory */}
           <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", flex: 1, minWidth: 0 }}>
               <FolderOpen size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.dataDir")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.dataDirDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.dataDirDesc")}</p>
               </div>
             </div>
             {syncDir ? (
@@ -1076,7 +1083,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: "var(--gm-control-gap)",
                   maxWidth: 240,
                   padding: compactButtonPadding,
                   borderRadius: "var(--gm-radius-md)",
@@ -1110,20 +1117,20 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
           {/* Remote repo */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
             <div style={rowStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", flex: 1, minWidth: 0 }}>
                 <Globe2 size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
                   <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.remoteRepo")}</p>
-                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.remoteRepoDesc")}</p>
+                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.remoteRepoDesc")}</p>
                 </div>
               </div>
               {editingRemote ? (
                 <div style={{
                   display: "flex",
                   alignItems: isMobile ? "stretch" : "center",
-                  gap: 6,
+                  gap: "var(--gm-control-gap)",
                   flexDirection: isMobile ? "column" : "row",
                   width: isMobile ? "100%" : undefined,
                 }}>
@@ -1157,20 +1164,20 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         }}
                       />
                       <div style={{
-                        padding: "10px 12px",
+                        padding: "var(--gm-row-pad-y-comfort) var(--gm-control-pad-x-lg)",
                         borderRadius: "var(--gm-radius-md)",
                         border: "1px solid var(--border)",
                         background: "var(--bg-hover)",
                       }}>
-                        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-relaxed)" }}>
                           {t("settings.remoteTokenHint")}
                         </p>
                         <button
                           type="button"
                           onClick={() => void openUrl(accessTokenHelpUrl(remoteInput))}
                           style={{
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                            width: "100%", marginTop: 8,
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
+                            width: "100%", marginTop: "var(--gm-space-4)",
                             padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                             background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
                             fontWeight: 600,
@@ -1205,13 +1212,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   </button>
                 </div>
               ) : gitRemote ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-2)", flexWrap: "wrap", justifyContent: isMobile ? "flex-start" : "flex-end" }}>
                   <button
                     type="button"
                     onClick={() => void copyValue(gitRemote, "gitRemote")}
                     title={t("common.clickToCopy")}
                     style={{
-                      display: "flex", alignItems: "center", gap: 6,
+                      display: "flex", alignItems: "center", gap: "var(--gm-control-gap)",
                       maxWidth: isMobile ? "100%" : 280, padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)",
                       border: "1px solid var(--border)", background: "var(--bg)",
                       color: "var(--text-secondary)", cursor: "pointer",
@@ -1275,17 +1282,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <div style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
-                padding: "10px 12px",
+                gap: "var(--gm-icon-text-gap)",
+                padding: "var(--gm-row-pad-y-comfort) var(--gm-control-pad-x-lg)",
                 borderRadius: "var(--gm-radius-lg)",
                 border: "1px solid var(--border)",
                 background: "var(--bg)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gm-nav-item-gap)" }}>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>{t("settings.mobileRemoteStatus")}</p>
                     <p style={{
-                      marginTop: 2,
+                      marginTop: "var(--gm-space-1)",
                       fontSize: "var(--gm-font-xs)",
                       color: mobileRemoteStatus?.color ?? "var(--text-secondary)",
                       fontWeight: 600,
@@ -1299,7 +1306,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 5,
+                      gap: "var(--gm-control-gap)",
                       padding: compactButtonPadding,
                       borderRadius: "var(--gm-radius-md)",
                       fontSize: "var(--gm-font-xs)",
@@ -1314,23 +1321,23 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     <ExternalLink size={12} /> {t("settings.createAccessTokenFor", accessTokenProvider(gitRemote))}
                   </button>
                 </div>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)" }}>
                   {t("settings.mobileRemoteSummary")}
                 </p>
               </div>
             )}
             {isMobile && mobileGitDiagnostic && (
               <div style={{
-                padding: "10px 12px",
+                padding: "var(--gm-row-pad-y-comfort) var(--gm-control-pad-x-lg)",
                 borderRadius: "var(--gm-radius-lg)",
                 border: "1px solid var(--border)",
                 background: "var(--bg-hover)",
               }}>
-                <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600, marginBottom: 8 }}>{t("settings.mobileGitDiagnostic")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600, marginBottom: "var(--gm-space-4)" }}>{t("settings.mobileGitDiagnostic")}</p>
                 {mobileDiagnosticSummary && (
                   <div style={{
-                    padding: "8px 10px",
-                    marginBottom: 8,
+                    padding: "var(--gm-row-pad-x) var(--gm-control-pad-x)",
+                    marginBottom: "var(--gm-space-4)",
                     borderRadius: "var(--gm-radius-md)",
                     background: "var(--bg-card)",
                     border: `1px solid ${mobileDiagnosticSummary.ok ? "var(--gm-success-border)" : "var(--gm-danger-border)"}`,
@@ -1342,20 +1349,20 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     }}>
                       {mobileDiagnosticSummary.title}
                     </p>
-                    <p style={{ marginTop: 3, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5, wordBreak: "break-word" }}>
+                    <p style={{ marginTop: "var(--gm-space-2)", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)", wordBreak: "break-word" }}>
                       {mobileDiagnosticSummary.detail}
                     </p>
                   </div>
                 )}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-control-gap)" }}>
                   {visibleMobileDiagnosticSteps(mobileGitDiagnostic).map((step, index) => (
-                    <div key={`${step.name}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <div key={`${step.name}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: "var(--gm-icon-text-gap)" }}>
                       <span style={{
                         width: 8,
                         height: 8,
                         borderRadius: "var(--gm-radius-sm)",
                         background: step.ok ? "var(--green)" : "var(--red)",
-                        marginTop: 5,
+                        marginTop: "var(--gm-space-3)",
                         flexShrink: 0,
                       }} />
                       <div style={{ minWidth: 0 }}>
@@ -1363,7 +1370,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         <p style={{
                           fontSize: "var(--gm-font-xs)",
                           color: "var(--text-secondary)",
-                          lineHeight: 1.5,
+                          lineHeight: "var(--gm-leading-normal)",
                           wordBreak: "break-word",
                         }}>
                           {step.message}
@@ -1377,18 +1384,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             {/* SSH guidance when editing */}
             {isDesktop && editingRemote && (
               <div style={{
-                padding: "12px 16px", borderRadius: "var(--gm-radius-lg)",
+                padding: "var(--gm-card-header-gap) var(--gm-section-gap)", borderRadius: "var(--gm-radius-lg)",
                 background: "var(--bg-hover)", border: "1px solid var(--border)",
               }}>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-relaxed)", marginBottom: "var(--gm-space-4)" }}>
                   {t("settings.remoteGuide")}
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--gm-control-gap)" }}>
                   <button
                     onClick={() => void openUrl("https://github.com/new")}
                     style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
+                      display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+                      padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
                       border: "1px solid var(--border)", background: "transparent",
                       color: "var(--text-secondary)", cursor: "pointer",
                     }}
@@ -1405,8 +1412,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       }
                     }).catch(() => showToast("No SSH key found", true))}
                     style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
+                      display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+                      padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
                       border: "1px solid var(--border)", background: "transparent",
                       color: "var(--accent)", cursor: "pointer",
                     }}
@@ -1421,11 +1428,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
           <div style={rowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
               <ScrollText size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.syncLogs")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncLogsDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.syncLogsDesc")}</p>
               </div>
             </div>
             <button
@@ -1448,19 +1455,19 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       </div>
 
       {isDesktop && (
-        <div style={{ ...cardStyle, marginTop: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ ...cardStyle, marginTop: "var(--gm-section-gap-lg)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-nav-item-gap)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gm-card-header-gap)" }}>
               <div>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.shortcuts")}</p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-2)" }}>{t("settings.shortcutsDesc")}</p>
               </div>
               <button
                 type="button"
                 onClick={resetAllShortcuts}
                 disabled={savingShortcut !== null}
                 style={{
-                  display: "flex", alignItems: "center", gap: 4,
+                  display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
                   padding: "var(--gm-space-3) var(--gm-space-5)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                   border: "1px solid var(--border)", background: "transparent",
                   color: "var(--text-secondary)", cursor: savingShortcut ? "default" : "pointer",
@@ -1470,7 +1477,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <RotateCcw size={12} /> {t("settings.resetShortcuts")}
               </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
               {shortcutRows.map((row) => {
                 const recording = recordingShortcut === row.id;
                 const saving = savingShortcut === row.id || savingShortcut === "all";
@@ -1481,16 +1488,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      gap: 12,
-                      padding: "10px 0",
+                      gap: "var(--gm-card-header-gap)",
+                      padding: "var(--gm-row-pad-y-comfort) 0",
                       borderTop: "1px solid var(--border)",
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 500 }}>{t(row.labelKey)}</p>
-                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-2)" }}>{t(row.descKey)}</p>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", flexShrink: 0 }}>
                       <button
                         type="button"
                         data-shortcut-recorder="true"
@@ -1499,7 +1506,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         disabled={saving}
                         style={{
                           minWidth: 128,
-                          padding: "6px 10px",
+                          padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)",
                           borderRadius: "var(--gm-radius-md)",
                           border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
                           background: recording ? "var(--bg-hover)" : "var(--bg)",
@@ -1519,13 +1526,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         title={t("settings.resetShortcut")}
                         style={{
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          width: 28, height: 28, borderRadius: "var(--gm-radius-md)",
-                          border: "1px solid var(--border)", background: "transparent",
+                          width: "var(--gm-control-height-xs)", height: "var(--gm-control-height-xs)", borderRadius: "var(--gm-radius-md)",
+                          border: "none", background: "transparent",
                           color: "var(--text-secondary)", cursor: saving ? "default" : "pointer",
                           opacity: saving ? 0.65 : 1,
                         }}
                       >
-                        <RotateCcw size={12} />
+                        <RotateCcw size="var(--gm-icon-2xs)" />
                       </button>
                     </div>
                   </div>
@@ -1537,20 +1544,20 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       )}
 
       {/* About */}
-      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-        <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 48, height: 48, borderRadius: "var(--gm-radius-md)", marginBottom: 10, ...logoSaveProps.style }} />
+      <div style={{ marginTop: "var(--gm-section-gap-lg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--gm-section-gap-lg) 0" }}>
+        <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: "var(--gm-icon-hero)", height: "var(--gm-icon-hero)", borderRadius: "var(--gm-radius-md)", marginBottom: "var(--gm-nav-item-gap)", ...logoSaveProps.style }} />
         <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</p>
-        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 4 }}>
+        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-2)" }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
         {/* Update status */}
-        {isDesktop && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+        {isDesktop && <div style={{ marginTop: "var(--gm-nav-item-gap)", display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
           {updateStatus === "idle" && (
             <button
               onClick={() => void checkForUpdates()}
               style={{
-                display: "flex", alignItems: "center", gap: 4,
-                padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+                padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                 background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
               }}
             >
@@ -1569,7 +1576,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <button
                 onClick={() => void installUpdate()}
                 style={{
-                  padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                  padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                   background: "var(--accent)", border: "none", color: "var(--gm-color-on-accent)", fontWeight: 600,
                 }}
               >
@@ -1578,7 +1585,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             </>
           )}
           {updateStatus === "downloading" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", width: "100%" }}>
               <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{t("settings.downloading")}</span>
               <div style={{ flex: 1, height: 4, borderRadius: "var(--gm-radius-xs)", background: "var(--bg-hover)", overflow: "hidden", maxWidth: 120 }}>
                 <div style={{ height: "100%", borderRadius: "var(--gm-radius-xs)", background: "var(--accent)", width: `${updateProgress}%`, transition: "width 0.2s" }} />
@@ -1594,7 +1601,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <button
                 onClick={() => void checkForUpdates()}
                 style={{
-                  padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                  padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                   background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                 }}
               >
@@ -1606,11 +1613,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--green)" }}>{t("settings.upToDate")}</span>
           )}
         </div>}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-card-header-gap)", marginTop: "var(--gm-card-header-gap)" }}>
           <button
             onClick={() => void openUrl("https://github.com/sahadev/gitmemo")}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
+              display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
               fontSize: "var(--gm-font-xs)", color: "var(--accent)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
@@ -1622,7 +1629,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <button
             onClick={() => void openUrl("https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+")}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
+              display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
               fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
@@ -1634,7 +1641,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <button
             onClick={openChangelog}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
+              display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
               fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
@@ -1665,11 +1672,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               display: "flex", alignItems: "center", justifyContent: "space-between",
               gap: "var(--gm-space-5)", padding: "var(--gm-space-7) var(--gm-space-8)", borderBottom: "1px solid var(--border)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", minWidth: 0 }}>
                 <ScrollText size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
                 <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.syncLogs")}</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => void loadSyncLogs()}
@@ -1698,7 +1705,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 </button>
                 <button onClick={() => setShowSyncLogs(false)} style={{
                   background: "none", border: "none", cursor: "pointer",
-                  color: "var(--text-secondary)", padding: 4, borderRadius: "var(--gm-radius-sm)",
+                  color: "var(--text-secondary)", padding: "var(--gm-space-2)", borderRadius: "var(--gm-radius-sm)",
                 }}>
                   <X size={16} />
                 </button>
@@ -1706,15 +1713,15 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-space-6) var(--gm-space-8) var(--gm-space-8)" }}>
               {loadingSyncLogs ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
+                <p style={{ padding: "var(--gm-section-gap-lg)", textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("common.loading")}
                 </p>
               ) : syncLogs.length === 0 ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
+                <p style={{ padding: "var(--gm-section-gap-lg)", textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("settings.syncLogsEmpty")}
                 </p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-card-header-gap)" }}>
                   {syncLogs.map((entry) => (
                     <div
                       key={entry.filename}
@@ -1726,7 +1733,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       }}
                     >
                       <div style={{
-                        padding: "8px 10px",
+                        padding: "var(--gm-row-pad-x) var(--gm-control-pad-x)",
                         borderBottom: "1px solid var(--border)",
                         fontSize: "var(--gm-font-xs)",
                         color: "var(--text-secondary)",
@@ -1739,14 +1746,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       </div>
                       <pre style={{
                         margin: 0,
-                        padding: "10px",
+                        padding: "var(--gm-row-pad-y-comfort)",
                         maxHeight: 260,
                         overflow: "auto",
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
                         color: "var(--text)",
                         fontSize: "var(--gm-font-xs)",
-                        lineHeight: 1.55,
+                        lineHeight: "var(--gm-leading-relaxed)",
                         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                       }}>
                         {entry.content}
@@ -1780,26 +1787,26 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "var(--gm-space-7) var(--gm-space-8)", borderBottom: "1px solid var(--border)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)" }}>
                 <ScrollText size={16} style={{ color: "var(--accent)" }} />
                 <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.changelog") || "Changelog"}</span>
               </div>
               <button onClick={() => setShowChangelog(false)} style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "var(--text-secondary)", padding: 4, borderRadius: "var(--gm-radius-sm)",
+                color: "var(--text-secondary)", padding: "var(--gm-space-2)", borderRadius: "var(--gm-radius-sm)",
               }}>
                 <X size={16} />
               </button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-space-4) var(--gm-space-8) var(--gm-space-8)" }}>
               {changelog.length === 0 ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
+                <p style={{ padding: "var(--gm-section-gap-lg)", textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("settings.noChangelog") || "No changelog available"}
                 </p>
               ) : (
                 changelog.map((release, i) => (
                   <div key={release.version} style={{ marginTop: i === 0 ? 8 : 20 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-space-4)" }}>
                       <span style={{
                         fontSize: "var(--gm-font-sm)", fontWeight: 600,
                         color: i === 0 ? "var(--accent)" : "var(--text)",
@@ -1808,7 +1815,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       </span>
                       <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{release.date}</span>
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: "var(--gm-font-xs)", lineHeight: 1.7, color: "var(--text-secondary)" }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-reading)", color: "var(--text-secondary)" }}>
                       {release.changes.map((change, j) => (
                         <li key={j}>{change}</li>
                       ))}

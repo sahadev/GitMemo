@@ -30,8 +30,8 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="gm-error-panel">
             <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-5)" }}>
               <div style={{
-                width: 10,
-                height: 10,
+                width: "var(--gm-space-5)",
+                height: "var(--gm-space-5)",
                 borderRadius: "999px",
                 background: "var(--red)",
                 boxShadow: "var(--gm-shadow-danger-ring)",
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
               }} />
               <h2 style={{ color: "var(--text)", fontSize: "var(--gm-font-lg)", margin: 0 }}>Something went wrong</h2>
             </div>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", lineHeight: 1.6, marginTop: "var(--gm-space-5)" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", marginTop: "var(--gm-space-5)" }}>
               GitMemo hit a render error. You can retry the current view below.
             </p>
             <pre className="gm-error-log">

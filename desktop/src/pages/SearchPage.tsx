@@ -280,6 +280,9 @@ export default function SearchPage({
           title={isMobile ? selectedFile.split("/").pop() : selectedFile}
           titleText={selectedFile}
           onBack={closeDetail}
+          onRefresh={() => {
+            if (selectedFile) void openFile(selectedFile);
+          }}
           editing={editing}
           onEdit={selectedCanEdit ? startEdit : undefined}
           onSave={selectedCanEdit ? () => void handleSaveEdit() : undefined}
@@ -321,7 +324,14 @@ export default function SearchPage({
             />
           ) : null}
         />
-      <div className="gm-page-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px", userSelect: "text" }}>
+      <div className="gm-page-scroll" style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: isMobile
+          ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
+          : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
+        userSelect: "text",
+      }}>
           {editing ? (
             <textarea
               ref={editRef}
@@ -336,7 +346,7 @@ export default function SearchPage({
               style={{
                 width: "100%", height: "100%", resize: "none", padding: 0,
                 background: "transparent", border: "none", color: "var(--text)",
-                fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
                 outline: "none",
               }}
             />
@@ -351,8 +361,17 @@ export default function SearchPage({
   return (
       <div className="gm-page" style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* Search Bar */}
-      <div style={{ padding: isMobile ? "14px 14px 12px" : "20px 28px 16px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
-        <div style={{ position: "relative" }}>
+      <div style={{
+        padding: isMobile
+          ? "var(--gm-space-7) var(--gm-space-7) var(--gm-space-6)"
+          : "var(--gm-section-gap-lg) var(--gm-page-pad-x) var(--gm-section-gap)",
+        borderBottom: "1px solid var(--border)",
+        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
+        minHeight: isMobile ? undefined : "var(--gm-page-header-height)",
+        display: "flex",
+        alignItems: "center",
+      }}>
+        <div style={{ position: "relative", width: "100%" }}>
           <Search
             size={16}
             style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)" }}
@@ -374,7 +393,11 @@ export default function SearchPage({
             enterKeyHint="search"
             placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
             style={{
-              width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
+              width: "100%",
+              paddingLeft: "var(--gm-space-16)",
+              paddingRight: "var(--gm-section-gap)",
+              paddingTop: "var(--gm-card-header-gap)",
+              paddingBottom: "var(--gm-card-header-gap)",
               borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)", fontFamily: "inherit",
               background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)",
             }}
@@ -383,25 +406,31 @@ export default function SearchPage({
       </div>
 
       {/* Results */}
-      <div className="gm-page-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? `14px 14px ${mobileBottomPadding}` : "18px 28px 28px" }}>
+      <div className="gm-page-scroll" style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: isMobile
+          ? `var(--gm-page-pad-mobile-y) var(--gm-page-pad-mobile-x) ${mobileBottomPadding}`
+          : "var(--gm-section-gap) var(--gm-page-pad-x) var(--gm-page-pad-bottom)",
+      }}>
         {loading ? (
-          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", padding: "20px 0" }}>{t("search.searching")}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", padding: "var(--gm-section-gap-lg) 0" }}>{t("search.searching")}</p>
         ) : !searched ? (
-          <div className="gm-empty-state" style={{ paddingTop: 80 }}>
-            <Search size={40} style={{ color: "var(--border)", marginBottom: 16 }} />
+          <div className="gm-empty-state" style={{ paddingTop: "var(--gm-icon-hero)" }}>
+            <Search size={40} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-section-gap)" }} />
             <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
               {isMobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
             </p>
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
+            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
               {isMobile ? t("search.mobileEmptyHint") : t("search.emptyHint", formatShortcut(shortcuts.global_search))}
             </p>
           </div>
         ) : results.length === 0 ? (
-          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", paddingTop: 16 }}>{t("search.noResults", query)}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", paddingTop: "var(--gm-section-gap)" }}>{t("search.noResults", query)}</p>
         ) : (
           <>
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 14 }}>{t("search.results", String(results.length))}</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: "var(--gm-space-7)" }}>{t("search.results", String(results.length))}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-card-header-gap)" }}>
               {results.map((r, i) => (
                 <button
                   key={i}
@@ -415,7 +444,7 @@ export default function SearchPage({
                   onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
                   onMouseLeave={(e) => e.currentTarget.style.background = "var(--bg-card)"}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-space-3)" }}>
                     {r.source_type === "conversation" ? (
                       <MessageSquare size={14} style={{ color: "var(--accent)" }} />
                     ) : r.source_type === "clip" ? (
@@ -433,7 +462,7 @@ export default function SearchPage({
                     <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", flexShrink: 0 }}>{relativeTime(r.date, t)}</span>
                   </div>
                   {r.snippet && (
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 4 }}>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)", marginTop: "var(--gm-space-2)" }}>
                       {r.snippet}
                     </p>
                   )}

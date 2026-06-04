@@ -198,19 +198,19 @@ export function OnboardingChecklist({
   return (
     <>
     <div style={{
-      padding: "20px",
+      padding: "var(--gm-section-gap-lg)",
       borderRadius: "var(--gm-radius-md)",
       border: `1px solid ${allDone ? "color-mix(in srgb, var(--green) 34%, var(--border))" : "color-mix(in srgb, var(--accent) 34%, var(--border))"}`,
       background: allDone
         ? "color-mix(in srgb, var(--green) 8%, var(--bg-card))"
         : "color-mix(in srgb, var(--accent) 8%, var(--bg-card))",
-      marginBottom: 16,
+      marginBottom: "var(--gm-section-gap)",
     }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allDone ? 0 : 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allDone ? 0 : "var(--gm-section-gap)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
           {allDone && <PartyPopper size={18} style={{ color: "var(--green)" }} />}
-          <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: 2 }}>
+          <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: "var(--gm-space-1)" }}>
             {allDone ? t("onboarding.allDone") : t("onboarding.title")}
           </h3>
           {!allDone && (
@@ -222,8 +222,8 @@ export function OnboardingChecklist({
         <button
           onClick={dismiss}
           style={{
-            display: "flex", alignItems: "center", gap: 4,
-            padding: "4px 10px", borderRadius: "var(--gm-radius-md)",
+            display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+            padding: "var(--gm-control-pad-y) var(--gm-control-pad-x)", borderRadius: "var(--gm-radius-md)",
             border: "1px solid var(--border)", background: "transparent",
             color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
           }}
@@ -237,7 +237,7 @@ export function OnboardingChecklist({
         {/* Progress bar */}
         <div style={{
           height: 4, borderRadius: "var(--gm-radius-xs)", background: "var(--border)",
-          marginBottom: 16, overflow: "hidden",
+          marginBottom: "var(--gm-section-gap)", overflow: "hidden",
         }}>
           <div style={{
             height: "100%",
@@ -249,7 +249,7 @@ export function OnboardingChecklist({
         </div>
 
         {/* Items */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-icon-text-gap)" }}>
           {items.map(item => {
             const done = state.completed.includes(item.id);
             const Icon = item.icon;
@@ -259,8 +259,8 @@ export function OnboardingChecklist({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "10px 14px",
+                  gap: "var(--gm-card-header-gap)",
+                  padding: "var(--gm-row-pad-y-comfort) var(--gm-card-pad-mobile)",
                   borderRadius: "var(--gm-radius-md)",
                   background: done ? "transparent" : "var(--bg-card)",
                   border: done ? "none" : "1px solid var(--border)",
@@ -289,7 +289,7 @@ export function OnboardingChecklist({
                   }}>
                     {t(item.labelKey)}
                   </div>
-                  <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 1 }}>
+                  <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>
                     {t(item.descKey)}
                   </div>
                 </div>
@@ -299,8 +299,8 @@ export function OnboardingChecklist({
                   <button
                     onClick={item.action}
                     style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      padding: "6px 12px", borderRadius: "var(--gm-radius-md)",
+                      display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+                      padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-md)",
                       border: "none", background: "var(--accent)",
                       color: "var(--gm-color-on-accent)", fontSize: "var(--gm-font-xs)", fontWeight: 600,
                       cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap",

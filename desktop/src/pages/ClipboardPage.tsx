@@ -10,6 +10,7 @@ import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -679,69 +680,64 @@ export default function ClipboardPage({
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden", position: "relative",
       }}>
-        {/* Header */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 8,
-          padding: isMobile ? "9px 12px" : "12px 16px", borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-          background: "var(--bg-card)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <Clipboard size={isMobile ? 18 : 16} style={{ color: "var(--accent)", flexShrink: 0 }} />
-            <span style={{ fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontWeight: 700, whiteSpace: "nowrap" }}>{t("clipboard.title")}</span>
-            {!isMobile && status && (
-              <span style={{
-                padding: "2px 8px", borderRadius: "var(--gm-radius-pill)", fontSize: "var(--gm-font-2xs)", fontWeight: 500,
-                background: status.watching ? "var(--bg-success)" : "var(--bg-hover)",
-                color: status.watching ? "var(--green)" : "var(--text-secondary)",
-                whiteSpace: "nowrap",
-              }}>
-                {status.watching ? t("clipboard.watching") : t("clipboard.stopped")}
-              </span>
-            )}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <PaneHeader
+          icon={Clipboard}
+          title={t("clipboard.title")}
+          afterTitle={!isMobile && status ? (
+            <span style={{
+              padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", fontSize: "var(--gm-font-2xs)", fontWeight: 500,
+              background: status.watching ? "var(--bg-success)" : "var(--bg-hover)",
+              color: status.watching ? "var(--green)" : "var(--text-secondary)",
+              whiteSpace: "nowrap",
+            }}>
+              {status.watching ? t("clipboard.watching") : t("clipboard.stopped")}
+            </span>
+          ) : null}
+          actions={(
+            <>
             <button className="gm-toolbar-button" onClick={toggleMultiSelectMode} title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")} style={{
               display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-              width: isMobile ? 36 : 28, height: isMobile ? 36 : 28,
+              width: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
+              height: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
               borderRadius: "var(--gm-radius-md)", cursor: "pointer",
               color: multiSelectMode ? "var(--accent)" : "var(--text-secondary)",
             }}>
-              {multiSelectMode ? <X size={isMobile ? 16 : 14} /> : <ListChecks size={isMobile ? 16 : 14} />}
+              {multiSelectMode ? <X size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} /> : <ListChecks size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />}
             </button>
             <button className="gm-toolbar-button" onClick={() => { setRefreshTrigger((t) => t + 1); void refreshClipboardStatus(); if (selectedFile) void openFile(selectedFile); }} title={t("common.refresh")} style={{
               display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-              width: isMobile ? 36 : 28, height: isMobile ? 36 : 28,
+              width: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
+              height: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
               borderRadius: "var(--gm-radius-md)", cursor: "pointer",
             }}>
-              <RefreshCw size={isMobile ? 16 : 14} />
+              <RefreshCw size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />
             </button>
             {!isMobile && (
               <>
                 <button className="gm-toolbar-button" onClick={saveNow} title={t("clipboard.saveCurrentClipboard")} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                  width: 28, height: 28,
+                  width: "var(--gm-control-height-sm)", height: "var(--gm-control-height-sm)",
                   borderRadius: "var(--gm-radius-md)", cursor: "pointer",
                 }}>
-                  <Save size={14} />
+                  <Save size="var(--gm-icon-xs)" />
                 </button>
                 <button className="gm-toolbar-button" onClick={toggleWatch} title={status?.watching ? t("common.stop") : t("common.start")} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
-                  width: 28, height: 28,
+                  width: "var(--gm-control-height-sm)", height: "var(--gm-control-height-sm)",
                   borderRadius: "var(--gm-radius-md)", cursor: "pointer",
                   color: status?.watching ? "var(--red)" : "var(--green)",
                 }}>
-                  {status?.watching ? <Square size={14} /> : <Play size={14} />}
+                  {status?.watching ? <Square size="var(--gm-icon-xs)" /> : <Play size="var(--gm-icon-xs)" />}
                 </button>
               </>
             )}
-          </div>
-        </div>
+            </>
+          )}
+        />
 
         <div style={{
-          display: "flex", alignItems: "center", gap: 4,
-          padding: isMobile ? "8px 12px" : "8px 16px",
+          display: "flex", alignItems: "center", gap: "var(--gm-space-2)",
+          padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-card-header-gap)" : "var(--gm-icon-text-gap) var(--gm-list-header-pad-x)",
           borderBottom: "1px solid var(--border)",
           flexShrink: 0,
           background: "var(--bg-card)",
@@ -750,7 +746,7 @@ export default function ClipboardPage({
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             width: "100%",
-            padding: 2,
+            padding: "var(--gm-space-1)",
             borderRadius: "var(--gm-radius-lg)",
             border: "1px solid var(--border)",
             background: "var(--bg)",
@@ -766,7 +762,7 @@ export default function ClipboardPage({
                   onClick={() => changeClipFilter(id)}
                   title={label}
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
                     minWidth: 0,
                     height: isMobile ? 32 : 26,
                     padding: isMobile ? "0 8px" : "0 6px",
@@ -809,10 +805,10 @@ export default function ClipboardPage({
               <Loading compact text={t("clipboard.loading")} />
             </div>
           ) : savedClips.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: "48px 20px" }}>
-              <Clipboard size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
+            <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
+              <Clipboard size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{emptyClipsMessage}</p>
-              {!isMobile && clipFilter === "all" && <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>}
+              {!isMobile && clipFilter === "all" && <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>{t("clipboard.autoCapture")}</p>}
             </div>
           ) : (
             <>
@@ -897,7 +893,9 @@ export default function ClipboardPage({
                     style={{
                       position: "relative",
                       display: "block", width: "100%", textAlign: "left",
-                      padding: isMobile ? "14px 16px 8px" : "12px 16px 6px",
+                      padding: isMobile
+                        ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x) var(--gm-icon-text-gap)"
+                        : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x) var(--gm-space-3)",
                       cursor: "pointer",
                       border: "none", background: "transparent",
                       color: "inherit",
@@ -912,7 +910,7 @@ export default function ClipboardPage({
                         <p style={{
                           fontSize: "var(--gm-font-sm)", whiteSpace: "pre-wrap",
                           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                          overflow: "hidden", lineHeight: 1.4, wordBreak: "break-all",
+                          overflow: "hidden", lineHeight: "var(--gm-leading-normal)", wordBreak: "break-all",
                         }}>
                           {file.preview || file.name}
                         </p>
@@ -920,9 +918,11 @@ export default function ClipboardPage({
                     )}
                   </button>
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 6,
+                    display: "flex", alignItems: "center", gap: "var(--gm-control-gap)",
                     minHeight: actionSize,
-                    padding: isMobile ? "0 14px 10px 16px" : "0 16px 8px",
+                    padding: isMobile
+                      ? "0 var(--gm-card-pad-mobile) var(--gm-nav-item-gap) var(--gm-list-row-pad-x)"
+                      : "0 var(--gm-list-row-pad-x) var(--gm-icon-text-gap)",
                   }}>
                     <span style={{ fontSize: "var(--gm-font-xs)", color: metaColor }}>
                       {relativeTime(file.modified, t)}
@@ -987,7 +987,7 @@ export default function ClipboardPage({
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
                 style={{
-                  width: "100%", padding: "12px 16px", border: "none",
+                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
                   fontSize: "var(--gm-font-xs)", fontWeight: 600,
@@ -1003,8 +1003,11 @@ export default function ClipboardPage({
 
         {multiSelectMode ? (
           <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: isMobile ? "10px 12px" : "10px 12px", borderTop: "1px solid var(--border)",
+            display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)",
+            padding: isMobile
+              ? "var(--gm-nav-item-gap) var(--gm-card-header-gap)"
+              : "var(--gm-nav-item-gap) var(--gm-card-header-gap)",
+            borderTop: "1px solid var(--border)",
             background: "var(--bg)",
             position: isMobile ? "fixed" : "absolute",
             left: 0,
@@ -1026,10 +1029,10 @@ export default function ClipboardPage({
               title={t("clipboard.deleteSelected")}
               aria-label={t("clipboard.deleteSelected")}
               style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
                 minWidth: isMobile ? 38 : undefined,
                 minHeight: isMobile ? 38 : undefined,
-                padding: isMobile ? "8px 10px" : "5px 9px",
+                padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-nav-item-gap)" : "var(--gm-control-pad-y) var(--gm-nav-item-gap)",
                 borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                 cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
                 background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--gm-danger-soft)",
@@ -1045,9 +1048,9 @@ export default function ClipboardPage({
               disabled={selectedClipPaths.length === 0 || creatingNote || deletingSelected}
               onClick={() => void createNoteFromSelectedClips()}
               style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
                 minHeight: isMobile ? 38 : undefined,
-                padding: isMobile ? "8px 12px" : "5px 10px",
+                padding: isMobile ? "var(--gm-icon-text-gap) var(--gm-card-header-gap)" : "var(--gm-control-pad-y) var(--gm-nav-item-gap)",
                 borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                 cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
                 background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--accent)",
@@ -1061,7 +1064,7 @@ export default function ClipboardPage({
           </div>
         ) : (
           !isMobile && <div style={{
-            padding: "10px 16px", borderTop: "1px solid var(--border)",
+            padding: "var(--gm-nav-item-gap) var(--gm-list-header-pad-x)", borderTop: "1px solid var(--border)",
             fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", textAlign: "center",
           }}>
             {t("clipboard.clipsTotal", String(displayedClipTotal))}
@@ -1075,7 +1078,7 @@ export default function ClipboardPage({
         {!selectedFile ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
-              <Clipboard size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+              <Clipboard size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("clipboard.selectToView")}</p>
             </div>
           </div>
@@ -1085,6 +1088,11 @@ export default function ClipboardPage({
               title={isMobile ? selectedFileName : selectedFile}
               titleText={selectedFile}
               onBack={closeDetail}
+              onRefresh={() => {
+                setRefreshTrigger((t) => t + 1);
+                void refreshClipboardStatus();
+                if (selectedFile) void openFile(selectedFile);
+              }}
               editing={editing}
               onEdit={startEdit}
               onSave={() => void handleSaveEdit()}
@@ -1129,7 +1137,11 @@ export default function ClipboardPage({
 
             {/* Full content */}
             <div style={{
-              flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 24px",
+              flex: 1,
+              overflowY: "auto",
+              padding: isMobile
+                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
+                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
               userSelect: "text",
             }}>
               {editing ? (
@@ -1146,7 +1158,7 @@ export default function ClipboardPage({
                   }}
                   style={{
                     width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                    lineHeight: 1.7, padding: 0, background: "transparent", color: "var(--text)",
+                    lineHeight: "var(--gm-leading-reading)", padding: 0, background: "transparent", color: "var(--text)",
                     border: "none", outline: "none",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}

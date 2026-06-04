@@ -8,6 +8,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneTabHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -365,60 +366,40 @@ export default function NotesPage({
         width: "100%", flex: 1, minWidth: 0,
         minHeight: 0, overflow: "hidden",
       }}>
-        {/* Tabs */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid var(--border)",
-          padding: isMobile ? "8px 10px" : "8px",
-          flexShrink: 0,
-        }}>
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setNotesTab(tab.id)}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 5, minHeight: isMobile ? 36 : 32, padding: isMobile ? "8px 8px" : "7px 8px", fontSize: "var(--gm-font-xs)", cursor: "pointer",
-                  color: active ? "var(--text)" : "var(--text-secondary)",
-                  background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                  border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "transparent"}`,
-                  borderRadius: "var(--gm-radius-md)",
-                  fontWeight: active ? 700 : 500,
-                }}
-              >
-                <Icon size={isMobile ? 16 : 12} style={{ color: active ? "var(--accent)" : "currentColor" }} />
-                {t(tab.labelKey)}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={handleRefresh}
-            title={t("common.refresh")}
-            className="gm-toolbar-button"
-            style={{
-              padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              width: isMobile ? 40 : 28, height: isMobile ? 40 : 28,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            <RefreshCw size={14} />
-          </button>
-        </div>
+        <PaneTabHeader
+          tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon }))}
+          activeId={activeTab}
+          onChange={setNotesTab}
+          isMobile={isMobile}
+          actions={(
+            <button
+              type="button"
+              onClick={handleRefresh}
+              title={t("common.refresh")}
+              className="gm-toolbar-button"
+              style={{
+                padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                width: isMobile ? "var(--gm-icon-empty-lg)" : "var(--gm-control-height-sm)",
+                height: isMobile ? "var(--gm-icon-empty-lg)" : "var(--gm-control-height-sm)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+            >
+              <RefreshCw size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />
+            </button>
+          )}
+        />
 
         {/* Quick note input */}
-        <div style={{ padding: isMobile ? "12px 14px" : 14, borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-card)" }}>
+        <div style={{ padding: isMobile ? "var(--gm-card-header-gap) var(--gm-card-pad-mobile)" : "var(--gm-space-7)", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-card)" }}>
           {activeTab === "manual" && (
             <input
               value={manualTitle}
               onChange={(e) => setManualTitle(e.target.value)}
               placeholder={t("notes.placeholderTitle")}
               style={{
-                width: "100%", padding: isMobile ? "11px 12px" : "8px 12px", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
-                marginBottom: 8, background: "var(--bg)", color: "var(--text)",
+                width: "100%", padding: isMobile ? "var(--gm-row-pad-y-comfort) var(--gm-card-header-gap)" : "var(--gm-icon-text-gap) var(--gm-card-header-gap)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
+                marginBottom: "var(--gm-icon-text-gap)", background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit",
               }}
             />
@@ -443,7 +424,11 @@ export default function NotesPage({
               placeholder={activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
               rows={isMobile ? 4 : 3}
               style={{
-                width: "100%", padding: isMobile ? "12px 46px 12px 12px" : "10px 12px", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
+                width: "100%",
+                padding: isMobile
+                  ? "var(--gm-card-header-gap) var(--gm-icon-hero) var(--gm-card-header-gap) var(--gm-card-header-gap)"
+                  : "var(--gm-row-pad-y-comfort) var(--gm-card-header-gap)",
+                borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
                 resize: "vertical", background: "var(--bg)", color: "var(--text)",
                 border: "1px solid var(--border)", fontFamily: "inherit", minHeight: isMobile ? 96 : 60,
               }}
@@ -452,8 +437,9 @@ export default function NotesPage({
               onClick={handleCreateNote}
               disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
               style={{
-                position: "absolute", bottom: isMobile ? 10 : 8, right: isMobile ? 8 : 8, padding: 0,
-                width: isMobile ? 34 : 22, height: isMobile ? 34 : 22,
+                position: "absolute", bottom: isMobile ? "var(--gm-nav-item-gap)" : "var(--gm-icon-text-gap)", right: "var(--gm-icon-text-gap)", padding: 0,
+                width: isMobile ? "var(--gm-control-height-md)" : "var(--gm-icon-xl)",
+                height: isMobile ? "var(--gm-control-height-md)" : "var(--gm-icon-xl)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: "var(--gm-radius-md)", background: isMobile ? "var(--bg-card)" : "none", border: isMobile ? "1px solid var(--border)" : "none", cursor: "pointer",
                 color: saving ? "var(--green)" : newNote.trim() ? "var(--accent)" : "var(--text-secondary)",
@@ -465,7 +451,7 @@ export default function NotesPage({
             </button>
           </div>
           {(!isMobile || saving) && (
-            <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: 6, color: saving ? "var(--green)" : "var(--text-secondary)" }}>
+            <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-3)", color: saving ? "var(--green)" : "var(--text-secondary)" }}>
               {saving ? t("notes.saving") : t("notes.enterToSave")}
             </p>
           )}
@@ -476,9 +462,9 @@ export default function NotesPage({
           {loading ? (
             <Loading compact text={t("notes.loading")} />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: "48px 20px" }}>
-              <FileText size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", marginBottom: 4 }}>
+            <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
+              <FileText size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", marginBottom: "var(--gm-space-2)" }}>
                 {t("notes.noNotes", t(`notes.${activeTab}`))}
               </p>
               <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
@@ -501,7 +487,10 @@ export default function NotesPage({
                 ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                 onClick={() => openFile(file.path)}
                 style={{
-                  width: "100%", textAlign: "left", padding: isMobile ? "15px 16px" : "12px 16px",
+                  width: "100%", textAlign: "left",
+                  padding: isMobile
+                    ? "var(--gm-space-7) var(--gm-list-row-pad-x)"
+                    : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
                   cursor: "pointer", transition: "background 0.15s",
                   background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                   border: "none", color: "var(--text)",
@@ -512,7 +501,7 @@ export default function NotesPage({
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {title}
                 </p>
-                <p style={{ fontSize: "var(--gm-font-xs)", marginTop: 5, color: "var(--text-secondary)" }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-3)", color: "var(--text-secondary)" }}>
                   {relativeTime(file.modified, t)}
                 </p>
               </button>
@@ -525,7 +514,7 @@ export default function NotesPage({
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
                 style={{
-                  width: "100%", padding: "12px 16px", border: "none",
+                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
                   fontSize: "var(--gm-font-xs)", fontWeight: 600,
@@ -549,6 +538,7 @@ export default function NotesPage({
               title={isMobile ? selectedFileName : selectedFile}
               titleText={selectedFile}
               onBack={closeDetail}
+              onRefresh={handleRefresh}
               editing={editing}
               onEdit={startEdit}
               onSave={() => void handleSaveEdit()}
@@ -580,7 +570,13 @@ export default function NotesPage({
                 />
               ) : null}
             />
-            <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px" }}>
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: isMobile
+                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
+                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
+            }}>
               {editing ? (
                 <textarea
                   ref={editRef}
@@ -593,7 +589,7 @@ export default function NotesPage({
                   }}
                   style={{
                     width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                    lineHeight: 1.7, padding: 0, background: "transparent", color: "var(--text)",
+                    lineHeight: "var(--gm-leading-reading)", padding: 0, background: "transparent", color: "var(--text)",
                     border: "none", outline: "none",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                   }}
@@ -606,11 +602,11 @@ export default function NotesPage({
         ) : (
           <div className="gm-empty-state" style={{ height: "100%" }}>
             <div style={{ textAlign: "center" }}>
-              <Plus size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+              <Plus size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                 {t("notes.selectOrCreate")}
               </p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
                 {t("notes.cmdN", formatShortcut(shortcuts.quick_note))}
               </p>
             </div>

@@ -8,6 +8,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -269,31 +270,30 @@ export default function ImportsPage({
         defaultWidth={300}
         left={showList && (
           <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
-            <div style={{
-              display: "flex", alignItems: "center", padding: "14px 16px",
-              borderBottom: "1px solid var(--border)", gap: 8,
-            }}>
-              <Download size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
-              <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, flex: 1 }}>{t("imports.title")}</span>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                title={t("common.refresh")}
-                className="gm-toolbar-button"
-                style={{ padding: 6, display: "flex", alignItems: "center", minWidth: 28, minHeight: 28 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-              >
-                <RefreshCw size={14} />
-              </button>
-            </div>
+            <PaneHeader
+              icon={Download}
+              title={t("imports.title")}
+              actions={(
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  title={t("common.refresh")}
+                  className="gm-toolbar-button"
+                  style={{ padding: 0, display: "flex", alignItems: "center" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                >
+                  <RefreshCw size="var(--gm-icon-xs)" />
+                </button>
+              )}
+            />
 
             <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
               {loading ? (
                 <Loading compact text={t("common.loading")} />
               ) : files.length === 0 ? (
-                <div className="gm-empty-state" style={{ padding: "48px 20px" }}>
-                  <Download size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
+                <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
+                  <Download size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
                   <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                     {t("imports.empty")}
                   </p>
@@ -309,13 +309,13 @@ export default function ImportsPage({
                       ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                       onClick={() => openFile(file.path)}
                       style={{
-                        width: "100%", textAlign: "left", padding: "12px 16px",
+                        width: "100%", textAlign: "left", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
                         cursor: "pointer", transition: "background 0.15s",
                         background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                         border: "none", color: "var(--text)",
                         borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
                         borderBottom: "1px solid var(--border)",
-                        display: "flex", alignItems: "center", gap: 10,
+                        display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)",
                       }}
                     >
                       {hasImage && <ImportImagePreview relPath={file.preview_image!} />}
@@ -324,11 +324,11 @@ export default function ImportsPage({
                           {file.name}
                         </p>
                         {!hasImage && file.preview && (
-                          <p style={{ fontSize: "var(--gm-font-xs)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-secondary)" }}>
+                          <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-secondary)" }}>
                             {file.preview}
                           </p>
                         )}
-                        <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: 4, color: "var(--text-secondary)" }}>
+                        <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)" }}>
                           {relativeTime(file.modified, t)}
                         </p>
                       </div>
@@ -342,7 +342,7 @@ export default function ImportsPage({
                     disabled={loadingMore}
                     onClick={() => void loadMore()}
                     style={{
-                      width: "100%", padding: "12px 16px", border: "none",
+                      width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
                       borderBottom: "1px solid var(--border)", background: "transparent",
                       color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
                       fontSize: "var(--gm-font-xs)", fontWeight: 600,
@@ -366,6 +366,7 @@ export default function ImportsPage({
                   title={selectedFile}
                   titleText={selectedFile}
                   onBack={closeDetail}
+                  onRefresh={handleRefresh}
                   editing={editing}
                   onEdit={() => setEditing(true)}
                   onSave={() => void handleSave()}
@@ -401,7 +402,7 @@ export default function ImportsPage({
                     />
                   ) : null}
                 />
-                <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
+                <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)" }}>
                   {editing ? (
                     <textarea
                       value={editContent}
@@ -415,7 +416,7 @@ export default function ImportsPage({
                       style={{
                         width: "100%", height: "100%", resize: "none", padding: 0,
                         background: "transparent", border: "none", color: "var(--text)",
-                        fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                        fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
                         outline: "none", minHeight: 420,
                       }}
                     />
@@ -427,7 +428,7 @@ export default function ImportsPage({
             ) : (
               <div className="gm-empty-state" style={{ height: "100%" }}>
                 <div style={{ textAlign: "center" }}>
-                  <Download size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+                  <Download size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
                   <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                     {t("imports.selectOrDrop")}
                   </p>

@@ -7,6 +7,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -172,36 +173,35 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
-        {/* Header */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: "16px 16px 12px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-card)",
-        }}>
-          <Brain size={18} style={{ color: "var(--accent)" }} />
-          <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, flex: 1 }}>{t("nav.claudeConfig")}</span>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            title={t("common.refresh")}
-            className="gm-toolbar-button"
-            style={{ padding: 4, display: "flex", alignItems: "center", minWidth: 28, minHeight: 28 }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            <RefreshCw size={14} />
-          </button>
-          <span style={{
-            fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-            padding: "2px 8px", borderRadius: "var(--gm-radius-pill)",
-          }}>
-            {files.length}
-          </span>
-        </div>
+        <PaneHeader
+          icon={Brain}
+          title={t("nav.claudeConfig")}
+          actions={(
+            <>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                title={t("common.refresh")}
+                className="gm-toolbar-button"
+                style={{ padding: 0, display: "flex", alignItems: "center" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+              >
+                <RefreshCw size="var(--gm-icon-xs)" />
+              </button>
+              <span style={{
+                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
+                padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)",
+              }}>
+                {files.length}
+              </span>
+            </>
+          )}
+        />
 
         {/* Editor selector */}
         <div style={{
-          display: "flex", gap: 4, padding: "8px 16px",
+          display: "flex", gap: "var(--gm-space-2)", padding: "var(--gm-icon-text-gap) var(--gm-list-header-pad-x)",
           borderBottom: "1px solid var(--border)",
           background: "var(--bg-card)",
         }}>
@@ -210,7 +210,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
               key={e}
               onClick={() => setEditor(e)}
               style={{
-                padding: "6px 12px", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: editor === e ? 700 : 500,
+                padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: editor === e ? 700 : 500,
                 background: editor === e ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
                 color: editor === e ? "var(--text)" : "var(--text-secondary)",
                 border: `1px solid ${editor === e ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "var(--border)"}`, cursor: "pointer", transition: "all 0.15s",
@@ -223,7 +223,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
 
         {/* Tabs */}
         <div style={{
-          display: "flex", gap: 6, padding: "8px", borderBottom: "1px solid var(--border)",
+          display: "flex", gap: "var(--gm-control-gap)", padding: "var(--gm-icon-text-gap)", borderBottom: "1px solid var(--border)",
           background: "var(--bg-card)",
         }}>
           {tabs.map((tab) => {
@@ -234,7 +234,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
                   padding: "var(--gm-space-4) var(--gm-space-3)", fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500,
                   background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                   border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "transparent"}`,
@@ -255,10 +255,10 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
           {loading ? (
             <Loading compact text="Loading..." />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: 32 }}>
-              <TabIcon size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+            <div className="gm-empty-state" style={{ padding: "var(--gm-space-16)" }}>
+              <TabIcon size="var(--gm-icon-empty)" style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-space-6)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("claudeConfig.empty")}</p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
                 {t("claudeConfig.emptyHint")}
               </p>
             </div>
@@ -272,7 +272,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                   onClick={() => openFile(f.path)}
                   style={{
                     display: "block", width: "100%", textAlign: "left",
-                    padding: "12px 16px", cursor: "pointer",
+                    padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", cursor: "pointer",
                     background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                     border: "none",
                     borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
@@ -284,12 +284,12 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                     {f.name}
                   </p>
                   <p style={{
-                    fontSize: "var(--gm-font-xs)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     color: "var(--text-secondary)",
                   }}>
                     {f.preview || f.path}
                   </p>
-                  <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: 2, color: "var(--text-secondary)", opacity: 0.7 }}>
+                  <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-1)", color: "var(--text-secondary)", opacity: 0.7 }}>
                     {relativeTime(f.modified, t)}
                   </p>
                 </button>
@@ -305,7 +305,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         {!selectedFile ? (
           <div className="gm-empty-state" style={{ flex: 1 }}>
             <div style={{ textAlign: "center" }}>
-              <Brain size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+              <Brain size="var(--gm-icon-empty-lg)" style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-space-6)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("claudeConfig.selectToView")}</p>
             </div>
           </div>
@@ -315,6 +315,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
               title={selectedFile}
               titleText={selectedFile}
               onBack={() => { setSelectedFile(null); setFileContent(""); }}
+              onRefresh={handleRefresh}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
@@ -330,7 +331,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                 />
               ) : null}
             />
-            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 28px", userSelect: "text" }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)", userSelect: "text" }}>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </div>
           </>

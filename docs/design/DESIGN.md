@@ -123,6 +123,7 @@ Current desktop color tokens:
 - Danger panels: `--gm-danger-soft`, `--gm-danger-border`
 - Success border: `--gm-success-border`
 - Selection border: `--gm-selection-border`
+- Empty-state icons: `--gm-empty-icon-color`
 - Overlays: `--gm-overlay-soft`, `--gm-overlay-dialog`,
   `--gm-overlay-scrim`
 - Category identity: `--gm-category-blue`, `--gm-category-green`,
@@ -168,6 +169,15 @@ Spacing:
 - Use `2px` and `4px` only for tight metadata relationships.
 - Use `8px`, `12px`, and `16px` for most component internals.
 - Use `20px`, `24px`, `28px`, and `32px` for page and modal breathing room.
+- Use semantic spacing tokens when the UI role is known:
+  `--gm-page-pad-*` for scrollable page edges, `--gm-section-gap` for
+  top-level module/card separation, `--gm-card-pad-*` for panel internals,
+  `--gm-card-header-gap` for title-to-content separation, `--gm-row-pad-*` and
+  `--gm-row-gap` for repeated row rhythm, `--gm-list-*` for split-pane list
+  headers and list rows, `--gm-detail-*` for reading/detail panes,
+  `--gm-icon-text-gap` for icon/label pairs, `--gm-toolbar-gap` for toolbar
+  clusters, `--gm-control-*` for buttons and fields, and `--gm-nav-*` for
+  navigation rows.
 
 Line height:
 
@@ -265,6 +275,86 @@ Markdown reading surfaces may use relative heading sizes inside
 scale.
 
 ### Spacing
+
+Use semantic spacing tokens before raw scale tokens when the component role is
+clear. Use raw scale tokens only inside a component where no shared role exists.
+
+Use `--gm-page-pad-x`, `--gm-page-pad-y`, and `--gm-page-pad-bottom` for
+desktop page containers that scroll. Use `--gm-page-pad-mobile-x` and
+`--gm-page-pad-mobile-y` for mobile page containers. Page padding belongs on
+the scroll container, not on nested decorative wrappers.
+
+Use `--gm-section-gap` for vertical separation between peer modules: dashboard
+cards, onboarding prompts, status panels, settings groups, and page header to
+first content. Use `--gm-section-gap-lg` only when a page or modal needs a
+larger content break.
+
+Use `--gm-card-pad-x`, `--gm-card-pad-y`, and `--gm-card-pad-mobile` for normal
+cards and panels. Card padding should contain the content once; avoid adding a
+second horizontal padding on list rows unless the row is visually independent
+from the card header.
+
+Use `--gm-card-header-gap` for the distance from a card title/header row to its
+body content, and for compact two-column panel grids. Use
+`--gm-card-content-gap` for inner groups that need a little more separation
+without becoming separate page modules.
+
+Use `--gm-row-pad-y`, `--gm-row-pad-y-comfort`, `--gm-row-pad-x`, and
+`--gm-row-gap` for list rows and repeated settings rows. Dense desktop rows use
+the default row padding; mobile or touch rows use the comfort vertical padding.
+
+Use `--gm-list-header-pad-x` and `--gm-list-header-pad-y` for split-pane list
+headers, filter bars, compact page headers inside a column, and tab/filter
+clusters that sit directly above a list.
+
+Use `--gm-page-header-height`, `--gm-page-header-title-font`, and
+`--gm-page-header-icon-size` for true top-level page headers such as Editor
+Home, and for the top title rhythm on Dashboard and Settings. Page headers use
+`--gm-font-xl` titles, `--gm-icon-xl` lead icons when present, and the same
+fixed desktop height so the first divider/content row lands at a consistent
+vertical position. Do not add a page header above split-pane pages.
+
+Use `--gm-pane-header-height`, `--gm-pane-header-title-font`, and
+`--gm-pane-header-icon-size` for split-pane list headers such as Conversations,
+Plans, Imports, Favorites, External Files, Clipboard, and Claude Config. Pane
+headers use a fixed `52px` height, `--gm-list-header-pad-y` vertical padding,
+`--gm-font-sm` titles, and `--gm-icon-sm` lead icons. Do not mix `15px`,
+`17px`, or ad hoc `18px` icons into pane headers. Use fixed height instead of
+`min-height` so headers with icon buttons and headers with only count pills do
+not drift apart.
+
+Use `PaneTabHeader` for list headers whose primary content is a tab switcher,
+such as Notes and AI Records. It still uses `--gm-pane-header-height`, but tab
+labels use `--gm-font-xs`, desktop tab icons use `--gm-icon-xs`, mobile tab
+icons use `--gm-icon-sm`, and the action cluster uses
+`--gm-pane-header-actions`.
+
+Use `FileDetailToolbar` for right-side detail headers and full-screen mobile
+detail headers. Its action order is back, title, refresh, metadata such as
+favorite, edit/save/cancel, secondary actions, and more. The refresh action
+belongs immediately after the title so every readable detail surface has a
+consistent top-level reload affordance; hide it while editing to avoid
+discarding unsaved local edits.
+
+Use `--gm-list-row-pad-x`, `--gm-list-row-pad-y`, and
+`--gm-list-row-pad-y-compact` for selectable rows in Notes, Conversations,
+Plans, Imports, Favorites, Clipboard, search results, editor file lists, and
+configuration file lists. Use the compact variant only for dense secondary
+rows with short labels and no multi-line preview.
+
+Use `--gm-detail-pad-x` and `--gm-detail-pad-y` for desktop reading panes,
+Markdown detail bodies, raw file previews, and editors that sit to the right of
+a list. Use `--gm-detail-pad-mobile-x` and `--gm-detail-pad-mobile-y` when the
+detail surface becomes a full mobile page.
+
+Use `--gm-icon-text-gap` when an icon labels adjacent text. Use
+`--gm-control-gap`, `--gm-control-pad-*`, and `--gm-control-height-*` for
+buttons, inputs, segmented controls, and icon buttons. Use `--gm-toolbar-gap`
+for groups of peer toolbar actions.
+
+Use `--gm-nav-item-*` and `--gm-nav-stack-gap` for sidebar and bottom navigation
+rows. Navigation stacks should use parent `gap`; individual nav items should
+not use ad hoc margins to create row rhythm.
 
 Use `--gm-space-1` and `--gm-space-2` (`2px`, `4px`) for tight relationships:
 label-to-value, icon-to-dot, tiny badge padding, and progress bar details.
@@ -404,10 +494,14 @@ drag/drop or blocking flows.
 ### Components
 
 Icon buttons use `--gm-radius-md`, `--gm-font-xs` where text exists, and
-`--gm-space-3` or `--gm-space-4` padding. Use lucide icons where available.
+`--gm-space-3` or `--gm-space-4` padding. Do not draw borders around icons or
+icon-only buttons by default; use color, background, opacity, and hover states
+instead. Use lucide icons where available.
 
-Toolbar buttons use `--bg`, `--border`, `--gm-radius-md`, and a minimum
-clickable size of roughly `32px` desktop or `36px` mobile.
+Toolbar buttons use transparent/default background, `--gm-radius-md`, and a
+minimum clickable size of roughly `32px` desktop or `36px` mobile. Add a border
+only for explicit special states such as selected, recording, destructive, or
+permission-sensitive actions.
 
 Menus use `--bg-card`, `--border`, `--gm-radius-md`, `--gm-shadow-popover`,
 `--gm-font-xs`, and menu items with `--gm-radius-sm`.
@@ -425,7 +519,9 @@ List rows use `--gm-font-sm` for the title, `--gm-font-xs` for metadata,
 accent background for selection.
 
 Empty states use `--gm-font-sm` for the main message, `--gm-font-xs` for the
-hint, `--text-secondary`, and no large decorative artwork.
+hint, `--text-secondary` for text, `--gm-empty-icon-color` for the icon, and no
+large decorative artwork. Do not use `--border` for empty-state icons; border
+tokens are too faint in light mode.
 
 Error states use `--red`, `--bg-danger`, `--gm-shadow-danger-ring`,
 `--gm-radius-md` or `--gm-radius-lg`, and actionable recovery controls.

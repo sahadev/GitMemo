@@ -370,17 +370,16 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
             placeholder="Find in document"
             className="gm-find-input"
           />
-          <button type="button" onClick={() => runFind(true)} className="gm-icon-button" style={{ minHeight: 30, minWidth: 30 }}>
+          <button type="button" onClick={() => runFind(true)} className="gm-icon-button">
             <ChevronUp size={14} />
           </button>
-          <button type="button" onClick={() => runFind(false)} className="gm-icon-button" style={{ minHeight: 30, minWidth: 30 }}>
+          <button type="button" onClick={() => runFind(false)} className="gm-icon-button">
             <ChevronDown size={14} />
           </button>
           <button
             type="button"
             onClick={() => { setFindOpen(false); setFindQuery(""); }}
             className="gm-icon-button"
-            style={{ minHeight: 30, minWidth: 30 }}
           >
             <X size={14} />
           </button>

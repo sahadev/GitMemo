@@ -45,11 +45,11 @@ export function RevealInFinderButton({
       title={t("common.reveal")}
       className="gm-toolbar-button"
       style={{
-        gap: 4,
-        padding: "4px 6px",
+        gap: "var(--gm-space-2)",
+        padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)",
         cursor: disabled || loading ? "not-allowed" : "pointer",
         fontSize: "var(--gm-font-xs)",
-        lineHeight: 1,
+        lineHeight: "var(--gm-leading-none)",
         opacity: disabled || loading ? 0.45 : 1,
       }}
     >

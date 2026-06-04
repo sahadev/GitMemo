@@ -171,11 +171,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
       >
         <div className="gm-drop-card" onClick={(e) => e.stopPropagation()}>
           <div className="gm-drop-head">
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-7)" }}>
               <div
                 style={{
-                  width: 46,
-                  height: 46,
+                  width: "var(--gm-icon-hero)",
+                  height: "var(--gm-icon-hero)",
                   borderRadius: "var(--gm-radius-lg)",
                   display: "flex",
                   alignItems: "center",
@@ -185,11 +185,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                   flexShrink: 0,
                 }}
               >
-                <Download size={24} />
+                <Download size="var(--gm-icon-xl)" />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: "var(--gm-font-xl)", fontWeight: 700, color: "var(--text)" }}>{t("dropzone.title")}</div>
-                <div style={{ marginTop: 6, fontSize: "var(--gm-font-sm)", lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: "var(--gm-space-3)", fontSize: "var(--gm-font-sm)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                   {t("dropzone.chooseMode")}
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                     cursor: importing || opening ? "default" : "pointer",
                   }}
                 >
-                  <X size={18} />
+                  <X size="var(--gm-icon-md)" />
                 </button>
               ) : null}
             </div>
@@ -214,17 +214,17 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
               <>
                 <div
                   style={{
-                    padding: "14px 16px",
+                    padding: "var(--gm-space-7) var(--gm-space-8)",
                     borderRadius: "var(--gm-radius-md)",
                     background: "var(--bg)",
                     border: "1px solid var(--border)",
-                    marginBottom: 22,
+                    marginBottom: "var(--gm-space-12)",
                   }}
                 >
                   <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, color: "var(--text)", wordBreak: "break-word" }}>
                     {dropCopy.title}
                   </div>
-                  <div style={{ marginTop: 6, fontSize: "var(--gm-font-xs)", lineHeight: 1.5, color: "var(--text-secondary)" }}>
+                  <div style={{ marginTop: "var(--gm-space-3)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", color: "var(--text-secondary)" }}>
                     {dropCopy.subtitle}
                   </div>
                 </div>
@@ -232,7 +232,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                 <div style={{
                   display: "grid",
                   gridTemplateColumns: canOpen ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
-                  gap: 16,
+                  gap: "var(--gm-space-8)",
                 }}>
                   {canOpen ? (
                     <button
@@ -244,11 +244,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                         cursor: importing || opening ? "default" : "pointer",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)" }}>
-                        <FolderOpen size={18} />
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", color: "var(--accent)" }}>
+                        <FolderOpen size="var(--gm-icon-md)" />
                         <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.openAction")}</span>
                       </div>
-                      <div style={{ marginTop: 10, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                      <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                         {t("dropzone.openDesc")}
                       </div>
                     </button>
@@ -260,30 +260,30 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
                     disabled={importing || opening}
                     className="gm-drop-action"
                     style={{
-                      cursor: importing || opening ? "default" : "pointer",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--green)" }}>
-                      <Download size={18} />
+                        cursor: importing || opening ? "default" : "pointer",
+                      }}
+                    >
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", color: "var(--green)" }}>
+                      <Download size="var(--gm-icon-md)" />
                       <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.importAction")}</span>
                     </div>
-                    <div style={{ marginTop: 10, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                    <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                       {t("dropzone.importDesc")}
                     </div>
                   </button>
                 </div>
 
-                <div style={{ marginTop: 18, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: "var(--gm-space-10)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                   {t("dropzone.routeHint")}
                 </div>
-                <div style={{ marginTop: 8, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: "var(--gm-space-4)", fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                   {t("dropzone.sizeLimit", maxImportSizeLabel)}
                 </div>
               </>
             ) : (
               <div style={{ textAlign: "center", padding: "var(--gm-space-10) var(--gm-space-0) var(--gm-space-3)" }}>
                 <div style={{ fontSize: "var(--gm-font-lg)", fontWeight: 700, color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
-                <div style={{ marginTop: 10, fontSize: "var(--gm-font-sm)", lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-sm)", lineHeight: "var(--gm-leading-relaxed)", color: "var(--text-secondary)" }}>
                   {t("dropzone.dragHint")}
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
           right: 24,
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: "var(--gm-card-header-gap)",
           padding: "var(--gm-space-6) var(--gm-space-8)",
         }}
       >
@@ -339,15 +339,15 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: "var(--gm-nav-item-gap)",
             padding: "var(--gm-space-7) var(--gm-space-8)",
             borderBottom: "1px solid var(--border)",
           }}
         >
           {hasErrors ? (
-            <X size={16} style={{ color: "var(--red)", flexShrink: 0 }} />
+            <X size="var(--gm-icon-sm)" style={{ color: "var(--red)", flexShrink: 0 }} />
           ) : (
-            <Check size={16} style={{ color: "var(--green)", flexShrink: 0 }} />
+            <Check size="var(--gm-icon-sm)" style={{ color: "var(--green)", flexShrink: 0 }} />
           )}
           <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>
             {result.imported.length > 0
@@ -360,11 +360,11 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
             className="gm-icon-button"
             style={{
               marginLeft: "auto",
-              minHeight: 26,
-              minWidth: 26,
+              minHeight: "var(--gm-control-height-xs)",
+              minWidth: "var(--gm-control-height-xs)",
             }}
           >
-            <X size={14} style={{ color: "var(--text-secondary)" }} />
+            <X size="var(--gm-icon-xs)" style={{ color: "var(--text-secondary)" }} />
           </button>
         </div>
 
@@ -375,21 +375,21 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 12,
+                gap: "var(--gm-card-header-gap)",
                 padding: "var(--gm-space-7) var(--gm-space-8)",
                 borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)",
               }}
             >
-              <div style={{ marginTop: 2, flexShrink: 0 }}>{categoryIcon(f.category)}</div>
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }}>{categoryIcon(f.category)}</div>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--gm-space-2)" }}>
                 <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {f.original_name}
                 </p>
-                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: "var(--gm-leading-normal)" }}>
                   → {f.dest_path}
                 </p>
               </div>
-              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", flexShrink: 0, marginTop: 2 }}>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", flexShrink: 0, marginTop: "var(--gm-space-1)" }}>
                 {formatSize(f.size)}
               </span>
             </div>
@@ -400,15 +400,15 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 10,
+                gap: "var(--gm-nav-item-gap)",
                 padding: "var(--gm-space-7) var(--gm-space-8)",
                 color: "var(--red)",
                 fontSize: "var(--gm-font-xs)",
-                lineHeight: 1.5,
+                lineHeight: "var(--gm-leading-normal)",
                 wordBreak: "break-word",
               }}
             >
-              <X size={12} style={{ marginTop: 3, flexShrink: 0 }} />
+              <X size="var(--gm-icon-2xs)" style={{ marginTop: "var(--gm-space-1)", flexShrink: 0 }} />
               <span>{err}</span>
             </div>
           ))}

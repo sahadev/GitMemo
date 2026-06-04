@@ -62,21 +62,21 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           alignItems: "center",
           justifyContent: "space-between",
           minHeight: 62,
-          padding: "12px 16px",
+          padding: "var(--gm-space-6) var(--gm-space-8)",
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 28, height: 28, borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", ...logoSaveProps.style }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)", minWidth: 0 }}>
+          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: "var(--gm-icon-result)", height: "var(--gm-icon-result)", borderRadius: "var(--gm-radius-md)", ...logoSaveProps.style }} />
           <div style={{ minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 800, fontSize: "var(--gm-font-md)", lineHeight: 1.2 }}>GitMemo</span>
-            <span style={{ display: "block", color: "var(--text-secondary)", fontSize: "var(--gm-font-2xs)", marginTop: 2 }}>local Git memory</span>
+            <span style={{ display: "block", fontWeight: 800, fontSize: "var(--gm-font-md)", lineHeight: "var(--gm-leading-tight)" }}>GitMemo</span>
+            <span style={{ display: "block", color: "var(--text-secondary)", fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-1)" }}>local Git memory</span>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: "10px 10px 8px", overflowY: "auto" }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: "var(--gm-nav-stack-gap)", flex: 1, padding: "var(--gm-space-5) var(--gm-space-5) var(--gm-space-4)", overflowY: "auto" }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.id;
@@ -87,10 +87,10 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: "var(--gm-nav-item-gap)",
                 width: "100%",
-                minHeight: 36,
-                padding: "8px 10px",
+                minHeight: "var(--gm-control-height-lg)",
+                padding: "var(--gm-nav-item-pad-y) var(--gm-nav-item-pad-x)",
                 fontSize: "var(--gm-font-sm)",
                 background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                 color: active ? "var(--text)" : "var(--text-secondary)",
@@ -98,7 +98,6 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
                 border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 44%, var(--border))" : "transparent"}`,
                 borderLeft: active && focused ? "3px solid var(--accent)" : "3px solid transparent",
                 borderRadius: "var(--gm-radius-md)",
-                marginBottom: 3,
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.15s",
@@ -112,7 +111,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
       </nav>
 
       {/* Sync button + version */}
-      <div style={{ padding: 12, borderTop: "1px solid var(--border)", background: "var(--bg-card)" }}>
+      <div style={{ padding: "var(--gm-card-header-gap)", borderTop: "1px solid var(--border)", background: "var(--bg-card)" }}>
         <button
           onClick={onSync}
           disabled={syncing}
@@ -120,10 +119,10 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
+            gap: "var(--gm-icon-text-gap)",
             width: "100%",
-            minHeight: 36,
-            padding: "8px 10px",
+            minHeight: "var(--gm-control-height-lg)",
+            padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x)",
             borderRadius: "var(--gm-radius-md)",
             fontSize: "var(--gm-font-xs)",
             background: syncing
@@ -143,10 +142,10 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           <RefreshCw size={14} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
-        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: 8, color: "var(--text-secondary)", opacity: 0.6 }}>
+        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: "var(--gm-space-4)", color: "var(--text-secondary)", opacity: 0.6 }}>
           GitMemo Desktop v{appMeta?.version ?? "—"}
         </p>
-        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: 4, color: "var(--text-secondary)", opacity: 0.5 }}>
+        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)", opacity: 0.5 }}>
           {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
       </div>

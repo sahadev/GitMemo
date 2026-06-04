@@ -40,7 +40,7 @@ export function ClipboardPrivacyDialog({
         style={{
           width: "100%",
           maxWidth: 420,
-          padding: "28px 24px",
+          padding: "var(--gm-space-14) var(--gm-space-12)",
           borderRadius: "var(--gm-radius-lg)",
           background: "var(--bg-card)",
           border: "1px solid var(--border)",
@@ -48,16 +48,16 @@ export function ClipboardPrivacyDialog({
         }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-6)", marginBottom: "var(--gm-space-10)" }}>
           <div style={{
-            width: 40, height: 40, borderRadius: "var(--gm-radius-md)",
+            width: "var(--gm-icon-empty-lg)", height: "var(--gm-icon-empty-lg)", borderRadius: "var(--gm-radius-md)",
             background: "color-mix(in srgb, var(--accent) 14%, var(--bg-card))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Shield size={24} style={{ color: "var(--accent)" }} />
+            <Shield size="var(--gm-icon-xl)" style={{ color: "var(--accent)" }} />
           </div>
           <div>
-            <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: 2 }}>
+            <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: "var(--gm-space-1)" }}>
               {t("privacy.title")}
             </h3>
             <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
@@ -66,26 +66,27 @@ export function ClipboardPrivacyDialog({
           </div>
           <button
             onClick={onCancel}
+            className="gm-icon-button"
             style={{
-              marginLeft: "auto", padding: 4, borderRadius: "var(--gm-radius-sm)",
-              background: "none", border: "none", cursor: "pointer",
-              color: "var(--text-secondary)",
+              marginLeft: "auto",
+              minHeight: "var(--gm-control-height-xs)",
+              minWidth: "var(--gm-control-height-xs)",
             }}
           >
-            <X size={16} />
+            <X size="var(--gm-icon-sm)" />
           </button>
         </div>
 
         {/* Points */}
         <div style={{
-          display: "flex", flexDirection: "column", gap: 12,
-          marginBottom: 24, padding: "16px",
+          display: "flex", flexDirection: "column", gap: "var(--gm-space-6)",
+          marginBottom: "var(--gm-space-12)", padding: "var(--gm-space-8)",
           borderRadius: "var(--gm-radius-md)", background: "var(--bg-hover)",
         }}>
           {["privacy.point1", "privacy.point2", "privacy.point3", "privacy.point4"].map(key => (
-            <div key={key} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <Check size={14} style={{ color: "var(--green)", flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: "var(--gm-font-sm)", color: "var(--text)", lineHeight: 1.4 }}>
+            <div key={key} style={{ display: "flex", gap: "var(--gm-space-5)", alignItems: "flex-start" }}>
+              <Check size="var(--gm-icon-xs)" style={{ color: "var(--green)", flexShrink: 0, marginTop: "var(--gm-space-1)" }} />
+              <span style={{ fontSize: "var(--gm-font-sm)", color: "var(--text)", lineHeight: "var(--gm-leading-normal)" }}>
                 {t(key)}
               </span>
             </div>
@@ -93,11 +94,11 @@ export function ClipboardPrivacyDialog({
         </div>
 
         {/* Buttons */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: "var(--gm-space-5)" }}>
           <button
             onClick={onCancel}
             style={{
-              flex: 1, padding: "10px 16px", borderRadius: "var(--gm-radius-md)",
+              flex: 1, padding: "var(--gm-space-5) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)",
               border: "1px solid var(--border)", background: "transparent",
               color: "var(--text)", fontSize: "var(--gm-font-sm)", fontWeight: 600,
               cursor: "pointer",
@@ -108,7 +109,7 @@ export function ClipboardPrivacyDialog({
           <button
             onClick={onConfirm}
             style={{
-              flex: 1, padding: "10px 16px", borderRadius: "var(--gm-radius-md)",
+              flex: 1, padding: "var(--gm-space-5) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)",
               border: "none", background: "var(--accent)",
               color: "var(--gm-color-on-accent)", fontSize: "var(--gm-font-sm)", fontWeight: 600,
               cursor: "pointer",

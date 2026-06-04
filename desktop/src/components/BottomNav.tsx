@@ -40,7 +40,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
       justifyContent: "space-around",
       borderTop: "1px solid var(--border)",
       background: "color-mix(in srgb, var(--bg-card) 92%, var(--bg) 8%)",
-      padding: "6px 6px calc(6px + env(safe-area-inset-bottom, 0px))",
+      padding: "var(--gm-space-3) var(--gm-space-3) calc(var(--gm-space-3) + env(safe-area-inset-bottom, 0px))",
       flexShrink: 0,
       width: "100%",
       boxSizing: "border-box",
@@ -59,20 +59,20 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 3,
+              gap: "var(--gm-space-2)",
               padding: "var(--gm-space-4) var(--gm-space-1) var(--gm-space-3)",
               background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-              border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 36%, var(--border))" : "transparent"}`,
+              border: "none",
               borderRadius: "var(--gm-radius-md)",
               cursor: "pointer",
               color: active ? "var(--text)" : "var(--text-secondary)",
-              minHeight: 50,
+              minHeight: "calc(var(--gm-control-height-lg) + var(--gm-card-header-gap))",
               justifyContent: "center",
               minWidth: 0,
             }}
           >
             <Icon size={18} style={{ color: active ? "var(--accent)" : "currentColor", flexShrink: 0 }} />
-            <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500, lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500, lineHeight: "var(--gm-leading-tight)", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {t(item.labelKey)}
             </span>
           </button>

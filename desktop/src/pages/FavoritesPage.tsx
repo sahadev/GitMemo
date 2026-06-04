@@ -8,6 +8,7 @@ import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
+import { PaneHeader } from "../components/AppHeaders";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
@@ -139,31 +140,32 @@ export default function FavoritesPage({
       overflow: "hidden",
       background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
     }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-        padding: isMobile ? "9px 12px" : "12px 16px",
-        borderBottom: "1px solid var(--border)",
-        flexShrink: 0,
-        background: "var(--bg-card)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <Star size={isMobile ? 18 : 16} style={{ color: "var(--accent)", flexShrink: 0 }} fill="currentColor" />
-          <span style={{ fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontWeight: 700 }}>{t("favorites.title")}</span>
-        </div>
-        <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("favorites.count", favorites.length)}</span>
-      </div>
+      <PaneHeader
+        icon={Star}
+        iconFill="currentColor"
+        title={t("favorites.title")}
+        actions={(
+          <span style={{
+            fontSize: "var(--gm-font-xs)",
+            color: "var(--text-secondary)",
+            background: "var(--bg-hover)",
+            padding: "var(--gm-space-1) var(--gm-row-pad-x)",
+            borderRadius: "var(--gm-radius-pill)",
+            whiteSpace: "nowrap",
+          }}>
+            {t("favorites.count", favorites.length)}
+          </span>
+        )}
+      />
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0 }}>
         {loading ? (
           <div style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Loading compact text={t("common.loading")} />
           </div>
         ) : favorites.length === 0 ? (
-          <div className="gm-empty-state" style={{ minHeight: "100%", padding: 24 }}>
+          <div className="gm-empty-state" style={{ minHeight: "100%", padding: "var(--gm-space-12)" }}>
             <div>
-              <Star size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+              <Star size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
               <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("favorites.empty")}</p>
             </div>
           </div>
@@ -178,7 +180,9 @@ export default function FavoritesPage({
               style={{
                 width: "100%",
                 textAlign: "left",
-                padding: isMobile ? "14px 16px 10px" : "12px 16px 8px",
+                padding: isMobile
+                  ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x) var(--gm-nav-item-gap)"
+                  : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x) var(--gm-icon-text-gap)",
                 border: "none",
                 borderBottom: "1px solid var(--border)",
                 background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
@@ -187,7 +191,7 @@ export default function FavoritesPage({
                 cursor: "pointer",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", minWidth: 0 }}>
                 <Icon size={14} style={{ color: active ? "var(--accent)" : "var(--text-secondary)", flexShrink: 0 }} />
                 <p style={{
                   flex: 1,
@@ -201,7 +205,7 @@ export default function FavoritesPage({
                   {item.title}
                 </p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginTop: "var(--gm-space-3)", minWidth: 0 }}>
                 <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                   {t(sourceLabelKey(item.source_type))}
                 </span>
@@ -216,9 +220,9 @@ export default function FavoritesPage({
               </div>
               {item.preview ? (
                 <p style={{
-                  marginTop: 7,
+                  marginTop: "var(--gm-space-3)",
                   fontSize: "var(--gm-font-xs)",
-                  lineHeight: 1.4,
+                  lineHeight: "var(--gm-leading-normal)",
                   color: "var(--text-secondary)",
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
@@ -244,7 +248,7 @@ export default function FavoritesPage({
       {!selectedTargetId ? (
         <div className="gm-empty-state" style={{ flex: 1 }}>
           <div>
-            <Star size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
+            <Star size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
             <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("favorites.selectToView")}</p>
           </div>
         </div>
@@ -254,6 +258,11 @@ export default function FavoritesPage({
             title={isMobile ? detailTitle : detailPath || detailTitle}
             titleText={detailPath || detailTitle}
             onBack={isMobile ? closeDetail : undefined}
+            onRefresh={() => {
+              void loadFavorites();
+              if (selectedTargetId) void openFavorite(selectedTargetId);
+            }}
+            refreshDisabled={contentLoading}
             metadata={selectedEntry ? (
               <FavoriteButton
                 relPath={selectedEntry.rel_path}
@@ -271,7 +280,14 @@ export default function FavoritesPage({
               />
             ) : null}
           />
-          <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${MOBILE_BOTTOM_CONTENT_PADDING}` : "20px 28px", userSelect: "text" }}>
+          <div style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: isMobile
+              ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
+              : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
+            userSelect: "text",
+          }}>
             {contentLoading ? (
               <Loading compact text={t("common.loading")} />
             ) : selectedEntry && !selectedEntry.exists ? (
@@ -286,7 +302,7 @@ export default function FavoritesPage({
   );
 
   return (
-    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="favorites"
         defaultWidth={340}

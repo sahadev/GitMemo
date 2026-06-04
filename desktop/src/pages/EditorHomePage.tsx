@@ -10,6 +10,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { PageHeader } from "../components/AppHeaders";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
@@ -291,28 +292,22 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
 
   return (
     <div className="gm-page" style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <div style={{
-        padding: "14px 20px", borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", gap: 12,
-        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
-      }}>
-        <FolderOpen size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("editorHome.title")}</h1>
-          <p style={{ margin: "4px 0 0", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-            {t("editorHome.subtitle")}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          title={t("common.refresh")}
-          className="gm-toolbar-button"
-          style={{ cursor: "pointer", padding: 6 }}
-        >
-          <RefreshCw size={14} />
-        </button>
-      </div>
+      <PageHeader
+        icon={FolderOpen}
+        title={t("editorHome.title")}
+        subtitle={t("editorHome.subtitle")}
+        actions={(
+          <button
+            type="button"
+            onClick={handleRefresh}
+            title={t("common.refresh")}
+            className="gm-toolbar-button"
+            style={{ cursor: "pointer", padding: 0 }}
+          >
+            <RefreshCw size="var(--gm-icon-xs)" />
+          </button>
+        )}
+      />
 
       <DesktopSplitPane
         panelKey="editor-home"
@@ -322,7 +317,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
             display: "flex", flexDirection: "column", flexShrink: 0,
             background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
           }}>
-            <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", gap: "var(--gm-space-2)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)", borderBottom: "1px solid var(--border)" }}>
               {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
                 const exists = r === "claude"
                   ? roots?.claude_exists
@@ -338,7 +333,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                     disabled={!exists}
                     onClick={() => handleSwitchRoot(r)}
                     style={{
-                      flex: 1, padding: "6px 8px", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: root === r ? 700 : 500,
+                      flex: 1, padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: root === r ? 700 : 500,
                       border: "none", cursor: exists ? "pointer" : "not-allowed", opacity: exists ? 1 : 0.45,
                       background: root === r ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
                       color: root === r ? "var(--text)" : "var(--text-secondary)",
@@ -351,7 +346,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
             </div>
 
             <div style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
+              display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)",
               fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
             }}>
               {rel ? (
@@ -359,12 +354,12 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   type="button"
                   onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
                   style={{
-                    display: "flex", alignItems: "center", gap: 4, padding: "2px 6px",
+                    display: "flex", alignItems: "center", gap: "var(--gm-space-2)", padding: "var(--gm-space-1) var(--gm-space-3)",
                     borderRadius: "var(--gm-radius-sm)", border: "1px solid var(--border)", background: "var(--bg-hover)",
                     cursor: "pointer", color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)",
                   }}
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size="var(--gm-icon-xs)" />
                   {t("editorHome.up")}
                 </button>
               ) : null}
@@ -373,18 +368,18 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
               </span>
             </div>
 
-            <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", gap: "var(--gm-control-gap)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)", borderBottom: "1px solid var(--border)" }}>
               <button
                 type="button"
                 onClick={() => void handleCreateFile()}
                 disabled={!rootOk || creating}
                 style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  padding: "6px 8px", borderRadius: "var(--gm-radius-lg)", border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
+                  padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", background: "var(--bg-hover)",
                   color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
                 }}
               >
-                <FilePlus2 size={14} />
+                <FilePlus2 size="var(--gm-icon-xs)" />
                 {t("editorHome.newFile")}
               </button>
               <button
@@ -392,28 +387,28 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                 onClick={() => void handleCreateFolder()}
                 disabled={!rootOk || creatingDir}
                 style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  padding: "6px 8px", borderRadius: "var(--gm-radius-lg)", border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
+                  padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", background: "var(--bg-hover)",
                   color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
                 }}
               >
-                <FolderPlus size={14} />
+                <FolderPlus size="var(--gm-icon-xs)" />
                 {t("editorHome.newFolder")}
               </button>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto" }}>
               {!rootOk ? (
-                <div style={{ padding: 24, textAlign: "center", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
+                <div style={{ padding: "var(--gm-space-12)", textAlign: "center", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                   {rootPath}
-                  <p style={{ marginTop: 8 }}>{t("editorHome.missingDir")}</p>
+                  <p style={{ marginTop: "var(--gm-space-4)" }}>{t("editorHome.missingDir")}</p>
                 </div>
               ) : listLoading ? (
                 <Loading compact text={t("dashboard.loading")} />
               ) : listError ? (
-                <p style={{ padding: 16, fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{listError}</p>
+                <p style={{ padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{listError}</p>
               ) : entries.length === 0 ? (
-                <p style={{ padding: 16, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{leftEmptyText}</p>
+                <p style={{ padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{leftEmptyText}</p>
               ) : (
                 entries.map((entry) => {
                   const sel = selectedFileRel === entry.rel_path;
@@ -430,14 +425,14 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                         }
                       }}
                       style={{
-                        display: "flex", alignItems: "center", gap: 8, width: "100%",
-                        padding: "10px 14px", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
+                        display: "flex", alignItems: "center", gap: "var(--gm-row-gap)", width: "100%",
+                        padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
                         background: sel ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                         borderLeft: sel ? "3px solid var(--accent)" : "3px solid transparent",
                         color: "var(--text)", cursor: "pointer", fontSize: "var(--gm-font-sm)",
                       }}
                     >
-                      {entry.is_dir ? <Folder size={14} style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size={14} style={{ flexShrink: 0, opacity: 0.85 }} />}
+                      {entry.is_dir ? <Folder size="var(--gm-icon-xs)" style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size="var(--gm-icon-xs)" style={{ flexShrink: 0, opacity: 0.85 }} />}
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
                     </button>
                   );
@@ -449,7 +444,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         right={(
           <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
             {!selectedFileRel ? (
-              <div className="gm-empty-state" style={{ flex: 1, gap: 8 }}>
+              <div className="gm-empty-state" style={{ flex: 1, gap: "var(--gm-space-4)" }}>
                 <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                   {root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
                 </p>
@@ -461,6 +456,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   title={selectedFileRel}
                   titleText={fileAbs || selectedFileRel}
                   onBack={clearSelection}
+                  onRefresh={handleRefresh}
                   editing={editing}
                   onEdit={() => { setEditContent(fileContent); setEditing(true); }}
                   onSave={() => void handleSave()}
@@ -495,9 +491,9 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       exportTitle={selectedFileRel.split("/").pop()}
                     />
                   ) : null}
-                  style={{ padding: "10px 16px" }}
+                  style={{ padding: "var(--gm-control-pad-y-lg) var(--gm-list-row-pad-x)" }}
                 />
-                <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+                <div style={{ flex: 1, overflow: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)" }}>
                   {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                   {!fileLoading && fileError ? (
                     <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{fileError}</p>
@@ -510,7 +506,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                         style={{
                           width: "100%", height: "100%", resize: "none", padding: 0,
                           background: "transparent", border: "none", color: "var(--text)",
-                          fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                          fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: "var(--gm-leading-reading)",
                           outline: "none", minHeight: 420,
                         }}
                       />
@@ -518,7 +514,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       <MarkdownView content={fileContent} />
                     ) : (
                       <pre style={{
-                        margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", whiteSpace: "pre-wrap", wordBreak: "break-word",
                         fontFamily: "ui-monospace, monospace", color: "var(--text)",
                       }}>
                         {fileContent}
