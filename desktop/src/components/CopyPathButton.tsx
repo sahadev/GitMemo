@@ -29,16 +29,9 @@ export function CopyPathButton({ relPath, absolutePath }: { relPath?: string; ab
       type="button"
       onClick={(e) => { e.stopPropagation(); void onClick(); }}
       title={t("common.copyPath")}
+      className="gm-icon-button"
       style={{
-        display: "flex",
-        alignItems: "center",
-        padding: 6,
-        borderRadius: 4,
-        background: "none",
-        border: "none",
-        cursor: "pointer",
         color: done ? "var(--green)" : "var(--text-secondary)",
-        flexShrink: 0,
       }}
     >
       {done ? <Check size={14} /> : <Link2 size={14} />}

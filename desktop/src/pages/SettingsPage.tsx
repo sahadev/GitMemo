@@ -121,7 +121,7 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
       style={{
         width: 44,
         height: 24,
-        borderRadius: 12,
+        borderRadius: "var(--gm-radius-pill)",
         background: enabled ? "var(--accent)" : "var(--bg-hover)",
         position: "relative",
         border: "none",
@@ -134,8 +134,8 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
         style={{
           width: 18,
           height: 18,
-          borderRadius: 9,
-          background: "#fff",
+          borderRadius: "var(--gm-radius-pill)",
+          background: "var(--gm-color-on-accent)",
           position: "absolute",
           top: 3,
           left: enabled ? 23 : 3,
@@ -560,9 +560,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const cardStyle = {
-    background: "var(--bg-card)",
+    background: "color-mix(in srgb, var(--bg-card) 94%, var(--bg) 6%)",
     border: "1px solid var(--border)",
-    borderRadius: 6,
+    borderRadius: "var(--gm-radius-md)",
     padding: isMobile ? "16px 14px" : "20px 24px",
   };
 
@@ -577,8 +577,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const compactButtonPadding = isMobile ? "8px 10px" : "4px 8px";
   const mobileFieldStyle = {
     padding: isMobile ? "10px 12px" : "4px 8px",
-    borderRadius: 5,
-    fontSize: isMobile ? 13 : 11,
+    borderRadius: "var(--gm-radius-md)",
+    fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-xs)",
   };
   const mobileRemoteStatus = isMobile && gitRemote ? (() => {
     if (!gitStatus) {
@@ -624,7 +624,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   ];
 
   return (
-    <div style={{
+    <div className="gm-page gm-page-scroll" style={{
       padding: isMobile ? "14px 14px 14px" : "20px 32px 32px",
       overflowY: "auto",
       height: "100%",
@@ -639,15 +639,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <Settings size={20} style={{ color: "var(--text-secondary)" }} />
-        <h1 style={{ fontSize: 22, fontWeight: 700, flex: 1 }}>{t("settings.title")}</h1>
+        <h1 className="gm-page-title" style={{ flex: 1 }}>{t("settings.title")}</h1>
         <button
           type="button"
           onClick={() => void handleRefresh()}
           title={t("common.refresh")}
-          style={{
-            background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6,
-            color: "var(--text-secondary)", display: "flex", alignItems: "center",
-          }}
+          className="gm-toolbar-button"
+          style={{ cursor: "pointer", padding: 6, display: "flex", alignItems: "center" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
         >
@@ -661,13 +659,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={rowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {theme === "dark" ? (
-                <Moon size={15} style={{ color: "var(--text-secondary)" }} />
+                <Moon size={16} style={{ color: "var(--text-secondary)" }} />
               ) : (
-                <Sun size={15} style={{ color: "var(--text-secondary)" }} />
+                <Sun size={16} style={{ color: "var(--text-secondary)" }} />
               )}
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.appearance")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.appearance")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>
                   {t("settings.appearanceDesc", t(`settings.${theme}`))}
                 </p>
               </div>
@@ -680,10 +678,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           {/* Language */}
           <div style={rowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Globe size={15} style={{ color: "var(--text-secondary)" }} />
+              <Globe size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.language")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.languageDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.language")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.languageDesc")}</p>
               </div>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
@@ -692,9 +690,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   key={lang.id}
                   onClick={() => void changeLanguage(lang.id)}
                   style={{
-                    padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
+                    padding: segmentedButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                     background: locale === lang.id ? "var(--accent)" : "var(--bg-hover)",
-                    color: locale === lang.id ? "#fff" : "var(--text-secondary)",
+                    color: locale === lang.id ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
                     border: locale === lang.id ? "1px solid var(--accent)" : "1px solid var(--border)",
                   }}
                 >
@@ -711,10 +709,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Launch at login */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Power size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Power size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.launchAtLogin")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.launchAtLoginDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
@@ -729,10 +727,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Clipboard autostart */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Clipboard size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.clipboardAutostart")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.clipboardAutostartDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
@@ -747,10 +745,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Import file size limit */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Download size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Download size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.importFileSizeLimit")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.importFileSizeLimit")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>
                       {t(
                         "settings.importFileSizeLimitDesc",
                         formatImportSizeLimit(IMPORT_SIZE_LIMIT_MIN_KB),
@@ -779,7 +777,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   <span style={{
                     minWidth: 56,
                     textAlign: "right",
-                    fontSize: 12,
+                    fontSize: "var(--gm-font-xs)",
                     color: savingImportLimit ? "var(--text-secondary)" : "var(--accent)",
                     fontWeight: 600,
                     fontFamily: "ui-monospace, monospace",
@@ -794,10 +792,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Control copy/paste compatibility */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Clipboard size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Clipboard size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.controlCopyPaste")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.controlCopyPasteDesc")}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
@@ -811,10 +809,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={rowStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Wifi size={15} style={{ color: "var(--text-secondary)" }} />
+                <Wifi size={16} style={{ color: "var(--text-secondary)" }} />
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.proxy")}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.proxyDesc")}</p>
+                  <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.proxy")}</p>
+                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.proxyDesc")}</p>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -823,9 +821,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     key={mode}
                     onClick={() => void setProxyMode(mode)}
                     style={{
-                      padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
+                      padding: segmentedButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                       background: (settings?.proxy_mode ?? "system") === mode ? "var(--accent)" : "var(--bg-hover)",
-                      color: (settings?.proxy_mode ?? "system") === mode ? "#fff" : "var(--text-secondary)",
+                      color: (settings?.proxy_mode ?? "system") === mode ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
                       border: (settings?.proxy_mode ?? "system") === mode ? "1px solid var(--accent)" : "1px solid var(--border)",
                     }}
                   >
@@ -854,8 +852,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 <button
                   onClick={() => void saveProxyUrl()}
                   style={{
-                    padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
-                    background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                    padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                    background: "var(--accent)", border: "none", color: "var(--gm-color-on-accent)", fontWeight: 600,
                   }}
                 >
                   {t("conversations.save")}
@@ -872,18 +870,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={rowStyle}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <Terminal size={15} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+                    <Terminal size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cliCapability")}</p>
-                      <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.5 }}>
+                      <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.cliCapability")}</p>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.5 }}>
                         {t("settings.cliCapabilityDesc")}
                       </p>
-                      <p style={{ fontSize: 11, color: cliStatusColor, marginTop: 4, fontWeight: 600 }}>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: cliStatusColor, marginTop: 4, fontWeight: 600 }}>
                         {cliStatusLabel}
                       </p>
                       {cliStatus?.path && (
                         <p style={{
-                          fontSize: 10,
+                          fontSize: "var(--gm-font-2xs)",
                           color: "var(--text-secondary)",
                           marginTop: 3,
                           fontFamily: "ui-monospace, monospace",
@@ -911,12 +909,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       onClick={() => void copyValue(CLI_INSTALL_COMMAND, "cliCommand")}
                       style={{
                         display: "flex", alignItems: "center", gap: 5,
-                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                        padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {copiedField === "cliCommand" ? <Check size={11} /> : <Copy size={11} />}
+                      {copiedField === "cliCommand" ? <Check size={12} /> : <Copy size={12} />}
                       {t("settings.copyInstallCommand")}
                     </button>
                     <button
@@ -925,7 +923,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       title={t("settings.detectCli")}
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        width: 28, height: 28, borderRadius: 5,
+                        width: 28, height: 28, borderRadius: "var(--gm-radius-md)",
                         background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                         cursor: "pointer",
                       }}
@@ -941,10 +939,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Claude integration */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Terminal size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Terminal size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.claudeIntegration")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.claudeIntegration")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.claudeIntegrationDesc")}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -954,7 +952,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       onClick={() => void updateClaudeSkills()}
                       disabled={updatingClaudeSkills}
                       style={{
-                        padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingClaudeSkills ? "default" : "pointer",
+                        padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingClaudeSkills ? "default" : "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         opacity: updatingClaudeSkills ? 0.6 : 1,
                       }}
@@ -971,10 +969,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Cursor integration */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Code size={15} style={{ color: "var(--text-secondary)" }} />
+                  <Code size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.cursorIntegration")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.cursorIntegrationDesc")}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -984,7 +982,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       onClick={() => void updateCursorSkills()}
                       disabled={updatingCursorSkills}
                       style={{
-                        padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: updatingCursorSkills ? "default" : "pointer",
+                        padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: updatingCursorSkills ? "default" : "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         opacity: updatingCursorSkills ? 0.6 : 1,
                       }}
@@ -1001,17 +999,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               {/* Local editor dirs */}
               <div style={rowStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <FolderOpen size={15} style={{ color: "var(--text-secondary)" }} />
+                  <FolderOpen size={16} style={{ color: "var(--text-secondary)" }} />
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.localDirs")}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.localDirsDesc")}</p>
+                    <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.localDirs")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.localDirsDesc")}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onNavigate?.("editor-home")}
                   style={{
-                    padding: "4px 12px", borderRadius: 4, fontSize: 12, cursor: "pointer",
+                    padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                     background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                   }}
                 >
@@ -1026,10 +1024,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           {/* Git branch */}
           <div style={rowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <GitBranch size={15} style={{ color: "var(--text-secondary)" }} />
+              <GitBranch size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.syncBranch")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncBranchDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.syncBranch")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncBranchDesc")}</p>
               </div>
             </div>
             {editingBranch ? (
@@ -1049,7 +1047,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <button
                 onClick={() => setEditingBranch(true)}
                 style={{
-                  padding: segmentedButtonPadding, borderRadius: 5, fontSize: 12, cursor: "pointer",
+                  padding: segmentedButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                   background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                   fontFamily: "ui-monospace, monospace",
                 }}
@@ -1064,10 +1062,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           {/* Data directory */}
           <div style={rowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-              <FolderOpen size={15} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+              <FolderOpen size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.dataDir")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.dataDirDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.dataDir")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.dataDirDesc")}</p>
               </div>
             </div>
             {syncDir ? (
@@ -1081,7 +1079,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   gap: 6,
                   maxWidth: 240,
                   padding: compactButtonPadding,
-                  borderRadius: 6,
+                  borderRadius: "var(--gm-radius-md)",
                   border: "1px solid var(--border)",
                   background: "var(--bg)",
                   color: "var(--text-secondary)",
@@ -1090,7 +1088,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               >
                 {copiedField === "syncDir" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
                 <span style={{
-                  fontSize: 11,
+                  fontSize: "var(--gm-font-xs)",
                   fontFamily: "ui-monospace, monospace",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -1101,7 +1099,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </button>
             ) : (
               <span style={{
-                fontSize: 11, color: "var(--text-secondary)", fontFamily: "ui-monospace, monospace",
+                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontFamily: "ui-monospace, monospace",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200,
               }}>
                 —
@@ -1115,10 +1113,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={rowStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                <Globe2 size={15} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+                <Globe2 size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.remoteRepo")}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.remoteRepoDesc")}</p>
+                  <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.remoteRepo")}</p>
+                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.remoteRepoDesc")}</p>
                 </div>
               </div>
               {editingRemote ? (
@@ -1160,11 +1158,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       />
                       <div style={{
                         padding: "10px 12px",
-                        borderRadius: 6,
+                        borderRadius: "var(--gm-radius-md)",
                         border: "1px solid var(--border)",
                         background: "var(--bg-hover)",
                       }}>
-                        <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                           {t("settings.remoteTokenHint")}
                         </p>
                         <button
@@ -1173,12 +1171,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                           style={{
                             display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                             width: "100%", marginTop: 8,
-                            padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                            padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                             background: "var(--bg)", border: "1px solid var(--border)", color: "var(--accent)",
                             fontWeight: 600,
                           }}
                         >
-                          <ExternalLink size={11} /> {t("settings.createAccessTokenFor", accessTokenProvider(remoteInput || gitRemote))}
+                          <ExternalLink size={12} /> {t("settings.createAccessTokenFor", accessTokenProvider(remoteInput || gitRemote))}
                         </button>
                       </div>
                     </>
@@ -1187,8 +1185,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     onClick={() => void saveRemote()}
                     disabled={savingRemote}
                     style={{
-                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
-                      background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                      padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                      background: "var(--accent)", border: "none", color: "var(--gm-color-on-accent)", fontWeight: 600,
                       opacity: savingRemote ? 0.7 : 1,
                     }}
                   >
@@ -1198,7 +1196,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     onClick={() => { if (!savingRemote) { setEditingRemote(false); setRemoteInput(gitRemote); setRemoteTokenInput(""); } }}
                     disabled={savingRemote}
                     style={{
-                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                       opacity: savingRemote ? 0.6 : 1,
                     }}
@@ -1214,14 +1212,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     title={t("common.clickToCopy")}
                     style={{
                       display: "flex", alignItems: "center", gap: 6,
-                      maxWidth: isMobile ? "100%" : 280, padding: compactButtonPadding, borderRadius: 6,
+                      maxWidth: isMobile ? "100%" : 280, padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)",
                       border: "1px solid var(--border)", background: "var(--bg)",
                       color: "var(--text-secondary)", cursor: "pointer",
                     }}
                   >
                     {copiedField === "gitRemote" ? <Check size={12} style={{ flexShrink: 0, color: "var(--green)" }} /> : <Copy size={12} style={{ flexShrink: 0 }} />}
                     <span style={{
-                      fontSize: 11, fontFamily: "ui-monospace, monospace",
+                      fontSize: "var(--gm-font-xs)", fontFamily: "ui-monospace, monospace",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }} title={gitRemote}>
                       {gitRemote}
@@ -1230,7 +1228,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   <button
                     onClick={() => { setRemoteInput(gitRemote); setRemoteTokenInput(""); setEditingRemote(true); }}
                     style={{
-                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                     }}
                   >
@@ -1240,7 +1238,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     onClick={() => void testRemoteSync()}
                     disabled={testingRemote || diagnosingRemote}
                     style={{
-                      padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                      padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                       background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--green)",
                       opacity: testingRemote ? 0.7 : 1,
                     }}
@@ -1252,7 +1250,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       onClick={() => void diagnoseRemoteSync()}
                       disabled={testingRemote || diagnosingRemote}
                       style={{
-                        padding: compactButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
+                        padding: compactButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                         background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--accent)",
                         opacity: diagnosingRemote ? 0.7 : 1,
                       }}
@@ -1265,8 +1263,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <button
                 onClick={() => { setRemoteInput(""); setRemoteTokenInput(""); setEditingRemote(true); }}
                 style={{
-                  padding: segmentedButtonPadding, borderRadius: 5, fontSize: 11, cursor: "pointer",
-                  background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                  padding: segmentedButtonPadding, borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                  background: "var(--accent)", border: "none", color: "var(--gm-color-on-accent)", fontWeight: 600,
                 }}
               >
                 {t("settings.addRemote")}
@@ -1279,16 +1277,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 flexDirection: "column",
                 gap: 8,
                 padding: "10px 12px",
-                borderRadius: 8,
+                borderRadius: "var(--gm-radius-lg)",
                 border: "1px solid var(--border)",
                 background: "var(--bg)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 11, fontWeight: 600 }}>{t("settings.mobileRemoteStatus")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>{t("settings.mobileRemoteStatus")}</p>
                     <p style={{
                       marginTop: 2,
-                      fontSize: 12,
+                      fontSize: "var(--gm-font-xs)",
                       color: mobileRemoteStatus?.color ?? "var(--text-secondary)",
                       fontWeight: 600,
                     }}>
@@ -1303,8 +1301,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       alignItems: "center",
                       gap: 5,
                       padding: compactButtonPadding,
-                      borderRadius: 5,
-                      fontSize: 11,
+                      borderRadius: "var(--gm-radius-md)",
+                      fontSize: "var(--gm-font-xs)",
                       cursor: "pointer",
                       background: "var(--bg-hover)",
                       border: "1px solid var(--border)",
@@ -1313,10 +1311,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       flexShrink: 0,
                     }}
                   >
-                    <ExternalLink size={11} /> {t("settings.createAccessTokenFor", accessTokenProvider(gitRemote))}
+                    <ExternalLink size={12} /> {t("settings.createAccessTokenFor", accessTokenProvider(gitRemote))}
                   </button>
                 </div>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                   {t("settings.mobileRemoteSummary")}
                 </p>
               </div>
@@ -1324,27 +1322,27 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             {isMobile && mobileGitDiagnostic && (
               <div style={{
                 padding: "10px 12px",
-                borderRadius: 8,
+                borderRadius: "var(--gm-radius-lg)",
                 border: "1px solid var(--border)",
                 background: "var(--bg-hover)",
               }}>
-                <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{t("settings.mobileGitDiagnostic")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600, marginBottom: 8 }}>{t("settings.mobileGitDiagnostic")}</p>
                 {mobileDiagnosticSummary && (
                   <div style={{
                     padding: "8px 10px",
                     marginBottom: 8,
-                    borderRadius: 6,
+                    borderRadius: "var(--gm-radius-md)",
                     background: "var(--bg-card)",
-                    border: `1px solid ${mobileDiagnosticSummary.ok ? "rgba(34, 197, 94, 0.35)" : "rgba(239, 68, 68, 0.35)"}`,
+                    border: `1px solid ${mobileDiagnosticSummary.ok ? "var(--gm-success-border)" : "var(--gm-danger-border)"}`,
                   }}>
                     <p style={{
-                      fontSize: 11,
+                      fontSize: "var(--gm-font-xs)",
                       fontWeight: 700,
                       color: mobileDiagnosticSummary.ok ? "var(--green)" : "var(--red)",
                     }}>
                       {mobileDiagnosticSummary.title}
                     </p>
-                    <p style={{ marginTop: 3, fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5, wordBreak: "break-word" }}>
+                    <p style={{ marginTop: 3, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5, wordBreak: "break-word" }}>
                       {mobileDiagnosticSummary.detail}
                     </p>
                   </div>
@@ -1355,15 +1353,15 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       <span style={{
                         width: 8,
                         height: 8,
-                        borderRadius: 4,
+                        borderRadius: "var(--gm-radius-sm)",
                         background: step.ok ? "var(--green)" : "var(--red)",
                         marginTop: 5,
                         flexShrink: 0,
                       }} />
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 11, fontWeight: 600 }}>{step.name}</p>
+                        <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>{step.name}</p>
                         <p style={{
-                          fontSize: 11,
+                          fontSize: "var(--gm-font-xs)",
                           color: "var(--text-secondary)",
                           lineHeight: 1.5,
                           wordBreak: "break-word",
@@ -1379,10 +1377,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             {/* SSH guidance when editing */}
             {isDesktop && editingRemote && (
               <div style={{
-                padding: "12px 16px", borderRadius: 8,
+                padding: "12px 16px", borderRadius: "var(--gm-radius-lg)",
                 background: "var(--bg-hover)", border: "1px solid var(--border)",
               }}>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
                   {t("settings.remoteGuide")}
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -1390,12 +1388,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     onClick={() => void openUrl("https://github.com/new")}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: 4, fontSize: 11,
+                      padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
                       border: "1px solid var(--border)", background: "transparent",
                       color: "var(--text-secondary)", cursor: "pointer",
                     }}
                   >
-                    <ExternalLink size={10} /> {t("settings.createRepo")}
+                    <ExternalLink size={12} /> {t("settings.createRepo")}
                   </button>
                   <button
                     onClick={() => void invoke<string>("get_ssh_public_key").then(key => {
@@ -1408,12 +1406,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     }).catch(() => showToast("No SSH key found", true))}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: 4, fontSize: 11,
+                      padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)",
                       border: "1px solid var(--border)", background: "transparent",
                       color: "var(--accent)", cursor: "pointer",
                     }}
                   >
-                    <Copy size={10} /> {t("settings.copySshKey")}
+                    <Copy size={12} /> {t("settings.copySshKey")}
                   </button>
                 </div>
               </div>
@@ -1424,10 +1422,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
           <div style={rowStyle}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <ScrollText size={15} style={{ color: "var(--text-secondary)" }} />
+              <ScrollText size={16} style={{ color: "var(--text-secondary)" }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }}>{t("settings.syncLogs")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncLogsDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{t("settings.syncLogs")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("settings.syncLogsDesc")}</p>
               </div>
             </div>
             <button
@@ -1435,8 +1433,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               onClick={() => void openSyncLogs()}
               style={{
                 padding: segmentedButtonPadding,
-                borderRadius: 5,
-                fontSize: 12,
+                borderRadius: "var(--gm-radius-md)",
+                fontSize: "var(--gm-font-xs)",
                 cursor: "pointer",
                 background: "var(--bg-hover)",
                 border: "1px solid var(--border)",
@@ -1454,8 +1452,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.shortcuts")}</p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.shortcuts")}</p>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 3 }}>{t("settings.shortcutsDesc")}</p>
               </div>
               <button
                 type="button"
@@ -1463,7 +1461,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 disabled={savingShortcut !== null}
                 style={{
                   display: "flex", alignItems: "center", gap: 4,
-                  padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                  padding: "var(--gm-space-3) var(--gm-space-5)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                   border: "1px solid var(--border)", background: "transparent",
                   color: "var(--text-secondary)", cursor: savingShortcut ? "default" : "pointer",
                   opacity: savingShortcut ? 0.65 : 1,
@@ -1489,8 +1487,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500 }}>{t(row.labelKey)}</p>
-                      <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
+                      <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 500 }}>{t(row.labelKey)}</p>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 3 }}>{t(row.descKey)}</p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                       <button
@@ -1502,12 +1500,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         style={{
                           minWidth: 128,
                           padding: "6px 10px",
-                          borderRadius: 5,
+                          borderRadius: "var(--gm-radius-md)",
                           border: `1px solid ${recording ? "var(--accent)" : "var(--border)"}`,
                           background: recording ? "var(--bg-hover)" : "var(--bg)",
                           color: recording ? "var(--accent)" : "var(--text)",
                           fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                          fontSize: 12,
+                          fontSize: "var(--gm-font-xs)",
                           cursor: saving ? "default" : "pointer",
                           opacity: saving ? 0.65 : 1,
                         }}
@@ -1521,7 +1519,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         title={t("settings.resetShortcut")}
                         style={{
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          width: 28, height: 28, borderRadius: 5,
+                          width: 28, height: 28, borderRadius: "var(--gm-radius-md)",
                           border: "1px solid var(--border)", background: "transparent",
                           color: "var(--text-secondary)", cursor: saving ? "default" : "pointer",
                           opacity: saving ? 0.65 : 1,
@@ -1540,9 +1538,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
       {/* About */}
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
-        <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 48, height: 48, borderRadius: 6, marginBottom: 10, ...logoSaveProps.style }} />
-        <p style={{ fontSize: 14, fontWeight: 600 }}>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</p>
-        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+        <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 48, height: 48, borderRadius: "var(--gm-radius-md)", marginBottom: 10, ...logoSaveProps.style }} />
+        <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</p>
+        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 4 }}>
           v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
         {/* Update status */}
@@ -1552,27 +1550,27 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               onClick={() => void checkForUpdates()}
               style={{
                 display: "flex", alignItems: "center", gap: 4,
-                padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                 background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
               }}
             >
-              <Download size={11} />
+              <Download size={12} />
               {t("settings.checkUpdate")}
             </button>
           )}
           {updateStatus === "checking" && (
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("settings.checking")}</span>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("settings.checking")}</span>
           )}
           {updateStatus === "available" && (
             <>
-              <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 500 }}>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--green)", fontWeight: 500 }}>
                 {t("settings.updateAvailable", updateVersion ?? "")}
               </span>
               <button
                 onClick={() => void installUpdate()}
                 style={{
-                  padding: "4px 12px", borderRadius: 4, fontSize: 11, cursor: "pointer",
-                  background: "var(--accent)", border: "none", color: "#fff", fontWeight: 600,
+                  padding: "4px 12px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
+                  background: "var(--accent)", border: "none", color: "var(--gm-color-on-accent)", fontWeight: 600,
                 }}
               >
                 {t("settings.installUpdate")}
@@ -1581,22 +1579,22 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           )}
           {updateStatus === "downloading" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{t("settings.downloading")}</span>
-              <div style={{ flex: 1, height: 4, borderRadius: 2, background: "var(--bg-hover)", overflow: "hidden", maxWidth: 120 }}>
-                <div style={{ height: "100%", borderRadius: 2, background: "var(--accent)", width: `${updateProgress}%`, transition: "width 0.2s" }} />
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{t("settings.downloading")}</span>
+              <div style={{ flex: 1, height: 4, borderRadius: "var(--gm-radius-xs)", background: "var(--bg-hover)", overflow: "hidden", maxWidth: 120 }}>
+                <div style={{ height: "100%", borderRadius: "var(--gm-radius-xs)", background: "var(--accent)", width: `${updateProgress}%`, transition: "width 0.2s" }} />
               </div>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{updateProgress}%</span>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{updateProgress}%</span>
             </div>
           )}
           {updateStatus === "error" && (
             <>
-              <span style={{ fontSize: 11, color: "var(--red)", maxWidth: 260, wordBreak: "break-word" }}>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)", maxWidth: 260, wordBreak: "break-word" }}>
                 {updateError || t("settings.updateError")}
               </span>
               <button
                 onClick={() => void checkForUpdates()}
                 style={{
-                  padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer",
+                  padding: "4px 10px", borderRadius: "var(--gm-radius-sm)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
                   background: "var(--bg-hover)", border: "1px solid var(--border)", color: "var(--text-secondary)",
                 }}
               >
@@ -1605,7 +1603,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             </>
           )}
           {updateStatus === "upToDate" && (
-            <span style={{ fontSize: 11, color: "var(--green)" }}>{t("settings.upToDate")}</span>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--green)" }}>{t("settings.upToDate")}</span>
           )}
         </div>}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
@@ -1613,11 +1611,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             onClick={() => void openUrl("https://github.com/sahadev/gitmemo")}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              fontSize: 11, color: "var(--accent)", background: "none",
+              fontSize: "var(--gm-font-xs)", color: "var(--accent)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
           >
-            <ExternalLink size={11} />
+            <ExternalLink size={12} />
             GitHub
           </button>
           <span style={{ color: "var(--border)" }}>·</span>
@@ -1625,11 +1623,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             onClick={() => void openUrl("https://github.com/sahadev/GitMemo/issues/new?labels=feedback&title=Feedback%3A+")}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              fontSize: 11, color: "var(--text-secondary)", background: "none",
+              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
           >
-            <MessageCircle size={11} />
+            <MessageCircle size={12} />
             {t("settings.sendFeedback")}
           </button>
           <span style={{ color: "var(--border)" }}>·</span>
@@ -1637,11 +1635,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             onClick={openChangelog}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              fontSize: 11, color: "var(--text-secondary)", background: "none",
+              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "none",
               border: "none", cursor: "pointer", padding: 0,
             }}
           >
-            <ScrollText size={11} />
+            <ScrollText size={12} />
             {t("settings.changelog")}
           </button>
         </div>
@@ -1652,7 +1650,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            background: "var(--gm-overlay-dialog)", backdropFilter: "blur(4px)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowSyncLogs(false); }}
@@ -1660,16 +1658,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{
             width: "90%", maxWidth: 720, maxHeight: "78vh",
             background: "var(--bg-card)", border: "1px solid var(--border)",
-            borderRadius: 8, display: "flex", flexDirection: "column",
-            boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3)",
+            borderRadius: "var(--gm-radius-lg)", display: "flex", flexDirection: "column",
+            boxShadow: "var(--gm-shadow-modal)",
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--border)",
+              gap: "var(--gm-space-5)", padding: "var(--gm-space-7) var(--gm-space-8)", borderBottom: "1px solid var(--border)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                <ScrollText size={15} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{t("settings.syncLogs")}</span>
+                <ScrollText size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.syncLogs")}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                 <button
@@ -1677,7 +1675,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   onClick={() => void loadSyncLogs()}
                   disabled={loadingSyncLogs}
                   style={{
-                    padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                    padding: "var(--gm-space-3) var(--gm-space-5)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                     border: "1px solid var(--border)", background: "transparent",
                     color: "var(--text-secondary)", cursor: loadingSyncLogs ? "default" : "pointer",
                     opacity: loadingSyncLogs ? 0.65 : 1,
@@ -1690,7 +1688,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   onClick={() => void clearSyncLogs()}
                   disabled={clearingSyncLogs || syncLogs.length === 0}
                   style={{
-                    padding: "5px 9px", borderRadius: 5, fontSize: 11,
+                    padding: "var(--gm-space-3) var(--gm-space-5)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                     border: "1px solid var(--border)", background: "transparent",
                     color: "var(--red)", cursor: clearingSyncLogs || syncLogs.length === 0 ? "default" : "pointer",
                     opacity: clearingSyncLogs || syncLogs.length === 0 ? 0.55 : 1,
@@ -1700,19 +1698,19 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 </button>
                 <button onClick={() => setShowSyncLogs(false)} style={{
                   background: "none", border: "none", cursor: "pointer",
-                  color: "var(--text-secondary)", padding: 4, borderRadius: 4,
+                  color: "var(--text-secondary)", padding: 4, borderRadius: "var(--gm-radius-sm)",
                 }}>
                   <X size={16} />
                 </button>
               </div>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px 18px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-space-6) var(--gm-space-8) var(--gm-space-8)" }}>
               {loadingSyncLogs ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
+                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("common.loading")}
                 </p>
               ) : syncLogs.length === 0 ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
+                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("settings.syncLogsEmpty")}
                 </p>
               ) : (
@@ -1722,7 +1720,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       key={entry.filename}
                       style={{
                         border: "1px solid var(--border)",
-                        borderRadius: 6,
+                        borderRadius: "var(--gm-radius-md)",
                         background: "var(--bg)",
                         overflow: "hidden",
                       }}
@@ -1730,7 +1728,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       <div style={{
                         padding: "8px 10px",
                         borderBottom: "1px solid var(--border)",
-                        fontSize: 11,
+                        fontSize: "var(--gm-font-xs)",
                         color: "var(--text-secondary)",
                         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                         overflow: "hidden",
@@ -1747,7 +1745,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
                         color: "var(--text)",
-                        fontSize: 11,
+                        fontSize: "var(--gm-font-xs)",
                         lineHeight: 1.55,
                         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                       }}>
@@ -1767,7 +1765,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            background: "var(--gm-overlay-dialog)", backdropFilter: "blur(4px)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowChangelog(false); }}
@@ -1775,27 +1773,27 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <div style={{
             width: "90%", maxWidth: 520, maxHeight: "70vh",
             background: "var(--bg-card)", border: "1px solid var(--border)",
-            borderRadius: 8, display: "flex", flexDirection: "column",
-            boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3)",
+            borderRadius: "var(--gm-radius-lg)", display: "flex", flexDirection: "column",
+            boxShadow: "var(--gm-shadow-modal)",
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "14px 18px", borderBottom: "1px solid var(--border)",
+              padding: "var(--gm-space-7) var(--gm-space-8)", borderBottom: "1px solid var(--border)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ScrollText size={15} style={{ color: "var(--accent)" }} />
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{t("settings.changelog") || "Changelog"}</span>
+                <ScrollText size={16} style={{ color: "var(--accent)" }} />
+                <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("settings.changelog") || "Changelog"}</span>
               </div>
               <button onClick={() => setShowChangelog(false)} style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "var(--text-secondary)", padding: 4, borderRadius: 4,
+                color: "var(--text-secondary)", padding: 4, borderRadius: "var(--gm-radius-sm)",
               }}>
                 <X size={16} />
               </button>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px 18px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-space-4) var(--gm-space-8) var(--gm-space-8)" }}>
               {changelog.length === 0 ? (
-                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
+                <p style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
                   {t("settings.noChangelog") || "No changelog available"}
                 </p>
               ) : (
@@ -1803,14 +1801,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   <div key={release.version} style={{ marginTop: i === 0 ? 8 : 20 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
                       <span style={{
-                        fontSize: 13, fontWeight: 600,
+                        fontSize: "var(--gm-font-sm)", fontWeight: 600,
                         color: i === 0 ? "var(--accent)" : "var(--text)",
                       }}>
                         v{release.version}
                       </span>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{release.date}</span>
+                      <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{release.date}</span>
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.7, color: "var(--text-secondary)" }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: "var(--gm-font-xs)", lineHeight: 1.7, color: "var(--text-secondary)" }}>
                       {release.changes.map((change, j) => (
                         <li key={j}>{change}</li>
                       ))}

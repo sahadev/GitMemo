@@ -73,7 +73,7 @@ function ClipImageThumb({ relPath, selected, wide }: { relPath: string; selected
   const h = wide ? 80 : 40;
   if (!src) {
     return (
-      <div style={{ width: w, height: h, flexShrink: 0, borderRadius: 4, background: "var(--bg-hover)" }} />
+      <div style={{ width: w, height: h, flexShrink: 0, borderRadius: "var(--gm-radius-sm)", background: "var(--bg-hover)" }} />
     );
   }
   return (
@@ -85,9 +85,9 @@ function ClipImageThumb({ relPath, selected, wide }: { relPath: string; selected
         width: w,
         height: h,
         objectFit: "cover",
-        borderRadius: 4,
+        borderRadius: "var(--gm-radius-sm)",
         flexShrink: 0,
-        border: `1px solid ${selected ? "rgba(255,255,255,0.35)" : "var(--border)"}`,
+        border: `1px solid ${selected ? "var(--gm-selection-border)" : "var(--border)"}`,
         ...imageSaveProps.style,
       }}
     />
@@ -656,7 +656,7 @@ export default function ClipboardPage({
   const displayedClipTotal = clipTotal ?? status?.clips_count ?? 0;
 
   return (
-    <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       {/* Privacy confirmation dialog */}
       {showPrivacyDialog && (
         <ClipboardPrivacyDialog
@@ -675,6 +675,7 @@ export default function ClipboardPage({
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden", position: "relative",
       }}>
@@ -684,13 +685,14 @@ export default function ClipboardPage({
           gap: 8,
           padding: isMobile ? "9px 12px" : "12px 16px", borderBottom: "1px solid var(--border)",
           flexShrink: 0,
+          background: "var(--bg-card)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <Clipboard size={isMobile ? 18 : 16} style={{ color: "var(--accent)", flexShrink: 0 }} />
-            <span style={{ fontSize: isMobile ? 15 : 14, fontWeight: 700, whiteSpace: "nowrap" }}>{t("clipboard.title")}</span>
+            <span style={{ fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontWeight: 700, whiteSpace: "nowrap" }}>{t("clipboard.title")}</span>
             {!isMobile && status && (
               <span style={{
-                padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 500,
+                padding: "2px 8px", borderRadius: "var(--gm-radius-pill)", fontSize: "var(--gm-font-2xs)", fontWeight: 500,
                 background: status.watching ? "var(--bg-success)" : "var(--bg-hover)",
                 color: status.watching ? "var(--green)" : "var(--text-secondary)",
                 whiteSpace: "nowrap",
@@ -700,38 +702,34 @@ export default function ClipboardPage({
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button onClick={toggleMultiSelectMode} title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")} style={{
+            <button className="gm-toolbar-button" onClick={toggleMultiSelectMode} title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")} style={{
               display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
               width: isMobile ? 36 : 28, height: isMobile ? 36 : 28,
-              borderRadius: 6, cursor: "pointer",
-              background: multiSelectMode ? "var(--bg-hover)" : "none",
-              border: "none", color: multiSelectMode ? "var(--accent)" : "var(--text-secondary)",
+              borderRadius: "var(--gm-radius-md)", cursor: "pointer",
+              color: multiSelectMode ? "var(--accent)" : "var(--text-secondary)",
             }}>
               {multiSelectMode ? <X size={isMobile ? 16 : 14} /> : <ListChecks size={isMobile ? 16 : 14} />}
             </button>
-            <button onClick={() => { setRefreshTrigger((t) => t + 1); void refreshClipboardStatus(); if (selectedFile) void openFile(selectedFile); }} title={t("common.refresh")} style={{
+            <button className="gm-toolbar-button" onClick={() => { setRefreshTrigger((t) => t + 1); void refreshClipboardStatus(); if (selectedFile) void openFile(selectedFile); }} title={t("common.refresh")} style={{
               display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
               width: isMobile ? 36 : 28, height: isMobile ? 36 : 28,
-              borderRadius: 6, cursor: "pointer",
-              background: "none", border: "none", color: "var(--text-secondary)",
+              borderRadius: "var(--gm-radius-md)", cursor: "pointer",
             }}>
               <RefreshCw size={isMobile ? 16 : 14} />
             </button>
             {!isMobile && (
               <>
-                <button onClick={saveNow} title={t("clipboard.saveCurrentClipboard")} style={{
+                <button className="gm-toolbar-button" onClick={saveNow} title={t("clipboard.saveCurrentClipboard")} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
                   width: 28, height: 28,
-                  borderRadius: 6, cursor: "pointer",
-                  background: "none", border: "none", color: "var(--text-secondary)",
+                  borderRadius: "var(--gm-radius-md)", cursor: "pointer",
                 }}>
                   <Save size={14} />
                 </button>
-                <button onClick={toggleWatch} title={status?.watching ? t("common.stop") : t("common.start")} style={{
+                <button className="gm-toolbar-button" onClick={toggleWatch} title={status?.watching ? t("common.stop") : t("common.start")} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
                   width: 28, height: 28,
-                  borderRadius: 6, cursor: "pointer",
-                  background: "none", border: "none",
+                  borderRadius: "var(--gm-radius-md)", cursor: "pointer",
                   color: status?.watching ? "var(--red)" : "var(--green)",
                 }}>
                   {status?.watching ? <Square size={14} /> : <Play size={14} />}
@@ -746,15 +744,16 @@ export default function ClipboardPage({
           padding: isMobile ? "8px 12px" : "8px 16px",
           borderBottom: "1px solid var(--border)",
           flexShrink: 0,
+          background: "var(--bg-card)",
         }}>
           <div role="tablist" aria-label={t("clipboard.filterLabel")} style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
             width: "100%",
             padding: 2,
-            borderRadius: 7,
+            borderRadius: "var(--gm-radius-lg)",
             border: "1px solid var(--border)",
-            background: "var(--bg-hover)",
+            background: "var(--bg)",
           }}>
             {clipFilterOptions.map(({ id, label, Icon }) => {
               const activeFilter = clipFilter === id;
@@ -771,14 +770,14 @@ export default function ClipboardPage({
                     minWidth: 0,
                     height: isMobile ? 32 : 26,
                     padding: isMobile ? "0 8px" : "0 6px",
-                    borderRadius: 5,
+                    borderRadius: "var(--gm-radius-md)",
                     border: "none",
                     background: activeFilter ? "var(--bg)" : "transparent",
                     color: activeFilter ? "var(--accent)" : "var(--text-secondary)",
                     cursor: "pointer",
-                    fontSize: isMobile ? 12 : 11,
+                    fontSize: "var(--gm-font-xs)",
                     fontWeight: activeFilter ? 700 : 500,
-                    boxShadow: activeFilter ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                    boxShadow: activeFilter ? "var(--gm-shadow-control)" : "none",
                   }}
                 >
                   <Icon size={isMobile ? 14 : 12} style={{ flexShrink: 0 }} />
@@ -810,10 +809,10 @@ export default function ClipboardPage({
               <Loading compact text={t("clipboard.loading")} />
             </div>
           ) : savedClips.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 20px", textAlign: "center" }}>
+            <div className="gm-empty-state" style={{ padding: "48px 20px" }}>
               <Clipboard size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{emptyClipsMessage}</p>
-              {!isMobile && clipFilter === "all" && <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>}
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{emptyClipsMessage}</p>
+              {!isMobile && clipFilter === "all" && <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>{t("clipboard.autoCapture")}</p>}
             </div>
           ) : (
             <>
@@ -822,10 +821,10 @@ export default function ClipboardPage({
               const selectionOrder = selectedClipPaths.indexOf(file.path);
               const clipSelected = selectionOrder >= 0;
               const active = multiSelectMode ? clipSelected : selected;
-              const metaColor = active ? "rgba(255,255,255,0.7)" : "var(--text-secondary)";
+              const metaColor = "var(--text-secondary)";
               const actionColor = copiedId === file.path
-                ? "#fff"
-                : active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)";
+                ? "var(--green)"
+                : "var(--text-secondary)";
               const actionSize = isMobile ? 32 : 22;
               return (
                 <div
@@ -836,8 +835,9 @@ export default function ClipboardPage({
                   style={{
                     position: "relative",
                     borderBottom: "1px solid var(--border)",
-                    background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text)",
+                    background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                    color: "var(--text)",
+                    borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
                     transition: "background 0.15s",
                     cursor: multiSelectMode ? "pointer" : undefined,
                   }}
@@ -864,12 +864,12 @@ export default function ClipboardPage({
                       >
                         <span style={{
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          width: isMobile ? 26 : 22, height: isMobile ? 26 : 22, borderRadius: 999,
-                          border: `1px solid ${clipSelected ? "rgba(255,255,255,0.75)" : "var(--border)"}`,
-                          background: clipSelected ? "rgba(255,255,255,0.18)" : "var(--bg)",
-                          color: clipSelected ? "#fff" : "var(--text-secondary)",
-                          fontSize: 11, fontWeight: 700,
-                          boxShadow: active ? "none" : "0 1px 4px rgba(0,0,0,0.08)",
+                          width: isMobile ? 26 : 22, height: isMobile ? 26 : 22, borderRadius: "var(--gm-radius-pill)",
+                          border: `1px solid ${clipSelected ? "var(--accent)" : "var(--border)"}`,
+                          background: clipSelected ? "color-mix(in srgb, var(--accent) 12%, var(--bg-card))" : "var(--bg)",
+                          color: clipSelected ? "var(--accent)" : "var(--text-secondary)",
+                          fontSize: "var(--gm-font-xs)", fontWeight: 700,
+                          boxShadow: active ? "none" : "var(--gm-shadow-control-strong)",
                         }}>
                           {clipSelected ? selectionOrder + 1 : ""}
                         </span>
@@ -910,7 +910,7 @@ export default function ClipboardPage({
                     ) : (
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{
-                          fontSize: isMobile ? 14 : 13, whiteSpace: "pre-wrap",
+                          fontSize: "var(--gm-font-sm)", whiteSpace: "pre-wrap",
                           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                           overflow: "hidden", lineHeight: 1.4, wordBreak: "break-all",
                         }}>
@@ -924,11 +924,11 @@ export default function ClipboardPage({
                     minHeight: actionSize,
                     padding: isMobile ? "0 14px 10px 16px" : "0 16px 8px",
                   }}>
-                    <span style={{ fontSize: isMobile ? 11 : 11, color: metaColor }}>
+                    <span style={{ fontSize: "var(--gm-font-xs)", color: metaColor }}>
                       {relativeTime(file.modified, t)}
                     </span>
                     {file.preview_image ? (
-                      <span style={{ fontSize: 10, color: active ? "rgba(255,255,255,0.5)" : "var(--text-secondary)", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {file.name}
                       </span>
                     ) : null}
@@ -952,7 +952,7 @@ export default function ClipboardPage({
                         pointerEvents: multiSelectMode ? "none" : "auto",
                       }}
                     >
-                      {copiedId === file.path ? <Check size={isMobile ? 15 : 13} /> : <Copy size={isMobile ? 15 : 13} />}
+                      {copiedId === file.path ? <Check size={isMobile ? 16 : 14} /> : <Copy size={isMobile ? 16 : 14} />}
                     </button>
                     <button
                       type="button"
@@ -969,12 +969,12 @@ export default function ClipboardPage({
                         display: "flex", alignItems: "center", justifyContent: "center",
                         width: actionSize, height: actionSize, cursor: multiSelectMode ? "default" : "pointer",
                         border: "none", background: "transparent",
-                        color: active ? "rgba(255,255,255,0.85)" : "var(--text-secondary)",
+                        color: active ? "var(--red)" : "var(--text-secondary)",
                         opacity: multiSelectMode ? 0 : 1,
                         pointerEvents: multiSelectMode ? "none" : "auto",
                       }}
                     >
-                      <Trash2 size={isMobile ? 15 : 13} />
+                      <Trash2 size={isMobile ? 16 : 14} />
                     </button>
                   </div>
                 </div>
@@ -990,7 +990,7 @@ export default function ClipboardPage({
                   width: "100%", padding: "12px 16px", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: "var(--gm-font-xs)", fontWeight: 600,
                 }}
               >
                 {loadingMore ? t("common.loading") : t("common.loadMore")}
@@ -1011,10 +1011,10 @@ export default function ClipboardPage({
             right: 0,
             bottom: isMobile ? MOBILE_FIXED_BAR_BOTTOM : 0,
             zIndex: 29,
-            boxShadow: isMobile ? "0 -8px 20px rgba(0,0,0,0.18)" : "0 -6px 16px rgba(0,0,0,0.08)",
+            boxShadow: isMobile ? "var(--gm-shadow-bottom)" : "var(--gm-shadow-bottom-soft)",
           }}>
             <span style={{
-              flex: 1, minWidth: 0, fontSize: 11, color: "var(--text-secondary)",
+              flex: 1, minWidth: 0, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
               {t("clipboard.selectedCount", selectedClipPaths.length)}
@@ -1030,9 +1030,9 @@ export default function ClipboardPage({
                 minWidth: isMobile ? 38 : undefined,
                 minHeight: isMobile ? 38 : undefined,
                 padding: isMobile ? "8px 10px" : "5px 9px",
-                borderRadius: 6, fontSize: 12,
+                borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                 cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
-                background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "rgba(239, 68, 68, 0.10)",
+                background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--gm-danger-soft)",
                 border: "1px solid var(--border)",
                 color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "var(--red)",
                 opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
@@ -1048,11 +1048,11 @@ export default function ClipboardPage({
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                 minHeight: isMobile ? 38 : undefined,
                 padding: isMobile ? "8px 12px" : "5px 10px",
-                borderRadius: 6, fontSize: 12,
+                borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)",
                 cursor: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "default" : "pointer",
                 background: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--bg-hover)" : "var(--accent)",
                 border: "1px solid var(--border)",
-                color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "#fff",
+                color: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? "var(--text-secondary)" : "var(--gm-color-on-accent)",
                 opacity: selectedClipPaths.length === 0 || creatingNote || deletingSelected ? 0.7 : 1,
               }}
             >
@@ -1062,7 +1062,7 @@ export default function ClipboardPage({
         ) : (
           !isMobile && <div style={{
             padding: "10px 16px", borderTop: "1px solid var(--border)",
-            fontSize: 11, color: "var(--text-secondary)", textAlign: "center",
+            fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", textAlign: "center",
           }}>
             {t("clipboard.clipsTotal", String(displayedClipTotal))}
           </div>
@@ -1076,7 +1076,7 @@ export default function ClipboardPage({
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
               <Clipboard size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("clipboard.selectToView")}</p>
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("clipboard.selectToView")}</p>
             </div>
           </div>
         ) : (
@@ -1145,7 +1145,7 @@ export default function ClipboardPage({
                     if (e.key === "Escape") cancelEdit();
                   }}
                   style={{
-                    width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? 15 : 13,
+                    width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
                     lineHeight: 1.7, padding: 0, background: "transparent", color: "var(--text)",
                     border: "none", outline: "none",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",

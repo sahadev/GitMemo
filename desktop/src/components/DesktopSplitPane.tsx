@@ -8,6 +8,7 @@ const desktopPaneStyle: CSSProperties = {
   minWidth: 0,
   minHeight: 0,
   flex: 1,
+  background: "var(--bg)",
 };
 
 const mobilePaneStyle: CSSProperties = {
@@ -19,6 +20,7 @@ const mobilePaneStyle: CSSProperties = {
   minHeight: 0,
   flex: 1,
   overflow: "hidden",
+  background: "var(--bg)",
 };
 
 export function DesktopSplitPane({
@@ -50,14 +52,14 @@ export function DesktopSplitPane({
 
   return (
     <div style={desktopPaneStyle}>
-      <div style={{ width: panel.width, height: "100%", display: "flex", flexDirection: "column", flexShrink: 0, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <div style={{ width: panel.width, height: "100%", display: "flex", flexDirection: "column", flexShrink: 0, minWidth: 0, minHeight: 0, overflow: "hidden", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
         {left}
       </div>
       <div onMouseDown={panel.onMouseDown} style={panel.handleStyle}>
         <div style={panel.handleLineStyle} />
         <div style={panel.handleHoverStyle} />
       </div>
-      <div style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <div style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden", background: "var(--bg)" }}>
         {right}
       </div>
     </div>

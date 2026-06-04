@@ -236,17 +236,18 @@ export default function ExternalFilesPage({
   }, [selectedFilePath, showToast, t, onImportResult]);
 
   return (
-    <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
         padding: isMobile ? "8px 14px 10px" : "8px 18px 10px",
         borderTop: "1px solid var(--border)",
         borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 12,
+        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
       }}>
         <FileSymlink size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("externalFiles.title")}</h1>
-          <p style={{ margin: "2px 0 0", fontSize: 11, lineHeight: 1.4, color: "var(--text-secondary)" }}>
+          <h1 style={{ margin: 0, fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("externalFiles.title")}</h1>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--gm-font-xs)", lineHeight: 1.4, color: "var(--text-secondary)" }}>
             {t("externalFiles.subtitle")}
           </p>
         </div>
@@ -255,10 +256,8 @@ export default function ExternalFilesPage({
           onClick={() => void handleClearAll()}
           disabled={loading || entries.length === 0}
           title={t("externalFiles.clearAll")}
-          style={{
-            background: "none", border: "none", cursor: loading || entries.length === 0 ? "not-allowed" : "pointer", padding: 6, borderRadius: 6,
-            color: "var(--text-secondary)", display: "flex", alignItems: "center", opacity: loading || entries.length === 0 ? 0.45 : 1,
-          }}
+          className="gm-toolbar-button"
+          style={{ cursor: loading || entries.length === 0 ? "not-allowed" : "pointer", padding: 6, opacity: loading || entries.length === 0 ? 0.45 : 1 }}
         >
           <Eraser size={14} />
         </button>
@@ -266,10 +265,8 @@ export default function ExternalFilesPage({
           type="button"
           onClick={() => void loadEntries()}
           title={t("common.refresh")}
-          style={{
-            background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6,
-            color: "var(--text-secondary)", display: "flex", alignItems: "center",
-          }}
+          className="gm-toolbar-button"
+          style={{ cursor: "pointer", padding: 6 }}
         >
           <RefreshCw size={14} />
         </button>
@@ -281,10 +278,10 @@ export default function ExternalFilesPage({
         minWidth={260}
         maxWidth={560}
         left={(
-          <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "6px 0", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
             {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
             {!loading && entries.length === 0 ? (
-              <p style={{ padding: 20, fontSize: 12, color: "var(--text-secondary)" }}>{t("externalFiles.empty")}</p>
+              <p style={{ padding: 20, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("externalFiles.empty")}</p>
             ) : null}
             {!loading && entries.map((entry) => {
               const active = selectedFilePath === entry.file_path;
@@ -297,28 +294,29 @@ export default function ExternalFilesPage({
                     width: "100%",
                     border: "none",
                     borderBottom: "1px solid var(--border)",
-                    background: active ? "color-mix(in srgb, var(--accent) 16%, transparent)" : "transparent",
+                    background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                    borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
                     color: "var(--text)",
                     cursor: "pointer",
                     textAlign: "left",
-                    padding: "20px 22px",
+                    padding: "var(--gm-space-10) var(--gm-space-12)",
                     display: "flex",
                     flexDirection: "column",
                     gap: 8,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 15, fontWeight: 650, lineHeight: 1.3 }}>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--gm-font-md)", fontWeight: 650, lineHeight: 1.3 }}>
                       {entry.file_name}
                     </span>
                     {!entry.exists ? (
-                      <span style={{ fontSize: 10, opacity: 0.85 }}>{t("externalFiles.missing")}</span>
+                      <span style={{ fontSize: "var(--gm-font-xs)", opacity: 0.85 }}>{t("externalFiles.missing")}</span>
                     ) : null}
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "var(--gm-font-xs)", opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                     {entry.parent_dir}
                   </div>
-                  <div style={{ fontSize: 10, opacity: 0.62, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "var(--gm-font-2xs)", opacity: 0.62, lineHeight: 1.5 }}>
                     {t("externalFiles.lastSaved", relativeTime(entry.last_modified_at || entry.last_opened_at, t))}
                   </div>
                 </button>
@@ -328,8 +326,8 @@ export default function ExternalFilesPage({
         )}
         right={
           !selectedEntry ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("externalFiles.selectFile")}</p>
+            <div className="gm-empty-state" style={{ flex: 1, gap: 8 }}>
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("externalFiles.selectFile")}</p>
             </div>
           ) : (
             <>
@@ -385,10 +383,10 @@ export default function ExternalFilesPage({
                 ) : null}
               />
 
-              <div style={{ flex: 1, overflow: "auto", padding: "22px 24px" }}>
+              <div style={{ flex: 1, overflow: "auto", padding: "var(--gm-space-10) var(--gm-space-12)" }}>
                 {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                 {!fileLoading && fileError ? (
-                  <p style={{ fontSize: 12, color: "var(--red)" }}>{fileError}</p>
+                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{fileError}</p>
                 ) : null}
                 {!fileLoading && !fileError && selectedEntry ? (
                   editing ? (
@@ -404,7 +402,7 @@ export default function ExternalFilesPage({
                       style={{
                         width: "100%", height: "100%", resize: "none", padding: 0,
                         background: "transparent", border: "none", color: "var(--text)",
-                        fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                        fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
                         outline: "none", minHeight: 420,
                       }}
                     />
@@ -412,7 +410,7 @@ export default function ExternalFilesPage({
                     <MarkdownView content={fileContent} />
                   ) : (
                     <pre style={{
-                      margin: 0, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                      margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
                       fontFamily: "ui-monospace, monospace", color: "var(--text)",
                     }}>
                       {fileContent}

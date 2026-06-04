@@ -37,8 +37,9 @@ export default function AiRecordsPage({
       alignItems: "center",
       gap: 8,
       borderBottom: "1px solid var(--border)",
-      padding: isMobile ? "0 10px" : "0 8px",
+      padding: isMobile ? "8px 10px" : "8px",
       flexShrink: 0,
+      background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
     }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
@@ -53,18 +54,18 @@ export default function AiRecordsPage({
               alignItems: "center",
               justifyContent: "center",
               gap: 5,
-              padding: isMobile ? "13px 4px" : "12px 4px",
-              fontSize: isMobile ? 12 : 11,
+              minHeight: isMobile ? 36 : 32,
+              padding: isMobile ? "8px 8px" : "7px 8px",
+              fontSize: "var(--gm-font-xs)",
               cursor: "pointer",
-              color: active ? "var(--accent)" : "var(--text-secondary)",
-              background: "none",
-              border: "none",
-              borderBottomStyle: "solid",
-              borderBottomWidth: 2,
-              borderBottomColor: active ? "var(--accent)" : "transparent",
+              color: active ? "var(--text)" : "var(--text-secondary)",
+              background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+              border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "transparent"}`,
+              borderRadius: "var(--gm-radius-md)",
+              fontWeight: active ? 700 : 500,
             }}
           >
-            <Icon size={isMobile ? 15 : 12} />
+            <Icon size={isMobile ? 16 : 12} style={{ color: active ? "var(--accent)" : "currentColor" }} />
             {t(tab.labelKey)}
           </button>
         );

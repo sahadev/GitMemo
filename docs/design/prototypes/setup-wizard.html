@@ -1,0 +1,1367 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitMemo Setup Wizard Prototype</title>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --bg: #1a1817;
+      --bg-card: #252220;
+      --bg-hover: #302c2c;
+      --bg-input: #252220;
+      --border: rgba(253, 252, 252, 0.08);
+      --border-strong: #646262;
+      --text: #fdfcfc;
+      --text-secondary: #9a9898;
+      --accent: #007aff;
+      --accent-hover: #0056b3;
+      --green: #30d158;
+      --yellow: #ff9f0a;
+      --red: #ff3b30;
+      --purple: #c084fc;
+      --pink: #f472b6;
+      --shadow: rgba(0, 0, 0, 0.26);
+    }
+
+    [data-theme="light"] {
+      --bg: #f7f4f2;
+      --bg-card: #fdfcfb;
+      --bg-hover: #eeebe8;
+      --bg-input: #fdfcfb;
+      --border: rgba(15, 0, 0, 0.10);
+      --border-strong: #b0aeac;
+      --text: #201d1d;
+      --text-secondary: #7a7574;
+      --accent: #007aff;
+      --accent-hover: #0056b3;
+      --green: #248a3d;
+      --yellow: #c46200;
+      --red: #d70015;
+      --purple: #9333ea;
+      --pink: #db2777;
+      --shadow: rgba(32, 29, 29, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px),
+        var(--bg);
+      background-size: 64px 64px;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1280px, calc(100vw - 32px));
+      min-height: calc(100vh - 32px);
+      margin: 16px auto;
+      display: grid;
+      grid-template-columns: 264px minmax(0, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-card);
+      box-shadow: 0 24px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-right: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%);
+    }
+
+    .brand {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      display: grid;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .trust-strip {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .trust-item strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .steps {
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .step-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px;
+      text-align: left;
+    }
+
+    .step-button:hover,
+    .step-button[aria-selected="true"] {
+      border-color: var(--border);
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .step-index {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .step-button[aria-selected="true"] .step-index {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--text);
+    }
+
+    .step-copy {
+      min-width: 0;
+    }
+
+    .step-title {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: inherit;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .step-desc {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-secondary);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .step-state {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+
+    .step-button[data-state="done"] .step-state {
+      background: var(--green);
+    }
+
+    .step-button[data-state="active"] .step-state {
+      background: var(--accent);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-card) 92%, var(--bg) 8%);
+    }
+
+    .topbar-title {
+      min-width: 0;
+    }
+
+    .topbar-title p {
+      margin: 0 0 4px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .topbar-title h2 {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .theme-toggle {
+      min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 6px 10px;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 0;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .context {
+      min-width: 0;
+      padding: 22px;
+      border-left: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-card) 90%, var(--bg) 10%);
+      overflow: auto;
+    }
+
+    .panel {
+      display: none;
+      min-width: 0;
+    }
+
+    .panel[data-active="true"] {
+      display: block;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .panel-head p {
+      margin: 8px 0 0;
+      max-width: 680px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .status.ok {
+      color: var(--green);
+    }
+
+    .status.warn {
+      color: var(--yellow);
+    }
+
+    .status.error {
+      color: var(--red);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field,
+    .option,
+    .summary-row,
+    .log,
+    .info-block {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+    }
+
+    .field {
+      padding: 12px;
+    }
+
+    label,
+    .label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-input);
+      color: var(--text);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    .button,
+    .ghost-button,
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 38px;
+      border-radius: 6px;
+      padding: 9px 12px;
+      white-space: nowrap;
+    }
+
+    .button,
+    .ghost-button {
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .button:hover,
+    .ghost-button:hover {
+      background: var(--bg-hover);
+    }
+
+    .button:disabled,
+    .ghost-button:disabled,
+    .primary-button:disabled {
+      cursor: default;
+      opacity: 0.48;
+    }
+
+    .primary-button {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .primary-button:hover {
+      background: var(--accent-hover);
+    }
+
+    .option-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .option[data-selected="true"] {
+      border-color: color-mix(in srgb, var(--accent) 72%, var(--border));
+      background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+    }
+
+    .option-marker {
+      display: grid;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border: 1px solid var(--border-strong);
+      border-radius: 50%;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .option[data-selected="true"] .option-marker {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .option h4 {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .option p {
+      margin: 5px 0 0;
+      overflow-wrap: anywhere;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      color: var(--green);
+    }
+
+    .badge.warn {
+      color: var(--yellow);
+    }
+
+    .badge.error {
+      color: var(--red);
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      background: var(--bg-hover);
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .option[data-selected="true"] .toggle {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 20%, var(--bg-hover));
+    }
+
+    .option[data-selected="true"] .toggle::after {
+      transform: translateX(18px);
+      background: var(--accent);
+    }
+
+    .summary {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .summary-key {
+      color: var(--text-secondary);
+    }
+
+    .summary-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .log {
+      margin-top: 14px;
+      padding: 12px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.7;
+      max-height: 168px;
+      overflow: auto;
+    }
+
+    .log strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .info-block {
+      padding: 14px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .info-block h4 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .file-tree {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .context-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mini-stat {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+    }
+
+    .mini-stat span {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
+    .mini-stat strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .actionbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .actionbar-left,
+    .actionbar-right {
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .progress {
+      height: 8px;
+      margin: 18px 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+    }
+
+    .progress span {
+      display: block;
+      width: 84%;
+      height: 100%;
+      background: var(--accent);
+    }
+
+    .mobile-preview {
+      display: none;
+    }
+
+    @media (max-width: 1020px) {
+      .app {
+        grid-template-columns: 220px minmax(0, 1fr);
+      }
+
+      .content {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .context {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        background-size: 48px 48px;
+      }
+
+      .app {
+        width: 100vw;
+        max-width: 100vw;
+        min-height: 100vh;
+        margin: 0;
+        grid-template-columns: 1fr;
+        border: 0;
+        border-radius: 0;
+        overflow-x: hidden;
+      }
+
+      .sidebar,
+      .workspace,
+      .content,
+      .main,
+      .topbar {
+        width: 100%;
+        max-width: 100vw;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .brand {
+        padding: 14px 16px;
+      }
+
+      .brand-row > div:last-child,
+      .brand h1,
+      .brand p {
+        min-width: 0;
+        width: calc(100vw - 96px);
+        max-width: calc(100vw - 96px);
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
+      .trust-strip,
+      .sidebar-footer {
+        display: none;
+      }
+
+      .steps {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(132px, 1fr);
+        max-width: 100vw;
+        overflow-x: auto;
+        padding: 10px 12px;
+      }
+
+      .step-button {
+        grid-template-columns: 24px minmax(0, 1fr);
+      }
+
+      .step-state {
+        display: none;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px 16px;
+      }
+
+      .topbar-title {
+        width: 100%;
+      }
+
+      .topbar-title h2 {
+        display: block;
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .topbar-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+        align-items: stretch;
+        justify-content: stretch;
+      }
+
+      .topbar-actions .pill,
+      .theme-toggle {
+        width: 100%;
+        max-width: 100%;
+        flex: none;
+        justify-content: center;
+        white-space: normal !important;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .panel-head {
+        flex-direction: column;
+      }
+
+      .panel-head h3 {
+        font-size: 20px;
+        overflow-wrap: anywhere;
+      }
+
+      .panel-head p {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .grid-2,
+      .summary-row {
+        grid-template-columns: 1fr;
+      }
+
+      .status {
+        width: 100%;
+        flex: none;
+        max-width: 100%;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+      }
+
+      .status-line {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .option {
+        grid-template-columns: 28px minmax(0, 1fr);
+      }
+
+      .option .badge,
+      .option .toggle {
+        grid-column: 2;
+        justify-self: start;
+      }
+
+      .input-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .actionbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .actionbar-left,
+      .actionbar-right {
+        width: 100%;
+      }
+
+      .button,
+      .ghost-button,
+      .primary-button {
+        width: 100%;
+      }
+
+      .mobile-preview {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="Setup progress">
+      <div class="brand">
+        <div class="brand-row">
+          <div class="logo" aria-hidden="true">GM</div>
+          <div>
+            <h1>GitMemo Setup</h1>
+            <p>Local-first AI knowledge capture.</p>
+          </div>
+        </div>
+        <div class="trust-strip" aria-label="Trust summary">
+          <div class="trust-item"><span>Storage</span><strong>~/.gitmemo</strong></div>
+          <div class="trust-item"><span>Remote</span><strong id="remote-summary">Optional</strong></div>
+          <div class="trust-item"><span>Mode</span><strong>Local first</strong></div>
+        </div>
+      </div>
+
+      <nav class="steps" aria-label="Wizard steps">
+        <button class="step-button" type="button" data-step="0" data-state="active" aria-selected="true">
+          <span class="step-index">1</span>
+          <span class="step-copy">
+            <span class="step-title">Repository</span>
+            <span class="step-desc">Choose local storage</span>
+          </span>
+          <span class="step-state"></span>
+        </button>
+        <button class="step-button" type="button" data-step="1" data-state="pending" aria-selected="false">
+          <span class="step-index">2</span>
+          <span class="step-copy">
+            <span class="step-title">Remote Git</span>
+            <span class="step-desc">Stay local or sync</span>
+          </span>
+          <span class="step-state"></span>
+        </button>
+        <button class="step-button" type="button" data-step="2" data-state="pending" aria-selected="false">
+          <span class="step-index">3</span>
+          <span class="step-copy">
+            <span class="step-title">Editors</span>
+            <span class="step-desc">Claude, Cursor, Codex</span>
+          </span>
+          <span class="step-state"></span>
+        </button>
+        <button class="step-button" type="button" data-step="3" data-state="pending" aria-selected="false">
+          <span class="step-index">4</span>
+          <span class="step-copy">
+            <span class="step-title">Clipboard</span>
+            <span class="step-desc">Privacy and capture</span>
+          </span>
+          <span class="step-state"></span>
+        </button>
+        <button class="step-button" type="button" data-step="4" data-state="pending" aria-selected="false">
+          <span class="step-index">5</span>
+          <span class="step-copy">
+            <span class="step-title">Review</span>
+            <span class="step-desc">Initialize GitMemo</span>
+          </span>
+          <span class="step-state"></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        GitMemo writes plain files into a repository you control. Remote Git is
+        optional and can be added later.
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="topbar-title">
+          <p>Desktop first-run flow prototype</p>
+          <h2 id="screen-title">Choose where GitMemo stores your knowledge</h2>
+        </div>
+        <div class="topbar-actions">
+          <span class="pill"><span class="dot"></span><span>Local app ready</span></span>
+          <button class="theme-toggle" type="button" id="theme-toggle">Light mode</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="main">
+          <section class="panel" data-panel="0" data-active="true">
+            <div class="panel-head">
+              <div>
+                <h3>Choose local repository</h3>
+                <p>GitMemo keeps the knowledge base as plain files in a local Git repository. You can use the default path or choose another folder.</p>
+              </div>
+              <span class="badge ok">Recommended</span>
+            </div>
+
+            <div class="status-line">
+              <span class="status ok">Path writable</span>
+              <span class="status ok">Git detected</span>
+              <span class="status warn">Remote not configured</span>
+            </div>
+
+            <div class="field">
+              <label for="repo-path">Sync directory</label>
+              <div class="input-row">
+                <input id="repo-path" value="~/.gitmemo" aria-label="Sync directory">
+                <button class="button" type="button">Choose folder</button>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 12px;">
+              <div class="info-block">
+                <h4>What GitMemo will create</h4>
+                <pre class="file-tree">~/.gitmemo/
+conversations/
+notes/
+clips/
+plans/
+imports/
+claude-config/
+cursor-config/</pre>
+              </div>
+              <div class="info-block">
+                <h4>Permission note</h4>
+                GitMemo needs read and write access to this folder so it can
+                capture Markdown, screenshots, clipboard records, and imported
+                AI sessions.
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" data-panel="1" data-active="false">
+            <div class="panel-head">
+              <div>
+                <h3>Choose sync mode</h3>
+                <p>Remote Git sync is useful across devices, but local-only mode is fully supported and can be changed later.</p>
+              </div>
+              <span class="badge">Optional</span>
+            </div>
+
+            <div class="option-list" aria-label="Storage mode">
+              <button class="option" type="button" data-mode="local" data-selected="true">
+                <span class="option-marker">1</span>
+                <span>
+                  <h4>Local only</h4>
+                  <p>No remote URL. All data stays on this device until you add one.</p>
+                </span>
+                <span class="badge ok">First-class mode</span>
+              </button>
+              <button class="option" type="button" data-mode="remote" data-selected="false">
+                <span class="option-marker">2</span>
+                <span>
+                  <h4>Sync to remote Git</h4>
+                  <p>Use GitHub, GitLab, Gitee, Bitbucket, or your own Git server.</p>
+                </span>
+                <span class="badge warn">Needs key or token</span>
+              </button>
+            </div>
+
+            <div class="field" id="remote-field" style="display: none; margin-top: 12px;">
+              <label for="remote-url">Remote URL</label>
+              <div class="input-row">
+                <input id="remote-url" value="git@github.com:sahadev/gitmemo-data.git" aria-label="Remote URL">
+                <button class="button" type="button">Scan SSH keys</button>
+              </div>
+            </div>
+
+            <div class="status-line" id="remote-status" style="margin-top: 12px;">
+              <span class="status ok">Local mode selected</span>
+              <span class="status">Remote can be added in Settings</span>
+            </div>
+          </section>
+
+          <section class="panel" data-panel="2" data-active="false">
+            <div class="panel-head">
+              <div>
+                <h3>Connect AI editors</h3>
+                <p>GitMemo can capture sessions and make saved context searchable from the AI tools you already use.</p>
+              </div>
+              <span class="badge">Can skip</span>
+            </div>
+
+            <div class="option-list">
+              <button class="option" type="button" data-selected="true">
+                <span class="option-marker">C</span>
+                <span>
+                  <h4>Claude Code</h4>
+                  <p>Install instructions, hook support, slash save flow, and MCP search tools.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+              <button class="option" type="button" data-selected="true">
+                <span class="option-marker">R</span>
+                <span>
+                  <h4>Cursor</h4>
+                  <p>Install global rules, save skill, and MCP sync/search support.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+              <button class="option" type="button" data-selected="true">
+                <span class="option-marker">X</span>
+                <span>
+                  <h4>Codex</h4>
+                  <p>Import local session logs from ~/.codex without changing Codex config.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="info-block" style="margin-top: 12px;">
+              <h4>Generated files are inspectable</h4>
+              Editor configuration is written as plain files where the tool
+              expects it. GitMemo can also preserve those preferences in the
+              knowledge repository for future search and reuse.
+            </div>
+          </section>
+
+          <section class="panel" data-panel="3" data-active="false">
+            <div class="panel-head">
+              <div>
+                <h3>Clipboard privacy</h3>
+                <p>Clipboard capture is useful, but it should be explicit. Choose what GitMemo may capture automatically.</p>
+              </div>
+              <span class="badge warn">Needs permission</span>
+            </div>
+
+            <div class="option-list">
+              <button class="option" type="button" data-selected="true">
+                <span class="option-marker">T</span>
+                <span>
+                  <h4>Text over 20 characters</h4>
+                  <p>Ignore short snippets by default to reduce noisy captures.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+              <button class="option" type="button" data-selected="true">
+                <span class="option-marker">I</span>
+                <span>
+                  <h4>Images and screenshots</h4>
+                  <p>Save image captures with thumbnails and source metadata.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+              <button class="option" type="button" data-selected="false">
+                <span class="option-marker">S</span>
+                <span>
+                  <h4>Start monitor at login</h4>
+                  <p>Can be enabled later from Settings after the user trusts the workflow.</p>
+                </span>
+                <span class="toggle" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="grid-2" style="margin-top: 12px;">
+              <div class="info-block">
+                <h4>Privacy state</h4>
+                Clipboard monitor is paused until setup completes. You can stop
+                it at any time from Dashboard or Settings.
+              </div>
+              <div class="info-block">
+                <h4>Review path</h4>
+                Captures are saved under `clips/` and can be searched, favorited,
+                deleted, exported, or synced like other GitMemo files.
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" data-panel="4" data-active="false">
+            <div class="panel-head">
+              <div>
+                <h3>Review and initialize</h3>
+                <p>GitMemo is ready to create the local repository, wire selected integrations, and open Dashboard.</p>
+              </div>
+              <span class="badge ok">Ready</span>
+            </div>
+
+            <div class="summary">
+              <div class="summary-row">
+                <span class="summary-key">Sync directory</span>
+                <span class="summary-value">~/.gitmemo</span>
+                <span class="badge ok">Writable</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Remote Git</span>
+                <span class="summary-value" id="review-remote">Local only</span>
+                <span class="badge">Optional</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Editor integrations</span>
+                <span class="summary-value">Claude Code, Cursor, Codex</span>
+                <span class="badge ok">3 selected</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-key">Clipboard capture</span>
+                <span class="summary-value">Text and images, monitor paused until confirmed</span>
+                <span class="badge warn">Permission</span>
+              </div>
+            </div>
+
+            <div class="progress" aria-label="Initialization progress">
+              <span></span>
+            </div>
+
+            <div class="log" aria-label="Sample initialization log">
+              <div><strong>ok</strong> git detected at /usr/bin/git</div>
+              <div><strong>ok</strong> created ~/.gitmemo repository</div>
+              <div><strong>ok</strong> indexed conversations, notes, clips, plans</div>
+              <div><strong>run</strong> installing Claude and Cursor search tools</div>
+              <div><strong>next</strong> open Dashboard after setup completes</div>
+            </div>
+          </section>
+
+          <div class="actionbar">
+            <div class="actionbar-left">
+              <button class="ghost-button" type="button" id="back-button">Back</button>
+            </div>
+            <div class="actionbar-right">
+              <button class="button" type="button">Save draft</button>
+              <button class="primary-button" type="button" id="next-button">Continue</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="context" aria-label="Setup context">
+          <div class="context-stack">
+            <div class="mini-stat">
+              <span>Current step</span>
+              <strong id="context-step">Repository</strong>
+            </div>
+            <div class="mini-stat">
+              <span>Data ownership</span>
+              <strong>User-controlled Git repo</strong>
+            </div>
+            <div class="mini-stat">
+              <span>Source support</span>
+              <strong>Claude, Cursor, Codex</strong>
+            </div>
+            <div class="info-block">
+              <h4>State samples</h4>
+              <div class="status-line" style="margin-bottom: 0;">
+                <span class="status ok">Synced</span>
+                <span class="status warn">2 unpushed</span>
+                <span class="status error">SSH key missing</span>
+              </div>
+            </div>
+            <div class="info-block">
+              <h4>Porting note</h4>
+              Use Mantine `Stepper`, `SegmentedControl`, `TextInput`,
+              `Checkbox`, `Switch`, `Alert`, and existing GitMemo CSS tokens.
+              Keep local-only mode as a normal path, not a fallback.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const titles = [
+      "Choose GitMemo storage",
+      "Choose sync mode",
+      "Connect AI editors",
+      "Set clipboard permissions",
+      "Review setup"
+    ];
+
+    const names = ["Repository", "Remote Git", "Editors", "Clipboard", "Review"];
+    let step = 0;
+
+    const stepButtons = Array.from(document.querySelectorAll(".step-button"));
+    const panels = Array.from(document.querySelectorAll(".panel"));
+    const screenTitle = document.getElementById("screen-title");
+    const contextStep = document.getElementById("context-step");
+    const backButton = document.getElementById("back-button");
+    const nextButton = document.getElementById("next-button");
+    const themeToggle = document.getElementById("theme-toggle");
+    const remoteSummary = document.getElementById("remote-summary");
+    const reviewRemote = document.getElementById("review-remote");
+    const remoteField = document.getElementById("remote-field");
+    const remoteStatus = document.getElementById("remote-status");
+
+    function setStep(nextStep) {
+      step = Math.max(0, Math.min(nextStep, panels.length - 1));
+      panels.forEach((panel, index) => {
+        panel.dataset.active = String(index === step);
+      });
+      stepButtons.forEach((button, index) => {
+        button.setAttribute("aria-selected", String(index === step));
+        if (index < step) button.dataset.state = "done";
+        else if (index === step) button.dataset.state = "active";
+        else button.dataset.state = "pending";
+      });
+      screenTitle.textContent = titles[step];
+      contextStep.textContent = names[step];
+      backButton.disabled = step === 0;
+      nextButton.textContent = step === panels.length - 1 ? "Open Dashboard" : "Continue";
+    }
+
+    stepButtons.forEach((button) => {
+      button.addEventListener("click", () => setStep(Number(button.dataset.step)));
+    });
+
+    backButton.addEventListener("click", () => setStep(step - 1));
+    nextButton.addEventListener("click", () => setStep(step + 1));
+
+    themeToggle.addEventListener("click", () => {
+      const root = document.documentElement;
+      const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = nextTheme;
+      themeToggle.textContent = nextTheme === "dark" ? "Light mode" : "Dark mode";
+    });
+
+    document.querySelectorAll("[data-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = button.dataset.mode;
+        document.querySelectorAll("[data-mode]").forEach((item) => {
+          item.dataset.selected = String(item === button);
+        });
+        const remote = mode === "remote";
+        remoteField.style.display = remote ? "block" : "none";
+        remoteSummary.textContent = remote ? "GitHub SSH" : "Optional";
+        reviewRemote.textContent = remote ? "git@github.com:sahadev/gitmemo-data.git" : "Local only";
+        remoteStatus.innerHTML = remote
+          ? '<span class="status ok">SSH remote detected</span><span class="status warn">Deploy key not added yet</span>'
+          : '<span class="status ok">Local mode selected</span><span class="status">Remote can be added in Settings</span>';
+      });
+    });
+
+    document.querySelectorAll(".option:not([data-mode])").forEach((button) => {
+      button.addEventListener("click", () => {
+        button.dataset.selected = button.dataset.selected === "true" ? "false" : "true";
+      });
+    });
+
+    setStep(0);
+  </script>
+</body>
+</html>

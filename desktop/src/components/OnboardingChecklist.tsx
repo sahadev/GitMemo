@@ -199,20 +199,22 @@ export function OnboardingChecklist({
     <>
     <div style={{
       padding: "20px",
-      borderRadius: 6,
-      border: `1px solid ${allDone ? "var(--green)30" : "var(--accent)30"}`,
-      background: allDone ? "var(--green)08" : "var(--accent)08",
+      borderRadius: "var(--gm-radius-md)",
+      border: `1px solid ${allDone ? "color-mix(in srgb, var(--green) 34%, var(--border))" : "color-mix(in srgb, var(--accent) 34%, var(--border))"}`,
+      background: allDone
+        ? "color-mix(in srgb, var(--green) 8%, var(--bg-card))"
+        : "color-mix(in srgb, var(--accent) 8%, var(--bg-card))",
       marginBottom: 16,
     }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allDone ? 0 : 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {allDone && <PartyPopper size={18} style={{ color: "var(--green)" }} />}
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>
+          <h3 style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, marginBottom: 2 }}>
             {allDone ? t("onboarding.allDone") : t("onboarding.title")}
           </h3>
           {!allDone && (
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
               {completedCount}/{allItems.length}
             </span>
           )}
@@ -221,9 +223,9 @@ export function OnboardingChecklist({
           onClick={dismiss}
           style={{
             display: "flex", alignItems: "center", gap: 4,
-            padding: "4px 10px", borderRadius: 6,
+            padding: "4px 10px", borderRadius: "var(--gm-radius-md)",
             border: "1px solid var(--border)", background: "transparent",
-            color: "var(--text-secondary)", fontSize: 11, cursor: "pointer",
+            color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
           }}
         >
           <X size={12} /> {allDone && countdown !== null ? `${countdown}s` : t("onboarding.dismiss")}
@@ -234,14 +236,14 @@ export function OnboardingChecklist({
         <>
         {/* Progress bar */}
         <div style={{
-          height: 4, borderRadius: 2, background: "var(--border)",
+          height: 4, borderRadius: "var(--gm-radius-xs)", background: "var(--border)",
           marginBottom: 16, overflow: "hidden",
         }}>
           <div style={{
             height: "100%",
             width: `${(completedCount / allItems.length) * 100}%`,
             background: "var(--accent)",
-            borderRadius: 2,
+            borderRadius: "var(--gm-radius-xs)",
             transition: "width 0.3s ease",
           }} />
         </div>
@@ -259,7 +261,7 @@ export function OnboardingChecklist({
                   alignItems: "center",
                   gap: 12,
                   padding: "10px 14px",
-                  borderRadius: 6,
+                  borderRadius: "var(--gm-radius-md)",
                   background: done ? "transparent" : "var(--bg-card)",
                   border: done ? "none" : "1px solid var(--border)",
                   opacity: done ? 0.6 : 1,
@@ -268,9 +270,9 @@ export function OnboardingChecklist({
               >
                 {/* Checkbox */}
                 <div style={{
-                  width: 22, height: 22, borderRadius: 6,
+                  width: 22, height: 22, borderRadius: "var(--gm-radius-md)",
                   border: `2px solid ${done ? "var(--green)" : "var(--border)"}`,
-                  background: done ? "var(--green)15" : "transparent",
+                  background: done ? "color-mix(in srgb, var(--green) 14%, var(--bg-card))" : "transparent",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
@@ -281,13 +283,13 @@ export function OnboardingChecklist({
                 <Icon size={16} style={{ color: item.iconColor, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{
-                    fontSize: 13, fontWeight: 600,
+                    fontSize: "var(--gm-font-sm)", fontWeight: 600,
                     textDecoration: done ? "line-through" : "none",
                     color: done ? "var(--text-secondary)" : "var(--text)",
                   }}>
                     {t(item.labelKey)}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 1 }}>
+                  <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 1 }}>
                     {t(item.descKey)}
                   </div>
                 </div>
@@ -298,9 +300,9 @@ export function OnboardingChecklist({
                     onClick={item.action}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      padding: "6px 12px", borderRadius: 6,
+                      padding: "6px 12px", borderRadius: "var(--gm-radius-md)",
                       border: "none", background: "var(--accent)",
-                      color: "#fff", fontSize: 11, fontWeight: 600,
+                      color: "var(--gm-color-on-accent)", fontSize: "var(--gm-font-xs)", fontWeight: 600,
                       cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap",
                     }}
                   >

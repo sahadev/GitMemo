@@ -290,15 +290,16 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
   const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
 
   return (
-    <div style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <div style={{
         padding: "14px 20px", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 12,
+        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
       }}>
         <FolderOpen size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("editorHome.title")}</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--text-secondary)" }}>
+          <h1 style={{ margin: 0, fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("editorHome.title")}</h1>
+          <p style={{ margin: "4px 0 0", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
             {t("editorHome.subtitle")}
           </p>
         </div>
@@ -306,10 +307,8 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
           type="button"
           onClick={handleRefresh}
           title={t("common.refresh")}
-          style={{
-            background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6,
-            color: "var(--text-secondary)", display: "flex", alignItems: "center",
-          }}
+          className="gm-toolbar-button"
+          style={{ cursor: "pointer", padding: 6 }}
         >
           <RefreshCw size={14} />
         </button>
@@ -321,6 +320,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         left={(
           <div style={{
             display: "flex", flexDirection: "column", flexShrink: 0,
+            background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
           }}>
             <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
               {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
@@ -338,10 +338,10 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                     disabled={!exists}
                     onClick={() => handleSwitchRoot(r)}
                     style={{
-                      flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: root === r ? 600 : 400,
+                      flex: 1, padding: "6px 8px", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: root === r ? 700 : 500,
                       border: "none", cursor: exists ? "pointer" : "not-allowed", opacity: exists ? 1 : 0.45,
-                      background: root === r ? "var(--accent)" : "var(--bg-hover)",
-                      color: root === r ? "#fff" : "var(--text-secondary)",
+                      background: root === r ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
+                      color: root === r ? "var(--text)" : "var(--text-secondary)",
                     }}
                   >
                     {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
@@ -352,7 +352,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
 
             <div style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
-              fontSize: 11, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
+              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
             }}>
               {rel ? (
                 <button
@@ -360,8 +360,8 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
                   style={{
                     display: "flex", alignItems: "center", gap: 4, padding: "2px 6px",
-                    borderRadius: 4, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                    cursor: "pointer", color: "var(--text-secondary)", fontSize: 11,
+                    borderRadius: "var(--gm-radius-sm)", border: "1px solid var(--border)", background: "var(--bg-hover)",
+                    cursor: "pointer", color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)",
                   }}
                 >
                   <ChevronLeft size={14} />
@@ -380,11 +380,11 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                 disabled={!rootOk || creating}
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
+                  padding: "6px 8px", borderRadius: "var(--gm-radius-lg)", border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
                 }}
               >
-                <FilePlus2 size={13} />
+                <FilePlus2 size={14} />
                 {t("editorHome.newFile")}
               </button>
               <button
@@ -393,27 +393,27 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                 disabled={!rootOk || creatingDir}
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-hover)",
-                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: 11,
+                  padding: "6px 8px", borderRadius: "var(--gm-radius-lg)", border: "1px solid var(--border)", background: "var(--bg-hover)",
+                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
                 }}
               >
-                <FolderPlus size={13} />
+                <FolderPlus size={14} />
                 {t("editorHome.newFolder")}
               </button>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto" }}>
               {!rootOk ? (
-                <div style={{ padding: 24, textAlign: "center", fontSize: 12, color: "var(--text-secondary)" }}>
+                <div style={{ padding: 24, textAlign: "center", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                   {rootPath}
                   <p style={{ marginTop: 8 }}>{t("editorHome.missingDir")}</p>
                 </div>
               ) : listLoading ? (
                 <Loading compact text={t("dashboard.loading")} />
               ) : listError ? (
-                <p style={{ padding: 16, fontSize: 12, color: "var(--red)" }}>{listError}</p>
+                <p style={{ padding: 16, fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{listError}</p>
               ) : entries.length === 0 ? (
-                <p style={{ padding: 16, fontSize: 12, color: "var(--text-secondary)" }}>{leftEmptyText}</p>
+                <p style={{ padding: 16, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{leftEmptyText}</p>
               ) : (
                 entries.map((entry) => {
                   const sel = selectedFileRel === entry.rel_path;
@@ -432,8 +432,9 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       style={{
                         display: "flex", alignItems: "center", gap: 8, width: "100%",
                         padding: "10px 14px", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
-                        background: sel ? "var(--accent)" : "transparent",
-                        color: sel ? "#fff" : "var(--text)", cursor: "pointer", fontSize: 13,
+                        background: sel ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                        borderLeft: sel ? "3px solid var(--accent)" : "3px solid transparent",
+                        color: "var(--text)", cursor: "pointer", fontSize: "var(--gm-font-sm)",
                       }}
                     >
                       {entry.is_dir ? <Folder size={14} style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size={14} style={{ flexShrink: 0, opacity: 0.85 }} />}
@@ -448,11 +449,11 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         right={(
           <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
             {!selectedFileRel ? (
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+              <div className="gm-empty-state" style={{ flex: 1, gap: 8 }}>
+                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                   {root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
                 </p>
-                <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>{t("editorHome.editableWarning")}</p>
+                <p style={{ margin: 0, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("editorHome.editableWarning")}</p>
               </div>
             ) : (
               <>
@@ -499,7 +500,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                 <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
                   {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                   {!fileLoading && fileError ? (
-                    <p style={{ fontSize: 12, color: "var(--red)" }}>{fileError}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{fileError}</p>
                   ) : null}
                   {!fileLoading && !fileError && selectedFileRel ? (
                     editing ? (
@@ -509,7 +510,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                         style={{
                           width: "100%", height: "100%", resize: "none", padding: 0,
                           background: "transparent", border: "none", color: "var(--text)",
-                          fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                          fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
                           outline: "none", minHeight: 420,
                         }}
                       />
@@ -517,7 +518,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       <MarkdownView content={fileContent} />
                     ) : (
                       <pre style={{
-                        margin: 0, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
                         fontFamily: "ui-monospace, monospace", color: "var(--text)",
                       }}>
                         {fileContent}

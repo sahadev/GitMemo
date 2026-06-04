@@ -61,35 +61,23 @@ function getQueryValue(query: string, mode: Mode) {
 function sourceIcon(sourceType: string) {
   switch (sourceType) {
     case "conversation":
-      return <MessageSquare size={13} style={{ color: "#6eb0f7" }} />;
+      return <MessageSquare size={14} style={{ color: "var(--gm-category-blue)" }} />;
     case "clip":
-      return <Clipboard size={13} style={{ color: "#4ade80" }} />;
+      return <Clipboard size={14} style={{ color: "var(--gm-category-green)" }} />;
     case "plan":
-      return <FileText size={13} style={{ color: "#facc15" }} />;
+      return <FileText size={14} style={{ color: "var(--gm-category-yellow)" }} />;
     case "config":
-      return <Settings size={13} style={{ color: "#9ca3af" }} />;
+      return <Settings size={14} style={{ color: "var(--gm-category-gray)" }} />;
     case "import":
-      return <FolderInput size={13} style={{ color: "#14b8a6" }} />;
+      return <FolderInput size={14} style={{ color: "var(--gm-category-teal)" }} />;
     default:
-      return <StickyNote size={13} style={{ color: "#4ade80" }} />;
+      return <StickyNote size={14} style={{ color: "var(--gm-category-green)" }} />;
   }
 }
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd
-      style={{
-        display: "inline-block",
-        padding: "1px 5px",
-        fontSize: 10,
-        fontFamily: "inherit",
-        lineHeight: "16px",
-        borderRadius: 4,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        color: "#888",
-      }}
-    >
+    <kbd className="gm-kbd">
       {children}
     </kbd>
   );
@@ -301,74 +289,55 @@ export default function QuickPaste() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [executeSelected, hideWindow, visibleItems.length]);
 
-  const modeColors = { search: "#6eb0f7", command: "#facc15", file: "#4ade80" };
+  const modeColors = {
+    search: "var(--gm-category-blue)",
+    command: "var(--gm-category-yellow)",
+    file: "var(--gm-category-green)",
+  };
   const modeMeta = {
-    search: { icon: <Search size={15} style={{ color: modeColors.search }} />, label: "Search" },
-    command: { icon: <TerminalSquare size={15} style={{ color: modeColors.command }} />, label: "Command" },
-    file: { icon: <FileSearch size={15} style={{ color: modeColors.file }} />, label: "Files" },
+    search: { icon: <Search size={16} style={{ color: modeColors.search }} />, label: "Search" },
+    command: { icon: <TerminalSquare size={16} style={{ color: modeColors.command }} />, label: "Command" },
+    file: { icon: <FileSearch size={16} style={{ color: modeColors.file }} />, label: "Files" },
   }[mode];
 
   return (
     <div
       data-tauri-drag-region
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        paddingTop: 80,
-      }}
+      className="gm-quick-paste-shell"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) hideWindow();
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 560,
-          background: "rgba(30, 30, 30, 0.96)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 8,
-          boxShadow: "0 8px 32px rgba(15, 0, 0, 0.3), 0 0 0 0.5px rgba(255,255,255,0.06)",
-          backdropFilter: "blur(40px) saturate(1.4)",
-          overflow: "hidden",
-        }}
-      >
+      <div className="gm-quick-paste-panel">
         {/* Input area */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
+        <div className="gm-quick-paste-input-row">
           {modeMeta.icon}
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
+            className="gm-quick-paste-input"
             style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              color: "#f0f0f0",
-              fontSize: 16,
-              lineHeight: 1.5,
               caretColor: modeColors[mode],
             }}
           />
           {loading && (
-            <RefreshCw size={14} style={{ color: "#666", animation: "spin 1s linear infinite" }} />
+            <RefreshCw size={14} style={{ color: "var(--text-secondary)", animation: "spin 1s linear infinite" }} />
           )}
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+        <div className="gm-quick-paste-divider" />
 
         {/* Results */}
-        <div ref={listRef} style={{ maxHeight: 340, overflowY: "auto", padding: "4px 6px" }}>
+        <div ref={listRef} className="gm-quick-paste-list">
           {!loading && visibleItems.length === 0 ? (
-            <div style={{ padding: "24px 10px", textAlign: "center", color: "#666", fontSize: 13 }}>
+            <div style={{ padding: "24px 10px", textAlign: "center", color: "var(--text-secondary)", fontSize: "var(--gm-font-sm)" }}>
               {modeQuery ? "No results" : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                   <span>Type to search</span>
-                  <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#555" }}>
+                  <div className="gm-quick-paste-muted" style={{ display: "flex", gap: 8 }}>
                     <span><Kbd>&gt;</Kbd> commands</span>
                     <span><Kbd>@</Kbd> files</span>
                   </div>
@@ -379,42 +348,28 @@ export default function QuickPaste() {
             (visibleItems as CommandItem[]).map((item, index) => {
               const selected = index === selectedIndex;
               const icon =
-                item.id === "sync" ? <RefreshCw size={14} style={{ color: "#6eb0f7" }} /> :
-                item.id === "settings" ? <Settings size={14} style={{ color: "#9ca3af" }} /> :
-                <PanelLeft size={14} style={{ color: "#4ade80" }} />;
+                item.id === "sync" ? <RefreshCw size={14} style={{ color: "var(--gm-category-blue)" }} /> :
+                item.id === "settings" ? <Settings size={14} style={{ color: "var(--gm-category-gray)" }} /> :
+                <PanelLeft size={14} style={{ color: "var(--gm-category-green)" }} />;
 
               return (
                 <button
                   key={item.id}
                   onClick={() => executeCommand(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
+                  className={`gm-quick-paste-result${selected ? " is-selected" : ""}`}
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    textAlign: "left",
-                    padding: "10px 10px",
-                    borderRadius: 6,
-                    border: "none",
-                    cursor: "pointer",
-                    background: selected ? "rgba(255,255,255,0.07)" : "transparent",
-                    color: "#eee",
-                    transition: "background 0.1s",
+                    borderLeft: selected ? `2px solid ${modeColors.command}` : "2px solid transparent",
                   }}
                 >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 6,
-                    background: "rgba(255,255,255,0.05)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
+                  <div className="gm-quick-paste-icon">
                     {icon}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#777", marginTop: 1 }}>{item.subtitle}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 500 }}>{item.title}</div>
+                    <div className="gm-quick-paste-muted" style={{ marginTop: "var(--gm-space-1)" }}>{item.subtitle}</div>
                   </div>
-                  {selected && <span style={{ fontSize: 10, color: "#555" }}>Enter</span>}
+                  {selected && <span className="gm-quick-paste-muted">Enter</span>}
                 </button>
               );
             })
@@ -426,43 +381,29 @@ export default function QuickPaste() {
                   key={`${item.file_path}-${index}`}
                   onClick={() => (mode === "file" ? executeFileResult(item) : executeSearchResult(item))}
                   onMouseEnter={() => setSelectedIndex(index)}
+                  className={`gm-quick-paste-result${selected ? " is-selected" : ""}`}
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    textAlign: "left",
-                    padding: "10px 10px",
-                    borderRadius: 6,
-                    border: "none",
-                    cursor: "pointer",
-                    background: selected ? "rgba(255,255,255,0.07)" : "transparent",
-                    color: "#eee",
-                    transition: "background 0.1s",
+                    borderLeft: selected ? `2px solid ${modeColors[mode]}` : "2px solid transparent",
                   }}
                 >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 6,
-                    background: "rgba(255,255,255,0.05)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
+                  <div className="gm-quick-paste-icon">
                     {sourceIcon(item.source_type)}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{
-                      fontSize: 13, fontWeight: 500,
+                      fontSize: "var(--gm-font-sm)", fontWeight: 500,
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     }}>
                       {item.title}
                     </div>
                     <div style={{
-                      fontSize: 11, color: "#777", marginTop: 1,
+                      marginTop: "var(--gm-space-1)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
+                    }} className="gm-quick-paste-muted">
                       {mode === "file" ? item.file_path : item.snippet || item.file_path}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{item.date}</span>
+                  <span className="gm-quick-paste-muted" style={{ flexShrink: 0 }}>{item.date}</span>
                 </button>
               );
             })
@@ -470,17 +411,7 @@ export default function QuickPaste() {
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            padding: "8px 16px",
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-            fontSize: 11,
-            color: "#555",
-          }}
-        >
+        <div className="gm-quick-paste-footer">
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Kbd>↵</Kbd> {mode === "search" ? "copy" : mode === "file" ? "open" : "run"}</span>
           <span style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}><Kbd>esc</Kbd> close</span>

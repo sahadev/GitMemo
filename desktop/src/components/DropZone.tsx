@@ -155,44 +155,32 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
     };
   }, [pendingDrop]);
 
-const overlayActive = isDragging || !!pendingDrop;
-const activePaths = pendingDrop?.paths ?? [];
-const dropCopy = describeDrop(activePaths, t);
-const canOpen = activePaths.length === 1 && isOpenableByGitMemo(activePaths[0]);
-const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limit_kb ?? 2048);
+  const overlayActive = isDragging || !!pendingDrop;
+  const activePaths = pendingDrop?.paths ?? [];
+  const dropCopy = describeDrop(activePaths, t);
+  const canOpen = activePaths.length === 1 && isOpenableByGitMemo(activePaths[0]);
+  const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limit_kb ?? 2048);
 
   if (overlayActive) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center px-6"
-        style={{ background: "rgba(0, 0, 0, 0.72)", backdropFilter: "blur(6px)" }}
+        className="gm-drop-overlay"
         onClick={() => {
           if (!importing && !opening && pendingDrop) clearPendingDrop();
         }}
       >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            width: "100%",
-            maxWidth: 720,
-            borderRadius: 18,
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "0 18px 60px rgba(0,0,0,0.32)",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ padding: "28px 30px 18px", borderBottom: "1px solid var(--border)" }}>
+        <div className="gm-drop-card" onClick={(e) => e.stopPropagation()}>
+          <div className="gm-drop-head">
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
+                  width: 46,
+                  height: 46,
+                  borderRadius: "var(--gm-radius-lg)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "rgba(79, 156, 247, 0.12)",
+                  background: "color-mix(in srgb, var(--accent) 14%, transparent)",
                   color: "var(--accent)",
                   flexShrink: 0,
                 }}
@@ -200,8 +188,8 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                 <Download size={24} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{t("dropzone.title")}</div>
-                <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+                <div style={{ fontSize: "var(--gm-font-xl)", fontWeight: 700, color: "var(--text)" }}>{t("dropzone.title")}</div>
+                <div style={{ marginTop: 6, fontSize: "var(--gm-font-sm)", lineHeight: 1.55, color: "var(--text-secondary)" }}>
                   {t("dropzone.chooseMode")}
                 </div>
               </div>
@@ -210,13 +198,9 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                   type="button"
                   onClick={clearPendingDrop}
                   disabled={importing || opening}
+                  className="gm-icon-button"
                   style={{
-                    border: "none",
-                    background: "none",
-                    color: "var(--text-secondary)",
                     cursor: importing || opening ? "default" : "pointer",
-                    padding: 6,
-                    borderRadius: 8,
                   }}
                 >
                   <X size={18} />
@@ -225,22 +209,22 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
             </div>
           </div>
 
-          <div style={{ padding: "22px 30px 28px" }}>
+          <div className="gm-drop-body">
             {pendingDrop ? (
               <>
                 <div
                   style={{
                     padding: "14px 16px",
-                    borderRadius: 12,
+                    borderRadius: "var(--gm-radius-md)",
                     background: "var(--bg)",
                     border: "1px solid var(--border)",
                     marginBottom: 22,
                   }}
                 >
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", wordBreak: "break-word" }}>
+                  <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, color: "var(--text)", wordBreak: "break-word" }}>
                     {dropCopy.title}
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
+                  <div style={{ marginTop: 6, fontSize: "var(--gm-font-xs)", lineHeight: 1.5, color: "var(--text-secondary)" }}>
                     {dropCopy.subtitle}
                   </div>
                 </div>
@@ -255,20 +239,16 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                       type="button"
                       onClick={() => void handleOpen(pendingDrop.paths)}
                       disabled={importing || opening}
+                      className="gm-drop-action"
                       style={{
-                        textAlign: "left",
-                        padding: "18px 18px 16px",
-                        borderRadius: 14,
-                        border: "1px solid var(--border)",
-                        background: "var(--bg)",
                         cursor: importing || opening ? "default" : "pointer",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)" }}>
                         <FolderOpen size={18} />
-                        <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.openAction")}</span>
+                        <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.openAction")}</span>
                       </div>
-                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                      <div style={{ marginTop: 10, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
                         {t("dropzone.openDesc")}
                       </div>
                     </button>
@@ -278,36 +258,32 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                     type="button"
                     onClick={() => void handleImport(pendingDrop.paths)}
                     disabled={importing || opening}
+                    className="gm-drop-action"
                     style={{
-                      textAlign: "left",
-                      padding: "18px 18px 16px",
-                      borderRadius: 14,
-                      border: "1px solid var(--border)",
-                      background: "var(--bg)",
                       cursor: importing || opening ? "default" : "pointer",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--green)" }}>
                       <Download size={18} />
-                      <span style={{ fontSize: 15, fontWeight: 700 }}>{t("dropzone.importAction")}</span>
+                      <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700 }}>{t("dropzone.importAction")}</span>
                     </div>
-                    <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                    <div style={{ marginTop: 10, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
                       {t("dropzone.importDesc")}
                     </div>
                   </button>
                 </div>
 
-                <div style={{ marginTop: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: 18, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
                   {t("dropzone.routeHint")}
                 </div>
-                <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                <div style={{ marginTop: 8, fontSize: "var(--gm-font-xs)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
                   {t("dropzone.sizeLimit", maxImportSizeLabel)}
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", padding: "18px 0 6px" }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
-                <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+              <div style={{ textAlign: "center", padding: "var(--gm-space-10) var(--gm-space-0) var(--gm-space-3)" }}>
+                <div style={{ fontSize: "var(--gm-font-lg)", fontWeight: 700, color: "var(--accent)" }}>{t("dropzone.dropToChoose")}</div>
+                <div style={{ marginTop: 10, fontSize: "var(--gm-font-sm)", lineHeight: 1.55, color: "var(--text-secondary)" }}>
                   {t("dropzone.dragHint")}
                 </div>
               </div>
@@ -321,23 +297,26 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
   if (importing || opening) {
     return (
       <div
+        className="gm-floating-toast"
         style={{
           position: "fixed",
           bottom: 24,
           right: 24,
-          zIndex: 50,
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: "12px 18px",
-          borderRadius: 12,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+          padding: "var(--gm-space-6) var(--gm-space-8)",
         }}
       >
-        <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--accent)" }} />
-        <span style={{ fontSize: 13 }}>{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
+        <div style={{
+          width: 16,
+          height: 16,
+          border: "2px solid color-mix(in srgb, var(--accent) 26%, transparent)",
+          borderTopColor: "var(--accent)",
+          borderRadius: "999px",
+          animation: "spin 1s linear infinite",
+        }} />
+        <span style={{ fontSize: "var(--gm-font-sm)" }}>{importing ? t("dropzone.importing") : t("dropzone.opening")}</span>
       </div>
     );
   }
@@ -346,18 +325,14 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
     const hasErrors = result.errors.length > 0;
     return (
       <div
+        className="gm-floating-toast"
         style={{
           position: "fixed",
           bottom: 24,
           right: 24,
-          zIndex: 50,
           width: 440,
           maxWidth: "calc(100vw - 32px)",
-          borderRadius: 14,
           overflow: "hidden",
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "0 14px 40px rgba(0,0,0,0.22)",
         }}
       >
         <div
@@ -365,7 +340,7 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "14px 18px",
+            padding: "var(--gm-space-7) var(--gm-space-8)",
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -374,7 +349,7 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
           ) : (
             <Check size={16} style={{ color: "var(--green)", flexShrink: 0 }} />
           )}
-          <span style={{ fontSize: 13, fontWeight: 600 }}>
+          <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>
             {result.imported.length > 0
               ? t("dropzone.imported", String(result.imported.length))
               : t("dropzone.importFailed")}
@@ -382,15 +357,11 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
           <button
             type="button"
             onClick={() => setResult(null)}
+            className="gm-icon-button"
             style={{
               marginLeft: "auto",
-              padding: 4,
-              borderRadius: 6,
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
+              minHeight: 26,
+              minWidth: 26,
             }}
           >
             <X size={14} style={{ color: "var(--text-secondary)" }} />
@@ -405,20 +376,20 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 12,
-                padding: "14px 18px",
+                padding: "var(--gm-space-7) var(--gm-space-8)",
                 borderBottom: i === result.imported.length - 1 && result.errors.length === 0 ? "none" : "1px solid var(--border)",
               }}
             >
               <div style={{ marginTop: 2, flexShrink: 0 }}>{categoryIcon(f.category)}</div>
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {f.original_name}
                 </p>
-                <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                   → {f.dest_path}
                 </p>
               </div>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0, marginTop: 2 }}>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", flexShrink: 0, marginTop: 2 }}>
                 {formatSize(f.size)}
               </span>
             </div>
@@ -430,9 +401,9 @@ const maxImportSizeLabel = formatSizeLimitFromKb(settings?.import_file_size_limi
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 10,
-                padding: "14px 18px",
+                padding: "var(--gm-space-7) var(--gm-space-8)",
                 color: "var(--red)",
-                fontSize: 12,
+                fontSize: "var(--gm-font-xs)",
                 lineHeight: 1.5,
                 wordBreak: "break-word",
               }}

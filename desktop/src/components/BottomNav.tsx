@@ -29,7 +29,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
   const { t } = useI18n();
 
   return (
-    <nav style={{
+    <nav className="gm-app-surface" style={{
       position: "fixed",
       left: 0,
       right: 0,
@@ -39,11 +39,12 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
       alignItems: "center",
       justifyContent: "space-around",
       borderTop: "1px solid var(--border)",
-      background: "var(--bg-card)",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      background: "color-mix(in srgb, var(--bg-card) 92%, var(--bg) 8%)",
+      padding: "6px 6px calc(6px + env(safe-area-inset-bottom, 0px))",
       flexShrink: 0,
       width: "100%",
       boxSizing: "border-box",
+      boxShadow: "var(--gm-shadow-bottom)",
     }}>
       {mobileNavItems.map((item) => {
         const Icon = item.icon;
@@ -58,18 +59,20 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 2,
-              padding: "9px 2px 7px",
-              background: "none",
-              border: "none",
+              gap: 3,
+              padding: "var(--gm-space-4) var(--gm-space-1) var(--gm-space-3)",
+              background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+              border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 36%, var(--border))" : "transparent"}`,
+              borderRadius: "var(--gm-radius-md)",
               cursor: "pointer",
-              color: active ? "var(--accent)" : "var(--text-secondary)",
-              minHeight: 48,
+              color: active ? "var(--text)" : "var(--text-secondary)",
+              minHeight: 50,
               justifyContent: "center",
+              minWidth: 0,
             }}
           >
-            <Icon size={18} />
-            <span style={{ fontSize: 9, fontWeight: active ? 600 : 400, lineHeight: 1.1 }}>
+            <Icon size={18} style={{ color: active ? "var(--accent)" : "currentColor", flexShrink: 0 }} />
+            <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500, lineHeight: 1.1, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {t(item.labelKey)}
             </span>
           </button>

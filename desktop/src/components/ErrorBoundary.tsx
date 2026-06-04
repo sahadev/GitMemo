@@ -26,47 +26,35 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-          padding: 24,
-          fontFamily: "system-ui, sans-serif",
-          color: "var(--text)",
-          background: "var(--bg)",
-        }}>
-          <h2 style={{ marginBottom: 12, color: "var(--red)" }}>Something went wrong</h2>
-          <pre style={{
-            background: "var(--bg-card)",
-            padding: 16,
-            borderRadius: 6,
-            maxWidth: "80vw",
-            overflow: "auto",
-            fontSize: 13,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}>
-            {this.state.error?.message}
-            {"\n\n"}
-            {this.state.error?.stack}
-          </pre>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            style={{
-              marginTop: 16,
-              padding: "8px 24px",
-              borderRadius: 6,
-              border: "1px solid var(--border-strong)",
-              background: "var(--bg-hover)",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 14,
-            }}
-          >
-            Try again
-          </button>
+        <div className="gm-error-shell">
+          <div className="gm-error-panel">
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-space-5)" }}>
+              <div style={{
+                width: 10,
+                height: 10,
+                borderRadius: "999px",
+                background: "var(--red)",
+                boxShadow: "var(--gm-shadow-danger-ring)",
+                flexShrink: 0,
+              }} />
+              <h2 style={{ color: "var(--text)", fontSize: "var(--gm-font-lg)", margin: 0 }}>Something went wrong</h2>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", lineHeight: 1.6, marginTop: "var(--gm-space-5)" }}>
+              GitMemo hit a render error. You can retry the current view below.
+            </p>
+            <pre className="gm-error-log">
+              {this.state.error?.message}
+              {"\n\n"}
+              {this.state.error?.stack}
+            </pre>
+            <button
+              className="gm-toolbar-button"
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ marginTop: "var(--gm-space-8)", padding: "var(--gm-space-3) var(--gm-space-7)", color: "var(--text)" }}
+            >
+              Try again
+            </button>
+          </div>
         </div>
       );
     }

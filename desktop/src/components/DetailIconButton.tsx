@@ -32,9 +32,9 @@ export function DetailIconButton({
       disabled={disabled}
       style={{
         alignItems: "center",
-        background: "transparent",
-        border: "none",
-        borderRadius: 6,
+        background: "var(--bg)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--gm-radius-md)",
         color: toneColor[tone],
         cursor: disabled ? "not-allowed" : "pointer",
         display: "inline-flex",

@@ -342,19 +342,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   return (
     <div className="markdown-body">
       {findOpen && (
-        <div style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 10px",
-          marginBottom: 12,
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          background: "var(--bg-card)",
-        }}>
+        <div className="gm-find-bar">
           <Search size={14} style={{ color: "var(--text-secondary)" }} />
           <input
             ref={findInputRef}
@@ -380,25 +368,19 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
               }
             }}
             placeholder="Find in document"
-            style={{
-              flex: 1,
-              padding: "6px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--border)",
-              background: "var(--bg)",
-              color: "var(--text)",
-            }}
+            className="gm-find-input"
           />
-          <button type="button" onClick={() => runFind(true)} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}>
+          <button type="button" onClick={() => runFind(true)} className="gm-icon-button" style={{ minHeight: 30, minWidth: 30 }}>
             <ChevronUp size={14} />
           </button>
-          <button type="button" onClick={() => runFind(false)} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}>
+          <button type="button" onClick={() => runFind(false)} className="gm-icon-button" style={{ minHeight: 30, minWidth: 30 }}>
             <ChevronDown size={14} />
           </button>
           <button
             type="button"
             onClick={() => { setFindOpen(false); setFindQuery(""); }}
-            style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+            className="gm-icon-button"
+            style={{ minHeight: 30, minWidth: 30 }}
           >
             <X size={14} />
           </button>

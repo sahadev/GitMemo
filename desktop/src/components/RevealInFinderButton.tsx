@@ -43,31 +43,17 @@ export function RevealInFinderButton({
       }}
       disabled={disabled || loading}
       title={t("common.reveal")}
-      onMouseEnter={(e) => {
-        if (disabled || loading) return;
-        e.currentTarget.style.color = "var(--accent)";
-      }}
-      onMouseLeave={(e) => {
-        if (disabled || loading) return;
-        e.currentTarget.style.color = "var(--text-secondary)";
-      }}
+      className="gm-toolbar-button"
       style={{
-        display: "flex",
-        alignItems: "center",
         gap: 4,
         padding: "4px 6px",
-        borderRadius: 4,
         cursor: disabled || loading ? "not-allowed" : "pointer",
-        background: "none",
-        border: "none",
-        color: "var(--text-secondary)",
-        fontSize: 12,
+        fontSize: "var(--gm-font-xs)",
         lineHeight: 1,
         opacity: disabled || loading ? 0.45 : 1,
-        flexShrink: 0,
       }}
     >
-      <FolderOpen size={13} />
+      <FolderOpen size={14} />
       <span>{t("common.reveal")}</span>
     </button>
   );

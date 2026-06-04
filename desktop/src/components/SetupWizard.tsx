@@ -69,7 +69,7 @@ const PLATFORM_META: Record<GitPlatform, {
     repoLimit: "< 5GB",
     fileLimit: "100MB",
     freeStorage: "unlimited",
-    color: "#24292e",
+    color: "var(--gm-provider-github)",
   },
   gitlab: {
     label: "GitLab",
@@ -77,7 +77,7 @@ const PLATFORM_META: Record<GitPlatform, {
     repoLimit: "10GB",
     fileLimit: "—",
     freeStorage: "5GB",
-    color: "#fc6d26",
+    color: "var(--gm-provider-gitlab)",
   },
   gitee: {
     label: "Gitee",
@@ -85,7 +85,7 @@ const PLATFORM_META: Record<GitPlatform, {
     repoLimit: "500MB",
     fileLimit: "100MB",
     freeStorage: "5GB",
-    color: "#c71d23",
+    color: "var(--gm-provider-gitee)",
   },
   bitbucket: {
     label: "Bitbucket",
@@ -93,7 +93,7 @@ const PLATFORM_META: Record<GitPlatform, {
     repoLimit: "4GB",
     fileLimit: "—",
     freeStorage: "1GB",
-    color: "#0052cc",
+    color: "var(--gm-provider-bitbucket)",
   },
   other: {
     label: "Other",
@@ -101,7 +101,7 @@ const PLATFORM_META: Record<GitPlatform, {
     repoLimit: "—",
     fileLimit: "—",
     freeStorage: "—",
-    color: "#6b7280",
+    color: "var(--gm-provider-other)",
   },
 };
 
@@ -258,7 +258,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     width: "100%",
     height: "100%",
     minHeight: 0,
-    borderRadius: 0,
+    borderRadius: "var(--gm-radius-none)",
     background: "var(--bg-card)",
     border: "none",
     display: isMobile ? "flex" : "grid",
@@ -275,11 +275,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     gap: 8,
     width: "100%",
     padding: "12px 20px",
-    borderRadius: 8,
-    border: "none",
+    borderRadius: "var(--gm-radius-md)",
+    border: "1px solid var(--accent)",
     background: "var(--accent)",
-    color: "#fff",
-    fontSize: 14,
+    color: "var(--gm-color-on-accent)",
+    fontSize: "var(--gm-font-sm)",
     fontWeight: 600,
     cursor: "pointer",
     transition: "opacity 0.15s",
@@ -322,15 +322,59 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     alignItems: "center",
     gap: 14,
     padding: isMobile ? "12px 14px" : "14px 18px",
-    borderRadius: 8,
-    border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
-    background: selected ? "var(--accent)10" : "transparent",
+    borderRadius: "var(--gm-radius-md)",
+    border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
     cursor: "pointer",
     transition: "all 0.15s",
     width: "100%",
     minWidth: 0,
     textAlign: "left",
   });
+
+  const badgeStyle = (tone: "accent" | "success" | "warning" | "muted" = "muted"): React.CSSProperties => {
+    const color = tone === "accent"
+      ? "var(--accent)"
+      : tone === "success"
+        ? "var(--green)"
+        : tone === "warning"
+          ? "var(--yellow)"
+          : "var(--text-secondary)";
+
+    return {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 24,
+      padding: "4px 8px",
+      borderRadius: "var(--gm-radius-md)",
+      border: "1px solid var(--border)",
+      background: "var(--bg)",
+      color,
+      fontSize: "var(--gm-font-xs)",
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+    };
+  };
+
+  const infoSurfaceStyle: React.CSSProperties = {
+    padding: isMobile ? "12px 14px" : "14px 16px",
+    borderRadius: "var(--gm-radius-md)",
+    border: "1px solid var(--border)",
+    background: "var(--bg)",
+  };
+
+  const setupValueStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    padding: "8px 10px",
+    borderRadius: "var(--gm-radius-md)",
+    border: "1px solid var(--border)",
+    background: "var(--bg)",
+    minWidth: 0,
+  };
 
   const steps: WizardStep[] = isDesktop
     ? ["language", "storage", ...(isSshRemote ? ["ssh_key" as const] : []), "editors"]
@@ -405,7 +449,13 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
       overscrollBehavior: "contain",
       WebkitOverflowScrolling: "touch",
     }}>
-      {content}
+      <div style={{
+        width: "100%",
+        maxWidth: isMobile ? "none" : 720,
+        margin: "0 auto",
+      }}>
+        {content}
+      </div>
     </div>
   );
 
@@ -420,35 +470,83 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   };
 
   const initLogIcon = (status: string) => {
-    if (status === "ok") return <Check size={13} style={{ color: "var(--green)", flexShrink: 0 }} />;
-    if (status === "error") return <AlertCircle size={13} style={{ color: "var(--red)", flexShrink: 0 }} />;
-    return <Loader2 size={13} style={{ color: "var(--accent)", flexShrink: 0, animation: "spin 1s linear infinite" }} />;
+    if (status === "ok") return <Check size={14} style={{ color: "var(--green)", flexShrink: 0 }} />;
+    if (status === "error") return <AlertCircle size={14} style={{ color: "var(--red)", flexShrink: 0 }} />;
+    return <Loader2 size={14} style={{ color: "var(--accent)", flexShrink: 0, animation: "spin 1s linear infinite" }} />;
   };
 
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
         <aside style={{
-          padding: isMobile ? "18px 18px 12px" : "36px 24px 32px",
+          padding: isMobile ? "16px 16px 12px" : "28px 22px 26px",
           borderRight: isMobile ? "none" : "1px solid var(--border)",
           borderBottom: isMobile ? "1px solid var(--border)" : "none",
-          background: "linear-gradient(180deg, var(--bg-hover) 0%, transparent 100%)",
+          background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
           display: "flex",
           flexDirection: "column",
-          gap: isMobile ? 12 : 22,
+          gap: isMobile ? 12 : 18,
           minWidth: 0,
           flexShrink: 0,
         }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", marginBottom: isMobile ? 6 : 10, letterSpacing: 0.3 }}>
-              GitMemo Setup
+          <div style={{ display: "grid", gap: isMobile ? 10 : 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: "var(--gm-radius-lg)",
+                border: "1px solid var(--border-strong)",
+                background: "var(--bg)",
+                color: "var(--accent)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "var(--gm-font-sm)",
+                fontWeight: 800,
+                flexShrink: 0,
+              }}>
+                GM
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700, color: "var(--accent)", marginBottom: 4, letterSpacing: 0 }}>
+                  GitMemo Setup
+                </div>
+                <h2 style={{
+                  fontSize: isMobile ? "var(--gm-font-lg)" : "var(--gm-font-xl)",
+                  fontWeight: 700,
+                  margin: 0,
+                  lineHeight: 1.25,
+                  overflowWrap: "anywhere",
+                }}>
+                  {stepTitles[step]}
+                </h2>
+              </div>
             </div>
-            <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, marginBottom: 6, lineHeight: 1.2 }}>
-              {stepTitles[step]}
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
               {stepDescriptions[step]}
             </p>
+            {!isMobile && (
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={setupValueStyle}>
+                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("dashboard.storage")}</span>
+                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    ~/.gitmemo
+                  </strong>
+                </div>
+                <div style={setupValueStyle}>
+                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("settings.remoteRepo")}</span>
+                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {storageMode === "remote" ? (selectedPlatformMeta?.label ?? "Git") : t("settings.noRemote")}
+                  </strong>
+                </div>
+                <div style={setupValueStyle}>
+                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)" }}>{t("dashboard.syncStatus")}</span>
+                  <strong style={{ color: "var(--text)", fontSize: "var(--gm-font-xs)" }}>
+                    {storageMode === "remote" ? t("setup.remoteMode") : t("setup.localMode")}
+                  </strong>
+                </div>
+              </div>
+            )}
           </div>
 
           {showStepIndicator && (
@@ -467,32 +565,36 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     alignItems: "center",
                     gap: isMobile ? 8 : 12,
                     padding: isMobile ? "8px 10px" : "10px 12px",
-                    borderRadius: 8,
-                    background: active ? "var(--accent)10" : "transparent",
-                    border: `1px solid ${active ? "var(--accent)30" : "transparent"}`,
+                    borderRadius: "var(--gm-radius-md)",
+                    background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                    border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 42%, var(--border))" : "transparent"}`,
                     flex: isMobile ? "0 0 auto" : undefined,
+                    minWidth: 0,
                   }}
                 >
                   <div style={{
                     width: 24,
                     height: 24,
-                    borderRadius: 12,
+                    borderRadius: "var(--gm-radius-md)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 11,
+                    fontSize: "var(--gm-font-xs)",
                     fontWeight: 700,
-                    background: complete || active ? "var(--accent)" : "var(--bg-input)",
-                    color: complete || active ? "#fff" : "var(--text-secondary)",
+                    background: complete || active ? "var(--accent)" : "var(--bg)",
+                    border: `1px solid ${complete || active ? "var(--accent)" : "var(--border)"}`,
+                    color: complete || active ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
                     flexShrink: 0,
                   }}>
-                    {complete ? <Check size={13} /> : index + 1}
+                    {complete ? <Check size={14} /> : index + 1}
                   </div>
                   <div style={{
-                    fontSize: isMobile ? 12 : 13,
+                    fontSize: isMobile ? "var(--gm-font-xs)" : "var(--gm-font-sm)",
                     fontWeight: 600,
                     color: active ? "var(--text)" : "var(--text-secondary)",
                     whiteSpace: isMobile ? "nowrap" : undefined,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}>
                     {label}
                   </div>
@@ -503,9 +605,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
           {!isMobile && <div style={{
             marginTop: "auto",
-            padding: "14px 14px 0",
-            borderTop: "1px solid var(--border)",
-            fontSize: 12,
+            ...infoSurfaceStyle,
+            fontSize: "var(--gm-font-xs)",
             color: "var(--text-secondary)",
             lineHeight: 1.6,
           }}>
@@ -529,16 +630,16 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                 <button style={optionCard(lang === "en")} onClick={() => handleLangSelect("en")}>
-                  <span style={{ fontSize: 22 }}>EN</span>
+                  <span style={{ fontSize: "var(--gm-font-2xl)" }}>EN</span>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>English</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>English</div>
                   </div>
                   {lang === "en" && <Check size={18} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
                 </button>
                 <button style={optionCard(lang === "zh")} onClick={() => handleLangSelect("zh")}>
-                  <span style={{ fontSize: 22 }}>ZH</span>
+                  <span style={{ fontSize: "var(--gm-font-2xl)" }}>ZH</span>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>中文</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>中文</div>
                   </div>
                   {lang === "zh" && <Check size={18} style={{ color: "var(--accent)", marginLeft: "auto" }} />}
                 </button>
@@ -555,20 +656,28 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <HardDrive size={36} style={{ color: "var(--accent)", display: "block", margin: "0 auto 12px" }} />
               </div>
 
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+                <span style={badgeStyle("success")}>{t("setup.localMode")}</span>
+                <span style={badgeStyle("accent")}>Git</span>
+                <span style={badgeStyle(storageMode === "remote" ? "warning" : "muted")}>
+                  {storageMode === "remote" ? t("setup.remoteMode") : t("settings.noRemote")}
+                </span>
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 <button style={{ ...optionCard(storageMode === "local"), padding: "12px 16px" }} onClick={() => setStorageMode("local")}>
                   <HardDrive size={20} style={{ color: "var(--green)", flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{t("setup.localMode")}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.localModeDesc")}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("setup.localMode")}</div>
+                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.localModeDesc")}</div>
                   </div>
                   {storageMode === "local" && <Check size={18} style={{ color: "var(--accent)" }} />}
                 </button>
                 <button style={{ ...optionCard(storageMode === "remote"), padding: "12px 16px" }} onClick={() => setStorageMode("remote")}>
                   <Cloud size={20} style={{ color: "var(--accent)", flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{t("setup.remoteMode")}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.remoteModeDesc")}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>{t("setup.remoteMode")}</div>
+                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.remoteModeDesc")}</div>
                   </div>
                   {storageMode === "remote" && <Check size={18} style={{ color: "var(--accent)" }} />}
                 </button>
@@ -576,7 +685,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
               {storageMode === "remote" && (
                 <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
                     {t("setup.platformTitle")}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
@@ -592,16 +701,16 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                             alignItems: "center",
                             gap: 6,
                             padding: "8px 12px",
-                            borderRadius: 999,
+                            borderRadius: "var(--gm-radius-pill)",
                             border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
-                            background: selected ? "var(--accent)10" : "transparent",
+                            background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                             cursor: "pointer",
                             transition: "all 0.15s",
                             color: selected ? "var(--accent)" : "var(--text)",
                           }}
                         >
-                          <div style={{ width: 8, height: 8, borderRadius: 4, background: meta.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, fontWeight: 600 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "var(--gm-radius-sm)", background: meta.color, flexShrink: 0 }} />
+                          <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>
                             {item === "other" ? t("setup.platformOther") : meta.label}
                           </span>
                           {selected && <Check size={12} style={{ color: "var(--accent)" }} />}
@@ -613,7 +722,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   {platform && (
                     <>
                       {selectedPlatformMeta && platform !== "other" && (
-                        <p style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
+                        <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
                           {t("setup.repoLimit")}: {selectedPlatformMeta.repoLimit}
                           {" · "}
                           {t("setup.fileLimit")}: {selectedPlatformMeta.fileLimit}
@@ -629,17 +738,17 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         style={{
                           width: "100%",
                           padding: "10px 12px",
-                          borderRadius: 8,
+                          borderRadius: "var(--gm-radius-lg)",
                           border: "1px solid var(--border)",
                           background: "var(--bg-input)",
                           color: "var(--text)",
-                          fontSize: 13,
+                          fontSize: "var(--gm-font-sm)",
                           fontFamily: "ui-monospace, monospace",
                           outline: "none",
                           boxSizing: "border-box",
                         }}
                       />
-                      <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                      <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
                         {isMobile ? t("setup.mobileGitUrlHint") : t("setup.gitUrlHint")}
                       </p>
                       {isMobile && (
@@ -652,18 +761,18 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                             style={{
                               width: "100%",
                               padding: "10px 12px",
-                              borderRadius: 8,
+                              borderRadius: "var(--gm-radius-lg)",
                               border: "1px solid var(--border)",
                               background: "var(--bg-input)",
                               color: "var(--text)",
-                              fontSize: 13,
+                              fontSize: "var(--gm-font-sm)",
                               outline: "none",
                               boxSizing: "border-box",
                               marginTop: 10,
                             }}
                           />
                           <p style={{
-                            fontSize: 11,
+                            fontSize: "var(--gm-font-xs)",
                             color: trimmedGitUrl && !isHttpsRemote ? "var(--red)" : "var(--text-secondary)",
                             marginTop: 6,
                             lineHeight: 1.5,
@@ -673,13 +782,13 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                           <div style={{
                             marginTop: 10,
                             padding: "10px 12px",
-                            borderRadius: 8,
+                            borderRadius: "var(--gm-radius-lg)",
                             border: "1px solid var(--border)",
                             background: "var(--bg-hover)",
                           }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                               <KeyRound size={14} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
-                              <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                                 {t("setup.mobileTokenGuide")}
                               </p>
                             </div>
@@ -694,16 +803,16 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                                 marginTop: 8,
                                 width: "100%",
                                 padding: "8px 10px",
-                                borderRadius: 6,
+                                borderRadius: "var(--gm-radius-md)",
                                 border: "1px solid var(--border)",
                                 background: "var(--bg)",
                                 color: "var(--accent)",
-                                fontSize: 11,
+                                fontSize: "var(--gm-font-xs)",
                                 fontWeight: 600,
                                 cursor: "pointer",
                               }}
                             >
-                              <ExternalLink size={11} /> {t("setup.createAccessToken")}
+                              <ExternalLink size={12} /> {t("setup.createAccessToken")}
                             </button>
                           </div>
                         </>
@@ -749,11 +858,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <div style={{
                   marginBottom: 12,
                   padding: "10px 12px",
-                  borderRadius: 8,
+                  borderRadius: "var(--gm-radius-lg)",
                   border: "1px solid var(--red)",
                   color: "var(--red)",
-                  background: "var(--red)10",
-                  fontSize: 12,
+                  background: "color-mix(in srgb, var(--red) 10%, var(--bg-card))",
+                  fontSize: "var(--gm-font-xs)",
                   lineHeight: 1.5,
                 }}>
                   {sshScanError}
@@ -772,14 +881,14 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, wordBreak: "break-all" }}>{candidate.path}</span>
+                        <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, wordBreak: "break-all" }}>{candidate.path}</span>
                         {candidate.recommended && (
                           <span style={{
-                            fontSize: 10,
+                            fontSize: "var(--gm-font-2xs)",
                             fontWeight: 700,
                             padding: "2px 6px",
-                            borderRadius: 999,
-                            background: "var(--accent)20",
+                            borderRadius: "var(--gm-radius-pill)",
+                            background: "color-mix(in srgb, var(--accent) 14%, var(--bg-card))",
                             color: "var(--accent)",
                           }}>
                             {t("setup.recommended")}
@@ -787,7 +896,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         )}
                       </div>
                       {candidate.reason && (
-                        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 4 }}>
+                        <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 4 }}>
                           {candidate.reason}
                         </div>
                       )}
@@ -824,12 +933,12 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <div style={{
                   marginBottom: 10,
                   padding: "10px 12px",
-                  borderRadius: 8,
+                  borderRadius: "var(--gm-radius-lg)",
                   border: "1px dashed var(--border)",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  fontSize: 11,
+                  fontSize: "var(--gm-font-xs)",
                   color: "var(--text-secondary)",
                 }}>
                   <GitBranch size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
@@ -844,11 +953,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                       alignItems: "center",
                       gap: 4,
                       padding: "4px 10px",
-                      borderRadius: 6,
+                      borderRadius: "var(--gm-radius-md)",
                       border: "1px solid var(--border)",
                       background: "transparent",
                       color: "var(--text-secondary)",
-                      fontSize: 11,
+                      fontSize: "var(--gm-font-xs)",
                       cursor: "pointer",
                       flexShrink: 0,
                     }}
@@ -859,7 +968,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
               )}
 
               {sshCandidates.length === 0 && !scanningSsh && (
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.5 }}>
                   {t("setup.noSshKeysFound")}
                 </p>
               )}
@@ -889,7 +998,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 4,
+                    borderRadius: "var(--gm-radius-sm)",
                     border: `2px solid ${editors.includes("claude") ? "var(--accent)" : "var(--border)"}`,
                     background: editors.includes("claude") ? "var(--accent)" : "transparent",
                     display: "flex",
@@ -897,18 +1006,18 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     justifyContent: "center",
                     flexShrink: 0,
                   }}>
-                    {editors.includes("claude") && <Check size={12} color="#fff" />}
+                    {editors.includes("claude") && <Check size={12} color="var(--gm-color-on-accent)" />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>Claude Code</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.claudeDesc")}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Claude Code</div>
+                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.claudeDesc")}</div>
                   </div>
                 </button>
                 <button style={optionCard(editors.includes("cursor"))} onClick={() => toggleEditor("cursor")}>
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 4,
+                    borderRadius: "var(--gm-radius-sm)",
                     border: `2px solid ${editors.includes("cursor") ? "var(--accent)" : "var(--border)"}`,
                     background: editors.includes("cursor") ? "var(--accent)" : "transparent",
                     display: "flex",
@@ -916,18 +1025,18 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     justifyContent: "center",
                     flexShrink: 0,
                   }}>
-                    {editors.includes("cursor") && <Check size={12} color="#fff" />}
+                    {editors.includes("cursor") && <Check size={12} color="var(--gm-color-on-accent)" />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>Cursor</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.cursorDesc")}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Cursor</div>
+                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.cursorDesc")}</div>
                   </div>
                 </button>
                 <button style={optionCard(editors.includes("codex"))} onClick={() => toggleEditor("codex")}>
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 4,
+                    borderRadius: "var(--gm-radius-sm)",
                     border: `2px solid ${editors.includes("codex") ? "var(--accent)" : "var(--border)"}`,
                     background: editors.includes("codex") ? "var(--accent)" : "transparent",
                     display: "flex",
@@ -935,11 +1044,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     justifyContent: "center",
                     flexShrink: 0,
                   }}>
-                    {editors.includes("codex") && <Check size={12} color="#fff" />}
+                    {editors.includes("codex") && <Check size={12} color="var(--gm-color-on-accent)" />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>Codex</div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.codexDesc")}</div>
+                    <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600 }}>Codex</div>
+                    <div style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 2 }}>{t("setup.codexDesc")}</div>
                   </div>
                 </button>
               </div>
@@ -952,7 +1061,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 </button>
               </div>
               <p style={{
-                fontSize: 11,
+                fontSize: "var(--gm-font-xs)",
                 color: "var(--text-secondary)",
                 textAlign: "center",
                 marginTop: 10,
@@ -974,7 +1083,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             }}>
               <div style={{ textAlign: "center" }}>
                 <Loader2
-                  size={isMobile ? 44 : 48}
+                  size={isMobile ? 40 : 48}
                   style={{
                     color: "var(--accent)",
                     animation: "spin 1s linear infinite",
@@ -982,15 +1091,15 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     margin: "0 auto 16px",
                   }}
                 />
-                <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 700, marginBottom: 8 }}>{t("setup.settingUp")}</h2>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                <h2 style={{ fontSize: isMobile ? "var(--gm-font-xl)" : "var(--gm-font-2xl)", fontWeight: 700, marginBottom: 8 }}>{t("setup.settingUp")}</h2>
+                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                   {latestInitLog?.message ?? (isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"))}
                 </p>
               </div>
 
               <div style={{
                 border: "1px solid var(--border)",
-                borderRadius: 8,
+                borderRadius: "var(--gm-radius-lg)",
                 background: "var(--bg-hover)",
                 overflow: "hidden",
               }}>
@@ -1002,8 +1111,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   padding: "12px 14px",
                   borderBottom: "1px solid var(--border)",
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{t("setup.initLogTitle")}</span>
-                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 700 }}>{t("setup.initLogTitle")}</span>
+                  <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                     {t("setup.initLogCount", initLogs.length)}
                   </span>
                 </div>
@@ -1019,20 +1128,20 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   }}
                 >
                   {initLogs.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t("setup.initWaitingLog")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("setup.initWaitingLog")}</p>
                   ) : initLogs.map((item, index) => (
                     <div key={`${item.step}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       {initLogIcon(item.status)}
                       <div style={{ minWidth: 0 }}>
                         <p style={{
-                          fontSize: 12,
+                          fontSize: "var(--gm-font-xs)",
                           color: item.status === "error" ? "var(--red)" : "var(--text)",
                           lineHeight: 1.5,
                           wordBreak: "break-word",
                         }}>
                           {item.message}
                         </p>
-                        <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>
+                        <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: 2 }}>
                           {item.step}
                         </p>
                       </div>
@@ -1041,7 +1150,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 </div>
               </div>
 
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.6, textAlign: "center" }}>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6, textAlign: "center" }}>
                 {t("setup.initLongRunningHint")}
               </p>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -1052,8 +1161,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             error ? (
               <div style={{ textAlign: "center", marginBottom: 24, paddingTop: 60 }}>
                 <AlertCircle size={40} style={{ color: "var(--red)", marginBottom: 12 }} />
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "var(--red)" }}>{t("setup.failed")}</h2>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>{error}</p>
+                <h2 style={{ fontSize: "var(--gm-font-lg)", fontWeight: 700, marginBottom: 8, color: "var(--red)" }}>{t("setup.failed")}</h2>
+                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", marginBottom: 16 }}>{error}</p>
                 <button style={btnPrimary} onClick={() => { setError(""); setStep(retryStep); }}>
                   {t("setup.retry")}
                 </button>
@@ -1064,8 +1173,10 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <div style={{
                     width: 48,
                     height: 48,
-                    borderRadius: 24,
-                    background: showSetupError ? "var(--red)20" : "var(--green)20",
+                    borderRadius: "var(--gm-radius-pill)",
+                    background: showSetupError
+                      ? "color-mix(in srgb, var(--red) 14%, var(--bg-card))"
+                      : "color-mix(in srgb, var(--green) 14%, var(--bg-card))",
                     margin: "0 auto 12px",
                     display: "flex",
                     alignItems: "center",
@@ -1078,14 +1189,14 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     )}
                   </div>
                   <h2 style={{
-                    fontSize: 20,
+                    fontSize: "var(--gm-font-xl)",
                     fontWeight: 700,
                     marginBottom: 6,
                     color: showSetupError ? "var(--red)" : "var(--text)",
                   }}>
                     {showSetupError ? t("setup.failed") : t("setup.complete")}
                   </h2>
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                     {showSetupError
                       ? (storageMode === "remote"
                           ? (isMobile
@@ -1100,13 +1211,13 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <div style={{
                     marginBottom: 16,
                     padding: "12px 16px",
-                    borderRadius: 8,
+                    borderRadius: "var(--gm-radius-lg)",
                     background: "var(--bg-hover)",
                     maxHeight: 220,
                     overflowY: "auto",
                   }}>
                     {result.steps.map((item, index) => (
-                      <div key={index} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 12 }}>
+                      <div key={index} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: "var(--gm-font-xs)" }}>
                         {item.ok ? (
                           <Check size={14} style={{ color: "var(--green)", flexShrink: 0 }} />
                         ) : (
@@ -1122,14 +1233,14 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                   <div style={{
                     marginBottom: 16,
                     padding: "12px 16px",
-                    borderRadius: 8,
+                    borderRadius: "var(--gm-radius-lg)",
                     border: "1px dashed var(--border)",
                     maxHeight: 220,
                     overflowY: "auto",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <GitBranch size={14} style={{ color: "var(--accent)" }} />
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{t("setup.sshKeyTitle")}</span>
+                      <span style={{ fontSize: "var(--gm-font-xs)", fontWeight: 600 }}>{t("setup.sshKeyTitle")}</span>
                       <button
                         onClick={() => copySshKey(result.ssh_public_key)}
                         style={{
@@ -1138,22 +1249,22 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                           alignItems: "center",
                           gap: 4,
                           padding: "4px 10px",
-                          borderRadius: 6,
+                          borderRadius: "var(--gm-radius-md)",
                           border: "1px solid var(--border)",
                           background: "transparent",
                           color: "var(--text-secondary)",
-                          fontSize: 11,
+                          fontSize: "var(--gm-font-xs)",
                           cursor: "pointer",
                         }}
                       >
                         <Copy size={12} /> {sshKeyCopied ? t("setup.copied") : t("setup.copy")}
                       </button>
                     </div>
-                    <code style={{ display: "block", fontSize: 10, color: "var(--text-secondary)", wordBreak: "break-all", lineHeight: 1.4 }}>
+                    <code style={{ display: "block", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", wordBreak: "break-all", lineHeight: 1.4 }}>
                       {result.ssh_public_key}
                     </code>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>{t("setup.sshKeyHint")}</p>
-                    <p style={{ fontSize: 11, color: "var(--yellow, #fbbf24)", marginTop: 6, fontWeight: 600 }}>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 8 }}>{t("setup.sshKeyHint")}</p>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--yellow)", marginTop: 6, fontWeight: 600 }}>
                       {t("setup.sshWriteAccess")}
                     </p>
                     <button
@@ -1164,11 +1275,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                         gap: 6,
                         marginTop: 8,
                         padding: "6px 12px",
-                        borderRadius: 6,
+                        borderRadius: "var(--gm-radius-md)",
                         border: "1px solid var(--border)",
                         background: "transparent",
                         color: "var(--accent)",
-                        fontSize: 11,
+                        fontSize: "var(--gm-font-xs)",
                         cursor: "pointer",
                       }}
                     >

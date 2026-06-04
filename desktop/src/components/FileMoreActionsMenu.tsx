@@ -82,23 +82,6 @@ export function FileMoreActionsMenu({
 
   if (!showReveal && !showCopyPath && !showExportPdf) return null;
 
-  const itemStyle = {
-    alignItems: "center",
-    background: "transparent",
-    border: "none",
-    borderRadius: 4,
-    color: "var(--text-secondary)",
-    cursor: "pointer",
-    display: "flex",
-    fontSize: 12,
-    gap: 8,
-    lineHeight: 1.2,
-    padding: "8px 10px",
-    textAlign: "left" as const,
-    whiteSpace: "nowrap" as const,
-    width: "100%",
-  };
-
   return (
     <div ref={rootRef} style={{ position: "relative", flexShrink: 0 }}>
       <DetailIconButton
@@ -113,13 +96,9 @@ export function FileMoreActionsMenu({
 
       {open ? (
         <div
+          className="gm-menu-popover"
           style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            boxShadow: "0 12px 32px rgba(0,0,0,0.24)",
             minWidth: 178,
-            padding: 6,
             position: "absolute",
             right: 0,
             top: 38,
@@ -127,13 +106,13 @@ export function FileMoreActionsMenu({
           }}
         >
           {showReveal ? (
-            <button type="button" onClick={() => void handleReveal()} style={itemStyle}>
+            <button type="button" onClick={() => void handleReveal()} className="gm-menu-item">
               <FolderOpen size={14} />
               {t("common.reveal")}
             </button>
           ) : null}
           {showCopyPath ? (
-            <button type="button" onClick={() => void handleCopyPath()} style={itemStyle}>
+            <button type="button" onClick={() => void handleCopyPath()} className="gm-menu-item">
               {pathCopied ? <Check size={14} /> : <Link2 size={14} />}
               {t("common.copyPath")}
             </button>

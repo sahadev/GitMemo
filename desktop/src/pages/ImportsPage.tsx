@@ -45,13 +45,13 @@ function ImportImagePreview({ relPath }: { relPath: string }) {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [relPath]);
-  if (!src) return <div style={{ width: 48, height: 36, flexShrink: 0, borderRadius: 4, background: "var(--bg-hover)" }} />;
+  if (!src) return <div style={{ width: 48, height: 36, flexShrink: 0, borderRadius: "var(--gm-radius-sm)", background: "var(--bg-hover)" }} />;
   return (
     <img
       src={src}
       alt=""
       {...imageSaveProps}
-      style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid var(--border)", ...imageSaveProps.style }}
+      style={{ width: 48, height: 36, objectFit: "cover", borderRadius: "var(--gm-radius-sm)", flexShrink: 0, border: "1px solid var(--border)", ...imageSaveProps.style }}
     />
   );
 }
@@ -263,26 +263,24 @@ export default function ImportsPage({
   const showDetail = !isMobile || !!selectedFile;
 
   return (
-    <div style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="imports"
         defaultWidth={300}
         left={showList && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
             <div style={{
               display: "flex", alignItems: "center", padding: "14px 16px",
               borderBottom: "1px solid var(--border)", gap: 8,
             }}>
               <Download size={16} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{t("imports.title")}</span>
+              <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, flex: 1 }}>{t("imports.title")}</span>
               <button
                 type="button"
                 onClick={handleRefresh}
                 title={t("common.refresh")}
-                style={{
-                  background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 4,
-                  color: "var(--text-secondary)", display: "flex", alignItems: "center",
-                }}
+                className="gm-toolbar-button"
+                style={{ padding: 6, display: "flex", alignItems: "center", minWidth: 28, minHeight: 28 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
               >
@@ -294,9 +292,9 @@ export default function ImportsPage({
               {loading ? (
                 <Loading compact text={t("common.loading")} />
               ) : files.length === 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 20px", textAlign: "center" }}>
+                <div className="gm-empty-state" style={{ padding: "48px 20px" }}>
                   <Download size={36} style={{ color: "var(--border)", marginBottom: 12 }} />
-                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                     {t("imports.empty")}
                   </p>
                 </div>
@@ -313,23 +311,24 @@ export default function ImportsPage({
                       style={{
                         width: "100%", textAlign: "left", padding: "12px 16px",
                         cursor: "pointer", transition: "background 0.15s",
-                        background: selected ? "var(--accent)" : "transparent",
-                        border: "none", color: selected ? "#fff" : "var(--text)",
+                        background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                        border: "none", color: "var(--text)",
+                        borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
                         borderBottom: "1px solid var(--border)",
                         display: "flex", alignItems: "center", gap: 10,
                       }}
                     >
                       {hasImage && <ImportImagePreview relPath={file.preview_image!} />}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {file.name}
                         </p>
                         {!hasImage && file.preview && (
-                          <p style={{ fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
+                          <p style={{ fontSize: "var(--gm-font-xs)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-secondary)" }}>
                             {file.preview}
                           </p>
                         )}
-                        <p style={{ fontSize: 10, marginTop: 4, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
+                        <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: 4, color: "var(--text-secondary)" }}>
                           {relativeTime(file.modified, t)}
                         </p>
                       </div>
@@ -346,7 +345,7 @@ export default function ImportsPage({
                       width: "100%", padding: "12px 16px", border: "none",
                       borderBottom: "1px solid var(--border)", background: "transparent",
                       color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                      fontSize: 12, fontWeight: 600,
+                      fontSize: "var(--gm-font-xs)", fontWeight: 600,
                     }}
                   >
                     {loadingMore ? t("common.loading") : t("common.loadMore")}
@@ -388,7 +387,7 @@ export default function ImportsPage({
                     {
                       key: "delete",
                       title: t("common.delete"),
-                      icon: <Trash2 size={13} />,
+                      icon: <Trash2 size={14} />,
                       onClick: () => void handleDelete(),
                       tone: "danger",
                       hidden: editing,
@@ -416,7 +415,7 @@ export default function ImportsPage({
                       style={{
                         width: "100%", height: "100%", resize: "none", padding: 0,
                         background: "transparent", border: "none", color: "var(--text)",
-                        fontSize: 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                        fontSize: "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
                         outline: "none", minHeight: 420,
                       }}
                     />
@@ -426,10 +425,10 @@ export default function ImportsPage({
                 </div>
               </>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+              <div className="gm-empty-state" style={{ height: "100%" }}>
                 <div style={{ textAlign: "center" }}>
                   <Download size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-                  <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
                     {t("imports.selectOrDrop")}
                   </p>
                 </div>

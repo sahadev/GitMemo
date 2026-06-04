@@ -168,6 +168,7 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
   return (
     <button
       type="button"
+      className={isMenuItem ? "gm-menu-item" : "gm-toolbar-button"}
       onClick={(e) => {
         e.stopPropagation();
         void handleExport();
@@ -183,12 +184,8 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
         minWidth: isMenuItem ? undefined : isMobile ? 38 : undefined,
         minHeight: isMenuItem ? undefined : isMobile ? 38 : undefined,
         padding: isMenuItem ? "8px 10px" : isMobile ? "8px 10px" : "5px 10px",
-        borderRadius: isMenuItem ? 4 : 6,
-        fontSize: 12,
+        fontSize: "var(--gm-font-xs)",
         cursor: buttonDisabled ? "not-allowed" : "pointer",
-        background: isMenuItem || isMobile ? "transparent" : "var(--bg)",
-        border: isMenuItem || isMobile ? "none" : "1px solid var(--border)",
-        color: "var(--text-secondary)",
         opacity: buttonDisabled ? 0.45 : 1,
         flexShrink: 0,
         lineHeight: 1.2,

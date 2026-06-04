@@ -226,7 +226,7 @@ export default function PlansPage({
         onClick={() => loadFiles()}
         title={t("common.refresh")}
         style={{
-          background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4,
+          background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: "var(--gm-radius-sm)",
           color: "var(--text-secondary)", display: "flex", alignItems: "center",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
@@ -235,8 +235,8 @@ export default function PlansPage({
         <RefreshCw size={14} />
       </button>
       <span style={{
-        fontSize: 11, color: "var(--text-secondary)", background: "var(--bg-hover)",
-        padding: "2px 8px", borderRadius: 10, whiteSpace: "nowrap",
+        fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
+        padding: "2px 8px", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
       }}>
         {hasMore ? `${files.length} / ${totalFiles}` : files.length}
       </span>
@@ -244,13 +244,14 @@ export default function PlansPage({
   );
 
   return (
-    <div style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       <DesktopSplitPane
         panelKey="plans"
         defaultWidth={300}
         left={showList && (
       <div style={{
         display: "flex", flexDirection: "column", flexShrink: 0,
+        background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)",
         width: "100%", flex: 1, minWidth: 0,
         height: "100%", minHeight: 0, overflow: "hidden",
       }}>
@@ -261,7 +262,7 @@ export default function PlansPage({
             flexShrink: 0,
           }}>
             <Lightbulb size={18} style={{ color: "var(--accent)" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
+            <span style={{ fontSize: "var(--gm-font-md)", fontWeight: 700, flex: 1 }}>{t("nav.plans")}</span>
             {listHeaderActions}
           </div>
         )}
@@ -275,10 +276,10 @@ export default function PlansPage({
           {loading ? (
             <Loading compact text={t("common.loading")} />
           ) : files.length === 0 ? (
-            <div style={{ padding: 32, textAlign: "center" }}>
+            <div className="gm-empty-state" style={{ padding: 32 }}>
               <Lightbulb size={36} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t("plans.empty")}</p>
-              <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.empty")}</p>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
                 {t("plans.emptyDesc")}
               </p>
             </div>
@@ -295,15 +296,16 @@ export default function PlansPage({
                     display: "block", width: "100%", textAlign: "left",
                     minHeight: isMobile ? 56 : undefined,
                     padding: isMobile ? "14px 16px" : "12px 16px", cursor: "pointer",
-                    background: selected ? "var(--accent)" : "transparent",
+                    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
                     border: "none", borderBottom: "1px solid var(--border)",
-                    color: selected ? "#fff" : "var(--text)", transition: "background 0.15s",
+                    borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
+                    color: "var(--text)", transition: "background 0.15s",
                   }}
                 >
-                  <p style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {f.name.replace(/\.md$/, "")}
                   </p>
-                  <p style={{ fontSize: 11, marginTop: 4, color: selected ? "rgba(255,255,255,0.7)" : "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--gm-font-xs)", marginTop: 4, color: "var(--text-secondary)" }}>
                     {relativeTime(f.modified, t)}
                   </p>
                 </button>
@@ -319,7 +321,7 @@ export default function PlansPage({
                   width: "100%", padding: "12px 16px", border: "none",
                   borderBottom: "1px solid var(--border)", background: "transparent",
                   color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: "var(--gm-font-xs)", fontWeight: 600,
                 }}
               >
                 {loadingMore ? t("common.loading") : t("common.loadMore")}
@@ -335,10 +337,10 @@ export default function PlansPage({
         right={showDetail && (
       <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
         {!selectedFile ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="gm-empty-state" style={{ flex: 1 }}>
             <div style={{ textAlign: "center" }}>
               <Lightbulb size={40} style={{ color: "var(--border)", margin: "0 auto 12px" }} />
-              <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("plans.selectToView")}</p>
+              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.selectToView")}</p>
             </div>
           </div>
         ) : (

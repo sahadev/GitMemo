@@ -45,13 +45,14 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
 
   return (
     <div
+      className="gm-app-surface"
       style={{
         display: "flex",
         flexDirection: "column",
-        width: 200,
+        width: 216,
         borderRight: "1px solid var(--border)",
         height: "100%",
-        background: "var(--bg-card)",
+        background: "color-mix(in srgb, var(--bg-card) 90%, var(--bg) 10%)",
       }}
     >
       {/* Logo */}
@@ -60,18 +61,22 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          minHeight: 62,
           padding: "12px 16px",
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 22, height: 22, borderRadius: 4, ...logoSaveProps.style }} />
-          <span style={{ fontWeight: 700, fontSize: 15 }}>GitMemo</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} style={{ width: 28, height: 28, borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", ...logoSaveProps.style }} />
+          <div style={{ minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 800, fontSize: "var(--gm-font-md)", lineHeight: 1.2 }}>GitMemo</span>
+            <span style={{ display: "block", color: "var(--text-secondary)", fontSize: "var(--gm-font-2xs)", marginTop: 2 }}>local Git memory</span>
+          </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, paddingTop: 8 }}>
+      <nav style={{ flex: 1, padding: "10px 10px 8px", overflowY: "auto" }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.id;
@@ -84,27 +89,30 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
                 alignItems: "center",
                 gap: 10,
                 width: "100%",
-                padding: "10px 16px",
-                fontSize: 13,
-                background: active ? "var(--bg-hover)" : "transparent",
-                color: active ? "var(--accent)" : "var(--text-secondary)",
-                fontWeight: active ? 600 : 400,
-                border: "none",
+                minHeight: 36,
+                padding: "8px 10px",
+                fontSize: "var(--gm-font-sm)",
+                background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
+                color: active ? "var(--text)" : "var(--text-secondary)",
+                fontWeight: active ? 700 : 500,
+                border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 44%, var(--border))" : "transparent"}`,
                 borderLeft: active && focused ? "3px solid var(--accent)" : "3px solid transparent",
+                borderRadius: "var(--gm-radius-md)",
+                marginBottom: 3,
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.15s",
               }}
             >
-              <Icon size={16} />
-              {t(item.labelKey)}
+              <Icon size={16} style={{ color: active ? "var(--accent)" : "currentColor", flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t(item.labelKey)}</span>
             </button>
           );
         })}
       </nav>
 
       {/* Sync button + version */}
-      <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
+      <div style={{ padding: 12, borderTop: "1px solid var(--border)", background: "var(--bg-card)" }}>
         <button
           onClick={onSync}
           disabled={syncing}
@@ -114,9 +122,10 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             justifyContent: "center",
             gap: 8,
             width: "100%",
-            padding: "8px 0",
-            borderRadius: 6,
-            fontSize: 12,
+            minHeight: 36,
+            padding: "8px 10px",
+            borderRadius: "var(--gm-radius-md)",
+            fontSize: "var(--gm-font-xs)",
             background: syncing
               ? "linear-gradient(90deg, var(--bg-hover) 0%, var(--accent) 50%, var(--bg-hover) 100%)"
               : syncMsg
@@ -124,19 +133,20 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
               : "var(--bg)",
             backgroundSize: syncing ? "200% 100%" : undefined,
             animation: syncing ? "shimmer 1.5s linear infinite" : undefined,
-            color: syncing ? "#fff" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--text-secondary)",
+            color: syncing ? "var(--gm-color-on-accent)" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--text-secondary)",
             border: `1px solid ${syncing ? "transparent" : syncMsg ? (syncFailed ? "var(--red)" : "var(--green)") : "var(--border)"}`,
             cursor: syncing ? "default" : "pointer",
             transition: "all 0.3s",
+            fontWeight: 700,
           }}
         >
-          <RefreshCw size={13} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
+          <RefreshCw size={14} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
-        <p style={{ fontSize: 10, textAlign: "center", marginTop: 8, color: "var(--text-secondary)", opacity: 0.6 }}>
+        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: 8, color: "var(--text-secondary)", opacity: 0.6 }}>
           GitMemo Desktop v{appMeta?.version ?? "—"}
         </p>
-        <p style={{ fontSize: 9, textAlign: "center", marginTop: 4, color: "var(--text-secondary)", opacity: 0.5 }}>
+        <p style={{ fontSize: "var(--gm-font-2xs)", textAlign: "center", marginTop: 4, color: "var(--text-secondary)", opacity: 0.5 }}>
           {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>
       </div>

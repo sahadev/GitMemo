@@ -193,9 +193,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
         <div style={{ textAlign: "center", padding: "0 32px" }}>
-          <GitBranch size={48} style={{ color: "#555", margin: "0 auto 16px" }} />
-          <p style={{ fontSize: 16, color: "var(--red)", marginBottom: 8 }}>{error}</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          <GitBranch size={48} style={{ color: "var(--gm-color-muted-icon)", margin: "0 auto var(--gm-space-8)" }} />
+          <p style={{ fontSize: "var(--gm-font-md)", color: "var(--red)", marginBottom: 8 }}>{error}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
             {t("dashboard.initHint")}
           </p>
         </div>
@@ -226,7 +226,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const cardStyle = {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
-    borderRadius: 6,
+    borderRadius: "var(--gm-radius-md)",
     padding: isMobile ? "14px" : "16px 20px",
   };
 
@@ -265,7 +265,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       : (gitStatus?.git_remote ? syncStatus.color : "var(--text-secondary)");
 
   return (
-    <div style={{
+    <div className="gm-page gm-page-scroll" style={{
       padding: isMobile ? "14px 14px 0" : "20px 28px 28px",
       overflowY: "auto",
       height: "100%",
@@ -275,20 +275,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       boxSizing: "border-box",
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700 }}>{t("dashboard.title")}</h1>
+        <h1 className="gm-page-title">{t("dashboard.title")}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isMobile && (
             <button
               type="button"
               onClick={() => onNavigate?.("search")}
               title={t("nav.search")}
+              className="gm-toolbar-button"
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
                 padding: 8,
-                borderRadius: 8,
-                color: "var(--text-secondary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -296,17 +292,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 minHeight: 36,
               }}
             >
-              <Search size={19} />
+              <Search size={20} />
             </button>
           )}
           <button
             type="button"
             onClick={handleRefresh}
             title={t("common.refresh")}
-            style={{
-              background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6,
-              color: "var(--text-secondary)", display: "flex", alignItems: "center",
-            }}
+            className="gm-toolbar-button"
+            style={{ padding: 6, display: "flex", alignItems: "center" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
           >
@@ -315,17 +309,17 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           {isDesktop && clipStatus && (
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "4px 12px", borderRadius: 20,
+              padding: "4px 12px", borderRadius: "var(--gm-radius-pill)",
               background: clipStatus.watching ? "var(--bg-success)" : "var(--bg-hover)",
               cursor: "pointer",
             }} onClick={() => onNavigate?.("clipboard")}>
               <Circle
-                size={7}
+                size={8}
                 fill={clipStatus.watching ? "var(--green)" : "var(--text-secondary)"}
                 style={{ color: clipStatus.watching ? "var(--green)" : "var(--text-secondary)" }}
               />
               <span style={{
-                fontSize: 11, fontWeight: 500,
+                fontSize: "var(--gm-font-xs)", fontWeight: 500,
                 color: clipStatus.watching ? "var(--green)" : "var(--text-secondary)",
               }}>
                 {clipStatus.watching ? t("dashboard.clipboardActive") : t("dashboard.clipboardInactive")}
@@ -346,11 +340,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-              <RefreshCw size={13} style={{ color: mobileSyncColor, animation: isSyncing ? "spin 1s linear infinite" : undefined }} />
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
+              <RefreshCw size={14} style={{ color: mobileSyncColor, animation: isSyncing ? "spin 1s linear infinite" : undefined }} />
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
             </div>
             <p style={{
-              fontSize: 14,
+              fontSize: "var(--gm-font-sm)",
               fontWeight: 700,
               color: mobileSyncColor,
               overflow: "hidden",
@@ -372,18 +366,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               gap: 6,
               minHeight: 38,
               padding: "8px 12px",
-              borderRadius: 6,
+              borderRadius: "var(--gm-radius-md)",
               border: `1px solid ${gitStatus?.git_remote ? "var(--accent)" : "var(--border)"}`,
               background: gitStatus?.git_remote ? "var(--accent)" : "var(--bg-hover)",
-              color: gitStatus?.git_remote ? "#fff" : "var(--text-secondary)",
+              color: gitStatus?.git_remote ? "var(--gm-color-on-accent)" : "var(--text-secondary)",
               cursor: !gitStatus?.git_remote || isSyncing ? "default" : "pointer",
               opacity: isSyncing ? 0.7 : 1,
               flexShrink: 0,
-              fontSize: 12,
+              fontSize: "var(--gm-font-xs)",
               fontWeight: 600,
             }}
           >
-            <RefreshCw size={13} style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined} />
+            <RefreshCw size={14} style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined} />
             {gitStatus?.git_remote ? t("sidebar.syncToGit") : t("dashboard.noRemote")}
           </button>
         </div>
@@ -407,40 +401,40 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           justifyContent: "space-between",
           gap: 16,
           marginBottom: 16,
-          borderColor: "rgba(0, 122, 255, 0.28)",
-          background: "rgba(0, 122, 255, 0.06)",
+          borderColor: "var(--gm-accent-border)",
+          background: "var(--gm-accent-muted)",
           flexDirection: isMobile ? "column" : "row",
         }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0 }}>
             <div style={{
               width: 34,
               height: 34,
-              borderRadius: 6,
-              background: "rgba(0, 122, 255, 0.12)",
+              borderRadius: "var(--gm-radius-md)",
+              background: "var(--gm-accent-soft)",
               color: "var(--accent)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}>
-              <Terminal size={17} />
+              <Terminal size={18} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <p style={{ fontSize: 14, fontWeight: 700 }}>{t("dashboard.cliCardTitle")}</p>
+                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 700 }}>{t("dashboard.cliCardTitle")}</p>
                 <span style={{
-                  fontSize: 10,
+                  fontSize: "var(--gm-font-2xs)",
                   color: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--yellow)",
-                  background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "rgba(245, 158, 11, 0.12)",
-                  border: `1px solid ${cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "rgba(245, 158, 11, 0.28)"}`,
-                  borderRadius: 999,
-                  padding: "2px 7px",
+                  background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "var(--gm-warning-soft)",
+                  border: `1px solid ${cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--gm-warning-border)"}`,
+                  borderRadius: "var(--gm-radius-pill)",
+                  padding: "var(--gm-space-1) var(--gm-space-3)",
                   fontWeight: 600,
                 }}>
                   {cliStatusText}
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 5, maxWidth: 620 }}>
+              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 5, maxWidth: 620 }}>
                 {t("dashboard.cliCardDesc")}
               </p>
             </div>
@@ -454,16 +448,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 alignItems: "center",
                 gap: 6,
                 padding: "8px 12px",
-                borderRadius: 6,
+                borderRadius: "var(--gm-radius-md)",
                 border: "1px solid var(--accent)",
                 background: "var(--accent)",
-                color: "#fff",
+                color: "var(--gm-color-on-accent)",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: "var(--gm-font-xs)",
                 fontWeight: 600,
               }}
             >
-              <Copy size={13} />
+              <Copy size={14} />
               {t("dashboard.cliCardCopyInstallCommand")}
             </button>
             <button
@@ -475,7 +469,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 justifyContent: "center",
                 width: 34,
                 height: 34,
-                borderRadius: 6,
+                borderRadius: "var(--gm-radius-md)",
                 border: "1px solid var(--border)",
                 background: "var(--bg)",
                 color: "var(--text-secondary)",
@@ -494,7 +488,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 justifyContent: "center",
                 width: 34,
                 height: 34,
-                borderRadius: 6,
+                borderRadius: "var(--gm-radius-md)",
                 border: "1px solid var(--border)",
                 background: "var(--bg)",
                 color: "var(--text-secondary)",
@@ -525,15 +519,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <div style={{
-                  width: 26, height: 26, borderRadius: 6,
-                  background: `${card.color}15`,
+                  width: 26, height: 26, borderRadius: "var(--gm-radius-md)",
+                  background: `color-mix(in srgb, ${card.color} 14%, var(--bg-card))`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Icon size={13} style={{ color: card.color }} />
+                  <Icon size={14} style={{ color: card.color }} />
                 </div>
-                <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
+                <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{card.label}</span>
               </div>
-              <p style={{ fontSize: isMobile ? 24 : 26, fontWeight: 700, letterSpacing: 0 }}>{card.value}</p>
+              <p style={{ fontSize: "var(--gm-font-2xl)", fontWeight: 700, letterSpacing: 0 }}>{card.value}</p>
             </div>
           );
         })}
@@ -542,12 +536,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* Empty state guide */}
       {contentFileCount === 0 && displayedRecent.length === 0 && (
         <div style={{
-          padding: "20px 24px", borderRadius: 6, marginBottom: 16,
-          border: "1px dashed var(--accent)40", background: "var(--accent)06",
+          padding: "20px 24px", borderRadius: "var(--gm-radius-md)", marginBottom: 16,
+          border: "1px dashed color-mix(in srgb, var(--accent) 44%, var(--border))",
+          background: "color-mix(in srgb, var(--accent) 7%, var(--bg-card))",
           textAlign: "center",
         }}>
-          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t("dashboard.emptyGuideTitle")}</p>
-          <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+          <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: 6 }}>{t("dashboard.emptyGuideTitle")}</p>
+          <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.6 }}>
             {isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc")}
           </p>
         </div>
@@ -559,11 +554,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         {/* Sync Status */}
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <RefreshCw size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
+            <RefreshCw size={14} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.syncStatus")}</span>
           </div>
           <p style={{
-            fontSize: isMobile ? 14 : 18,
+            fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)",
             fontWeight: 700,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -571,7 +566,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           }}>
             <span style={{ color: syncStatus.color }}>{syncStatus.text}</span>
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
           </p>
         </div>
@@ -579,8 +574,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         {/* Last Commit */}
         <div style={cardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <GitCommit size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
+            <GitCommit size={14} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("dashboard.lastCommit")}</span>
           </div>
           {lastCommitBrowseUrl && gitStatus?.last_commit_id ? (
             <button
@@ -589,7 +584,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               onClick={() => void openUrl(lastCommitBrowseUrl)}
               style={{
                 display: "block", width: "100%", textAlign: "left", padding: 0, margin: 0,
-                fontSize: isMobile ? 14 : 18, fontWeight: 700, fontFamily: "ui-monospace, monospace",
+                fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)", fontWeight: 700, fontFamily: "ui-monospace, monospace",
                 color: "var(--accent)", background: "none", border: "none", cursor: "pointer",
                 textDecoration: "underline", textDecorationColor: "transparent",
                 transition: "text-decoration-color 0.15s",
@@ -602,7 +597,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             </button>
           ) : (
             <p style={{
-              fontSize: isMobile ? 14 : 18,
+              fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-lg)",
               fontWeight: 700,
               fontFamily: "ui-monospace, monospace",
               color: "var(--accent)",
@@ -614,7 +609,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             </p>
           )}
           {gitStatus?.last_commit_time && (
-            <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
             </p>
           )}
@@ -625,11 +620,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* Recent Activity — full width */}
       <div style={{ ...cardStyle, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Activity size={13} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.recentActivity")}</span>
+            <Activity size={14} style={{ color: "var(--text-secondary)" }} />
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.recentActivity")}</span>
           </div>
           {displayedRecent.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", padding: "12px 0" }}>
+            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", padding: "12px 0" }}>
               {t("dashboard.noActivity")}
             </p>
           ) : (
@@ -645,7 +640,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
                       minHeight: isMobile ? 44 : undefined,
-                      padding: isMobile ? "10px 6px" : "6px 8px", borderRadius: 6,
+                      padding: isMobile ? "10px 6px" : "6px 8px", borderRadius: "var(--gm-radius-md)",
                       background: "transparent", border: "none",
                       cursor: "pointer", textAlign: "left",
                       color: "var(--text)", width: "100%",
@@ -656,12 +651,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   >
                     <Icon size={isMobile ? 14 : 12} style={{ color: cfg.color, flexShrink: 0 }} />
                     <span style={{
-                      flex: 1, fontSize: isMobile ? 13 : 12, overflow: "hidden",
+                      flex: 1, fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-xs)", overflow: "hidden",
                       textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {item.name}
                     </span>
-                    <span style={{ fontSize: 10, color: "var(--text-secondary)", flexShrink: 0 }}>
+                    <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", flexShrink: 0 }}>
                       {relativeTime(item.modified, t)}
                     </span>
                   </button>
@@ -677,8 +672,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           onClick={() => openRecord(reviewItem)}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <RefreshCw size={13} style={{ color: "var(--yellow)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.todayReview")}</span>
+            <RefreshCw size={14} style={{ color: "var(--yellow)" }} />
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.todayReview")}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -695,25 +690,25 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 }).catch(() => {});
               }}
               style={{
-                marginLeft: "auto", padding: "2px 8px", borderRadius: 4,
+                marginLeft: "auto", padding: "2px 8px", borderRadius: "var(--gm-radius-sm)",
                 border: "1px solid var(--border)", background: "transparent",
-                color: "var(--text-secondary)", fontSize: 10, cursor: "pointer",
+                color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)", cursor: "pointer",
               }}
             >
               {t("dashboard.shuffle")}
             </button>
           </div>
-          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{reviewItem.name}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: 4 }}>{reviewItem.name}</p>
           {reviewPreview && (
             <p style={{
-              fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5,
+              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5,
               display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
               overflow: "hidden",
             }}>
               {reviewPreview}
             </p>
           )}
-          <p style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 6 }}>
+          <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: 6 }}>
             {relativeTime(reviewItem.modified, t)}
           </p>
         </div>
@@ -721,43 +716,43 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Quick Info */}
       <div style={{
-        padding: "16px 20px", borderRadius: 6,
+        padding: "16px 20px", borderRadius: "var(--gm-radius-md)",
         border: "1px dashed var(--border)", background: "transparent",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <Zap size={13} style={{ color: "var(--text-secondary)" }} />
-          <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.quickInfo")}</span>
+          <Zap size={14} style={{ color: "var(--text-secondary)" }} />
+          <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", fontWeight: 500 }}>{t("dashboard.quickInfo")}</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {gitStatus?.sync_dir}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={gitStatus?.git_remote}>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={gitStatus?.git_remote}>
               {gitStatus?.git_remote || t("dashboard.noRemote")}
             </span>
           </div>
           {isDesktop && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
                 CLI: gitmemo --help
               </span>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
               {t("dashboard.totalFiles", String(displayedFileCount))}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <HardDrive size={12} style={{ color: "var(--text-secondary)" }} />
-            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
               {formatSize(displayedRepoSizeKb)}
             </span>
           </div>

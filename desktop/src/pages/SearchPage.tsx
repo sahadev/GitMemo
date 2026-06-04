@@ -275,7 +275,7 @@ export default function SearchPage({
 
   if (selectedFile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
+      <div className="gm-page" style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
         <FileDetailToolbar
           title={isMobile ? selectedFile.split("/").pop() : selectedFile}
           titleText={selectedFile}
@@ -321,7 +321,7 @@ export default function SearchPage({
             />
           ) : null}
         />
-        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px", userSelect: "text" }}>
+      <div className="gm-page-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? `16px 16px ${mobileBottomPadding}` : "20px 28px", userSelect: "text" }}>
           {editing ? (
             <textarea
               ref={editRef}
@@ -336,7 +336,7 @@ export default function SearchPage({
               style={{
                 width: "100%", height: "100%", resize: "none", padding: 0,
                 background: "transparent", border: "none", color: "var(--text)",
-                fontSize: isMobile ? 15 : 13, fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
+                fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)", fontFamily: "ui-monospace, monospace", lineHeight: 1.7,
                 outline: "none",
               }}
             />
@@ -349,9 +349,9 @@ export default function SearchPage({
   }
 
   return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
+      <div className="gm-page" style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* Search Bar */}
-      <div style={{ padding: isMobile ? "14px 14px 12px" : "20px 28px 16px" }}>
+      <div style={{ padding: isMobile ? "14px 14px 12px" : "20px 28px 16px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%)" }}>
         <div style={{ position: "relative" }}>
           <Search
             size={16}
@@ -375,40 +375,41 @@ export default function SearchPage({
             placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
             style={{
               width: "100%", paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
-              borderRadius: 6, fontSize: 14, fontFamily: "inherit",
-              background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)",
+              borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)", fontFamily: "inherit",
+              background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)",
             }}
           />
         </div>
       </div>
 
       {/* Results */}
-      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? `0 14px ${mobileBottomPadding}` : "0 28px 28px" }}>
+      <div className="gm-page-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? `14px 14px ${mobileBottomPadding}` : "18px 28px 28px" }}>
         {loading ? (
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", padding: "20px 0" }}>{t("search.searching")}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", padding: "20px 0" }}>{t("search.searching")}</p>
         ) : !searched ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80 }}>
-            <Search size={44} style={{ color: "var(--border)", marginBottom: 16 }} />
-            <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+          <div className="gm-empty-state" style={{ paddingTop: 80 }}>
+            <Search size={40} style={{ color: "var(--border)", marginBottom: 16 }} />
+            <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
               {isMobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
             </p>
-            <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: 6 }}>
               {isMobile ? t("search.mobileEmptyHint") : t("search.emptyHint", formatShortcut(shortcuts.global_search))}
             </p>
           </div>
         ) : results.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", paddingTop: 16 }}>{t("search.noResults", query)}</p>
+          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", paddingTop: 16 }}>{t("search.noResults", query)}</p>
         ) : (
           <>
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>{t("search.results", String(results.length))}</p>
+            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: 14 }}>{t("search.results", String(results.length))}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {results.map((r, i) => (
                 <button
                   key={i}
                   onClick={() => openFile(r.file_path)}
+                  className="gm-panel"
                   style={{
-                    width: "100%", textAlign: "left", padding: "14px 18px", borderRadius: 6, cursor: "pointer",
-                    background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)",
+                    width: "100%", textAlign: "left", padding: "var(--gm-space-7) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)", cursor: "pointer",
+                    background: "var(--bg-card)", color: "var(--text)",
                     transition: "background 0.15s",
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
@@ -424,15 +425,15 @@ export default function SearchPage({
                     ) : r.source_type === "config" ? (
                       <Settings size={14} style={{ color: "var(--text-secondary)" }} />
                     ) : r.source_type === "import" ? (
-                      <FolderInput size={14} style={{ color: "#14b8a6" }} />
+                      <FolderInput size={14} style={{ color: "var(--gm-category-teal)" }} />
                     ) : (
                       <StickyNote size={14} style={{ color: "var(--green)" }} />
                     )}
-                    <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{r.title}</span>
-                    <span style={{ fontSize: 10, color: "var(--text-secondary)", flexShrink: 0 }}>{relativeTime(r.date, t)}</span>
+                    <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, flex: 1 }}>{r.title}</span>
+                    <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", flexShrink: 0 }}>{relativeTime(r.date, t)}</span>
                   </div>
                   {r.snippet && (
-                    <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 4 }}>
+                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: 1.5, marginTop: 4 }}>
                       {r.snippet}
                     </p>
                   )}
