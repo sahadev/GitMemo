@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 #[cfg(not(target_os = "android"))]
+use super::skills::install_save_skill;
+
+#[cfg(not(target_os = "android"))]
 fn home_dir() -> Result<std::path::PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
     Ok(std::path::PathBuf::from(home))
@@ -653,19 +656,6 @@ fn setup_cursor_full(sync_dir: &str, lang: &str) -> Result<(), String> {
     cursor_mcp::register(&cursor_mcp_path, &cli_path)
         .map_err(|e| format!("Cursor MCP failed: {e}"))?;
 
-    Ok(())
-}
-
-/// Install /save skill (uses include_str! with Desktop-relative path)
-#[cfg(not(target_os = "android"))]
-fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
-    let save_dir = skills_dir.join("save");
-    std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
-    std::fs::write(
-        save_dir.join("SKILL.md"),
-        include_str!("../../../../skills/save/SKILL.md"),
-    )
-    .map_err(|e| e.to_string())?;
     Ok(())
 }
 

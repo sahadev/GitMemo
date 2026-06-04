@@ -8,6 +8,7 @@ import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
 import { usePlatformFlags } from "../hooks/usePlatform";
+import { useTimedCopy } from "../hooks/useTimedCopy";
 import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { MOBILE_BOTTOM_NAV_HEIGHT } from "../utils/mobileLayout";
@@ -22,6 +23,7 @@ import {
   type ShortcutId,
 } from "../utils/shortcuts";
 import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
+import { Switch } from "../components/base/Switch";
 
 const IMPORT_SIZE_LIMIT_MIN_KB = 500;
 const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
@@ -114,18 +116,6 @@ function visibleMobileDiagnosticSteps(steps: MobileGitDiagnosticStep[]): MobileG
   return steps.filter((step) => !step.ok || important.has(step.name));
 }
 
-function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      className="gm-switch"
-      data-enabled={enabled ? "true" : "false"}
-    >
-      <div className="gm-switch-thumb" />
-    </button>
-  );
-}
-
 function formatImportSizeLimit(kb: number): string {
   if (kb < 1024) return `${kb} KB`;
   const mb = kb / 1024;
@@ -152,7 +142,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [editingBranch, setEditingBranch] = useState(false);
   const syncDir = gitStatus?.sync_dir ?? "";
   const gitRemote = gitStatus?.git_remote ?? "";
-  const [copiedField, setCopiedField] = useState<"syncDir" | "gitRemote" | "cliCommand" | null>(null);
+  const { copied: copiedField, markCopied: markCopiedField } = useTimedCopy<"syncDir" | "gitRemote" | "cliCommand">();
   const [editingRemote, setEditingRemote] = useState(false);
   const [remoteInput, setRemoteInput] = useState("");
   const [remoteTokenInput, setRemoteTokenInput] = useState("");
@@ -467,8 +457,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     if (!value) return;
     try {
       await writeText(value);
-      setCopiedField(field);
-      window.setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1500);
+      markCopiedField(field);
       showToast(field === "cliCommand" ? t("settings.cliCommandCopied") : t("common.copied"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -657,7 +646,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 </p>
               </div>
             </div>
-            <Toggle enabled={theme === "dark"} onToggle={toggleTheme} />
+            <Switch enabled={theme === "dark"} onToggle={toggleTheme} />
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
@@ -702,7 +691,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.launchAtLoginDesc")}</p>
                   </div>
                 </div>
-                <Toggle enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
+                <Switch enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
               </div>
             </>
           )}
@@ -720,7 +709,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.clipboardAutostartDesc")}</p>
                   </div>
                 </div>
-                <Toggle enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
+                <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
               </div>
             </>
           )}
@@ -785,7 +774,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-1)" }}>{t("settings.controlCopyPasteDesc")}</p>
                   </div>
                 </div>
-                <Toggle enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
+                <Switch enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
               </div>
             </>
           )}
@@ -947,7 +936,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       {updatingClaudeSkills ? t("settings.checking") : t("settings.updateSkills")}
                     </button>
                   )}
-                  <Toggle enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+                  <Switch enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
                 </div>
               </div>
 
@@ -977,7 +966,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                       {updatingCursorSkills ? t("settings.checking") : t("settings.updateSkills")}
                     </button>
                   )}
-                  <Toggle enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
+                  <Switch enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
                 </div>
               </div>
 

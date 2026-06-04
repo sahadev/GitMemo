@@ -9,7 +9,15 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
+import { AppIcon } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { Button } from "../components/base/Button";
+import { CodeTextarea } from "../components/base/CodeTextarea";
+import { EmptyState } from "../components/base/EmptyState";
+import { MonoBlock } from "../components/base/MonoBlock";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
 import { PaneHeader } from "../components/AppHeaders";
@@ -237,94 +245,69 @@ export default function ExternalFilesPage({
   }, [selectedFilePath, showToast, t, onImportResult]);
 
   return (
-    <div className="gm-page" style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="external-files"
         defaultWidth={404}
         minWidth={260}
         maxWidth={560}
+        showList
+        showDetail
         left={(
-          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "var(--gm-color-bg-surface)" }}>
+          <ListPane>
             <PaneHeader
               icon={FileSymlink}
               title={t("externalFiles.title")}
               actions={(
                 <>
-                  <button
-                    type="button"
+                  <Button
+                    variant="toolbar"
                     onClick={() => void handleClearAll()}
                     disabled={loading || entries.length === 0}
                     title={t("externalFiles.clearAll")}
-                    className="gm-toolbar-button"
-                    style={{ cursor: loading || entries.length === 0 ? "not-allowed" : "pointer", padding: 0, opacity: loading || entries.length === 0 ? 0.45 : 1 }}
-                  >
-                    <Eraser size="var(--gm-icon-xs)" />
-                  </button>
-                  <button
-                    type="button"
+                    icon={Eraser}
+                  />
+                  <Button
+                    variant="toolbar"
                     onClick={() => void loadEntries()}
                     title={t("common.refresh")}
-                    className="gm-toolbar-button"
-                    style={{ cursor: "pointer", padding: 0 }}
-                  >
-                    <RefreshCw size="var(--gm-icon-xs)" />
-                  </button>
+                    icon={RefreshCw}
+                  />
                 </>
               )}
             />
-            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "var(--gm-space-3) 0" }}>
+            <ListPaneBody>
               {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
               {!loading && entries.length === 0 ? (
-                <p style={{ padding: "var(--gm-section-gap-lg)", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("externalFiles.empty")}</p>
+                <EmptyState compact title={t("externalFiles.empty")} />
               ) : null}
               {!loading && entries.map((entry) => {
                 const active = selectedFilePath === entry.file_path;
                 return (
-                  <button
+                  <FileListItem
                     key={entry.file_path}
-                    type="button"
                     onClick={() => void openExternalFile(entry.file_path)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      borderBottom: "1px solid var(--border)",
-                      background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                      borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
-                      color: "var(--text)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      padding: "var(--gm-card-pad-y) var(--gm-space-12)",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "var(--gm-icon-text-gap)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)" }}>
-                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--gm-font-md)", fontWeight: 650, lineHeight: "var(--gm-leading-heading)" }}>
-                        {entry.file_name}
-                      </span>
-                      {!entry.exists ? (
-                        <span style={{ fontSize: "var(--gm-font-xs)", opacity: 0.85 }}>{t("externalFiles.missing")}</span>
-                      ) : null}
-                    </div>
-                    <div style={{ fontSize: "var(--gm-font-xs)", opacity: 0.72, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: "var(--gm-leading-normal)" }}>
-                      {entry.parent_dir}
-                    </div>
-                    <div style={{ fontSize: "var(--gm-font-2xs)", opacity: 0.62, lineHeight: "var(--gm-leading-normal)" }}>
-                      {t("externalFiles.lastSaved", relativeTime(entry.last_modified_at || entry.last_opened_at, t))}
-                    </div>
-                  </button>
+                    active={active}
+                    title={entry.file_name}
+                    subtitle={entry.parent_dir}
+                    meta={(
+                      <>
+                        <span className="gm-file-list-meta">
+                          {t("externalFiles.lastSaved", relativeTime(entry.last_modified_at || entry.last_opened_at, t))}
+                        </span>
+                        {!entry.exists ? <Badge tone="danger">{t("externalFiles.missing")}</Badge> : null}
+                      </>
+                    )}
+                  />
                 );
               })}
-            </div>
-          </div>
+            </ListPaneBody>
+          </ListPane>
         )}
         right={
           !selectedEntry ? (
-            <div className="gm-empty-state" style={{ flex: 1, gap: "var(--gm-icon-text-gap)" }}>
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("externalFiles.selectFile")}</p>
-            </div>
+            <EmptyState title={t("externalFiles.selectFile")} full />
           ) : (
+            <DetailPane>
             <>
               <FileDetailToolbar
                 title={selectedEntry.file_name}
@@ -341,7 +324,7 @@ export default function ExternalFilesPage({
                 editTitle={t("externalFiles.edit")}
                 saveTitle={t("externalFiles.save")}
                 cancelTitle={t("common.preview")}
-                cancelIcon={<Eye size={14} />}
+                cancelIcon={<AppIcon icon={Eye} size="xs" />}
                 editDisabled={!selectedEntry.exists}
                 saveDisabled={saving}
                 saveTone="accent"
@@ -356,7 +339,7 @@ export default function ExternalFilesPage({
                   {
                     key: "import",
                     title: t("externalFiles.import"),
-                    icon: <Download size={14} />,
+                    icon: <AppIcon icon={Download} size="xs" />,
                     onClick: () => void handleImport(),
                     disabled: importing,
                   },
@@ -365,7 +348,7 @@ export default function ExternalFilesPage({
                   {
                     key: "remove",
                     title: t("common.delete"),
-                    icon: <Trash2 size={14} />,
+                    icon: <AppIcon icon={Trash2} size="xs" />,
                     onClick: () => void handleRemove(selectedEntry.file_path),
                     tone: "danger",
                     hidden: editing,
@@ -382,14 +365,14 @@ export default function ExternalFilesPage({
                 ) : null}
               />
 
-              <div style={{ flex: 1, overflow: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)" }}>
+              <DetailScroll>
                 {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                 {!fileLoading && fileError ? (
-                  <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{fileError}</p>
+                  <p className="gm-error-inline">{fileError}</p>
                 ) : null}
                 {!fileLoading && !fileError && selectedEntry ? (
                   editing ? (
-                    <textarea
+                    <CodeTextarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       onKeyDown={(e) => {
@@ -398,27 +381,19 @@ export default function ExternalFilesPage({
                           void handleSave();
                         }
                       }}
-                      className="gm-code-editor gm-code-editor-min"
-                      style={{
-                        width: "100%", height: "100%", resize: "none", padding: 0,
-                        border: "none",
-                      }}
+                      minHeight
                     />
                   ) : isProbablyMarkdown(selectedEntry.file_name) ? (
                     <MarkdownView content={fileContent} />
                   ) : (
-                    <pre className="gm-mono-text" style={{
-                      margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", whiteSpace: "pre-wrap", wordBreak: "break-word",
-                    }}>
-                      {fileContent}
-                    </pre>
+                    <MonoBlock>{fileContent}</MonoBlock>
                   )
                 ) : null}
-              </div>
+              </DetailScroll>
             </>
+            </DetailPane>
           )
         }
-      />
-    </div>
+    />
   );
 }

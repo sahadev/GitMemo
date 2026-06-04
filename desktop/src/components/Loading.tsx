@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { AppIcon } from "./base/AppIcon";
 
 interface LoadingProps {
   /** Text shown below the spinner */
@@ -11,7 +12,7 @@ export function Loading({ text, compact }: LoadingProps) {
   if (compact) {
     return (
       <div className="gm-loading gm-loading-compact">
-        <Loader2 size={14} style={{ animation: "spin 1s linear infinite", color: "var(--accent)", flexShrink: 0 }} />
+        <AppIcon icon={Loader2} size="xs" tone="accent" spin />
         {text && <span>{text}</span>}
       </div>
     );
@@ -19,7 +20,7 @@ export function Loading({ text, compact }: LoadingProps) {
 
   return (
     <div className="gm-loading gm-loading-full">
-      <Loader2 size={24} style={{ animation: "spin 1s linear infinite", color: "var(--accent)" }} />
+      <AppIcon icon={Loader2} size="xl" tone="accent" spin />
       {text && <p className="gm-loading-text">{text}</p>}
     </div>
   );

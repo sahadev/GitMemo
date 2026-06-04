@@ -4,6 +4,8 @@ import { Printer } from "lucide-react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { MarkdownContent } from "./MarkdownView";
+import { AppIcon } from "./base/AppIcon";
+import { cx } from "./base/classNames";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
 
@@ -168,31 +170,17 @@ export function ExportPdfButton({ content = "", filePath, title, disabled = fals
   return (
     <button
       type="button"
-      className={isMenuItem ? "gm-menu-item" : "gm-toolbar-button"}
+      className={cx(isMenuItem ? "gm-menu-item" : "gm-toolbar-button", "gm-export-pdf-button")}
       onClick={(e) => {
         e.stopPropagation();
         void handleExport();
       }}
       disabled={buttonDisabled}
       title={t("common.exportPdf")}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: isMenuItem ? "flex-start" : "center",
-        gap: isMenuItem ? 8 : 4,
-        width: isMenuItem ? "100%" : undefined,
-        minWidth: isMenuItem ? undefined : isMobile ? 38 : undefined,
-        minHeight: isMenuItem ? undefined : isMobile ? 38 : undefined,
-        padding: isMenuItem ? "8px 10px" : isMobile ? "8px 10px" : "5px 10px",
-        fontSize: "var(--gm-font-xs)",
-        cursor: buttonDisabled ? "not-allowed" : "pointer",
-        opacity: buttonDisabled ? 0.45 : 1,
-        flexShrink: 0,
-        lineHeight: 1.2,
-        whiteSpace: "nowrap",
-      }}
+      data-menu-item={isMenuItem ? "true" : "false"}
+      data-mobile={isMobile ? "true" : "false"}
     >
-      <Printer size={isMenuItem ? 14 : isMobile ? 16 : 12} />
+      <AppIcon icon={Printer} size={isMenuItem ? "xs" : isMobile ? "sm" : "2xs"} />
       {(isMenuItem || !isMobile) && t("common.exportPdf")}
     </button>
   );

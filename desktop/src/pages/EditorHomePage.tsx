@@ -11,6 +11,14 @@ import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PageHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Button } from "../components/base/Button";
+import { CodeTextarea } from "../components/base/CodeTextarea";
+import { EmptyState } from "../components/base/EmptyState";
+import { MonoBlock } from "../components/base/MonoBlock";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { PageFrame } from "../components/layout/PageFrame";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
@@ -291,21 +299,18 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
   const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
 
   return (
-    <div className="gm-page" style={{ display: "flex", height: "100%", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <PageFrame column>
       <PageHeader
         icon={FolderOpen}
         title={t("editorHome.title")}
         subtitle={t("editorHome.subtitle")}
         actions={(
-          <button
-            type="button"
+          <Button
+            variant="toolbar"
             onClick={handleRefresh}
             title={t("common.refresh")}
-            className="gm-toolbar-button"
-            style={{ cursor: "pointer", padding: 0 }}
-          >
-            <RefreshCw size="var(--gm-icon-xs)" />
-          </button>
+            icon={RefreshCw}
+          />
         )}
       />
 
@@ -313,11 +318,8 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
         panelKey="editor-home"
         defaultWidth={320}
         left={(
-          <div style={{
-            display: "flex", flexDirection: "column", flexShrink: 0,
-            background: "var(--gm-color-bg-surface)",
-          }}>
-            <div style={{ display: "flex", gap: "var(--gm-space-2)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)", borderBottom: "1px solid var(--border)" }}>
+          <ListPane>
+            <div className="gm-segment-row">
               {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
                 const exists = r === "claude"
                   ? roots?.claude_exists
@@ -332,12 +334,8 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                     type="button"
                     disabled={!exists}
                     onClick={() => handleSwitchRoot(r)}
-                    style={{
-                      flex: 1, padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: root === r ? 700 : 500,
-                      border: "none", cursor: exists ? "pointer" : "not-allowed", opacity: exists ? 1 : 0.45,
-                      background: root === r ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
-                      color: root === r ? "var(--text)" : "var(--text-secondary)",
-                    }}
+                    className="gm-segment-button gm-segment-button-fluid"
+                    data-active={root === r ? "true" : "false"}
                   >
                     {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
                   </button>
@@ -345,77 +343,57 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
               })}
             </div>
 
-            <div style={{
-              display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)",
-              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", borderBottom: "1px solid var(--border)",
-            }}>
+            <div className="gm-editor-path-row">
               {rel ? (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "var(--gm-space-2)", padding: "var(--gm-space-1) var(--gm-space-3)",
-                    borderRadius: "var(--gm-radius-sm)", border: "1px solid var(--border)", background: "var(--bg-hover)",
-                    cursor: "pointer", color: "var(--text-secondary)", fontSize: "var(--gm-font-xs)",
-                  }}
+                  icon={ChevronLeft}
                 >
-                  <ChevronLeft size="var(--gm-icon-xs)" />
                   {t("editorHome.up")}
-                </button>
+                </Button>
               ) : null}
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={rootPath || rel || "."}>
+              <span className="gm-editor-path-text" title={rootPath || rel || "."}>
                 {rel || rootPath || "~"}
               </span>
             </div>
 
-            <div style={{ display: "flex", gap: "var(--gm-control-gap)", padding: "var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg)", borderBottom: "1px solid var(--border)" }}>
-              <button
-                type="button"
+            <div className="gm-editor-actions-row">
+              <Button
+                variant="secondary"
                 onClick={() => void handleCreateFile()}
                 disabled={!rootOk || creating}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
-                  padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", background: "var(--bg-hover)",
-                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
-                }}
+                icon={FilePlus2}
+                block
               >
-                <FilePlus2 size="var(--gm-icon-xs)" />
                 {t("editorHome.newFile")}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => void handleCreateFolder()}
                 disabled={!rootOk || creatingDir}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-control-gap)",
-                  padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-md)", border: "1px solid var(--border)", background: "var(--bg-hover)",
-                  color: "var(--text-secondary)", cursor: rootOk ? "pointer" : "not-allowed", fontSize: "var(--gm-font-xs)",
-                }}
+                icon={FolderPlus}
+                block
               >
-                <FolderPlus size="var(--gm-icon-xs)" />
                 {t("editorHome.newFolder")}
-              </button>
+              </Button>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto" }}>
+            <ListPaneBody>
               {!rootOk ? (
-                <div style={{ padding: "var(--gm-space-12)", textAlign: "center", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                  {rootPath}
-                  <p style={{ marginTop: "var(--gm-space-4)" }}>{t("editorHome.missingDir")}</p>
-                </div>
+                <EmptyState compact title={rootPath} description={t("editorHome.missingDir")} />
               ) : listLoading ? (
                 <Loading compact text={t("dashboard.loading")} />
               ) : listError ? (
-                <p style={{ padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{listError}</p>
+                <p className="gm-error-inline">{listError}</p>
               ) : entries.length === 0 ? (
-                <p style={{ padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{leftEmptyText}</p>
+                <EmptyState compact title={leftEmptyText} />
               ) : (
                 entries.map((entry) => {
                   const sel = selectedFileRel === entry.rel_path;
                   return (
-                    <button
+                    <FileListItem
                       key={entry.rel_path}
-                      type="button"
                       onClick={() => {
                         if (entry.is_dir) {
                           setRel(entry.rel_path);
@@ -424,32 +402,24 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                           void openFile(entry.rel_path);
                         }
                       }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "var(--gm-row-gap)", width: "100%",
-                        padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", textAlign: "left", border: "none", borderBottom: "1px solid var(--border)",
-                        background: sel ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                        borderLeft: sel ? "3px solid var(--accent)" : "3px solid transparent",
-                        color: "var(--text)", cursor: "pointer", fontSize: "var(--gm-font-sm)",
-                      }}
-                    >
-                      {entry.is_dir ? <Folder size="var(--gm-icon-xs)" style={{ flexShrink: 0, opacity: 0.85 }} /> : <File size="var(--gm-icon-xs)" style={{ flexShrink: 0, opacity: 0.85 }} />}
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
-                    </button>
+                      active={sel}
+                      icon={<AppIcon icon={entry.is_dir ? Folder : File} size="xs" />}
+                      title={entry.name}
+                    />
                   );
                 })
               )}
-            </div>
-          </div>
+            </ListPaneBody>
+          </ListPane>
         )}
         right={(
-          <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+          <DetailPane>
             {!selectedFileRel ? (
-              <div className="gm-empty-state" style={{ flex: 1, gap: "var(--gm-space-4)" }}>
-                <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-                  {root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
-                </p>
-                <p style={{ margin: 0, fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>{t("editorHome.editableWarning")}</p>
-              </div>
+              <EmptyState
+                title={root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
+                description={t("editorHome.editableWarning")}
+                full
+              />
             ) : (
               <>
                 <FileDetailToolbar
@@ -477,7 +447,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                     {
                       key: "delete",
                       title: t("common.delete"),
-                      icon: <Trash2 size={14} />,
+                      icon: <AppIcon icon={Trash2} size="xs" />,
                       onClick: () => void handleDelete(),
                       tone: "danger",
                       hidden: editing,
@@ -491,40 +461,32 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                       exportTitle={selectedFileRel.split("/").pop()}
                     />
                   ) : null}
-                  style={{ padding: "var(--gm-control-pad-y-lg) var(--gm-list-row-pad-x)" }}
+                  density="compact"
                 />
-                <div style={{ flex: 1, overflow: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)" }}>
+                <DetailScroll>
                   {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
                   {!fileLoading && fileError ? (
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>{fileError}</p>
+                    <p className="gm-error-inline">{fileError}</p>
                   ) : null}
                   {!fileLoading && !fileError && selectedFileRel ? (
                     editing ? (
-                      <textarea
+                      <CodeTextarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="gm-code-editor gm-code-editor-min"
-                        style={{
-                          width: "100%", height: "100%", resize: "none", padding: 0,
-                          border: "none",
-                        }}
+                        minHeight
                       />
                     ) : isProbablyMarkdown(selectedFileRel) ? (
                       <MarkdownView content={fileContent} />
                     ) : (
-                      <pre className="gm-mono-text" style={{
-                        margin: 0, fontSize: "var(--gm-font-xs)", lineHeight: "var(--gm-leading-normal)", whiteSpace: "pre-wrap", wordBreak: "break-word",
-                      }}>
-                        {fileContent}
-                      </pre>
+                      <MonoBlock>{fileContent}</MonoBlock>
                     )
                   ) : null}
-                </div>
+                </DetailScroll>
               </>
             )}
-          </div>
+          </DetailPane>
         )}
       />
-    </div>
+    </PageFrame>
   );
 }

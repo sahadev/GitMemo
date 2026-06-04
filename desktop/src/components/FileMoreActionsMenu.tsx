@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Check, Ellipsis, FolderOpen, Link2 } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { ExportPdfButton } from "./ExportPdfButton";
+import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
+import { useTimedCopy } from "../hooks/useTimedCopy";
 
 interface FileMoreActionsMenuProps {
   relPath?: string;
@@ -29,7 +30,7 @@ export function FileMoreActionsMenu({
   const { t } = useI18n();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
-  const [pathCopied, setPathCopied] = useState(false);
+  const { copied: pathCopied, copyText } = useTimedCopy<boolean>({ successMessage: t("common.pathCopied") });
   const rootRef = useRef<HTMLDivElement>(null);
 
   const resolvePath = useCallback(async () => {
@@ -65,15 +66,12 @@ export function FileMoreActionsMenu({
 
   const handleCopyPath = useCallback(async () => {
     try {
-      await writeText(await resolvePath());
-      setPathCopied(true);
-      setTimeout(() => setPathCopied(false), 1500);
-      showToast(t("common.pathCopied"));
-      setOpen(false);
+      const copied = await copyText(await resolvePath(), true);
+      if (copied) setOpen(false);
     } catch (e) {
       showToast(`${e}`, true);
     }
-  }, [resolvePath, showToast, t]);
+  }, [copyText, resolvePath, showToast]);
 
   const hasFilePath = Boolean(relPath || absolutePath);
   const showReveal = canReveal && hasFilePath;
@@ -91,7 +89,7 @@ export function FileMoreActionsMenu({
         }}
         title={t("common.more")}
       >
-        <Ellipsis size={16} />
+        <AppIcon icon={Ellipsis} size="sm" />
       </DetailIconButton>
 
       {open ? (
@@ -100,13 +98,13 @@ export function FileMoreActionsMenu({
         >
           {showReveal ? (
             <button type="button" onClick={() => void handleReveal()} className="gm-menu-item">
-              <FolderOpen size={14} />
+              <AppIcon icon={FolderOpen} size="xs" />
               {t("common.reveal")}
             </button>
           ) : null}
           {showCopyPath ? (
             <button type="button" onClick={() => void handleCopyPath()} className="gm-menu-item">
-              {pathCopied ? <Check size={14} /> : <Link2 size={14} />}
+              <AppIcon icon={pathCopied ? Check : Link2} size="xs" tone={pathCopied ? "success" : "current"} />
               {t("common.copyPath")}
             </button>
           ) : null}

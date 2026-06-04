@@ -8,46 +8,23 @@ interface DetailIconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> 
   tone?: DetailIconButtonTone;
 }
 
-const toneColor: Record<DetailIconButtonTone, string> = {
-  default: "var(--text-secondary)",
-  accent: "var(--accent)",
-  success: "var(--green)",
-  danger: "var(--red)",
-};
-
 export function DetailIconButton({
   children,
   className,
   disabled,
-  style,
   tone = "default",
   type = "button",
   ...props
 }: DetailIconButtonProps) {
   const isMobile = usePlatform() === "mobile";
-  const size = isMobile ? "var(--gm-control-height-xl)" : "var(--gm-control-height-sm)";
 
   return (
     <button
       type={type}
       disabled={disabled}
       className={["gm-detail-icon-button", className].filter(Boolean).join(" ")}
-      style={{
-        alignItems: "center",
-        border: "none",
-        borderRadius: "var(--gm-radius-md)",
-        color: toneColor[tone],
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex",
-        flexShrink: 0,
-        height: size,
-        justifyContent: "center",
-        minWidth: size,
-        opacity: disabled ? 0.45 : 1,
-        padding: 0,
-        width: size,
-        ...style,
-      }}
+      data-mobile={isMobile ? "true" : "false"}
+      data-tone={tone}
       {...props}
     >
       {children}

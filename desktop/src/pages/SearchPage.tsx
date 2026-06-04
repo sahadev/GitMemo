@@ -1,19 +1,27 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Search, MessageSquare, StickyNote, Clipboard, FileText, Settings, FolderInput, Trash2, Copy, Check } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
+import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
+import { CodeTextarea } from "../components/base/CodeTextarea";
+import { EmptyState } from "../components/base/EmptyState";
+import { SearchInput } from "../components/domain/search/SearchInput";
+import { SearchResultCard } from "../components/domain/search/SearchResultCard";
+import { DetailScroll } from "../components/layout/Pane";
+import { PageFrame } from "../components/layout/PageFrame";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { relativeTime } from "../utils/time";
 import { useAppStore } from "../hooks/useAppStore";
 import { usePlatformFlags } from "../hooks/usePlatform";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useTimedCopy } from "../hooks/useTimedCopy";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
+import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
 interface SearchResultItem {
@@ -42,6 +50,23 @@ function sourceTypeFromPath(path: string) {
   if (path.startsWith("imports/")) return "import";
   if (path.startsWith("claude-config/") || path.startsWith("cursor-config/")) return "config";
   return path.startsWith("notes/") ? "note" : "unknown";
+}
+
+function sourceVisual(sourceType: string): { icon: typeof MessageSquare; tone: AppIconTone } {
+  switch (sourceType) {
+    case "conversation":
+      return { icon: MessageSquare, tone: "accent" };
+    case "clip":
+      return { icon: Clipboard, tone: "success" };
+    case "plan":
+      return { icon: FileText, tone: "warning" };
+    case "config":
+      return { icon: Settings, tone: "secondary" };
+    case "import":
+      return { icon: FolderInput, tone: "teal" };
+    default:
+      return { icon: StickyNote, tone: "success" };
+  }
 }
 
 export default function SearchPage({
@@ -73,10 +98,10 @@ export default function SearchPage({
   const [fileContent, setFileContent] = useState("");
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [copiedClip, setCopiedClip] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const imeComposingRef = useRef(false);
+  const { copied: copiedClip, markCopied: markCopiedClip, clearCopied: clearCopiedClip } = useTimedCopy<boolean>();
 
   useEffect(() => {
     try {
@@ -139,7 +164,7 @@ export default function SearchPage({
       setFileContent(path.startsWith("clips/") ? stripMarkdownFrontmatter(content) : content);
       setEditing(false);
       setEditContent("");
-      setCopiedClip(false);
+      clearCopiedClip();
     } catch (e) { console.error(e); }
   };
 
@@ -222,33 +247,33 @@ export default function SearchPage({
     selectedSourceType === "import" ||
     (isDesktop && (selectedSourceType === "conversation" || selectedSourceType === "plan"))
   ) : false;
-  const mobileBottomPadding = MOBILE_BOTTOM_CONTENT_PADDING;
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
     setRawFileContent("");
     setFileContent("");
     setEditing(false);
     setEditContent("");
-    setCopiedClip(false);
+    clearCopiedClip();
+  }, [clearCopiedClip]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setEditContent("");
   }, []);
 
   const copySelectedClip = useCallback(async () => {
     if (!selectedFile?.startsWith("clips/")) return;
     try {
-      const wasWatching = clipboardWatching;
-      if (wasWatching) await invoke<string>("stop_clipboard_watch");
-      await writeText(stripMarkdownFrontmatter(rawFileContent || fileContent));
-      if (wasWatching) {
-        await new Promise((resolve) => window.setTimeout(resolve, 200));
-        await invoke<string>("start_clipboard_watch");
-        void refreshClipboardStatus();
-      }
-      setCopiedClip(true);
-      window.setTimeout(() => setCopiedClip(false), 1500);
+      await writeTextWithClipboardWatchPaused(
+        stripMarkdownFrontmatter(rawFileContent || fileContent),
+        clipboardWatching,
+        () => void refreshClipboardStatus(),
+      );
+      markCopiedClip(true);
     } catch (e) {
       showToast(`Copy failed: ${e}`, true);
     }
-  }, [clipboardWatching, fileContent, rawFileContent, refreshClipboardStatus, selectedFile, showToast]);
+  }, [clipboardWatching, fileContent, markCopiedClip, rawFileContent, refreshClipboardStatus, selectedFile, showToast]);
 
   useEffect(() => {
     if (!isMobile || !entryTrigger) return;
@@ -256,26 +281,18 @@ export default function SearchPage({
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, [closeDetail, entryTrigger, isMobile]);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (selectedFile) {
-        if (editing) {
-          setEditing(false);
-          setEditContent("");
-          return true;
-        }
-        closeDetail();
-        return true;
-      }
-      return false;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, editing, isMobile, registerMobileBackHandler, selectedFile]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedFile,
+    closeDetail,
+    editing,
+    cancelEdit,
+  });
 
   if (selectedFile) {
     return (
-      <div className="gm-page" style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
+      <PageFrame column>
         <FileDetailToolbar
           title={isMobile ? selectedFile.split("/").pop() : selectedFile}
           titleText={selectedFile}
@@ -286,7 +303,7 @@ export default function SearchPage({
           editing={editing}
           onEdit={selectedCanEdit ? startEdit : undefined}
           onSave={selectedCanEdit ? () => void handleSaveEdit() : undefined}
-          onCancel={selectedCanEdit ? () => { setEditing(false); setEditContent(""); } : undefined}
+          onCancel={selectedCanEdit ? cancelEdit : undefined}
           editTitle={t("notes.edit")}
           saveTitle={t("notes.save")}
           metadata={selectedFile ? (
@@ -300,7 +317,7 @@ export default function SearchPage({
             {
               key: "delete",
               title: t("common.delete"),
-              icon: <Trash2 size={isMobile ? 16 : 14} />,
+              icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
               onClick: () => void handleDelete(),
               tone: "danger",
               hidden: editing || !selectedCanDelete,
@@ -309,8 +326,8 @@ export default function SearchPage({
               key: "copy",
               title: t("clipboard.copy"),
               icon: copiedClip
-                ? <Check size={isMobile ? 16 : 14} />
-                : <Copy size={isMobile ? 16 : 14} />,
+                ? <AppIcon icon={Check} size={isMobile ? "sm" : "xs"} />
+                : <AppIcon icon={Copy} size={isMobile ? "sm" : "xs"} />,
               onClick: () => void copySelectedClip(),
               tone: copiedClip ? "success" : "default",
               hidden: editing || !selectedIsClip,
@@ -324,16 +341,9 @@ export default function SearchPage({
             />
           ) : null}
         />
-      <div className="gm-page-scroll" style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: isMobile
-          ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
-          : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-        userSelect: "text",
-      }}>
+      <DetailScroll mobileBottomPadding={isMobile} selectable>
           {editing ? (
-            <textarea
+            <CodeTextarea
               ref={editRef}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -343,134 +353,71 @@ export default function SearchPage({
                   void handleSaveEdit();
                 }
               }}
-              className="gm-code-editor"
-              style={{
-                width: "100%", height: "100%", resize: "none", padding: 0,
-                border: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-              }}
+              mobile={isMobile}
             />
           ) : (
             <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
           )}
-        </div>
-      </div>
+        </DetailScroll>
+      </PageFrame>
     );
   }
 
   return (
-      <div className="gm-page" style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, minHeight: 0 }}>
+      <PageFrame column>
       {/* Search Bar */}
-      <div style={{
-        padding: isMobile
-          ? "var(--gm-space-7) var(--gm-space-7) var(--gm-space-6)"
-          : "var(--gm-section-gap-lg) var(--gm-page-pad-x) var(--gm-section-gap)",
-        borderBottom: "1px solid var(--border)",
-        background: "var(--gm-color-bg-surface)",
-        minHeight: isMobile ? undefined : "var(--gm-page-header-height)",
-        display: "flex",
-        alignItems: "center",
-      }}>
-        <div style={{ position: "relative", width: "100%" }}>
-          <Search
-            size={16}
-            style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)" }}
-          />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onCompositionStart={() => { imeComposingRef.current = true; }}
-            onCompositionEnd={() => { imeComposingRef.current = false; }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              const ev = e.nativeEvent;
-              if (imeComposingRef.current || ev.isComposing) return;
-              if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
-              handleSearch();
-            }}
-            enterKeyHint="search"
-            placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
-            style={{
-              width: "100%",
-              paddingLeft: "var(--gm-space-16)",
-              paddingRight: "var(--gm-section-gap)",
-              paddingTop: "var(--gm-card-header-gap)",
-              paddingBottom: "var(--gm-card-header-gap)",
-              borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)", fontFamily: "inherit",
-              background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)",
-            }}
-          />
-        </div>
-      </div>
+      <SearchInput
+        value={query}
+        onChange={setQuery}
+        inputRef={inputRef}
+        mobile={isMobile}
+        placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
+        onCompositionStart={() => { imeComposingRef.current = true; }}
+        onCompositionEnd={() => { imeComposingRef.current = false; }}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          const ev = e.nativeEvent;
+          if (imeComposingRef.current || ev.isComposing) return;
+          if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
+          handleSearch();
+        }}
+      />
 
       {/* Results */}
-      <div className="gm-page-scroll" style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: isMobile
-          ? `var(--gm-page-pad-mobile-y) var(--gm-page-pad-mobile-x) ${mobileBottomPadding}`
-          : "var(--gm-section-gap) var(--gm-page-pad-x) var(--gm-page-pad-bottom)",
-      }}>
+      <div className="gm-page-scroll gm-search-results" data-mobile={isMobile ? "true" : "false"}>
         {loading ? (
-          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", padding: "var(--gm-section-gap-lg) 0" }}>{t("search.searching")}</p>
+          <p className="gm-muted-text">{t("search.searching")}</p>
         ) : !searched ? (
-          <div className="gm-empty-state" style={{ paddingTop: "var(--gm-icon-hero)" }}>
-            <Search size={40} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-section-gap)" }} />
-            <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-              {isMobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
-            </p>
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
-              {isMobile ? t("search.mobileEmptyHint") : t("search.emptyHint", formatShortcut(shortcuts.global_search))}
-            </p>
-          </div>
+          <EmptyState
+            icon={Search}
+            iconSize="empty-lg"
+            title={isMobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
+            description={isMobile ? t("search.mobileEmptyHint") : t("search.emptyHint", formatShortcut(shortcuts.global_search))}
+          />
         ) : results.length === 0 ? (
-          <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", paddingTop: "var(--gm-section-gap)" }}>{t("search.noResults", query)}</p>
+          <p className="gm-muted-text">{t("search.noResults", query)}</p>
         ) : (
           <>
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginBottom: "var(--gm-space-7)" }}>{t("search.results", String(results.length))}</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gm-card-header-gap)" }}>
-              {results.map((r, i) => (
-                <button
-                  key={i}
-                  onClick={() => openFile(r.file_path)}
-                  className="gm-panel"
-                  style={{
-                    width: "100%", textAlign: "left", padding: "var(--gm-space-7) var(--gm-space-8)", borderRadius: "var(--gm-radius-md)", cursor: "pointer",
-                    background: "var(--bg-card)", color: "var(--text)",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "var(--bg-card)"}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginBottom: "var(--gm-space-3)" }}>
-                    {r.source_type === "conversation" ? (
-                      <MessageSquare size={14} style={{ color: "var(--accent)" }} />
-                    ) : r.source_type === "clip" ? (
-                      <Clipboard size={14} style={{ color: "var(--green)" }} />
-                    ) : r.source_type === "plan" ? (
-                      <FileText size={14} style={{ color: "var(--yellow)" }} />
-                    ) : r.source_type === "config" ? (
-                      <Settings size={14} style={{ color: "var(--text-secondary)" }} />
-                    ) : r.source_type === "import" ? (
-                      <FolderInput size={14} style={{ color: "var(--gm-category-teal)" }} />
-                    ) : (
-                      <StickyNote size={14} style={{ color: "var(--green)" }} />
-                    )}
-                    <span style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, flex: 1 }}>{r.title}</span>
-                    <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", flexShrink: 0 }}>{relativeTime(r.date, t)}</span>
-                  </div>
-                  {r.snippet && (
-                    <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)", marginTop: "var(--gm-space-2)" }}>
-                      {r.snippet}
-                    </p>
-                  )}
-                </button>
-              ))}
+            <p className="gm-search-result-count">{t("search.results", String(results.length))}</p>
+            <div className="gm-search-result-stack">
+              {results.map((r, i) => {
+                const visual = sourceVisual(r.source_type);
+                return (
+                  <SearchResultCard
+                    key={i}
+                    icon={visual.icon}
+                    iconTone={visual.tone}
+                    title={r.title}
+                    time={relativeTime(r.date, t)}
+                    snippet={r.snippet}
+                    onClick={() => openFile(r.file_path)}
+                  />
+                );
+              })}
             </div>
           </>
         )}
       </div>
-    </div>
+    </PageFrame>
   );
 }

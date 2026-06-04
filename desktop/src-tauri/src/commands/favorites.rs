@@ -1,3 +1,4 @@
+use super::markdown::{frontmatter_value, markdown_body};
 use super::sync_log;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::sanitize::git_error_for_user;
@@ -217,34 +218,8 @@ fn fallback_title(path: &str) -> String {
         .unwrap_or_else(|| path.to_string())
 }
 
-fn frontmatter_value<'a>(content: &'a str, key: &str) -> Option<&'a str> {
-    if !content.starts_with("---") {
-        return None;
-    }
-    let rest = &content[3..];
-    let end = rest.find("---")?;
-    let fm = &rest[..end];
-    let prefix = format!("{}:", key);
-    for line in fm.lines() {
-        let line = line.trim();
-        if let Some(v) = line.strip_prefix(&prefix) {
-            return Some(v.trim().trim_matches('"'));
-        }
-    }
-    None
-}
-
-fn strip_frontmatter(content: &str) -> &str {
-    if content.starts_with("---") {
-        if let Some(end) = content[3..].find("---") {
-            return content[3 + end + 3..].trim_start();
-        }
-    }
-    content
-}
-
 fn preview_from_content(content: &str) -> String {
-    strip_frontmatter(content)
+    markdown_body(content)
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))

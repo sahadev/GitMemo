@@ -2,13 +2,21 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ClipboardEvent,
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Plus, FileText, BookOpen, Send, Trash2, RefreshCw } from "lucide-react";
+import { Plus, FileText, BookOpen, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneTabHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Button } from "../components/base/Button";
+import { CodeTextarea } from "../components/base/CodeTextarea";
+import { EmptyState } from "../components/base/EmptyState";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
+import { NoteComposer } from "../components/domain/notes/NoteComposer";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -16,22 +24,12 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore, type NotesTab } from "../hooks/useAppStore";
-import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
-import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { type FileEntry, type FilePage } from "../types/files";
+import { type NoteResult, type SavedAttachment } from "../types/notes";
+import { usePagedFileList } from "../hooks/usePagedFileList";
+import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { formatShortcut, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
-
-interface NoteResult {
-  success: boolean;
-  path: string;
-  message: string;
-}
-
-interface SavedAttachment {
-  path: string;
-  markdown: string;
-  message: string;
-}
 
 const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
@@ -61,29 +59,34 @@ export default function NotesPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [newNote, setNewNote] = useState("");
   const [manualTitle, setManualTitle] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const filesLengthRef = useRef(0);
-  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
   /** True while IME composition is active (more reliable than keydown.isComposing alone in some WebViews). */
   const imeComposingRef = useRef(false);
 
-  useEffect(() => {
-    filesLengthRef.current = files.length;
-  }, [files.length]);
+  const loadNotesPage = useCallback((offset: number, limit: number) => {
+    const folder = tabs.find((tb) => tb.id === activeTab)!.folder;
+    return invoke<FilePage>("list_files_page", { folder, offset, limit });
+  }, [activeTab]);
+  const {
+    files,
+    loading,
+    loadingMore,
+    hasMore,
+    loadFiles,
+    loadMore,
+    sentinelRef,
+    registerItemRef,
+    scrollItemIntoView,
+  } = usePagedFileList<FileEntry>({ loadPage: loadNotesPage });
 
   const appendAttachmentMarkdown = useCallback(
     (setter: Dispatch<SetStateAction<string>>, markdown: string) => {
@@ -142,45 +145,15 @@ export default function NotesPage({
   }, [appendAttachmentMarkdown, saveAttachment, showToast]);
 
   useEffect(() => {
-    loadFiles();
+    void loadFiles();
     setSelectedFile(null);
     setFileContent("");
     setEditing(false);
-  }, [activeTab]);
+  }, [activeTab, loadFiles]);
 
   useEffect(() => {
     if (focusTrigger && textareaRef.current) textareaRef.current.focus();
   }, [focusTrigger]);
-
-  const loadFiles = async (reset = true) => {
-    if (reset) setLoading(true);
-    else setLoadingMore(true);
-    try {
-      const folder = tabs.find((tb) => tb.id === activeTab)!.folder;
-      const page = await invoke<FilePage>("list_files_page", {
-        folder,
-        offset: reset ? 0 : filesLengthRef.current,
-        limit: FILE_PAGE_SIZE,
-      });
-      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
-      setHasMore(page.has_more);
-    } catch (e) { console.error(e); }
-    finally {
-      if (reset) setLoading(false);
-      else setLoadingMore(false);
-    }
-  };
-  const handleRefresh = useCallback(() => {
-    void loadFiles();
-    if (selectedFile) void openFile(selectedFile);
-  }, [selectedFile, activeTab, files]);
-  useFileWatcher(["notes"], loadFiles);
-  const { sentinelRef, loadMore } = useAutoLoadMore({
-    hasMore,
-    loading,
-    loadingMore,
-    onLoadMore: () => loadFiles(false),
-  });
 
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
@@ -189,11 +162,15 @@ export default function NotesPage({
       setFileContent(content);
       setEditing(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      setTimeout(() => {
-        itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }, 50);
+      scrollItemIntoView(path);
     } catch (e) { console.error(e); }
-  }, [isMobile]);
+  }, [isMobile, scrollItemIntoView]);
+
+  const handleRefresh = useCallback(() => {
+    void loadFiles();
+    if (selectedFile) void openFile(selectedFile);
+  }, [loadFiles, openFile, selectedFile]);
+  useFileWatcher(["notes"], loadFiles);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("notes/")) return;
@@ -206,47 +183,15 @@ export default function NotesPage({
     consumePendingOpenPath();
   }, [activeTab, pendingOpenPath, setNotesTab, openFile, consumePendingOpenPath]);
 
-  // Keyboard nav for file list
-  const navPrev = useCallback(() => {
-    if (files.length === 0) return;
-    if (!selectedFile) {
-      void openFile(files[files.length - 1].path);
-      return;
-    }
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) void openFile(files[idx - 1].path);
-  }, [selectedFile, files, openFile]);
-
-  const navNext = useCallback(() => {
-    if (files.length === 0) return;
-    if (!selectedFile) {
-      void openFile(files[0].path);
-      return;
-    }
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < 0) return;
-    if (idx < files.length - 1) {
-      void openFile(files[idx + 1].path);
-      return;
-    }
-    if (hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = idx + 1;
-      void loadMore();
-    }
-  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
-
-  useEffect(() => {
-    const pendingIndex = pendingKeyboardNextIndexRef.current;
-    if (pendingIndex === null) return;
-    if (files.length > pendingIndex) {
-      pendingKeyboardNextIndexRef.current = null;
-      void openFile(files[pendingIndex].path);
-      return;
-    }
-    if (!hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = null;
-    }
-  }, [files, hasMore, loadingMore, openFile]);
+  const { navPrev, navNext } = useFileListNavigation({
+    files,
+    selectedPath: selectedFile,
+    openFile,
+    hasMore,
+    loadingMore,
+    loadMore,
+    selectFromEmpty: true,
+  });
 
   const handleCreateNote = async () => {
     if (!newNote.trim()) return;
@@ -325,7 +270,6 @@ export default function NotesPage({
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
-  const mobileBottomPadding = MOBILE_BOTTOM_CONTENT_PADDING;
   const selectedFileName = selectedFile?.split("/").pop() ?? "";
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
@@ -334,147 +278,80 @@ export default function NotesPage({
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (selectedFile) {
-        if (editing) {
-          setEditing(false);
-          return true;
-        }
-        if (detailOpenedFromCrossPageRef.current) {
-          closeDetail();
-          return false;
-        }
-        closeDetail();
-        return true;
-      }
-      return false;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, editing, isMobile, registerMobileBackHandler, selectedFile]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedFile,
+    closeDetail,
+    openedFromCrossPageRef: detailOpenedFromCrossPageRef,
+    editing,
+    cancelEdit: () => setEditing(false),
+  });
 
   return (
-    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="notes"
         defaultWidth={300}
         left={showList && (
-      <div style={{
-        display: "flex", flexDirection: "column", height: "100%",
-        background: "var(--gm-color-bg-surface)",
-        width: "100%", flex: 1, minWidth: 0,
-        minHeight: 0, overflow: "hidden",
-      }}>
+      <ListPane>
         <PaneTabHeader
           tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon }))}
           activeId={activeTab}
           onChange={setNotesTab}
           isMobile={isMobile}
           actions={(
-            <button
-              type="button"
+            <Button
+              variant="toolbar"
               onClick={handleRefresh}
               title={t("common.refresh")}
-              className="gm-toolbar-button"
-              style={{
-                padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                width: isMobile ? "var(--gm-icon-empty-lg)" : "var(--gm-control-height-sm)",
-                height: isMobile ? "var(--gm-icon-empty-lg)" : "var(--gm-control-height-sm)",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-            >
-              <RefreshCw size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"} />
-            </button>
+              icon={RefreshCw}
+              iconSize={isMobile ? "sm" : "xs"}
+              mobile={isMobile}
+            />
           )}
         />
 
         {/* Quick note input */}
-        <div style={{ padding: isMobile ? "var(--gm-card-header-gap) var(--gm-card-pad-mobile)" : "var(--gm-space-7)", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-card)" }}>
-          {activeTab === "manual" && (
-            <input
-              value={manualTitle}
-              onChange={(e) => setManualTitle(e.target.value)}
-              placeholder={t("notes.placeholderTitle")}
-              style={{
-                width: "100%", padding: isMobile ? "var(--gm-row-pad-y-comfort) var(--gm-card-header-gap)" : "var(--gm-icon-text-gap) var(--gm-card-header-gap)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
-                marginBottom: "var(--gm-icon-text-gap)", background: "var(--bg)", color: "var(--text)",
-                border: "1px solid var(--border)", fontFamily: "inherit",
-              }}
-            />
-          )}
-          <div style={{ position: "relative" }}>
-            <textarea
-              ref={textareaRef}
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              onPaste={(e) => void handlePasteAttachments(e, setNewNote)}
-              onCompositionStart={() => { imeComposingRef.current = true; }}
-              onCompositionEnd={() => { imeComposingRef.current = false; }}
-              onKeyDown={(e) => {
-                if (isMobile) return;
-                if (e.key !== "Enter" || e.shiftKey) return;
-                const ev = e.nativeEvent;
-                if (imeComposingRef.current || ev.isComposing) return;
-                if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
-                e.preventDefault();
-                void handleCreateNote();
-              }}
-              placeholder={activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
-              rows={isMobile ? 4 : 3}
-              style={{
-                width: "100%",
-                padding: isMobile
-                  ? "var(--gm-card-header-gap) var(--gm-icon-hero) var(--gm-card-header-gap) var(--gm-card-header-gap)"
-                  : "var(--gm-row-pad-y-comfort) var(--gm-card-header-gap)",
-                borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-sm)",
-                resize: "vertical", background: "var(--bg)", color: "var(--text)",
-                border: "1px solid var(--border)", fontFamily: "inherit", minHeight: isMobile ? 96 : 60,
-              }}
-            />
-            <button
-              onClick={handleCreateNote}
-              disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
-              style={{
-                position: "absolute", bottom: isMobile ? "var(--gm-nav-item-gap)" : "var(--gm-icon-text-gap)", right: "var(--gm-icon-text-gap)", padding: 0,
-                width: isMobile ? "var(--gm-control-height-md)" : "var(--gm-icon-xl)",
-                height: isMobile ? "var(--gm-control-height-md)" : "var(--gm-icon-xl)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "var(--gm-radius-md)", background: isMobile ? "var(--bg-card)" : "none", border: isMobile ? "1px solid var(--border)" : "none", cursor: "pointer",
-                color: saving ? "var(--green)" : newNote.trim() ? "var(--accent)" : "var(--text-secondary)",
-                opacity: newNote.trim() ? 1 : 0.4,
-                animation: saving ? "spin 1s linear infinite" : undefined,
-              }}
-            >
-              <Send size={isMobile ? 16 : 14} />
-            </button>
-          </div>
-          {(!isMobile || saving) && (
-            <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-3)", color: saving ? "var(--green)" : "var(--text-secondary)" }}>
-              {saving ? t("notes.saving") : t("notes.enterToSave")}
-            </p>
-          )}
-        </div>
+        <NoteComposer
+          showTitle={activeTab === "manual"}
+          title={manualTitle}
+          onTitleChange={setManualTitle}
+          titlePlaceholder={t("notes.placeholderTitle")}
+          note={newNote}
+          onNoteChange={setNewNote}
+          notePlaceholder={activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
+          textareaRef={textareaRef}
+          rows={isMobile ? 4 : 3}
+          mobile={isMobile}
+          saving={saving}
+          disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
+          helperText={saving ? t("notes.saving") : t("notes.enterToSave")}
+          showHelper={!isMobile || saving}
+          onPaste={(e) => void handlePasteAttachments(e, setNewNote)}
+          onCompositionStart={() => { imeComposingRef.current = true; }}
+          onCompositionEnd={() => { imeComposingRef.current = false; }}
+          onKeyDown={(e) => {
+            if (isMobile) return;
+            if (e.key !== "Enter" || e.shiftKey) return;
+            const ev = e.nativeEvent;
+            if (imeComposingRef.current || ev.isComposing) return;
+            if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
+            e.preventDefault();
+            void handleCreateNote();
+          }}
+          onSubmit={() => void handleCreateNote()}
+        />
 
         {/* File list */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: isMobile ? mobileBottomPadding : 0 }}>
+        <ListPaneBody mobileBottomPadding={isMobile}>
           {loading ? (
             <Loading compact text={t("notes.loading")} />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
-              <FileText size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)", marginBottom: "var(--gm-space-2)" }}>
-                {t("notes.noNotes", t(`notes.${activeTab}`))}
-              </p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                {activeTab === "scratch"
-                  ? t("notes.useInputAbove")
-                  : activeTab === "manual"
-                  ? t("notes.docsHint")
-                  : t("notes.useInputAbove")}
-              </p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={t("notes.noNotes", t(`notes.${activeTab}`))}
+              description={activeTab === "manual" ? t("notes.docsHint") : t("notes.useInputAbove")}
+            />
           ) : (
             <>
             {files.map((file) => {
@@ -482,56 +359,35 @@ export default function NotesPage({
               const title = isDateName && file.preview ? file.preview : file.name;
               const selected = selectedFile === file.path;
               return (
-              <button
+              <FileListItem
                 key={file.path}
-                ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
+                ref={(el) => registerItemRef(file.path, el)}
                 onClick={() => openFile(file.path)}
-                style={{
-                  width: "100%", textAlign: "left",
-                  padding: isMobile
-                    ? "var(--gm-space-7) var(--gm-list-row-pad-x)"
-                    : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
-                  cursor: "pointer", transition: "background 0.15s",
-                  background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                  border: "none", color: "var(--text)",
-                  borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {title}
-                </p>
-                <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-3)", color: "var(--text-secondary)" }}>
-                  {relativeTime(file.modified, t)}
-                </p>
-              </button>
+                active={selected}
+                mobile={isMobile}
+                title={title}
+                subtitle={relativeTime(file.modified, t)}
+              />
               );
             })}
             {hasMore && (
               <div ref={sentinelRef}>
-              <button
-                type="button"
-                disabled={loadingMore}
+              <LoadMoreRow
+                loading={loadingMore}
+                loadingLabel={t("common.loading")}
+                label={t("common.loadMore")}
                 onClick={() => void loadMore()}
-                style={{
-                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
-                  borderBottom: "1px solid var(--border)", background: "transparent",
-                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                  fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                }}
-              >
-                {loadingMore ? t("common.loading") : t("common.loadMore")}
-              </button>
+              />
               </div>
             )}
             </>
           )}
-        </div>
-      </div>
+        </ListPaneBody>
+      </ListPane>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <DetailPane>
         {selectedFile ? (
           <>
             <FileDetailToolbar
@@ -556,7 +412,7 @@ export default function NotesPage({
                 {
                   key: "delete",
                   title: t("common.delete"),
-                  icon: <Trash2 size={isMobile ? 16 : 14} />,
+                  icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
                   hidden: editing,
@@ -570,15 +426,9 @@ export default function NotesPage({
                 />
               ) : null}
             />
-            <div style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: isMobile
-                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${mobileBottomPadding}`
-                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-            }}>
+            <DetailScroll mobileBottomPadding={isMobile}>
               {editing ? (
-                <textarea
+                <CodeTextarea
                   ref={editRef}
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
@@ -587,34 +437,25 @@ export default function NotesPage({
                     if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
                     if (e.key === "Escape") setEditing(false);
                   }}
-                  className="gm-code-editor"
-                  style={{
-                    width: "100%", minHeight: "100%", resize: "none", fontSize: isMobile ? "var(--gm-font-md)" : "var(--gm-font-sm)",
-                    padding: 0,
-                    border: "none", outline: "none",
-                  }}
+                  mobile={isMobile}
                 />
               ) : (
                 <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
               )}
-            </div>
+            </DetailScroll>
           </>
         ) : (
-          <div className="gm-empty-state" style={{ height: "100%" }}>
-            <div style={{ textAlign: "center" }}>
-              <Plus size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-                {t("notes.selectOrCreate")}
-              </p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
-                {t("notes.cmdN", formatShortcut(shortcuts.quick_note))}
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={Plus}
+            title={t("notes.selectOrCreate")}
+            description={t("notes.cmdN", formatShortcut(shortcuts.quick_note))}
+            full
+          />
         )}
-      </div>
+      </DetailPane>
       )}
-      />
-    </div>
+      showList={showList}
+      showDetail={showDetail}
+    />
   );
 }

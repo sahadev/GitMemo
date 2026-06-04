@@ -7,8 +7,15 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { Button } from "../components/base/Button";
+import { EmptyState } from "../components/base/EmptyState";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
@@ -16,10 +23,11 @@ import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
-import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
-import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { type FileEntry, type FilePage } from "../types/files";
+import { usePagedFileList } from "../hooks/usePagedFileList";
+import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 export default function PlansPage({
   active = true,
@@ -40,41 +48,28 @@ export default function PlansPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const isMobile = usePlatform() === "mobile";
   useRelativeTimeTick();
-  const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalFiles, setTotalFiles] = useState(0);
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const filesLengthRef = useRef(0);
-  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
   const syncedOnEnterRef = useRef(false);
 
-  useEffect(() => {
-    filesLengthRef.current = files.length;
-  }, [files.length]);
-
-  const loadFiles = useCallback(async (reset = true) => {
-    if (reset) setLoading(true);
-    else setLoadingMore(true);
-    try {
-      const page = await invoke<FilePage>("list_files_page", {
-        folder: "plans",
-        offset: reset ? 0 : filesLengthRef.current,
-        limit: FILE_PAGE_SIZE,
-      });
-      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
-      setHasMore(page.has_more);
-      setTotalFiles(page.total);
-    } catch (e) { console.error(e); }
-    finally {
-      if (reset) setLoading(false);
-      else setLoadingMore(false);
-    }
+  const loadPlansPage = useCallback((offset: number, limit: number) => {
+    return invoke<FilePage>("list_files_page", { folder: "plans", offset, limit });
   }, []);
+  const {
+    files,
+    setFiles,
+    loading,
+    setLoading,
+    loadingMore,
+    hasMore,
+    totalFiles,
+    loadFiles,
+    loadMore,
+    sentinelRef,
+    registerItemRef,
+    scrollItemIntoView,
+  } = usePagedFileList<FileEntry>({ loadPage: loadPlansPage });
 
   useEffect(() => {
     let cancelled = false;
@@ -98,22 +93,15 @@ export default function PlansPage({
   const watchedFolders = useMemo(() => ["plans"], []);
   const handleWatchedFilesChanged = useCallback(() => { void loadFiles(); }, [loadFiles]);
   useFileWatcher(watchedFolders, handleWatchedFilesChanged);
-  const { sentinelRef, loadMore } = useAutoLoadMore({
-    hasMore,
-    loading,
-    loadingMore,
-    onLoadMore: () => loadFiles(false),
-  });
-
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
+      scrollItemIntoView(path);
     } catch (e) { console.error(e); }
-  }, [isMobile]);
+  }, [isMobile, scrollItemIntoView]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("plans/")) return;
@@ -121,38 +109,14 @@ export default function PlansPage({
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
 
-  const navPrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) void openFile(files[idx - 1].path);
-  }, [selectedFile, files, openFile]);
-
-  const navNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < 0) return;
-    if (idx < files.length - 1) {
-      void openFile(files[idx + 1].path);
-      return;
-    }
-    if (hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = idx + 1;
-      void loadMore();
-    }
-  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
-
-  useEffect(() => {
-    const pendingIndex = pendingKeyboardNextIndexRef.current;
-    if (pendingIndex === null) return;
-    if (files.length > pendingIndex) {
-      pendingKeyboardNextIndexRef.current = null;
-      void openFile(files[pendingIndex].path);
-      return;
-    }
-    if (!hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = null;
-    }
-  }, [files, hasMore, loadingMore, openFile]);
+  const { navPrev, navNext } = useFileListNavigation({
+    files,
+    selectedPath: selectedFile,
+    openFile,
+    hasMore,
+    loadingMore,
+    loadMore,
+  });
 
   const handleDelete = useCallback(async () => {
     if (isMobile) return;
@@ -205,141 +169,79 @@ export default function PlansPage({
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (selectedFile) {
-        if (detailOpenedFromCrossPageRef.current) {
-          closeDetail();
-          return false;
-        }
-        closeDetail();
-        return true;
-      }
-      return false;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedFile,
+    closeDetail,
+    openedFromCrossPageRef: detailOpenedFromCrossPageRef,
+  });
 
   const listHeaderActions = (
     <>
-      <button
+      <Button
+        variant="toolbar"
         onClick={() => loadFiles()}
         title={t("common.refresh")}
-        className="gm-toolbar-button"
-        style={{
-          background: "transparent", border: "none", cursor: "pointer", padding: 0, borderRadius: "var(--gm-radius-md)",
-          color: "var(--text-secondary)", display: "flex", alignItems: "center",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-      >
-        <RefreshCw size="var(--gm-icon-xs)" />
-      </button>
-      <span style={{
-        fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-        padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
-      }}>
+        icon={RefreshCw}
+      />
+      <Badge>
         {hasMore ? `${files.length} / ${totalFiles}` : files.length}
-      </span>
+      </Badge>
     </>
   );
 
   return (
-    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="plans"
         defaultWidth={300}
         left={showList && (
-      <div style={{
-        display: "flex", flexDirection: "column", flexShrink: 0,
-        background: "var(--gm-color-bg-surface)",
-        width: "100%", flex: 1, minWidth: 0,
-        height: "100%", minHeight: 0, overflow: "hidden",
-      }}>
+      <ListPane>
         {renderListHeader ? renderListHeader(listHeaderActions) : (
           <PaneHeader icon={Lightbulb} title={t("nav.plans")} actions={listHeaderActions} />
         )}
 
-        <div style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0,
-        }}>
+        <ListPaneBody mobileBottomPadding={isMobile}>
           {loading ? (
             <Loading compact text={t("common.loading")} />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: "var(--gm-space-16)" }}>
-              <Lightbulb size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.empty")}</p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
-                {t("plans.emptyDesc")}
-              </p>
-            </div>
+            <EmptyState icon={Lightbulb} title={t("plans.empty")} description={t("plans.emptyDesc")} />
           ) : (
             <>
             {files.map((f) => {
               const selected = selectedFile === f.path;
               return (
-                <button
+                <FileListItem
                   key={f.path}
-                  ref={(el) => { if (el) itemRefs.current.set(f.path, el); else itemRefs.current.delete(f.path); }}
+                  ref={(el) => registerItemRef(f.path, el)}
                   onClick={() => openFile(f.path)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    minHeight: isMobile ? 56 : undefined,
-                    padding: isMobile
-                      ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x)"
-                      : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
-                    cursor: "pointer",
-                    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                    border: "none", borderBottom: "1px solid var(--border)",
-                    borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
-                    color: "var(--text)", transition: "background 0.15s",
-                  }}
-                >
-                  <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {f.name.replace(/\.md$/, "")}
-                  </p>
-                  <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)" }}>
-                    {relativeTime(f.modified, t)}
-                  </p>
-                </button>
+                  active={selected}
+                  mobile={isMobile}
+                  title={f.name.replace(/\.md$/, "")}
+                  subtitle={relativeTime(f.modified, t)}
+                />
               );
             })}
             {hasMore && (
               <div ref={sentinelRef}>
-              <button
-                type="button"
-                disabled={loadingMore}
-                onClick={() => void loadMore()}
-                style={{
-                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
-                  borderBottom: "1px solid var(--border)", background: "transparent",
-                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                  fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                }}
-              >
-                {loadingMore ? t("common.loading") : t("common.loadMore")}
-              </button>
+                <LoadMoreRow
+                  loading={loadingMore}
+                  loadingLabel={t("common.loading")}
+                  label={t("common.loadMore")}
+                  onClick={() => void loadMore()}
+                />
               </div>
             )}
             </>
           )}
-        </div>
-      </div>
+        </ListPaneBody>
+      </ListPane>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <DetailPane>
         {!selectedFile ? (
-          <div className="gm-empty-state" style={{ flex: 1 }}>
-            <div style={{ textAlign: "center" }}>
-              <Lightbulb size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("plans.selectToView")}</p>
-            </div>
-          </div>
+          <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.selectToView")} full />
         ) : (
           <>
             <FileDetailToolbar
@@ -361,7 +263,7 @@ export default function PlansPage({
                 {
                   key: "delete",
                   title: t("plans.delete"),
-                  icon: <Trash2 size={14} />,
+                  icon: <AppIcon icon={Trash2} size="xs" />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
                   hidden: isMobile,
@@ -375,21 +277,15 @@ export default function PlansPage({
                 />
               ) : null}
             />
-            <div style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: isMobile
-                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
-                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-              userSelect: "text",
-            }}>
+            <DetailScroll mobileBottomPadding={isMobile} selectable>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
-            </div>
+            </DetailScroll>
           </>
         )}
-      </div>
+      </DetailPane>
       )}
-      />
-    </div>
+      showList={showList}
+      showDetail={showDetail}
+    />
   );
 }

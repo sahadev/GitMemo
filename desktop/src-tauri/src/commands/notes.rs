@@ -1,3 +1,4 @@
+use super::markdown::frontmatter_value;
 use super::sync_log;
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::storage::{database, files, git};
@@ -156,23 +157,6 @@ pub struct SavedAttachment {
 pub struct SavedLocalImage {
     pub path: String,
     pub message: String,
-}
-
-fn frontmatter_value<'a>(content: &'a str, key: &str) -> Option<&'a str> {
-    if !content.starts_with("---") {
-        return None;
-    }
-    let rest = &content[3..];
-    let end = rest.find("---")?;
-    let fm = &rest[..end];
-    let prefix = format!("{}:", key);
-    for line in fm.lines() {
-        let line = line.trim();
-        if let Some(v) = line.strip_prefix(&prefix) {
-            return Some(v.trim());
-        }
-    }
-    None
 }
 
 fn is_clipboard_image_content(content: &str) -> bool {

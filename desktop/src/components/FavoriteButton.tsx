@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Star } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
+import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
@@ -99,10 +100,7 @@ export function FavoriteButton({
       title={favorited ? t("favorites.remove") : t("favorites.add")}
       tone={favorited ? "accent" : "default"}
     >
-      <Star
-        size={isMobile ? 16 : 14}
-        fill={favorited ? "currentColor" : "none"}
-      />
+      <AppIcon icon={Star} size={isMobile ? "sm" : "xs"} fill={favorited ? "currentColor" : "none"} />
     </DetailIconButton>
   );
 }

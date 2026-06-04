@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
+import { AppIcon } from "./base/AppIcon";
 
 const mobileNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
@@ -41,7 +42,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
             className="gm-bottom-nav-item"
             data-active={active ? "true" : "false"}
           >
-            <Icon size={18} style={{ color: "currentColor", flexShrink: 0 }} />
+            <AppIcon icon={Icon} size="md" />
             <span className="gm-bottom-nav-label">{t(item.labelKey)}</span>
           </button>
         );

@@ -1,4 +1,5 @@
 use super::sync_log;
+use super::skills::install_save_skill;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
 use gitmemo_core::utils::sanitize::git_error_for_user;
@@ -851,17 +852,6 @@ fn claude_skills_dir() -> std::path::PathBuf {
     std::path::PathBuf::from(home)
         .join(".claude")
         .join("skills")
-}
-
-fn install_save_skill(skills_dir: &std::path::Path) -> Result<(), String> {
-    let save_dir = skills_dir.join("save");
-    std::fs::create_dir_all(&save_dir).map_err(|e| e.to_string())?;
-    std::fs::write(
-        save_dir.join("SKILL.md"),
-        include_str!("../../../../skills/save/SKILL.md"),
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 fn install_claude_skills(lang: String) -> Result<(), String> {

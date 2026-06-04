@@ -6,21 +6,19 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { Button } from "../components/base/Button";
+import { EmptyState } from "../components/base/EmptyState";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
+import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  source_type: string;
-  modified: string;
-  size: number;
-  preview: string;
-  modified_ts?: number;
-}
+import { type FileEntry } from "../types/files";
 
 type Tab = "memory" | "knowledge" | "skills" | "config" | "rules";
 type Editor = "claude" | "cursor";
@@ -68,7 +66,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
           (f) => f.path.includes("/memory/") && f.path.endsWith(".md"),
         );
         allFiles = [...globalMem, ...projectMemory].sort(
-          (a, b) => (b.modified_ts ?? 0) - (a.modified_ts ?? 0),
+          (a, b) => (b.modifiedTs ?? 0) - (a.modifiedTs ?? 0),
         );
       } else if (tab === "knowledge") {
         const base = editor === "claude" ? "claude-config" : "cursor-config";
@@ -81,7 +79,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
           f.path.endsWith(".md"),
         );
         allFiles = [...rootDocs, ...projectKnowledge].sort(
-          (a, b) => (b.modified_ts ?? 0) - (a.modified_ts ?? 0),
+          (a, b) => (b.modifiedTs ?? 0) - (a.modifiedTs ?? 0),
         );
       } else {
         allFiles = await invoke<FileEntry[]>("list_files", { folder: tabDef.folder });
@@ -122,31 +120,25 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
     setFileContent("");
   }, [editor]);
 
-  const openFile = async (path: string) => {
+  const openFile = useCallback(async (path: string) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
       setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
   const handleRefresh = useCallback(() => {
     void loadFiles(activeTab);
     if (selectedFile) void openFile(selectedFile);
-  }, [loadFiles, activeTab, selectedFile]);
+  }, [loadFiles, activeTab, openFile, selectedFile]);
 
-  const navPrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) openFile(files[idx - 1].path);
-  }, [selectedFile, files]);
-
-  const navNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < files.length - 1) openFile(files[idx + 1].path);
-  }, [selectedFile, files]);
+  const { navPrev, navNext } = useFileListNavigation({
+    files,
+    selectedPath: selectedFile,
+    openFile,
+  });
 
   useEffect(() => {
     if (!active) return;
@@ -163,58 +155,35 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
   const TabIcon = tabs.find((t) => t.id === activeTab)?.icon ?? Brain;
 
   return (
-    <div className="gm-page" style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="claude-config"
         defaultWidth={300}
         left={(
-      <div style={{
-        display: "flex", flexDirection: "column", flexShrink: 0,
-        background: "var(--gm-color-bg-surface)",
-        height: "100%", minHeight: 0, overflow: "hidden",
-      }}>
+      <ListPane>
         <PaneHeader
           icon={Brain}
           title={t("nav.claudeConfig")}
           actions={(
             <>
-              <button
-                type="button"
+              <Button
+                variant="toolbar"
                 onClick={handleRefresh}
                 title={t("common.refresh")}
-                className="gm-toolbar-button"
-                style={{ padding: 0, display: "flex", alignItems: "center" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-              >
-                <RefreshCw size="var(--gm-icon-xs)" />
-              </button>
-              <span style={{
-                fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-                padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)",
-              }}>
-                {files.length}
-              </span>
+                icon={RefreshCw}
+              />
+              <Badge>{files.length}</Badge>
             </>
           )}
         />
 
         {/* Editor selector */}
-        <div style={{
-          display: "flex", gap: "var(--gm-space-2)", padding: "var(--gm-icon-text-gap) var(--gm-list-header-pad-x)",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-card)",
-        }}>
+        <div className="gm-segment-row">
           {(["claude", "cursor"] as Editor[]).map((e) => (
             <button
               key={e}
               onClick={() => setEditor(e)}
-              style={{
-                padding: "var(--gm-control-pad-y) var(--gm-control-pad-x-lg)", borderRadius: "var(--gm-radius-md)", fontSize: "var(--gm-font-xs)", fontWeight: editor === e ? 700 : 500,
-                background: editor === e ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "var(--bg)",
-                color: editor === e ? "var(--text)" : "var(--text-secondary)",
-                border: `1px solid ${editor === e ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "var(--border)"}`, cursor: "pointer", transition: "all 0.15s",
-              }}
+              className="gm-segment-button"
+              data-active={editor === e ? "true" : "false"}
             >
               {e === "claude" ? "Claude" : "Cursor"}
             </button>
@@ -222,10 +191,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         </div>
 
         {/* Tabs */}
-        <div style={{
-          display: "flex", gap: "var(--gm-control-gap)", padding: "var(--gm-icon-text-gap)", borderBottom: "1px solid var(--border)",
-          background: "var(--bg-card)",
-        }}>
+        <div className="gm-compact-tab-row">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             const Icon = tab.icon;
@@ -233,17 +199,10 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gm-space-2)",
-                  padding: "var(--gm-space-4) var(--gm-space-3)", fontSize: "var(--gm-font-xs)", fontWeight: active ? 700 : 500,
-                  background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                  border: `1px solid ${active ? "color-mix(in srgb, var(--accent) 38%, var(--border))" : "transparent"}`,
-                  borderRadius: "var(--gm-radius-md)",
-                  color: active ? "var(--text)" : "var(--text-secondary)",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
+                className="gm-compact-tab-button"
+                data-active={active ? "true" : "false"}
               >
-                <Icon size={12} />
+                <AppIcon icon={Icon} size="2xs" />
                 {t(tab.labelKey)}
               </button>
             );
@@ -251,64 +210,35 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         </div>
 
         {/* File list */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <ListPaneBody>
           {loading ? (
             <Loading compact text="Loading..." />
           ) : files.length === 0 ? (
-            <div className="gm-empty-state" style={{ padding: "var(--gm-space-16)" }}>
-              <TabIcon size="var(--gm-icon-empty)" style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-space-6)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("claudeConfig.empty")}</p>
-              <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
-                {t("claudeConfig.emptyHint")}
-              </p>
-            </div>
+            <EmptyState icon={TabIcon} title={t("claudeConfig.empty")} description={t("claudeConfig.emptyHint")} />
           ) : (
             files.map((f) => {
               const selected = selectedFile === f.path;
               return (
-                <button
+                <FileListItem
                   key={f.path}
                   ref={(el) => { if (el) itemRefs.current.set(f.path, el); else itemRefs.current.delete(f.path); }}
                   onClick={() => openFile(f.path)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", cursor: "pointer",
-                    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                    border: "none",
-                    borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
-                    borderBottom: "1px solid var(--border)",
-                    color: "var(--text)", transition: "background 0.15s",
-                  }}
-                >
-                  <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {f.name}
-                  </p>
-                  <p style={{
-                    fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    color: "var(--text-secondary)",
-                  }}>
-                    {f.preview || f.path}
-                  </p>
-                  <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-1)", color: "var(--text-secondary)", opacity: 0.7 }}>
-                    {relativeTime(f.modified, t)}
-                  </p>
-                </button>
+                  active={selected}
+                  title={f.name}
+                  subtitle={relativeTime(f.modified, t)}
+                  preview={f.preview || f.path}
+                />
               );
             })
           )}
-        </div>
-      </div>
+        </ListPaneBody>
+      </ListPane>
       )}
 
         right={(
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <DetailPane>
         {!selectedFile ? (
-          <div className="gm-empty-state" style={{ flex: 1 }}>
-            <div style={{ textAlign: "center" }}>
-              <Brain size="var(--gm-icon-empty-lg)" style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-space-6)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("claudeConfig.selectToView")}</p>
-            </div>
-          </div>
+          <EmptyState icon={Brain} iconSize="empty-lg" title={t("claudeConfig.selectToView")} full />
         ) : (
           <>
             <FileDetailToolbar
@@ -331,14 +261,15 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                 />
               ) : null}
             />
-            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)", userSelect: "text" }}>
+            <DetailScroll selectable>
               <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
-            </div>
+            </DetailScroll>
           </>
         )}
-      </div>
+      </DetailPane>
       )}
-      />
-    </div>
+      showList
+      showDetail
+    />
   );
 }

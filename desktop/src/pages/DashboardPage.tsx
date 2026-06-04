@@ -1,18 +1,25 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import type { CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
 import { useAppStore, type AiRecordsTab, type NotesTab } from "../hooks/useAppStore";
-import { useToast } from "../hooks/useToast";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { usePlatformFlags } from "../hooks/usePlatform";
-import { MOBILE_DASHBOARD_BOTTOM_PADDING } from "../utils/mobileLayout";
+import { useTimedCopy } from "../hooks/useTimedCopy";
+import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { Button } from "../components/base/Button";
+import { EmptyState } from "../components/base/EmptyState";
+import {
+  DashboardActivityRow,
+  DashboardCard,
+  DashboardQuickInfoRow,
+  DashboardStatCard,
+} from "../components/domain/dashboard/DashboardComponents";
 import {
   MessageSquare, BookOpen, FileText, Clipboard,
   HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
@@ -43,12 +50,12 @@ interface RecentItem {
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
 
-const categoryConfig: Record<string, { icon: typeof MessageSquare; color: string; page: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }> = {
-  conversation: { icon: MessageSquare, color: "var(--accent)", page: "ai-records", aiRecordsTab: "conversations" },
-  manual: { icon: BookOpen, color: "var(--yellow)", page: "notes", notesTab: "manual" },
-  scratch: { icon: FileText, color: "var(--purple)", page: "notes", notesTab: "scratch" },
-  clip: { icon: Clipboard, color: "var(--pink)", page: "clipboard" },
-  plan: { icon: Lightbulb, color: "var(--yellow)", page: "ai-records", aiRecordsTab: "plans" },
+const categoryConfig: Record<string, { icon: typeof MessageSquare; tone: AppIconTone; page: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }> = {
+  conversation: { icon: MessageSquare, tone: "accent", page: "ai-records", aiRecordsTab: "conversations" },
+  manual: { icon: BookOpen, tone: "warning", page: "notes", notesTab: "manual" },
+  scratch: { icon: FileText, tone: "purple", page: "notes", notesTab: "scratch" },
+  clip: { icon: Clipboard, tone: "pink", page: "clipboard" },
+  plan: { icon: Lightbulb, tone: "warning", page: "ai-records", aiRecordsTab: "plans" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
@@ -82,7 +89,6 @@ function loadCliCardDismissed() {
 
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
   const { t } = useI18n();
-  const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
   const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, cliStatus, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
@@ -127,14 +133,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
     [gitStatus?.git_remote, gitStatus?.last_commit_id],
   );
-  const copyCliInstallCommand = useCallback(async () => {
-    try {
-      await writeText(CLI_INSTALL_COMMAND);
-      showToast(t("dashboard.cliCardCommandCopied"));
-    } catch (e) {
-      showToast(`Error: ${e}`, true);
-    }
-  }, [showToast, t]);
+  const { copyText: copyDashboardText } = useTimedCopy<boolean>({
+    successMessage: t("dashboard.cliCardCommandCopied"),
+    errorPrefix: "Error",
+  });
+  const copyCliInstallCommand = useCallback(() => {
+    return copyDashboardText(CLI_INSTALL_COMMAND, true);
+  }, [copyDashboardText]);
   const dismissCliCard = useCallback(() => {
     setCliCardDismissed(true);
     try { localStorage.setItem(CLI_CARD_DISMISSED_KEY, "true"); } catch {}
@@ -194,7 +199,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     return (
       <div className="gm-center-state">
         <div className="gm-center-state-panel">
-          <GitBranch size="var(--gm-icon-hero)" style={{ color: "var(--gm-color-muted-icon)", margin: "0 auto var(--gm-space-8)" }} />
+          <AppIcon icon={GitBranch} size="hero" tone="muted" className="gm-empty-state-icon" />
           <p className="gm-state-error-text">{error}</p>
           <p className="gm-state-muted-text">
             {t("dashboard.initHint")}
@@ -216,12 +221,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     : recent.filter((item) => mobileContentCategories.has(item.category));
   const showReviewItem = !!reviewItem && (isDesktop || mobileContentCategories.has(reviewItem.category));
 
-  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; color: string; page?: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }[] = [
-    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, color: "var(--accent)", page: "ai-records", aiRecordsTab: "conversations" },
-    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, color: "var(--yellow)", page: "notes", notesTab: "manual" },
-    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, color: "var(--purple)", page: "notes", notesTab: "scratch" },
-    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, color: "var(--pink)", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, color: "var(--yellow)", page: "ai-records", aiRecordsTab: "plans" },
+  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; tone: AppIconTone; page?: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }[] = [
+    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, tone: "accent", page: "ai-records", aiRecordsTab: "conversations" },
+    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, tone: "warning", page: "notes", notesTab: "manual" },
+    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, tone: "purple", page: "notes", notesTab: "scratch" },
+    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, tone: "pink", page: "clipboard" },
+    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, tone: "warning", page: "ai-records", aiRecordsTab: "plans" },
   ];
 
   const syncStatus = (() => {
@@ -259,53 +264,39 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       : (gitStatus?.git_remote ? syncStatus.color : "var(--text-secondary)");
 
   return (
-    <div className="gm-page gm-page-scroll" style={{
-      padding: isMobile
-        ? "var(--gm-page-pad-mobile-y) var(--gm-page-pad-mobile-x) 0"
-        : "var(--gm-page-pad-y) var(--gm-page-pad-x) var(--gm-page-pad-bottom)",
-      overflowY: "auto",
-      height: "100%",
-      flex: 1,
-      minWidth: 0,
-      minHeight: 0,
-      boxSizing: "border-box",
-    }}>
+    <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
       <div className="gm-dashboard-header">
         <h1 className="gm-page-title">{t("dashboard.title")}</h1>
         <div className="gm-dashboard-actions">
           {isMobile && (
-            <button
-              type="button"
+            <Button
+              variant="toolbar"
               onClick={() => onNavigate?.("search")}
               title={t("nav.search")}
-              className="gm-toolbar-button"
-            >
-              <Search size="var(--gm-icon-lg)" />
-            </button>
+              icon={Search}
+              iconSize="lg"
+            />
           )}
-          <button
-            type="button"
+          <Button
+            variant="toolbar"
             onClick={handleRefresh}
             title={t("common.refresh")}
-            className="gm-toolbar-button"
-          >
-            <RefreshCw size="var(--gm-icon-xs)" />
-          </button>
+            icon={RefreshCw}
+          />
           {isDesktop && clipStatus && (
-            <div className="gm-status-pill" style={{
-              background: clipStatus.watching ? "var(--bg-success)" : "var(--gm-color-bg-elevated)",
-              borderColor: clipStatus.watching ? "var(--gm-success-border)" : "var(--border)",
-              cursor: "pointer",
-            }} onClick={() => onNavigate?.("clipboard")}>
-              <Circle
-                size={8}
-                fill={clipStatus.watching ? "var(--green)" : "var(--text-secondary)"}
-                style={{ color: clipStatus.watching ? "var(--green)" : "var(--text-secondary)" }}
+            <div
+              className="gm-status-pill"
+              data-clickable="true"
+              data-tone={clipStatus.watching ? "success" : "muted"}
+              onClick={() => onNavigate?.("clipboard")}
+            >
+              <AppIcon
+                icon={Circle}
+                size="dot"
+                fill="currentColor"
+                tone={clipStatus.watching ? "success" : "secondary"}
               />
-              <span style={{
-                fontSize: "var(--gm-font-xs)", fontWeight: 500,
-                color: clipStatus.watching ? "var(--green)" : "var(--text-secondary)",
-              }}>
+              <span className="gm-status-pill-text">
                 {clipStatus.watching ? t("dashboard.clipboardActive") : t("dashboard.clipboardInactive")}
               </span>
             </div>
@@ -351,21 +342,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         <div className="gm-dashboard-card gm-dashboard-cli-card">
           <div className="gm-inline-cluster" style={{ alignItems: "flex-start", minWidth: 0 }}>
             <div className="gm-icon-box gm-icon-box-accent">
-              <Terminal size={18} />
+              <AppIcon icon={Terminal} size="md" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="gm-inline-cluster-wrap">
                 <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>
-                <span
-                  className="gm-status-badge"
-                  style={{
-                    color: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--yellow)",
-                    background: cliStatus?.installed && cliStatus.version_matches ? "var(--bg-success)" : "var(--gm-warning-soft)",
-                    borderColor: cliStatus?.installed && cliStatus.version_matches ? "var(--green)" : "var(--gm-warning-border)",
-                  }}
-                >
+                <Badge tone={cliStatus?.installed && cliStatus.version_matches ? "success" : "warning"}>
                   {cliStatusText}
-                </span>
+                </Badge>
               </div>
               <p className="gm-muted-text" style={{ marginTop: "var(--gm-space-3)", maxWidth: "var(--gm-size-dashboard-cli-desc-max-width)" }}>
                 {t("dashboard.cliCardDesc")}
@@ -373,64 +357,49 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             </div>
           </div>
           <div className="gm-dashboard-cli-copy-actions">
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={() => void copyCliInstallCommand()}
-              className="gm-button-primary"
+              icon={Copy}
             >
-              <Copy size={14} />
               {t("dashboard.cliCardCopyInstallCommand")}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="icon"
               onClick={() => onNavigate?.("settings")}
-              className="gm-icon-button"
               title={t("nav.settings")}
-            >
-              <SettingsIcon size={14} />
-            </button>
-            <button
-              type="button"
+              icon={SettingsIcon}
+            />
+            <Button
+              variant="icon"
               onClick={dismissCliCard}
-              className="gm-icon-button"
               title={t("dashboard.cliCardDismiss")}
               aria-label={t("dashboard.cliCardDismiss")}
-            >
-              <X size={14} />
-            </button>
+              icon={X}
+            />
           </div>
         </div>
       )}
 
       {/* Stat Cards */}
       <div className="gm-dashboard-stat-grid">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
+        {statCards.map((card) => (
+            <DashboardStatCard
               key={card.label}
-              onClick={() => card.page && navigateTo(card.page, card.notesTab, card.aiRecordsTab)}
-              className="gm-dashboard-card gm-dashboard-stat-card"
-              style={{ "--gm-item-color": card.color, cursor: card.page ? "pointer" : "default" } as CSSProperties}
-            >
-              <div aria-hidden="true" className="gm-dashboard-stat-rail" />
-              <div className="gm-dashboard-stat-head">
-                <span className="gm-dashboard-icon-box">
-                  <Icon size={16} style={{ color: "var(--gm-item-color)", flexShrink: 0 }} />
-                </span>
-                <span className="gm-section-title">{card.label}</span>
-              </div>
-              <p className="gm-dashboard-stat-value">{card.value}</p>
-            </div>
-          );
-        })}
+              icon={card.icon}
+              label={card.label}
+              value={card.value}
+              tone={card.tone}
+              onClick={card.page ? () => navigateTo(card.page!, card.notesTab, card.aiRecordsTab) : undefined}
+            />
+        ))}
       </div>
 
       {/* Empty state guide */}
       {contentFileCount === 0 && displayedRecent.length === 0 && (
         <div className="gm-dashboard-empty-guide">
-          <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: "var(--gm-space-3)" }}>{t("dashboard.emptyGuideTitle")}</p>
-          <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-relaxed)" }}>
+          <p className="gm-dashboard-empty-title">{t("dashboard.emptyGuideTitle")}</p>
+          <p className="gm-dashboard-empty-copy">
             {isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc")}
           </p>
         </div>
@@ -483,37 +452,29 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Recent Activity — full width */}
-      <div className="gm-dashboard-card" style={{ marginBottom: "var(--gm-section-gap)" }}>
+      <div className="gm-dashboard-card gm-dashboard-card-section">
           <div className="gm-card-head">
-            <Activity size={14} style={{ color: "var(--text-secondary)" }} />
+            <AppIcon icon={Activity} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.recentActivity")}</span>
           </div>
           {displayedRecent.length === 0 ? (
-            <p style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", padding: "var(--gm-card-header-gap) 0" }}>
+            <p className="gm-dashboard-card-empty">
               {t("dashboard.noActivity")}
             </p>
           ) : (
             <div className="gm-dashboard-activity-list">
               {displayedRecent.map((item) => {
                 const cfg = categoryConfig[item.category] || categoryConfig.scratch;
-                const Icon = cfg.icon;
                 return (
-                  <button
+                  <DashboardActivityRow
                     key={item.path}
-                    type="button"
                     onClick={() => openRecord(item)}
-                    className="gm-dashboard-activity-row"
-                  >
-                    <span className="gm-dashboard-activity-icon">
-                      <Icon size={isMobile ? 14 : 12} style={{ color: cfg.color, flexShrink: 0 }} />
-                    </span>
-                    <span className="gm-dashboard-activity-title">
-                      {item.name}
-                    </span>
-                    <span className="gm-dashboard-activity-time">
-                      {relativeTime(item.modified, t)}
-                    </span>
-                  </button>
+                    icon={cfg.icon}
+                    tone={cfg.tone}
+                    title={item.name}
+                    time={relativeTime(item.modified, t)}
+                    mobile={isMobile}
+                  />
                 );
               })}
             </div>
@@ -522,13 +483,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Today's Review */}
       {showReviewItem && reviewItem && (
-        <div className="gm-dashboard-card" style={{ marginBottom: "var(--gm-section-gap)", cursor: "pointer" }}
+        <div className="gm-dashboard-card gm-dashboard-card-section gm-dashboard-card-button"
           onClick={() => openRecord(reviewItem)}
         >
           <div className="gm-card-head">
-            <RefreshCw size={14} style={{ color: "var(--yellow)" }} />
+            <AppIcon icon={RefreshCw} size="xs" tone="warning" />
             <span className="gm-section-title">{t("dashboard.todayReview")}</span>
-            <button
+            <Button
+              variant="ghost"
               onClick={(e) => {
                 e.stopPropagation();
                 invoke<RecentItem | null>("get_review_item").then(item => {
@@ -543,23 +505,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   }
                 }).catch(() => {});
               }}
-              className="gm-button-ghost"
-              style={{ marginLeft: "auto", minHeight: "var(--gm-control-height-xs)" }}
+              className="gm-dashboard-card-shuffle"
             >
               {t("dashboard.shuffle")}
-            </button>
+            </Button>
           </div>
-          <p className="gm-card-title" style={{ marginBottom: "var(--gm-space-2)" }}>{reviewItem.name}</p>
+          <p className="gm-card-title gm-dashboard-review-title">{reviewItem.name}</p>
           {reviewPreview && (
-            <p style={{
-              fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", lineHeight: "var(--gm-leading-normal)",
-              display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}>
+            <p className="gm-dashboard-review-preview">
               {reviewPreview}
             </p>
           )}
-          <p style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)", marginTop: "var(--gm-space-3)" }}>
+          <p className="gm-dashboard-review-time">
             {relativeTime(reviewItem.modified, t)}
           </p>
         </div>
@@ -568,45 +525,24 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* Quick Info */}
       <div className="gm-dashboard-quick-info">
         <div className="gm-card-head">
-          <Zap size={14} style={{ color: "var(--text-secondary)" }} />
+          <AppIcon icon={Zap} size="xs" tone="secondary" />
           <span className="gm-section-title">{t("dashboard.quickInfo")}</span>
         </div>
         <div className="gm-dashboard-quick-grid">
-          <div className="gm-dashboard-quick-row">
-            <FolderOpen size={12} style={{ color: "var(--text-secondary)" }} />
-            <span className="gm-dashboard-quick-text">
-              {gitStatus?.sync_dir}
-            </span>
-          </div>
-          <div className="gm-dashboard-quick-row">
-            <GitBranch size={12} style={{ color: "var(--text-secondary)" }} />
-            <span className="gm-dashboard-quick-text" title={gitStatus?.git_remote}>
-              {gitStatus?.git_remote || t("dashboard.noRemote")}
-            </span>
-          </div>
+          <DashboardQuickInfoRow icon={FolderOpen}>{gitStatus?.sync_dir}</DashboardQuickInfoRow>
+          <DashboardQuickInfoRow icon={GitBranch} title={gitStatus?.git_remote}>
+            {gitStatus?.git_remote || t("dashboard.noRemote")}
+          </DashboardQuickInfoRow>
           {isDesktop && (
-            <div className="gm-dashboard-quick-row">
-              <Terminal size={12} style={{ color: "var(--text-secondary)" }} />
-              <span className="gm-dashboard-quick-text">
-                CLI: gitmemo --help
-              </span>
-            </div>
+            <DashboardQuickInfoRow icon={Terminal}>CLI: gitmemo --help</DashboardQuickInfoRow>
           )}
-          <div className="gm-dashboard-quick-row">
-            <MessageSquare size={12} style={{ color: "var(--text-secondary)" }} />
-            <span className="gm-dashboard-quick-text">
-              {t("dashboard.totalFiles", String(displayedFileCount))}
-            </span>
-          </div>
-          <div className="gm-dashboard-quick-row">
-            <HardDrive size={12} style={{ color: "var(--text-secondary)" }} />
-            <span className="gm-dashboard-quick-text">
-              {formatSize(displayedRepoSizeKb)}
-            </span>
-          </div>
+          <DashboardQuickInfoRow icon={MessageSquare}>
+            {t("dashboard.totalFiles", String(displayedFileCount))}
+          </DashboardQuickInfoRow>
+          <DashboardQuickInfoRow icon={HardDrive}>{formatSize(displayedRepoSizeKb)}</DashboardQuickInfoRow>
         </div>
       </div>
-      {isMobile && <div aria-hidden="true" style={{ height: MOBILE_DASHBOARD_BOTTOM_PADDING, flexShrink: 0 }} />}
+      {isMobile && <div aria-hidden="true" className="gm-dashboard-mobile-spacer" />}
     </div>
   );
 }

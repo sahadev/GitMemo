@@ -7,8 +7,15 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Button } from "../components/base/Button";
+import { CodeTextarea } from "../components/base/CodeTextarea";
+import { EmptyState } from "../components/base/EmptyState";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -16,46 +23,13 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
-import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
-import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { type FileEntry, type FilePage } from "../types/files";
+import { type NoteResult } from "../types/notes";
+import { usePagedFileList } from "../hooks/usePagedFileList";
+import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
-import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
-
-interface NoteResult {
-  success: boolean;
-  path: string;
-  message: string;
-}
-
-function ImportImagePreview({ relPath }: { relPath: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const imageSaveProps = useLongPressImageSave({
-    src,
-    filePath: relPath,
-    fileName: relPath.split("/").pop() ?? null,
-  });
-  useEffect(() => {
-    let cancelled = false;
-    invoke<string>("read_file_base64", { filePath: relPath })
-      .then((b64) => {
-        if (cancelled) return;
-        const ext = relPath.split(".").pop()?.toLowerCase() || "png";
-        const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : `image/${ext}`;
-        setSrc(`data:${mime};base64,${b64}`);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [relPath]);
-  if (!src) return <div style={{ width: 48, height: 36, flexShrink: 0, borderRadius: "var(--gm-radius-sm)", background: "var(--bg-hover)" }} />;
-  return (
-    <img
-      src={src}
-      alt=""
-      {...imageSaveProps}
-      style={{ width: 48, height: 36, objectFit: "cover", borderRadius: "var(--gm-radius-sm)", flexShrink: 0, border: "1px solid var(--border)", ...imageSaveProps.style }}
-    />
-  );
-}
+import { LocalImagePreview } from "../components/domain/files/LocalImagePreview";
 
 export default function ImportsPage({
   onFocusSidebar: _onFocusSidebar,
@@ -74,25 +48,31 @@ export default function ImportsPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const loadInFlight = useRef<Promise<void> | null>(null);
-  const filesLengthRef = useRef(0);
-  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
-  useEffect(() => {
-    filesLengthRef.current = files.length;
-  }, [files.length]);
+  const loadImportsPage = useCallback((offset: number, limit: number) => {
+    return invoke<FilePage>("list_files_page", { folder: "imports", offset, limit });
+  }, []);
+  const {
+    files,
+    loading,
+    loadingMore,
+    hasMore,
+    loadFiles,
+    loadMore,
+    sentinelRef,
+    registerItemRef,
+    scrollItemIntoView,
+  } = usePagedFileList<FileEntry>({
+    loadPage: loadImportsPage,
+    preventConcurrentLoads: true,
+  });
 
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
@@ -102,77 +82,18 @@ export default function ImportsPage({
       setEditContent(content);
       setEditing(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      setTimeout(() => {
-        itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }, 50);
+      scrollItemIntoView(path);
     } catch (e) { console.error(e); }
-  }, [isMobile]);
+  }, [isMobile, scrollItemIntoView]);
 
-  const loadFiles = useCallback((reset = true) => {
-    if (loadInFlight.current) return loadInFlight.current;
-
-    const task = (async () => {
-      if (reset) setLoading(true);
-      else setLoadingMore(true);
-      try {
-        const page = await invoke<FilePage>("list_files_page", {
-          folder: "imports",
-          offset: reset ? 0 : filesLengthRef.current,
-          limit: FILE_PAGE_SIZE,
-        });
-        setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
-        setHasMore(page.has_more);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (reset) setLoading(false);
-        else setLoadingMore(false);
-        loadInFlight.current = null;
-      }
-    })();
-
-    loadInFlight.current = task;
-    return task;
-  }, []);
-  const { sentinelRef, loadMore } = useAutoLoadMore({
+  const { navPrev, navNext } = useFileListNavigation({
+    files,
+    selectedPath: selectedFile,
+    openFile,
     hasMore,
-    loading,
     loadingMore,
-    onLoadMore: () => loadFiles(false),
+    loadMore,
   });
-
-  const navPrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) void openFile(files[idx - 1].path);
-  }, [selectedFile, files, openFile]);
-
-  const navNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < 0) return;
-    if (idx < files.length - 1) {
-      void openFile(files[idx + 1].path);
-      return;
-    }
-    if (hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = idx + 1;
-      void loadMore();
-    }
-  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
-
-  useEffect(() => {
-    const pendingIndex = pendingKeyboardNextIndexRef.current;
-    if (pendingIndex === null) return;
-    if (files.length > pendingIndex) {
-      pendingKeyboardNextIndexRef.current = null;
-      void openFile(files[pendingIndex].path);
-      return;
-    }
-    if (!hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = null;
-    }
-  }, [files, hasMore, loadingMore, openFile]);
 
   useEffect(() => {
     if (active !== false) void loadFiles();
@@ -228,21 +149,13 @@ export default function ImportsPage({
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (selectedFile) {
-        if (detailOpenedFromCrossPageRef.current) {
-          closeDetail();
-          return false;
-        }
-        closeDetail();
-        return true;
-      }
-      return false;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedFile,
+    closeDetail,
+    openedFromCrossPageRef: detailOpenedFromCrossPageRef,
+  });
 
   useEffect(() => {
     if (!active) return;
@@ -264,102 +177,71 @@ export default function ImportsPage({
   const showDetail = !isMobile || !!selectedFile;
 
   return (
-    <div className="gm-page" style={{ display: "flex", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="imports"
         defaultWidth={300}
         left={showList && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", background: "var(--gm-color-bg-surface)" }}>
+          <ListPane>
             <PaneHeader
               icon={Download}
               title={t("imports.title")}
               actions={(
-                <button
-                  type="button"
+                <Button
+                  variant="toolbar"
                   onClick={handleRefresh}
                   title={t("common.refresh")}
-                  className="gm-toolbar-button"
-                  style={{ padding: 0, display: "flex", alignItems: "center" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-                >
-                  <RefreshCw size="var(--gm-icon-xs)" />
-                </button>
+                  icon={RefreshCw}
+                />
               )}
             />
 
-            <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <ListPaneBody>
               {loading ? (
                 <Loading compact text={t("common.loading")} />
               ) : files.length === 0 ? (
-                <div className="gm-empty-state" style={{ padding: "var(--gm-icon-hero) var(--gm-section-gap-lg)" }}>
-                  <Download size={36} style={{ color: "var(--gm-empty-icon-color)", marginBottom: "var(--gm-card-header-gap)" }} />
-                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-                    {t("imports.empty")}
-                  </p>
-                </div>
+                <EmptyState icon={Download} title={t("imports.empty")} />
               ) : (
                 <>
                 {files.map((file) => {
                   const selected = selectedFile === file.path;
                   const hasImage = !!file.preview_image;
                   return (
-                    <button
+                    <FileListItem
                       key={file.path}
-                      ref={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
+                      ref={(el) => registerItemRef(file.path, el)}
                       onClick={() => openFile(file.path)}
-                      style={{
-                        width: "100%", textAlign: "left", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
-                        cursor: "pointer", transition: "background 0.15s",
-                        background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                        border: "none", color: "var(--text)",
-                        borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
-                        borderBottom: "1px solid var(--border)",
-                        display: "flex", alignItems: "center", gap: "var(--gm-nav-item-gap)",
-                      }}
-                    >
-                      {hasImage && <ImportImagePreview relPath={file.preview_image!} />}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {file.name}
-                        </p>
-                        {!hasImage && file.preview && (
-                          <p style={{ fontSize: "var(--gm-font-xs)", marginTop: "var(--gm-space-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-secondary)" }}>
-                            {file.preview}
-                          </p>
-                        )}
-                        <p style={{ fontSize: "var(--gm-font-2xs)", marginTop: "var(--gm-space-2)", color: "var(--text-secondary)" }}>
-                          {relativeTime(file.modified, t)}
-                        </p>
-                      </div>
-                    </button>
+                      active={selected}
+                      icon={hasImage ? (
+                        <LocalImagePreview
+                          relPath={file.preview_image!}
+                          className="gm-import-thumb"
+                          placeholderClassName="gm-import-thumb-placeholder"
+                        />
+                      ) : undefined}
+                      title={file.name}
+                      subtitle={relativeTime(file.modified, t)}
+                      preview={!hasImage ? file.preview : undefined}
+                    />
                   );
                 })}
                 {hasMore && (
                   <div ref={sentinelRef}>
-                  <button
-                    type="button"
-                    disabled={loadingMore}
+                  <LoadMoreRow
+                    loading={loadingMore}
+                    loadingLabel={t("common.loading")}
+                    label={t("common.loadMore")}
                     onClick={() => void loadMore()}
-                    style={{
-                      width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
-                      borderBottom: "1px solid var(--border)", background: "transparent",
-                      color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                      fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                    }}
-                  >
-                    {loadingMore ? t("common.loading") : t("common.loadMore")}
-                  </button>
+                  />
                   </div>
                 )}
                 </>
               )}
-            </div>
-          </div>
+            </ListPaneBody>
+          </ListPane>
         )}
 
         right={showDetail && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
+          <DetailPane>
             {selectedFile ? (
               <>
                 <FileDetailToolbar
@@ -374,7 +256,7 @@ export default function ImportsPage({
                   editTitle={t("common.edit")}
                   saveTitle={t("common.save")}
                   cancelTitle={t("common.preview")}
-                  cancelIcon={<Eye size={14} />}
+                  cancelIcon={<AppIcon icon={Eye} size="xs" />}
                   saveDisabled={saving}
                   saveTone="accent"
                   metadata={selectedFile ? (
@@ -388,7 +270,7 @@ export default function ImportsPage({
                     {
                       key: "delete",
                       title: t("common.delete"),
-                      icon: <Trash2 size={14} />,
+                      icon: <AppIcon icon={Trash2} size="xs" />,
                       onClick: () => void handleDelete(),
                       tone: "danger",
                       hidden: editing,
@@ -402,9 +284,9 @@ export default function ImportsPage({
                     />
                   ) : null}
                 />
-                <div style={{ flex: 1, overflowY: "auto", padding: "var(--gm-detail-pad-y) var(--gm-detail-pad-x)" }}>
+                <DetailScroll>
                   {editing ? (
-                    <textarea
+                    <CodeTextarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       onKeyDown={(e) => {
@@ -413,30 +295,20 @@ export default function ImportsPage({
                           void handleSave();
                         }
                       }}
-                      className="gm-code-editor gm-code-editor-min"
-                      style={{
-                        width: "100%", height: "100%", resize: "none", padding: 0,
-                        border: "none",
-                      }}
+                      minHeight
                     />
                   ) : (
                     <MarkdownView content={fileContent} filePath={selectedFile} />
                   )}
-                </div>
+                </DetailScroll>
               </>
             ) : (
-              <div className="gm-empty-state" style={{ height: "100%" }}>
-                <div style={{ textAlign: "center" }}>
-                  <Download size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-                  <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>
-                    {t("imports.selectOrDrop")}
-                  </p>
-                </div>
-              </div>
+              <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />
             )}
-          </div>
+          </DetailPane>
         )}
-      />
-    </div>
+      showList={showList}
+      showDetail={showDetail}
+    />
   );
 }

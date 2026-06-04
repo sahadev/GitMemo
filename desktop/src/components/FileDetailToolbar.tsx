@@ -1,6 +1,7 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ChevronLeft, Pencil, RefreshCw, Save, X } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
+import { AppIcon, type AppIconSize } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
 
@@ -22,7 +23,7 @@ interface FileDetailToolbarProps {
   onBack?: () => void;
   onTitleClick?: () => void;
   titleClickLabel?: string;
-  titleStyle?: CSSProperties;
+  titleEmphasis?: boolean;
   metadata?: ReactNode;
   onRefresh?: () => void;
   refreshTitle?: string;
@@ -41,7 +42,7 @@ interface FileDetailToolbarProps {
   actionsBeforeEdit?: FileDetailToolbarAction[];
   actionsAfterEdit?: FileDetailToolbarAction[];
   more?: ReactNode;
-  style?: CSSProperties;
+  density?: "default" | "compact";
 }
 
 function ToolbarActionButton({ action }: { action: FileDetailToolbarAction }) {
@@ -65,7 +66,7 @@ export function FileDetailToolbar({
   onBack,
   onTitleClick,
   titleClickLabel,
-  titleStyle,
+  titleEmphasis = false,
   metadata,
   onRefresh,
   refreshTitle,
@@ -84,47 +85,27 @@ export function FileDetailToolbar({
   actionsBeforeEdit = [],
   actionsAfterEdit = [],
   more,
-  style,
+  density = "default",
 }: FileDetailToolbarProps) {
   const { t } = useI18n();
   const isMobile = usePlatform() === "mobile";
-  const iconSize = isMobile ? 16 : 14;
+  const iconSize: AppIconSize = isMobile ? "sm" : "xs";
   const hasEditFlow = Boolean(onEdit || onSave || onCancel);
 
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      borderBottom: "1px solid var(--border)",
-      background: "var(--gm-color-bg-surface)",
-      flexShrink: 0,
-      gap: "var(--gm-toolbar-gap)",
-      minWidth: 0,
-      padding: isMobile
-        ? "var(--gm-space-4) var(--gm-space-6)"
-        : "var(--gm-space-5) var(--gm-space-10)",
-      ...style,
-    }}>
+    <div className="gm-file-detail-toolbar" data-density={density} data-mobile={isMobile ? "true" : "false"}>
       {onBack ? (
         <DetailIconButton type="button" onClick={onBack} title={t("common.back")}>
-          <ChevronLeft size={isMobile ? 20 : 16} />
+          <AppIcon icon={ChevronLeft} size={isMobile ? "lg" : "sm"} />
         </DetailIconButton>
       ) : null}
       <span
         onClick={onTitleClick}
         title={titleClickLabel ?? titleText}
-        style={{
-          color: "var(--text-secondary)",
-          cursor: onTitleClick ? "pointer" : undefined,
-          flex: 1,
-          fontSize: isMobile ? "var(--gm-font-sm)" : "var(--gm-font-xs)",
-          fontWeight: isMobile ? 600 : 400,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          ...titleStyle,
-        }}
+        className="gm-file-detail-title"
+        data-clickable={onTitleClick ? "true" : "false"}
+        data-emphasis={titleEmphasis ? "true" : "false"}
+        data-mobile={isMobile ? "true" : "false"}
       >
         {title}
       </span>
@@ -135,7 +116,7 @@ export function FileDetailToolbar({
           disabled={refreshDisabled}
           title={refreshTitle ?? t("common.refresh")}
         >
-          <RefreshCw size={iconSize} />
+          <AppIcon icon={RefreshCw} size={iconSize} />
         </DetailIconButton>
       ) : null}
       {metadata}
@@ -151,7 +132,7 @@ export function FileDetailToolbar({
                 onClick={onCancel}
                 title={cancelTitle ?? t("common.cancel")}
               >
-                {cancelIcon ?? <X size={iconSize} />}
+                {cancelIcon ?? <AppIcon icon={X} size={iconSize} />}
               </DetailIconButton>
             ) : null}
             {onSave ? (
@@ -162,7 +143,7 @@ export function FileDetailToolbar({
                 title={saveTitle ?? t("common.save")}
                 tone={saveTone}
               >
-                <Save size={iconSize} />
+                <AppIcon icon={Save} size={iconSize} />
               </DetailIconButton>
             ) : null}
           </>
@@ -173,7 +154,7 @@ export function FileDetailToolbar({
             disabled={editDisabled}
             title={editTitle ?? t("common.edit")}
           >
-            <Pencil size={iconSize} />
+            <AppIcon icon={Pencil} size={iconSize} />
           </DetailIconButton>
         ) : null
       ) : null}

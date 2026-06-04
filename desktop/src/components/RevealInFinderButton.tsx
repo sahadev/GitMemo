@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FolderOpen } from "lucide-react";
+import { Button } from "./base/Button";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 
@@ -35,26 +36,17 @@ export function RevealInFinderButton({
   if (!absolutePath && !relPath) return null;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
       onClick={(e) => {
         e.stopPropagation();
         void handleClick();
       }}
       disabled={disabled || loading}
       title={t("common.reveal")}
-      className="gm-toolbar-button"
-      style={{
-        gap: "var(--gm-space-2)",
-        padding: "var(--gm-control-pad-y) var(--gm-row-pad-x)",
-        cursor: disabled || loading ? "not-allowed" : "pointer",
-        fontSize: "var(--gm-font-xs)",
-        lineHeight: "var(--gm-leading-none)",
-        opacity: disabled || loading ? 0.45 : 1,
-      }}
+      icon={FolderOpen}
     >
-      <FolderOpen size={14} />
-      <span>{t("common.reveal")}</span>
-    </button>
+      {t("common.reveal")}
+    </Button>
   );
 }

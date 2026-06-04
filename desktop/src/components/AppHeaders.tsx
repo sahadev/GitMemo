@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { AppIcon } from "./base/AppIcon";
 
 interface PageHeaderProps {
   icon?: LucideIcon;
@@ -34,8 +35,8 @@ interface PaneTabHeaderProps<T extends string> {
 export function PageHeader({ icon: Icon, title, subtitle, actions, iconFill }: PageHeaderProps) {
   return (
     <div className="gm-page-header">
-      {Icon ? <Icon className="gm-page-header-icon" fill={iconFill} /> : null}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {Icon ? <AppIcon icon={Icon} className="gm-page-header-icon" fill={iconFill} size="xl" tone="accent" /> : null}
+      <div className="gm-page-header-main">
         <h1 className="gm-page-header-title">{title}</h1>
         {subtitle ? <p className="gm-page-header-subtitle">{subtitle}</p> : null}
       </div>
@@ -48,7 +49,7 @@ export function PaneHeader({ icon: Icon, title, afterTitle, actions, iconFill }:
   return (
     <div className="gm-pane-header">
       <div className="gm-pane-header-main">
-        {Icon ? <Icon className="gm-pane-header-icon" fill={iconFill} /> : null}
+        {Icon ? <AppIcon icon={Icon} className="gm-pane-header-icon" fill={iconFill} size="sm" tone="accent" /> : null}
         <span className="gm-pane-header-title">{title}</span>
         {afterTitle}
       </div>
@@ -75,16 +76,10 @@ export function PaneTabHeader<T extends string>({
             type="button"
             className="gm-pane-tab-button"
             data-active={active ? "true" : "false"}
+            data-mobile={isMobile ? "true" : "false"}
             onClick={() => onChange(tab.id)}
-            style={{
-              minHeight: isMobile ? "var(--gm-control-height-lg)" : "var(--gm-control-height-sm)",
-              padding: isMobile ? "var(--gm-control-pad-y-lg) var(--gm-row-pad-x)" : "var(--gm-control-pad-y) var(--gm-row-pad-x)",
-            }}
           >
-            <Icon
-              className="gm-pane-tab-icon"
-              size={isMobile ? "var(--gm-icon-sm)" : "var(--gm-icon-xs)"}
-            />
+            <AppIcon icon={Icon} className="gm-pane-tab-icon" size={isMobile ? "sm" : "xs"} />
             {tab.label}
           </button>
         );

@@ -7,8 +7,16 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { Button } from "../components/base/Button";
+import { EmptyState } from "../components/base/EmptyState";
+import { ConversationMessageCard } from "../components/domain/conversations/ConversationMessageCard";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
@@ -16,10 +24,11 @@ import { formatDateOnly, relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
-import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
-import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
+import { type FileEntry, type FilePage } from "../types/files";
+import { usePagedFileList } from "../hooks/usePagedFileList";
+import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 
 interface ConversationMeta {
   title: string;
@@ -116,7 +125,6 @@ export default function ConversationsPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [files, setFiles] = useState<FileEntry[]>([]);
   const [metaCache, setMetaCache] = useState<Map<string, ConversationMeta>>(new Map());
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -124,61 +132,46 @@ export default function ConversationsPage({
   const [rawContent, setRawContent] = useState("");
   const [rawBody, setRawBody] = useState("");
   const [currentMeta, setCurrentMeta] = useState<ConversationMeta | null>(null);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement>(null);
-  const filesLengthRef = useRef(0);
-  const pendingKeyboardNextIndexRef = useRef<number | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalFiles, setTotalFiles] = useState(0);
 
-  useEffect(() => { loadFiles(); }, []);
-  useEffect(() => {
-    filesLengthRef.current = files.length;
-  }, [files.length]);
-
-  const metaFromEntry = (f: FileEntry): ConversationMeta => ({
+  const metaFromEntry = useCallback((f: FileEntry): ConversationMeta => ({
     title: f.title || "",
     date: "",
     model: f.model || "",
     messages: f.messages || "",
-  });
-
-  const loadFiles = async (reset = true) => {
-    if (reset) setLoading(true);
-    else setLoadingMore(true);
-    try {
-      const page = await invoke<FilePage>("list_files_page", {
-        folder: "conversations",
-        offset: reset ? 0 : filesLengthRef.current,
-        limit: FILE_PAGE_SIZE,
-      });
-      setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
-      setMetaCache((prev) => {
-        const cache = reset ? new Map<string, ConversationMeta>() : new Map(prev);
-        page.entries.forEach((f) => cache.set(f.path, metaFromEntry(f)));
-        return cache;
-      });
-      setHasMore(page.has_more);
-      setTotalFiles(page.total);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (reset) setLoading(false);
-      else setLoadingMore(false);
-    }
-  };
-  useFileWatcher(["conversations"], loadFiles);
-  const { sentinelRef, loadMore } = useAutoLoadMore({
-    hasMore,
+  }), []);
+  const loadConversationsPage = useCallback((offset: number, limit: number) => {
+    return invoke<FilePage>("list_files_page", { folder: "conversations", offset, limit });
+  }, []);
+  const handleConversationPageLoaded = useCallback((page: FilePage, reset: boolean) => {
+    setMetaCache((prev) => {
+      const cache = reset ? new Map<string, ConversationMeta>() : new Map(prev);
+      page.entries.forEach((f) => cache.set(f.path, metaFromEntry(f)));
+      return cache;
+    });
+  }, [metaFromEntry]);
+  const {
+    files,
+    setFiles,
     loading,
     loadingMore,
-    onLoadMore: () => loadFiles(false),
+    hasMore,
+    totalFiles,
+    loadFiles,
+    loadMore,
+    sentinelRef,
+    registerItemRef,
+    scrollItemIntoView,
+  } = usePagedFileList<FileEntry>({
+    loadPage: loadConversationsPage,
+    onPageLoaded: handleConversationPageLoaded,
   });
+
+  useEffect(() => { void loadFiles(); }, [loadFiles]);
+  useFileWatcher(["conversations"], loadFiles);
 
   const applyConversationRaw = useCallback((path: string, raw: string) => {
     const { meta, body } = parseFrontmatter(raw);
@@ -198,13 +191,11 @@ export default function ConversationsPage({
       setEditing(false);
       setEditContent("");
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      setTimeout(() => {
-        itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }, 50);
+      scrollItemIntoView(path);
     } catch (e) {
       console.error(e);
     }
-  }, [applyConversationRaw, isMobile]);
+  }, [applyConversationRaw, isMobile, scrollItemIntoView]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("conversations/")) return;
@@ -268,46 +259,22 @@ export default function ConversationsPage({
     }
   };
 
-  const navigatePrev = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx > 0) openFile(files[idx - 1].path);
-  }, [selectedFile, files]);
-
-  const navigateNext = useCallback(() => {
-    if (!selectedFile || files.length === 0) return;
-    const idx = files.findIndex((f) => f.path === selectedFile);
-    if (idx < 0) return;
-    if (idx < files.length - 1) {
-      void openFile(files[idx + 1].path);
-      return;
-    }
-    if (hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = idx + 1;
-      void loadMore();
-    }
-  }, [selectedFile, files, hasMore, loadingMore, loadMore, openFile]);
-
-  useEffect(() => {
-    const pendingIndex = pendingKeyboardNextIndexRef.current;
-    if (pendingIndex === null) return;
-    if (files.length > pendingIndex) {
-      pendingKeyboardNextIndexRef.current = null;
-      void openFile(files[pendingIndex].path);
-      return;
-    }
-    if (!hasMore && !loadingMore) {
-      pendingKeyboardNextIndexRef.current = null;
-    }
-  }, [files, hasMore, loadingMore, openFile]);
+  const { navPrev, navNext } = useFileListNavigation({
+    files,
+    selectedPath: selectedFile,
+    openFile,
+    hasMore,
+    loadingMore,
+    loadMore,
+  });
 
   useEffect(() => {
     if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === "ArrowUp") { e.preventDefault(); navigatePrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navigateNext(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
+      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
       if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
         e.preventDefault();
         startEdit();
@@ -330,7 +297,7 @@ export default function ConversationsPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, isMobile, navigatePrev, navigateNext, selectedFile, files, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
+  }, [active, isMobile, navPrev, navNext, selectedFile, files, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
@@ -345,154 +312,88 @@ export default function ConversationsPage({
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (selectedFile) {
-        if (detailOpenedFromCrossPageRef.current) {
-          closeDetail();
-          return false;
-        }
-        closeDetail();
-        return true;
-      }
-      return false;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedFile]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedFile,
+    closeDetail,
+    openedFromCrossPageRef: detailOpenedFromCrossPageRef,
+  });
 
   const listHeaderActions = (
     <>
-      <button
+      <Button
+        variant="toolbar"
         onClick={() => loadFiles()}
         title={t("common.refresh")}
-        className="gm-toolbar-button"
-        style={{ padding: 0, display: "flex", alignItems: "center" }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-      >
-        <RefreshCw size="var(--gm-icon-xs)" />
-      </button>
-      <span style={{
-        fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)", background: "var(--bg-hover)",
-        padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-pill)", whiteSpace: "nowrap",
-      }}>
+        icon={RefreshCw}
+      />
+      <Badge>
         {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
         {hasMore ? ` / ${totalFiles}` : ""}
-      </span>
+      </Badge>
     </>
   );
 
   return (
-    <div className="gm-page" style={{ display: "flex", width: "100%", height: "100%", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
+    <FileWorkspace
         panelKey="conversations"
         defaultWidth={300}
         left={showList && (
-      <div style={{
-        display: "flex", flexDirection: "column",
-        flexShrink: 0, background: "var(--gm-color-bg-surface)",
-        width: "100%", flex: 1, minWidth: 0,
-        height: "100%", minHeight: 0, overflow: "hidden",
-      }}>
+      <ListPane>
         {renderListHeader ? renderListHeader(listHeaderActions) : (
           <PaneHeader icon={MessageSquare} title={t("conversations.title")} actions={listHeaderActions} />
         )}
 
         {/* List */}
-        <div style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0,
-        }}>
+        <ListPaneBody mobileBottomPadding={isMobile}>
           {loading ? (
             <Loading compact text={t("conversations.loading")} />
           ) : files.length === 0 ? (
-            <div style={{ padding: "var(--gm-space-16)", textAlign: "center" }}>
-              <MessageSquare size={36} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("conversations.empty")}</p>
-            </div>
+            <EmptyState icon={MessageSquare} title={t("conversations.empty")} />
           ) : (
             <>
             {files.map((f) => {
               const meta = metaCache.get(f.path);
               const selected = selectedFile === f.path;
               return (
-                <button
+                <FileListItem
                   key={f.path}
-                  ref={(el) => { if (el) itemRefs.current.set(f.path, el); else itemRefs.current.delete(f.path); }}
+                  ref={(el) => registerItemRef(f.path, el)}
                   onClick={() => openFile(f.path)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    minHeight: isMobile ? 58 : undefined,
-                    padding: isMobile
-                      ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x)"
-                      : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)",
-                    cursor: "pointer",
-                    background: selected ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                    border: "none", borderBottom: "1px solid var(--border)",
-                    borderLeft: selected ? "3px solid var(--accent)" : "3px solid transparent",
-                    color: "var(--text)", transition: "background 0.15s",
-                  }}
-                >
-                  <div style={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, marginBottom: "var(--gm-space-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {meta?.title || f.name.replace(/\.md$/, "")}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-control-gap)", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                      {relativeTime(f.modified, t)}
-                    </span>
-                    {meta?.model && (
-                      <span style={{
-                        fontSize: "var(--gm-font-xs)", padding: "var(--gm-space-1) var(--gm-space-3)", borderRadius: "var(--gm-radius-sm)",
-                        background: selected ? "color-mix(in srgb, var(--accent) 12%, var(--bg-card))" : "var(--bg-hover)",
-                        color: "var(--accent)",
-                      }}>
-                        {meta.model}
-                      </span>
-                    )}
-                    {meta?.messages && (
-                      <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                        {meta.messages} {t("conversations.msgs")}
-                      </span>
-                    )}
-                  </div>
-                </button>
+                  active={selected}
+                  mobile={isMobile}
+                  title={meta?.title || f.name.replace(/\.md$/, "")}
+                  subtitle={relativeTime(f.modified, t)}
+                  meta={(
+                    <>
+                      {meta?.model ? <Badge tone="accent">{meta.model}</Badge> : null}
+                      {meta?.messages ? <span className="gm-file-list-meta">{meta.messages} {t("conversations.msgs")}</span> : null}
+                    </>
+                  )}
+                />
               );
             })}
             {hasMore && (
               <div ref={sentinelRef}>
-              <button
-                type="button"
-                disabled={loadingMore}
+              <LoadMoreRow
+                loading={loadingMore}
+                loadingLabel={t("common.loading")}
+                label={t("common.loadMore")}
                 onClick={() => void loadMore()}
-                style={{
-                  width: "100%", padding: "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x)", border: "none",
-                  borderBottom: "1px solid var(--border)", background: "transparent",
-                  color: "var(--accent)", cursor: loadingMore ? "default" : "pointer",
-                  fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                }}
-              >
-                {loadingMore ? t("common.loading") : t("common.loadMore")}
-              </button>
+              />
               </div>
             )}
             </>
           )}
-        </div>
-      </div>
+        </ListPaneBody>
+      </ListPane>
       )}
 
         right={showDetail && (
-      <div style={{ flex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <DetailPane>
         {!selectedFile ? (
-          <div className="gm-empty-state" style={{ flex: 1 }}>
-            <div style={{ textAlign: "center" }}>
-              <MessageSquare size={48} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-section-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("conversations.selectToView")}</p>
-            </div>
-          </div>
+          <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.selectToView")} full />
         ) : (
           <>
             <FileDetailToolbar
@@ -509,21 +410,14 @@ export default function ConversationsPage({
                 showToast(t("conversations.copied"));
               }}
               titleClickLabel={t("conversations.clickToCopy")}
-              titleStyle={{ fontSize: "var(--gm-font-sm)", fontWeight: 600, color: "var(--text)" }}
+              titleEmphasis
               metadata={(
                 <>
                   {currentMeta?.model && (
-                    <span style={{
-                      fontSize: "var(--gm-font-xs)", padding: "var(--gm-space-1) var(--gm-row-pad-x)", borderRadius: "var(--gm-radius-sm)",
-                      background: "var(--bg-hover)", color: "var(--accent)",
-                    }}>
-                      {currentMeta.model}
-                    </span>
+                    <Badge tone="accent">{currentMeta.model}</Badge>
                   )}
                   {currentMeta?.messages && (
-                    <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                      {currentMeta.messages} {t("conversations.msgs")}
-                    </span>
+                    <span className="gm-file-list-meta">{currentMeta.messages} {t("conversations.msgs")}</span>
                   )}
                   {selectedFile ? (
                     <FavoriteButton
@@ -545,7 +439,7 @@ export default function ConversationsPage({
                 {
                   key: "delete",
                   title: t("conversations.deleteConversation"),
-                  icon: <Trash2 size={14} />,
+                  icon: <AppIcon icon={Trash2} size="xs" />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
                   hidden: isMobile || editing,
@@ -560,14 +454,7 @@ export default function ConversationsPage({
             />
 
             {/* Messages */}
-            <div style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: isMobile
-                ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
-                : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-              userSelect: "text",
-            }}>
+            <DetailScroll mobileBottomPadding={isMobile} selectable>
               {editing ? (
                 <textarea
                   ref={editRef}
@@ -595,47 +482,31 @@ export default function ConversationsPage({
               ) : messages.length > 0 ? (
                 <>
                   {introContent ? (
-                    <div style={{ marginBottom: "var(--gm-section-gap-lg)" }}>
+                    <div className="gm-section-block">
                       <MarkdownView content={introContent} filePath={selectedFile ?? undefined} />
                     </div>
                   ) : null}
                   {messages.map((msg, i) => (
-                    <div
+                    <ConversationMessageCard
                       key={i}
-                      style={{
-                        marginBottom: "var(--gm-section-gap-lg)",
-                        padding: "var(--gm-space-7) var(--gm-section-gap)",
-                        borderRadius: "var(--gm-radius-md)",
-                        borderLeft: `3px solid ${msg.role === "user" ? "var(--accent)" : "var(--green)"}`,
-                        background: msg.role === "user" ? "var(--bg-hover)" : "transparent",
-                      }}
+                      role={msg.role}
+                      roleLabel={msg.role === "user" ? t("conversations.user") : t("conversations.assistant")}
+                      timestamp={msg.timestamp ? `${currentMeta?.date ? `${formatDateOnly(currentMeta.date)} ` : ""}${msg.timestamp}` : undefined}
                     >
-                      <div style={{
-                        display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)",
-                        marginBottom: "var(--gm-nav-item-gap)", fontSize: "var(--gm-font-xs)", fontWeight: 600,
-                      }}>
-                        <span style={{ color: msg.role === "user" ? "var(--accent)" : "var(--green)" }}>
-                          {msg.role === "user" ? t("conversations.user") : t("conversations.assistant")}
-                        </span>
-                        {msg.timestamp && (
-                          <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>
-                            {currentMeta?.date ? `${formatDateOnly(currentMeta.date)} ` : ""}{msg.timestamp}
-                          </span>
-                        )}
-                      </div>
                       <MarkdownView content={msg.content} />
-                    </div>
+                    </ConversationMessageCard>
                   ))}
                 </>
               ) : (
                 <MarkdownView content={rawBody} />
               )}
-            </div>
+            </DetailScroll>
           </>
         )}
-      </div>
+      </DetailPane>
       )}
-      />
-    </div>
+      showList={showList}
+      showDetail={showDetail}
+    />
   );
 }

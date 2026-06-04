@@ -7,6 +7,7 @@ import { Search, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { localImageDataUrl } from "../utils/localImages";
 
 export interface MarkdownViewProps {
   content: string;
@@ -207,13 +208,6 @@ function resolveMarkdownImagePath(src?: string, filePath?: string) {
     : src;
 }
 
-function imageMimeFromSrc(src: string) {
-  const ext = src.split(/[?#]/, 1)[0].split(".").pop()?.toLowerCase() || "png";
-  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-  if (ext === "svg") return "image/svg+xml";
-  return `image/${ext}`;
-}
-
 /**
  * Custom img renderer that loads local images via Tauri's read_file_base64.
  */
@@ -239,8 +233,7 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
     invoke<string>("read_file_base64", { filePath: imgRelPath })
       .then((b64) => {
         if (cancelled) return;
-        const mime = imageMimeFromSrc(src);
-        setDataUrl(`data:${mime};base64,${b64}`);
+        setDataUrl(localImageDataUrl(imgRelPath, b64));
         setLocalImageState("ready");
       })
       .catch(() => {

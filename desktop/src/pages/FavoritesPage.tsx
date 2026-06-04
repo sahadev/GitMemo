@@ -4,16 +4,21 @@ import { listen } from "@tauri-apps/api/event";
 import { Star, FileText, MessageSquare, Clipboard, Lightbulb, Download, Settings, FileSymlink } from "lucide-react";
 import { Loading } from "../components/Loading";
 import MarkdownView from "../components/MarkdownView";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { PaneHeader } from "../components/AppHeaders";
+import { AppIcon } from "../components/base/AppIcon";
+import { Badge } from "../components/base/Badge";
+import { EmptyState } from "../components/base/EmptyState";
+import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { relativeTime } from "../utils/time";
-import { MOBILE_BOTTOM_CONTENT_PADDING } from "../utils/mobileLayout";
 import type { FavoriteContent, FavoriteEntry } from "../types/favorites";
 
 interface FilesChangedEvent {
@@ -120,138 +125,61 @@ export default function FavoritesPage({
     setContentLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (!isMobile || !registerMobileBackHandler) return;
-    registerMobileBackHandler(() => {
-      if (!selectedTargetId) return false;
-      closeDetail();
-      return true;
-    });
-    return () => registerMobileBackHandler(null);
-  }, [closeDetail, isMobile, registerMobileBackHandler, selectedTargetId]);
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: !!selectedTargetId,
+    closeDetail,
+  });
 
   const list = (
-    <div className="gm-page" style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      minWidth: 0,
-      minHeight: 0,
-      overflow: "hidden",
-      background: "var(--gm-color-bg-surface)",
-    }}>
+    <ListPane>
       <PaneHeader
         icon={Star}
         iconFill="currentColor"
         title={t("favorites.title")}
         actions={(
-          <span style={{
-            fontSize: "var(--gm-font-xs)",
-            color: "var(--text-secondary)",
-            background: "var(--bg-hover)",
-            padding: "var(--gm-space-1) var(--gm-row-pad-x)",
-            borderRadius: "var(--gm-radius-pill)",
-            whiteSpace: "nowrap",
-          }}>
-            {t("favorites.count", favorites.length)}
-          </span>
+          <Badge>{t("favorites.count", favorites.length)}</Badge>
         )}
       />
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: isMobile ? MOBILE_BOTTOM_CONTENT_PADDING : 0 }}>
+      <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
-          <div style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Loading compact text={t("common.loading")} />
-          </div>
+          <Loading compact text={t("common.loading")} />
         ) : favorites.length === 0 ? (
-          <div className="gm-empty-state" style={{ minHeight: "100%", padding: "var(--gm-space-12)" }}>
-            <div>
-              <Star size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("favorites.empty")}</p>
-            </div>
-          </div>
+          <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.empty")} full />
         ) : favorites.map((item) => {
           const active = selectedTargetId === item.target_id;
           const Icon = sourceIcon[item.source_type as keyof typeof sourceIcon] ?? sourceIcon.unknown;
           return (
-            <button
+            <FileListItem
               key={item.target_id}
-              type="button"
               onClick={() => void openFavorite(item.target_id)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: isMobile
-                  ? "var(--gm-card-pad-mobile) var(--gm-list-row-pad-x) var(--gm-nav-item-gap)"
-                  : "var(--gm-list-row-pad-y) var(--gm-list-row-pad-x) var(--gm-icon-text-gap)",
-                border: "none",
-                borderBottom: "1px solid var(--border)",
-                background: active ? "color-mix(in srgb, var(--accent) 10%, var(--bg-card))" : "transparent",
-                color: "var(--text)",
-                borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", minWidth: 0 }}>
-                <Icon size={14} style={{ color: active ? "var(--accent)" : "var(--text-secondary)", flexShrink: 0 }} />
-                <p style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontSize: "var(--gm-font-sm)",
-                  fontWeight: 650,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>
-                  {item.title}
-                </p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--gm-icon-text-gap)", marginTop: "var(--gm-space-3)", minWidth: 0 }}>
-                <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--text-secondary)" }}>
-                  {t(sourceLabelKey(item.source_type))}
-                </span>
-                <span style={{ fontSize: "var(--gm-font-2xs)", color: "var(--text-secondary)" }}>
-                  {relativeTime(item.favorited_at, t)}
-                </span>
-                {!item.exists ? (
-                  <span style={{ fontSize: "var(--gm-font-xs)", color: "var(--red)" }}>
-                    {t("favorites.missing")}
-                  </span>
-                ) : null}
-              </div>
-              {item.preview ? (
-                <p style={{
-                  marginTop: "var(--gm-space-3)",
-                  fontSize: "var(--gm-font-xs)",
-                  lineHeight: "var(--gm-leading-normal)",
-                  color: "var(--text-secondary)",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  wordBreak: "break-word",
-                }}>
-                  {item.preview}
-                </p>
-              ) : null}
-            </button>
+              active={active}
+              mobile={isMobile}
+              icon={<AppIcon icon={Icon} size="xs" />}
+              title={item.title}
+              subtitle={t(sourceLabelKey(item.source_type))}
+              meta={(
+                <>
+                  <span className="gm-file-list-meta">{relativeTime(item.favorited_at, t)}</span>
+                  {!item.exists ? <Badge tone="danger">{t("favorites.missing")}</Badge> : null}
+                </>
+              )}
+              preview={item.preview}
+            />
           );
         })}
-      </div>
-    </div>
+      </ListPaneBody>
+    </ListPane>
   );
 
   const detailTitle = content?.title || selectedEntry?.title || t("favorites.title");
   const detailPath = content?.rel_path || content?.absolute_path || selectedEntry?.rel_path || selectedEntry?.absolute_path || "";
 
   const detail = (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    <DetailPane>
       {!selectedTargetId ? (
-        <div className="gm-empty-state" style={{ flex: 1 }}>
-          <div>
-            <Star size={40} style={{ color: "var(--gm-empty-icon-color)", margin: "0 auto var(--gm-card-header-gap)" }} />
-            <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("favorites.selectToView")}</p>
-          </div>
-        </div>
+        <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.selectToView")} full />
       ) : (
         <>
           <FileDetailToolbar
@@ -280,35 +208,28 @@ export default function FavoritesPage({
               />
             ) : null}
           />
-          <div style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: isMobile
-              ? `var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) ${MOBILE_BOTTOM_CONTENT_PADDING}`
-              : "var(--gm-detail-pad-y) var(--gm-detail-pad-x)",
-            userSelect: "text",
-          }}>
+          <DetailScroll mobileBottomPadding={isMobile} selectable>
             {contentLoading ? (
               <Loading compact text={t("common.loading")} />
             ) : selectedEntry && !selectedEntry.exists ? (
-              <p style={{ fontSize: "var(--gm-font-sm)", color: "var(--text-secondary)" }}>{t("favorites.missingHint")}</p>
+              <p className="gm-muted-text">{t("favorites.missingHint")}</p>
             ) : content ? (
               <MarkdownView content={content.content} filePath={content.rel_path ?? undefined} />
             ) : null}
-          </div>
+          </DetailScroll>
         </>
       )}
-    </div>
+    </DetailPane>
   );
 
   return (
-    <div className="gm-page" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-      <DesktopSplitPane
-        panelKey="favorites"
-        defaultWidth={340}
-        left={showList ? list : null}
-        right={showDetail ? detail : null}
-      />
-    </div>
+    <FileWorkspace
+      panelKey="favorites"
+      defaultWidth={340}
+      showList={showList}
+      showDetail={showDetail}
+      left={list}
+      right={detail}
+    />
   );
 }
