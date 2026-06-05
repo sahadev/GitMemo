@@ -53,7 +53,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           <img src="/logo.png" alt="GitMemo" {...logoSaveProps} className="gm-sidebar-logo" style={logoSaveProps.style} />
           <div className="gm-sidebar-brand-copy">
             <span className="gm-sidebar-brand-title">GitMemo</span>
-            <span className="gm-sidebar-brand-subtitle">local Git memory</span>
+            <span className="gm-sidebar-brand-subtitle">Local-First Knowledge Base</span>
           </div>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
               data-active={active ? "true" : "false"}
               data-focused={active && focused ? "true" : "false"}
             >
-              <Icon className="gm-sidebar-nav-icon" size={16} />
+              <AppIcon icon={Icon} size="sm" className="gm-sidebar-nav-icon" />
               <span className="gm-sidebar-nav-label">{t(item.labelKey)}</span>
             </button>
           );

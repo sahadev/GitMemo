@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useCallback, type MouseEventHandler, type ReactNode } from "react";
 import { ChevronLeft, Pencil, RefreshCw, Save, X } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { AppIcon, type AppIconSize } from "./base/AppIcon";
+import { useTimedIconSpin } from "./base/useTimedIconSpin";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
 
@@ -91,6 +92,10 @@ export function FileDetailToolbar({
   const isMobile = usePlatform() === "mobile";
   const iconSize: AppIconSize = isMobile ? "sm" : "xs";
   const hasEditFlow = Boolean(onEdit || onSave || onCancel);
+  const handleRefreshClick = useCallback<MouseEventHandler<HTMLButtonElement>>(() => {
+    onRefresh?.();
+  }, [onRefresh]);
+  const refreshSpin = useTimedIconSpin<HTMLButtonElement>(handleRefreshClick, Boolean(onRefresh));
 
   return (
     <div className="gm-file-detail-toolbar" data-density={density} data-mobile={isMobile ? "true" : "false"}>
@@ -112,11 +117,11 @@ export function FileDetailToolbar({
       {onRefresh && !editing ? (
         <DetailIconButton
           type="button"
-          onClick={onRefresh}
+          onClick={refreshSpin.handleClick}
           disabled={refreshDisabled}
           title={refreshTitle ?? t("common.refresh")}
         >
-          <AppIcon icon={RefreshCw} size={iconSize} />
+          <AppIcon icon={RefreshCw} size={iconSize} spin={refreshSpin.spinning} />
         </DetailIconButton>
       ) : null}
       {metadata}

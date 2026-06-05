@@ -1,9 +1,10 @@
 import type { ButtonHTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, Copy, X } from "lucide-react";
+import { Check, Copy, RefreshCw, X } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
+import { useTimedIconSpin } from "../../base/useTimedIconSpin";
 
 type SettingsTone = "default" | "muted" | "accent" | "success" | "warning" | "danger";
 type SettingsWidth = "sm" | "md" | "lg" | "full";
@@ -183,6 +184,10 @@ export function SettingsIndentedFieldGroup({ children, className }: ChildrenProp
   return <div className={cx("gm-settings-indented-field-group", className)}>{children}</div>;
 }
 
+export function SettingsRowInset({ children, className }: ChildrenProps) {
+  return <div className={cx("gm-settings-row-inset", className)}>{children}</div>;
+}
+
 export function SettingsSegmentedGroup({ children, className }: ChildrenProps) {
   return <div className={cx("gm-settings-segmented-group", className)}>{children}</div>;
 }
@@ -260,12 +265,15 @@ export function SettingsIconButton({
   iconTone = "secondary",
   spin = false,
   className,
+  onClick,
   type = "button",
   ...props
 }: SettingsIconButtonProps) {
+  const timedSpin = useTimedIconSpin<HTMLButtonElement>(onClick, icon === RefreshCw);
+
   return (
-    <button type={type} className={cx("gm-settings-icon-button", className)} {...props}>
-      <AppIcon icon={icon} size="2xs" tone={iconTone} spin={spin} />
+    <button type={type} onClick={timedSpin.handleClick} className={cx("gm-settings-icon-button", className)} {...props}>
+      <AppIcon icon={icon} size="2xs" tone={iconTone} spin={spin || timedSpin.spinning} />
     </button>
   );
 }

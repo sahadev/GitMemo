@@ -59,6 +59,7 @@ import {
   SettingsPlainRow,
   SettingsRangeControl,
   SettingsRow,
+  SettingsRowInset,
   SettingsSegmentedButton,
   SettingsSegmentedGroup,
   SettingsStack,
@@ -741,7 +742,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     <SettingsIconButton icon={RefreshCw} onClick={() => void refreshCliStatus()} title={t("settings.detectCli")} />
                   </SettingsControlGroup>
                 </SettingsRow>
-                {cliStatus?.path ? <SettingsMonoValue max="full">{cliStatus.path}</SettingsMonoValue> : null}
+                {cliStatus?.path ? (
+                  <SettingsRowInset>
+                    <SettingsMonoValue max="full">{cliStatus.path}</SettingsMonoValue>
+                  </SettingsRowInset>
+                ) : null}
               </SettingsSubStack>
 
               <SettingsDivider />

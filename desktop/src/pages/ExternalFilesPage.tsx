@@ -247,9 +247,6 @@ export default function ExternalFilesPage({
   return (
     <FileWorkspace
         panelKey="external-files"
-        defaultWidth={404}
-        minWidth={260}
-        maxWidth={560}
         showList
         showDetail
         left={(

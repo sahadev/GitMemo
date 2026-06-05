@@ -179,7 +179,6 @@ export default function ImportsPage({
   return (
     <FileWorkspace
         panelKey="imports"
-        defaultWidth={300}
         left={showList && (
           <ListPane>
             <PaneHeader

@@ -5,9 +5,10 @@ import type {
   Ref,
   TextareaHTMLAttributes,
 } from "react";
-import type { LucideIcon } from "lucide-react";
+import { RefreshCw, type LucideIcon } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { cx } from "../../base/classNames";
+import { useTimedIconSpin } from "../../base/useTimedIconSpin";
 
 interface ChildrenProps {
   children?: ReactNode;
@@ -41,9 +42,11 @@ export function ClipboardToolbarButton({
   tone = "default",
   active = false,
   className,
+  onClick,
   type = "button",
   ...props
 }: ClipboardToolbarButtonProps) {
+  const timedSpin = useTimedIconSpin<HTMLButtonElement>(onClick, icon === RefreshCw);
   const iconTone: AppIconTone = active
     ? "accent"
     : tone === "success"
@@ -55,13 +58,14 @@ export function ClipboardToolbarButton({
   return (
     <button
       type={type}
+      onClick={timedSpin.handleClick}
       className={cx("gm-toolbar-button", "gm-clipboard-toolbar-button", className)}
       data-mobile={mobile ? "true" : "false"}
       data-tone={tone}
       data-active={active ? "true" : "false"}
       {...props}
     >
-      <AppIcon icon={icon} size={mobile ? "sm" : "xs"} tone={iconTone} />
+      <AppIcon icon={icon} size={mobile ? "sm" : "xs"} tone={iconTone} spin={timedSpin.spinning} />
     </button>
   );
 }

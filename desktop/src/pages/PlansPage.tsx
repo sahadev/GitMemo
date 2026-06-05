@@ -194,7 +194,6 @@ export default function PlansPage({
   return (
     <FileWorkspace
         panelKey="plans"
-        defaultWidth={300}
         left={showList && (
       <ListPane>
         {renderListHeader ? renderListHeader(listHeaderActions) : (

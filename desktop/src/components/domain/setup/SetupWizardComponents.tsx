@@ -1,8 +1,9 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, RefreshCw } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { cx } from "../../base/classNames";
+import { useTimedIconSpin } from "../../base/useTimedIconSpin";
 
 type SetupTone = "default" | "accent" | "success" | "warning" | "danger" | "muted" | "dashed";
 type SetupButtonVariant = "primary" | "secondary" | "ghost";
@@ -142,21 +143,25 @@ export function SetupButton({
   iconSpin = false,
   children,
   className,
+  onClick,
   type = "button",
   ...props
 }: SetupButtonProps) {
+  const timedSpin = useTimedIconSpin<HTMLButtonElement>(onClick, icon === RefreshCw);
+
   return (
     <button
       type={type}
+      onClick={timedSpin.handleClick}
       className={cx("gm-setup-button", className)}
       data-variant={variant}
       data-layout={layout}
       data-icon-position={iconPosition}
       {...props}
     >
-      {icon && iconPosition === "start" ? <AppIcon icon={icon} size="sm" spin={iconSpin} /> : null}
+      {icon && iconPosition === "start" ? <AppIcon icon={icon} size="sm" spin={iconSpin || timedSpin.spinning} /> : null}
       {children}
-      {icon && iconPosition === "end" ? <AppIcon icon={icon} size="sm" spin={iconSpin} /> : null}
+      {icon && iconPosition === "end" ? <AppIcon icon={icon} size="sm" spin={iconSpin || timedSpin.spinning} /> : null}
     </button>
   );
 }

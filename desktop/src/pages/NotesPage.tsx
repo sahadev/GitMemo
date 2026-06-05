@@ -291,7 +291,6 @@ export default function NotesPage({
   return (
     <FileWorkspace
         panelKey="notes"
-        defaultWidth={300}
         left={showList && (
       <ListPane>
         <PaneTabHeader

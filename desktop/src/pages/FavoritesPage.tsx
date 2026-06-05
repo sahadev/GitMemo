@@ -225,7 +225,6 @@ export default function FavoritesPage({
   return (
     <FileWorkspace
       panelKey="favorites"
-      defaultWidth={340}
       showList={showList}
       showDetail={showDetail}
       left={list}

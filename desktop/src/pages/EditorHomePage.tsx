@@ -316,7 +316,6 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
 
       <DesktopSplitPane
         panelKey="editor-home"
-        defaultWidth={320}
         left={(
           <ListPane>
             <div className="gm-segment-row">

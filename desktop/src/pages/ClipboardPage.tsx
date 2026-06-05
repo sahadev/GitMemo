@@ -18,6 +18,7 @@ import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "../components/ClipboardPrivacyDialog";
+import { AppIcon } from "../components/base/AppIcon";
 import { useAppStore, type ClipboardStatus } from "../hooks/useAppStore";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult } from "../types/notes";
@@ -613,7 +614,6 @@ export default function ClipboardPage({
 
       <DesktopSplitPane
         panelKey="clipboard"
-        defaultWidth={340}
         left={showList && (
           <ClipboardListPane>
             <PaneHeader
@@ -862,7 +862,7 @@ export default function ClipboardPage({
                     {
                       key: "delete",
                       title: t("clipboard.deleteClip"),
-                      icon: <Trash2 size={isMobile ? 16 : 14} />,
+                      icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
                       onClick: () => { if (selectedFile) void confirmDeleteClip(selectedFile); },
                       tone: "danger",
                       hidden: editing,
@@ -871,8 +871,8 @@ export default function ClipboardPage({
                       key: "copy",
                       title: t("clipboard.copy"),
                       icon: copiedId === "detail"
-                        ? <Check size={isMobile ? 16 : 14} />
-                        : <Copy size={isMobile ? 16 : 14} />,
+                        ? <AppIcon icon={Check} size={isMobile ? "sm" : "xs"} />
+                        : <AppIcon icon={Copy} size={isMobile ? "sm" : "xs"} />,
                       onClick: () => copyContent(fileContent),
                       tone: copiedId === "detail" ? "success" : "default",
                       hidden: editing,

@@ -1,9 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 
+const panelResizeEvent = "gitmemo-panel-width-change";
+
 export function useResizablePanel(key: string, defaultWidth: number, min = 200, max = 600) {
+  const storageKey = `gitmemo-panel-${key}`;
+  const clampWidth = useCallback((value: number) => Math.max(min, Math.min(max, value)), [max, min]);
   const [width, setWidth] = useState(() => {
-    const saved = localStorage.getItem(`gitmemo-panel-${key}`);
-    return saved ? Math.max(min, Math.min(max, parseInt(saved, 10))) : defaultWidth;
+    const saved = localStorage.getItem(storageKey);
+    const savedWidth = saved ? parseInt(saved, 10) : NaN;
+    return Number.isFinite(savedWidth) ? clampWidth(savedWidth) : defaultWidth;
   });
   const dragging = useRef(false);
 
@@ -15,7 +20,7 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!dragging.current) return;
-      const newWidth = Math.max(min, Math.min(max, startWidth + ev.clientX - startX));
+      const newWidth = clampWidth(startWidth + ev.clientX - startX);
       setWidth(newWidth);
     };
 
@@ -31,11 +36,27 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [width, min, max]);
+  }, [clampWidth, width]);
 
   useEffect(() => {
-    localStorage.setItem(`gitmemo-panel-${key}`, String(width));
-  }, [key, width]);
+    setWidth((current) => clampWidth(current));
+  }, [clampWidth]);
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, String(width));
+    window.dispatchEvent(new CustomEvent(panelResizeEvent, { detail: { key, width } }));
+  }, [key, storageKey, width]);
+
+  useEffect(() => {
+    const handlePanelResize = (event: Event) => {
+      const detail = (event as CustomEvent<{ key?: string; width?: number }>).detail;
+      if (detail?.key !== key || typeof detail.width !== "number") return;
+      setWidth(clampWidth(detail.width));
+    };
+
+    window.addEventListener(panelResizeEvent, handlePanelResize);
+    return () => window.removeEventListener(panelResizeEvent, handlePanelResize);
+  }, [clampWidth, key]);
 
   return { width, onMouseDown };
 }

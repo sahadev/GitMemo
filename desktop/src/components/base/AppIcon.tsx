@@ -53,6 +53,8 @@ export function AppIcon({
   title,
   style,
 }: AppIconProps) {
+  const filled = !!fill && fill !== "none";
+
   return (
     <Icon
       aria-hidden={title ? undefined : true}
@@ -63,7 +65,8 @@ export function AppIcon({
         spin && "gm-icon-spin",
         className,
       )}
-      fill={fill}
+      data-filled={filled ? "true" : "false"}
+      fill={fill ?? "none"}
       role={title ? "img" : undefined}
       style={style}
     >

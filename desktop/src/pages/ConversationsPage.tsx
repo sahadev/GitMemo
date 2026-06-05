@@ -338,7 +338,6 @@ export default function ConversationsPage({
   return (
     <FileWorkspace
         panelKey="conversations"
-        defaultWidth={300}
         left={showList && (
       <ListPane>
         {renderListHeader ? renderListHeader(listHeaderActions) : (

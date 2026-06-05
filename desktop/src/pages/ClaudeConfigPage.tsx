@@ -157,7 +157,6 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
   return (
     <FileWorkspace
         panelKey="claude-config"
-        defaultWidth={300}
         left={(
       <ListPane>
         <PaneHeader
