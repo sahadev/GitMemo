@@ -27,7 +27,6 @@ import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
-import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 export default function PlansPage({
   active = true,
@@ -44,14 +43,11 @@ export default function PlansPage({
 } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
-  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
+  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   const isMobile = usePlatform() === "mobile";
   useRelativeTimeTick();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
-  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const detailOpenedFromCrossPageRef = useRef(false);
   const syncedOnEnterRef = useRef(false);
 
@@ -103,7 +99,6 @@ export default function PlansPage({
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
-      setMoreMenuOpen(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
@@ -140,7 +135,6 @@ export default function PlansPage({
       setFiles(remaining);
       setSelectedFile(null);
       setFileContent("");
-      setMoreMenuOpen(false);
       showToast(t("plans.deleted"));
       if (remaining.length > 0) {
         const next = remaining[0];
@@ -159,23 +153,6 @@ export default function PlansPage({
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (selectedFile && shortcutMatches(e, shortcuts.delete_selected)) {
-        e.preventDefault();
-        void handleDelete();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
-        e.preventDefault();
-        void loadFiles();
-        void openFile(selectedFile);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
-        e.preventDefault();
-        setFavoriteToggleSignal((value) => value + 1);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
-        e.preventDefault();
-        setMoreMenuOpen((value) => !value);
-      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -184,14 +161,6 @@ export default function PlansPage({
     isMobile,
     navPrev,
     navNext,
-    selectedFile,
-    handleDelete,
-    loadFiles,
-    openFile,
-    shortcuts.delete_selected,
-    shortcuts.refresh_selected,
-    shortcuts.favorite_selected,
-    shortcuts.more_actions,
   ]);
 
   const showList = !isMobile || !selectedFile;
@@ -199,7 +168,6 @@ export default function PlansPage({
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
     setFileContent("");
-    setMoreMenuOpen(false);
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
@@ -280,6 +248,7 @@ export default function PlansPage({
             <FileDetailToolbar
               title={isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
               titleText={selectedFile}
+              active={active}
               onBack={closeDetail}
               onRefresh={() => {
                 void loadFiles();
@@ -288,9 +257,9 @@ export default function PlansPage({
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
+                  active={active}
                   title={selectedFile.split("/").pop()?.replace(/\.md$/, "") ?? selectedFile}
                   sourceType="plan"
-                  toggleSignal={favoriteToggleSignal}
                 />
               ) : null}
               actionsAfterEdit={[
@@ -306,10 +275,9 @@ export default function PlansPage({
               more={selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
+                  active={active}
                   exportContent={fileContent}
                   exportTitle={selectedFile.split("/").pop()}
-                  open={moreMenuOpen}
-                  onOpenChange={setMoreMenuOpen}
                 />
               ) : null}
             />

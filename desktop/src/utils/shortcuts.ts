@@ -154,6 +154,12 @@ export function shortcutMatches(e: KeyboardEvent, shortcut: string): boolean {
   return cmdOrCtrlMatches && cmdMatches && ctrlMatches && e.altKey === parsed.alt && e.shiftKey === parsed.shift;
 }
 
+export function isShortcutEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+  return Boolean(target.closest('[contenteditable="true"], [contenteditable="plaintext-only"]'));
+}
+
 export function formatShortcut(shortcut: string): string {
   const normalized = normalizeShortcut(shortcut) ?? shortcut;
   return normalized

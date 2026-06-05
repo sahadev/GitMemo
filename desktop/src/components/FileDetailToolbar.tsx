@@ -1,4 +1,4 @@
-import { useCallback, type MouseEventHandler, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type MouseEventHandler, type ReactNode } from "react";
 import { ChevronLeft, Pencil, RefreshCw, Save, SquareSplitHorizontal, X } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { AppIcon, type AppIconSize } from "./base/AppIcon";
@@ -6,7 +6,14 @@ import { useTimedIconSpin } from "./base/useTimedIconSpin";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
 import { useAppStore } from "../hooks/useAppStore";
-import { formatTitleWithShortcut, type KeyboardShortcuts, type ShortcutId, withDefaultShortcuts } from "../utils/shortcuts";
+import {
+  formatTitleWithShortcut,
+  isShortcutEditableTarget,
+  shortcutMatches,
+  type KeyboardShortcuts,
+  type ShortcutId,
+  withDefaultShortcuts,
+} from "../utils/shortcuts";
 
 type DetailToolbarTone = "default" | "accent" | "success" | "danger";
 
@@ -58,6 +65,7 @@ interface FileDetailToolbarProps {
   actionsAfterEdit?: FileDetailToolbarAction[];
   more?: ReactNode;
   density?: "default" | "compact";
+  active?: boolean;
 }
 
 function actionShortcut(shortcuts: KeyboardShortcuts, action: FileDetailToolbarAction): string | undefined {
@@ -119,10 +127,11 @@ export function FileDetailToolbar({
   actionsAfterEdit = [],
   more,
   density = "default",
+  active = true,
 }: FileDetailToolbarProps) {
   const { t } = useI18n();
   const { settings } = useAppStore();
-  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const isMobile = usePlatform() === "mobile";
   const iconSize: AppIconSize = isMobile ? "sm" : "xs";
   const hasEditFlow = Boolean(onEdit || onSave || onCancel);
@@ -130,6 +139,58 @@ export function FileDetailToolbar({
     onRefresh?.();
   }, [onRefresh]);
   const refreshSpin = useTimedIconSpin<HTMLButtonElement>(handleRefreshClick, Boolean(onRefresh));
+
+  useEffect(() => {
+    if (!active || isMobile) return;
+
+    const visibleActions = [...actionsBeforeEdit, ...actionsAfterEdit].filter((action) => !action.hidden && !action.disabled);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isShortcutEditableTarget(event.target)) return;
+
+      if (onRefresh && !editing && !refreshDisabled && shortcutMatches(event, refreshShortcut ?? shortcuts.refresh_selected)) {
+        event.preventDefault();
+        onRefresh();
+        return;
+      }
+      if (editing && onToggleSplitPreview && !splitPreviewDisabled && shortcutMatches(event, splitPreviewShortcut ?? shortcuts.toggle_split_preview)) {
+        event.preventDefault();
+        onToggleSplitPreview();
+        return;
+      }
+      if (!editing && onEdit && !editDisabled && shortcutMatches(event, editShortcut ?? shortcuts.edit_selected)) {
+        event.preventDefault();
+        onEdit();
+        return;
+      }
+
+      for (const action of visibleActions) {
+        const shortcut = actionShortcut(shortcuts, action);
+        if (!shortcut || !shortcutMatches(event, shortcut)) continue;
+        event.preventDefault();
+        action.onClick();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    active,
+    isMobile,
+    actionsAfterEdit,
+    actionsBeforeEdit,
+    editDisabled,
+    editShortcut,
+    editing,
+    onEdit,
+    onRefresh,
+    onToggleSplitPreview,
+    refreshDisabled,
+    refreshShortcut,
+    shortcuts,
+    splitPreviewDisabled,
+    splitPreviewShortcut,
+  ]);
 
   return (
     <div className="gm-file-detail-toolbar" data-density={density} data-mobile={isMobile ? "true" : "false"}>
@@ -162,7 +223,7 @@ export function FileDetailToolbar({
       {actionsBeforeEdit.filter((action) => !action.hidden).map((action) => (
         <ToolbarActionButton key={action.key} action={action} shortcuts={shortcuts} />
       ))}
-      {onToggleSplitPreview && !isMobile ? (
+      {onToggleSplitPreview && editing && !isMobile ? (
         <DetailIconButton
           type="button"
           onClick={onToggleSplitPreview}

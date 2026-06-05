@@ -65,10 +65,12 @@ function isProbablyMarkdown(name: string) {
 }
 
 export default function ExternalFilesPage({
+  active = true,
   openTarget,
   onOpenTargetConsumed,
   onImportResult,
 }: {
+  active?: boolean;
   openTarget?: ExternalFileOpenTarget | null;
   onOpenTargetConsumed?: () => void;
   onImportResult?: (result: ImportResult) => void;
@@ -309,6 +311,7 @@ export default function ExternalFilesPage({
               <FileDetailToolbar
                 title={selectedEntry.file_name}
                 titleText={selectedEntry.file_path}
+                active={active}
                 onBack={clearSelection}
                 onRefresh={() => {
                   if (selectedEntry) void openExternalFile(selectedEntry.file_path);
@@ -328,6 +331,7 @@ export default function ExternalFilesPage({
                 metadata={selectedEntry ? (
                   <FavoriteButton
                     absolutePath={selectedEntry.file_path}
+                    active={active}
                     title={selectedEntry.file_name}
                     sourceType="external"
                   />
@@ -354,6 +358,7 @@ export default function ExternalFilesPage({
                 more={!editing ? (
                   <FileMoreActionsMenu
                     absolutePath={selectedEntry.file_path}
+                    active={active}
                     canReveal={selectedEntry.exists}
                     canExportPdf={isProbablyMarkdown(selectedEntry.file_name)}
                     exportContent={fileContent}

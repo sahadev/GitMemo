@@ -30,7 +30,7 @@ import { type NoteResult, type SavedAttachment } from "../types/notes";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
-import { formatShortcut, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
 const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
@@ -68,8 +68,6 @@ export default function NotesPage({
   const [editing, setEditing] = useState(false);
   const [splitPreview, setSplitPreview] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
@@ -167,7 +165,6 @@ export default function NotesPage({
       setFileContent(content);
       setEditing(false);
       setSplitPreview(false);
-      setMoreMenuOpen(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
@@ -241,7 +238,6 @@ export default function NotesPage({
       setFileContent("");
       setEditing(false);
       setSplitPreview(false);
-      setMoreMenuOpen(false);
       showToast(t("notes.noteDeleted"));
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
@@ -251,7 +247,6 @@ export default function NotesPage({
     setEditContent(fileContent);
     setEditing(true);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
     setTimeout(() => editRef.current?.focus(), 50);
   }, [fileContent]);
 
@@ -284,30 +279,6 @@ export default function NotesPage({
       }
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
-        e.preventDefault();
-        startEdit();
-      }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.delete_selected)) {
-        e.preventDefault();
-        void handleDelete();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
-        e.preventDefault();
-        handleRefresh();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
-        e.preventDefault();
-        setFavoriteToggleSignal((value) => value + 1);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
-        e.preventDefault();
-        toggleSplitPreview();
-      }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
-        e.preventDefault();
-        setMoreMenuOpen((value) => !value);
-      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -317,18 +288,6 @@ export default function NotesPage({
     navPrev,
     navNext,
     newNote,
-    editing,
-    selectedFile,
-    handleRefresh,
-    handleDelete,
-    startEdit,
-    toggleSplitPreview,
-    shortcuts.edit_selected,
-    shortcuts.delete_selected,
-    shortcuts.refresh_selected,
-    shortcuts.favorite_selected,
-    shortcuts.toggle_split_preview,
-    shortcuts.more_actions,
   ]);
 
   const showList = !isMobile || !selectedFile;
@@ -339,7 +298,6 @@ export default function NotesPage({
     setFileContent("");
     setEditing(false);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
@@ -457,6 +415,7 @@ export default function NotesPage({
             <FileDetailToolbar
               title={isMobile ? selectedFileName : selectedFile}
               titleText={selectedFile}
+              active={active}
               onBack={closeDetail}
               onRefresh={handleRefresh}
               editing={editing}
@@ -470,9 +429,9 @@ export default function NotesPage({
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
+                  active={active}
                   title={selectedFileName}
                   sourceType="note"
-                  toggleSignal={favoriteToggleSignal}
                 />
               ) : null}
               actionsAfterEdit={[
@@ -488,10 +447,9 @@ export default function NotesPage({
               more={!editing && selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
+                  active={active}
                   exportContent={fileContent}
                   exportTitle={selectedFileName}
-                  open={moreMenuOpen}
-                  onOpenChange={setMoreMenuOpen}
                 />
               ) : null}
             />

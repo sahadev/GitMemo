@@ -50,8 +50,10 @@ function sourceLabelKey(sourceType: string) {
 }
 
 export default function FavoritesPage({
+  active = true,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
 } = {}) {
   const { t } = useI18n();
@@ -185,6 +187,7 @@ export default function FavoritesPage({
           <FileDetailToolbar
             title={isMobile ? detailTitle : detailPath || detailTitle}
             titleText={detailPath || detailTitle}
+            active={active}
             onBack={isMobile ? closeDetail : undefined}
             onRefresh={() => {
               void loadFavorites();
@@ -195,6 +198,7 @@ export default function FavoritesPage({
               <FavoriteButton
                 relPath={selectedEntry.rel_path}
                 absolutePath={selectedEntry.absolute_path}
+                active={active}
                 title={selectedEntry.title}
                 sourceType={selectedEntry.source_type}
               />
@@ -203,6 +207,7 @@ export default function FavoritesPage({
               <FileMoreActionsMenu
                 relPath={content.rel_path ?? undefined}
                 absolutePath={content.absolute_path ?? undefined}
+                active={active}
                 exportContent={content.content}
                 exportTitle={detailTitle}
               />

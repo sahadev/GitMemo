@@ -70,12 +70,14 @@ function sourceVisual(sourceType: string): { icon: typeof MessageSquare; tone: A
 }
 
 export default function SearchPage({
+  active = true,
   focusTrigger,
   entryTrigger,
   openFilePath,
   onFileOpened,
   registerMobileBackHandler,
 }: {
+  active?: boolean;
   focusTrigger?: number;
   entryTrigger?: number;
   openFilePath?: string | null;
@@ -296,6 +298,7 @@ export default function SearchPage({
         <FileDetailToolbar
           title={isMobile ? selectedFile.split("/").pop() : selectedFile}
           titleText={selectedFile}
+          active={active}
           onBack={closeDetail}
           onRefresh={() => {
             if (selectedFile) void openFile(selectedFile);
@@ -309,6 +312,7 @@ export default function SearchPage({
           metadata={selectedFile ? (
             <FavoriteButton
               relPath={selectedFile}
+              active={active}
               title={selectedFile.split("/").pop()}
               sourceType={sourceTypeFromPath(selectedFile)}
             />
@@ -336,6 +340,7 @@ export default function SearchPage({
           more={!editing ? (
             <FileMoreActionsMenu
               relPath={selectedFile}
+              active={active}
               exportContent={fileContent}
               exportTitle={selectedFile.split("/").pop()}
             />

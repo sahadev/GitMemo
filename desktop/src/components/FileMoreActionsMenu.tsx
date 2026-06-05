@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Check, Ellipsis, FolderOpen, Link2 } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
@@ -8,7 +8,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { useAppStore } from "../hooks/useAppStore";
-import { formatTitleWithShortcut, withDefaultShortcuts } from "../utils/shortcuts";
+import { formatTitleWithShortcut, isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface FileMoreActionsMenuProps {
   relPath?: string;
@@ -19,6 +19,7 @@ interface FileMoreActionsMenuProps {
   exportContent?: string;
   exportTitle?: string;
   shortcut?: string;
+  active?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -32,13 +33,14 @@ export function FileMoreActionsMenu({
   exportContent = "",
   exportTitle,
   shortcut,
+  active = true,
   open: controlledOpen,
   onOpenChange,
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { settings } = useAppStore();
-  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = useCallback((next: boolean | ((value: boolean) => boolean)) => {
@@ -93,6 +95,18 @@ export function FileMoreActionsMenu({
   const showReveal = canReveal && hasFilePath;
   const showCopyPath = canCopyPath && hasFilePath;
   const showExportPdf = canExportPdf && Boolean(exportContent.trim());
+
+  useEffect(() => {
+    if (!active || !showReveal && !showCopyPath && !showExportPdf) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isShortcutEditableTarget(event.target)) return;
+      if (!shortcutMatches(event, shortcut ?? shortcuts.more_actions)) return;
+      event.preventDefault();
+      setOpen((value) => !value);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, shortcut, shortcuts.more_actions, setOpen, showCopyPath, showExportPdf, showReveal]);
 
   if (!showReveal && !showCopyPath && !showExportPdf) return null;
 

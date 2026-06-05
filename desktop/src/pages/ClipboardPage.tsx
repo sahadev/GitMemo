@@ -839,6 +839,7 @@ export default function ClipboardPage({
                 <FileDetailToolbar
                   title={isMobile ? selectedFileName : selectedFile}
                   titleText={selectedFile}
+                  active={active}
                   onBack={closeDetail}
                   onRefresh={() => {
                     setRefreshTrigger((t) => t + 1);
@@ -854,6 +855,7 @@ export default function ClipboardPage({
                   metadata={selectedFile ? (
                     <FavoriteButton
                       relPath={selectedFile}
+                      active={active}
                       title={selectedFileName}
                       sourceType="clip"
                     />
@@ -881,6 +883,7 @@ export default function ClipboardPage({
                   more={!editing && selectedFile ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}
+                      active={active}
                       exportContent={fileContent}
                       exportTitle={selectedFileName}
                     />

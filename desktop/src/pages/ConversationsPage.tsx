@@ -29,7 +29,6 @@ import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
-import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface ConversationMeta {
   title: string;
@@ -122,8 +121,7 @@ export default function ConversationsPage({
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
-  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
+  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const [metaCache, setMetaCache] = useState<Map<string, ConversationMeta>>(new Map());
@@ -136,8 +134,6 @@ export default function ConversationsPage({
   const [editing, setEditing] = useState(false);
   const [splitPreview, setSplitPreview] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
 
@@ -193,7 +189,6 @@ export default function ConversationsPage({
     setRawBody(body);
     setIntroContent(parsed.intro);
     setMessages(parsed.messages);
-    setMoreMenuOpen(false);
   }, []);
 
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
@@ -221,7 +216,6 @@ export default function ConversationsPage({
     if (!selectedFile) return;
     setEditing(true);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
     setEditContent(rawContent);
     window.setTimeout(() => editRef.current?.focus(), 0);
   }, [isMobile, selectedFile, rawContent]);
@@ -286,8 +280,7 @@ export default function ConversationsPage({
         setRawContent("");
         setEditing(false);
         setSplitPreview(false);
-        setMoreMenuOpen(false);
-      }
+        }
       showToast(t("conversations.deleted"));
       loadFiles();
     } catch (e) {
@@ -311,31 +304,10 @@ export default function ConversationsPage({
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.edit_selected)) {
-        e.preventDefault();
-        startEdit();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
-        e.preventDefault();
-        void loadFiles();
-        void openFile(selectedFile);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
-        e.preventDefault();
-        setFavoriteToggleSignal((value) => value + 1);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
-        e.preventDefault();
-        toggleSplitPreview();
-      }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
-        e.preventDefault();
-        setMoreMenuOpen((value) => !value);
-      }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (selectedFile) {
-          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false); setMoreMenuOpen(false);
+          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false);
           setSplitPreview(false);
           setIntroContent("");
         } else {
@@ -358,17 +330,7 @@ export default function ConversationsPage({
     navNext,
     selectedFile,
     files,
-    editing,
-    startEdit,
-    toggleSplitPreview,
-    loadFiles,
-    openFile,
     onFocusSidebar,
-    shortcuts.edit_selected,
-    shortcuts.refresh_selected,
-    shortcuts.favorite_selected,
-    shortcuts.toggle_split_preview,
-    shortcuts.more_actions,
   ]);
 
   const showList = !isMobile || !selectedFile;
@@ -381,7 +343,6 @@ export default function ConversationsPage({
     setRawContent("");
     setEditing(false);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
     setIntroContent("");
     detailOpenedFromCrossPageRef.current = false;
   }, []);
@@ -472,6 +433,7 @@ export default function ConversationsPage({
             <FileDetailToolbar
               title={currentMeta?.title || selectedFile}
               titleText={selectedFile}
+              active={active}
               onBack={closeDetail}
               onRefresh={() => {
                 void loadFiles();
@@ -495,9 +457,9 @@ export default function ConversationsPage({
                   {selectedFile ? (
                     <FavoriteButton
                       relPath={selectedFile}
+                      active={active}
                       title={currentMeta?.title || selectedFile}
                       sourceType="conversation"
-                      toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
                 </>
@@ -524,9 +486,8 @@ export default function ConversationsPage({
               more={selectedFile && !editing ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
+                  active={active}
                   canExportPdf={false}
-                  open={moreMenuOpen}
-                  onOpenChange={setMoreMenuOpen}
                 />
               ) : null}
             />

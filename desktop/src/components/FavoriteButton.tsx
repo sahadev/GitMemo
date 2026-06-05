@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { LoaderCircle, Star } from "lucide-react";
@@ -8,7 +8,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useAppStore } from "../hooks/useAppStore";
-import { formatTitleWithShortcut, withDefaultShortcuts } from "../utils/shortcuts";
+import { formatTitleWithShortcut, isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface FavoriteButtonProps {
   relPath?: string | null;
@@ -17,7 +17,7 @@ interface FavoriteButtonProps {
   sourceType?: string | null;
   disabled?: boolean;
   shortcut?: string;
-  toggleSignal?: number;
+  active?: boolean;
 }
 
 interface FilesChangedEvent {
@@ -31,16 +31,15 @@ export function FavoriteButton({
   sourceType,
   disabled,
   shortcut,
-  toggleSignal,
+  active = true,
 }: FavoriteButtonProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const { settings } = useAppStore();
-  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
+  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const isMobile = usePlatform() === "mobile";
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
-  const lastToggleSignalRef = useRef(toggleSignal);
   const hasTarget = Boolean(relPath || absolutePath);
 
   const refresh = useCallback(async () => {
@@ -102,10 +101,16 @@ export function FavoriteButton({
   }, [absolutePath, favorited, hasTarget, loading, relPath, showToast, sourceType, t, title]);
 
   useEffect(() => {
-    if (!toggleSignal || toggleSignal === lastToggleSignalRef.current) return;
-    lastToggleSignalRef.current = toggleSignal;
-    void toggle();
-  }, [toggle, toggleSignal]);
+    if (!active || isMobile || disabled || !hasTarget || loading) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isShortcutEditableTarget(event.target)) return;
+      if (!shortcutMatches(event, shortcut ?? shortcuts.favorite_selected)) return;
+      event.preventDefault();
+      void toggle();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, disabled, hasTarget, isMobile, loading, shortcut, shortcuts.favorite_selected, toggle]);
 
   return (
     <DetailIconButton

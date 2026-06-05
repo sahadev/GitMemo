@@ -243,11 +243,13 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
             <FileDetailToolbar
               title={selectedFile}
               titleText={selectedFile}
+              active={active}
               onBack={() => { setSelectedFile(null); setFileContent(""); }}
               onRefresh={handleRefresh}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
+                  active={active}
                   title={selectedFile.split("/").pop()}
                   sourceType="config"
                 />
@@ -255,6 +257,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
               more={selectedFile ? (
                 <FileMoreActionsMenu
                   relPath={selectedFile}
+                  active={active}
                   exportContent={fileContent}
                   exportTitle={selectedFile.split("/").pop()}
                 />

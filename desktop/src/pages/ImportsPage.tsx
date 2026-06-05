@@ -29,7 +29,6 @@ import { type NoteResult } from "../types/notes";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
-import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 import { LocalImagePreview } from "../components/domain/files/LocalImagePreview";
 
 export default function ImportsPage({
@@ -45,8 +44,7 @@ export default function ImportsPage({
 } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
-  const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
+  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -55,8 +53,6 @@ export default function ImportsPage({
   const [editing, setEditing] = useState(false);
   const [splitPreview, setSplitPreview] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const detailOpenedFromCrossPageRef = useRef(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
@@ -86,7 +82,6 @@ export default function ImportsPage({
       setEditContent(content);
       setEditing(false);
       setSplitPreview(false);
-      setMoreMenuOpen(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
@@ -129,7 +124,6 @@ export default function ImportsPage({
       setEditContent("");
       setEditing(false);
       setSplitPreview(false);
-      setMoreMenuOpen(false);
       showToast(t("imports.deleted"));
       void loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
@@ -155,7 +149,6 @@ export default function ImportsPage({
     setEditContent("");
     setEditing(false);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
@@ -163,7 +156,6 @@ export default function ImportsPage({
     setEditContent(fileContent);
     setEditing(true);
     setSplitPreview(false);
-    setMoreMenuOpen(false);
   }, [fileContent]);
 
   const cancelEdit = useCallback(() => {
@@ -197,26 +189,6 @@ export default function ImportsPage({
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
       if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-      if (selectedFile && shortcutMatches(e, shortcuts.delete_selected)) {
-        e.preventDefault();
-        void handleDelete();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
-        e.preventDefault();
-        handleRefresh();
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
-        e.preventDefault();
-        setFavoriteToggleSignal((value) => value + 1);
-      }
-      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
-        e.preventDefault();
-        toggleSplitPreview();
-      }
-      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
-        e.preventDefault();
-        setMoreMenuOpen((value) => !value);
-      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -224,16 +196,6 @@ export default function ImportsPage({
     active,
     navPrev,
     navNext,
-    selectedFile,
-    editing,
-    handleRefresh,
-    handleDelete,
-    toggleSplitPreview,
-    shortcuts.delete_selected,
-    shortcuts.refresh_selected,
-    shortcuts.favorite_selected,
-    shortcuts.toggle_split_preview,
-    shortcuts.more_actions,
   ]);
 
   const showList = !isMobile || !selectedFile;
@@ -309,6 +271,7 @@ export default function ImportsPage({
                 <FileDetailToolbar
                   title={selectedFile}
                   titleText={selectedFile}
+                  active={active}
                   onBack={closeDetail}
                   onRefresh={handleRefresh}
                   editing={editing}
@@ -326,9 +289,9 @@ export default function ImportsPage({
                   metadata={selectedFile ? (
                     <FavoriteButton
                       relPath={selectedFile}
+                      active={active}
                       title={selectedFile.split("/").pop()}
                       sourceType="import"
-                      toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
                   actionsAfterEdit={[
@@ -344,10 +307,9 @@ export default function ImportsPage({
                   more={!editing ? (
                     <FileMoreActionsMenu
                       relPath={selectedFile}
+                      active={active}
                       exportContent={fileContent}
                       exportTitle={selectedFile.split("/").pop()}
-                      open={moreMenuOpen}
-                      onOpenChange={setMoreMenuOpen}
                     />
                   ) : null}
                 />

@@ -66,7 +66,7 @@ function joinRel(base: string, name: string): string {
   return base ? `${base.replace(/\/+$/, "")}/${name}` : name;
 }
 
-export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
+export default function EditorHomePage({ active = true, openTarget, onOpenTargetConsumed }: { active?: boolean; openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const [roots, setRoots] = useState<EditorRootsStatus | null>(null);
@@ -424,6 +424,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                 <FileDetailToolbar
                   title={selectedFileRel}
                   titleText={fileAbs || selectedFileRel}
+                  active={active}
                   onBack={clearSelection}
                   onRefresh={handleRefresh}
                   editing={editing}
@@ -438,6 +439,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   metadata={selectedFileRel ? (
                     <FavoriteButton
                       absolutePath={fileAbs || undefined}
+                      active={active}
                       title={selectedFileRel.split("/").pop()}
                       sourceType="external"
                     />
@@ -455,6 +457,7 @@ export default function EditorHomePage({ openTarget, onOpenTargetConsumed }: { o
                   more={!editing && selectedFileRel ? (
                     <FileMoreActionsMenu
                       absolutePath={fileAbs || undefined}
+                      active={active}
                       canExportPdf={isProbablyMarkdown(selectedFileRel)}
                       exportContent={fileContent}
                       exportTitle={selectedFileRel.split("/").pop()}
