@@ -72,6 +72,7 @@ export default function PlansPage({
   } = usePagedFileList<FileEntry>({ loadPage: loadPlansPage });
 
   useEffect(() => {
+    if (!active) return;
     let cancelled = false;
     const syncAndLoad = async () => {
       if (!syncedOnEnterRef.current) {
@@ -88,10 +89,12 @@ export default function PlansPage({
     };
     void syncAndLoad();
     return () => { cancelled = true; };
-  }, [loadFiles, showToast]);
+  }, [active, loadFiles, setLoading, showToast]);
 
   const watchedFolders = useMemo(() => ["plans"], []);
-  const handleWatchedFilesChanged = useCallback(() => { void loadFiles(); }, [loadFiles]);
+  const handleWatchedFilesChanged = useCallback(() => {
+    if (active) void loadFiles();
+  }, [active, loadFiles]);
   useFileWatcher(watchedFolders, handleWatchedFilesChanged);
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {

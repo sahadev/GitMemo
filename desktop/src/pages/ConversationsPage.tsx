@@ -170,8 +170,15 @@ export default function ConversationsPage({
     onPageLoaded: handleConversationPageLoaded,
   });
 
-  useEffect(() => { void loadFiles(); }, [loadFiles]);
-  useFileWatcher(["conversations"], loadFiles);
+  useEffect(() => {
+    if (!active) return;
+    void loadFiles();
+  }, [active, loadFiles]);
+  const watchedFolders = useMemo(() => ["conversations"], []);
+  const handleWatchedFilesChanged = useCallback(() => {
+    if (active) void loadFiles();
+  }, [active, loadFiles]);
+  useFileWatcher(watchedFolders, handleWatchedFilesChanged);
 
   const applyConversationRaw = useCallback((path: string, raw: string) => {
     const { meta, body } = parseFrontmatter(raw);

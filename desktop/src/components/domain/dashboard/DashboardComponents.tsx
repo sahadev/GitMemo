@@ -22,9 +22,7 @@ export function DashboardStatCard({ icon, label, value, tone, onClick }: StatCar
     >
       <span aria-hidden="true" className="gm-dashboard-stat-rail" />
       <div className="gm-dashboard-stat-head">
-        <span className="gm-dashboard-icon-box">
-          <AppIcon icon={icon} size="sm" tone={tone} />
-        </span>
+        <AppIcon icon={icon} size="sm" tone={tone} className="gm-dashboard-stat-icon" />
         <span className="gm-section-title">{label}</span>
       </div>
       <p className="gm-dashboard-stat-value">{value}</p>
@@ -44,9 +42,7 @@ interface ActivityRowProps {
 export function DashboardActivityRow({ icon, tone, title, time, onClick, mobile = false }: ActivityRowProps) {
   return (
     <button type="button" onClick={onClick} className="gm-dashboard-activity-row">
-      <span className="gm-dashboard-activity-icon">
-        <AppIcon icon={icon} size={mobile ? "xs" : "2xs"} tone={tone} />
-      </span>
+      <AppIcon icon={icon} size={mobile ? "xs" : "2xs"} tone={tone} className="gm-dashboard-activity-icon" />
       <span className="gm-dashboard-activity-title">{title}</span>
       <span className="gm-dashboard-activity-time">{time}</span>
     </button>

@@ -340,9 +340,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {showCliCapabilityCard && (
         <div className="gm-dashboard-card gm-dashboard-cli-card">
           <div className="gm-inline-cluster gm-inline-cluster-start">
-            <div className="gm-icon-box gm-icon-box-accent">
-              <AppIcon icon={Terminal} size="md" />
-            </div>
+            <AppIcon icon={Terminal} size="md" tone="accent" />
             <div className="gm-min-0">
               <div className="gm-inline-cluster-wrap">
                 <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>

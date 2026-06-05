@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FILE_PAGE_SIZE, type FilePage } from "../types/files";
 import { useAutoLoadMore } from "./useAutoLoadMore";
 
@@ -27,29 +27,53 @@ export function usePagedFileList<T extends { path: string }>({
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const filesLengthRef = useRef(0);
   const loadInFlight = useRef<Promise<void> | null>(null);
+  const loadGenerationRef = useRef(0);
+  const requestSeqRef = useRef(0);
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     filesLengthRef.current = files.length;
   }, [files.length]);
 
+  useLayoutEffect(() => {
+    loadGenerationRef.current += 1;
+    loadInFlight.current = null;
+    setFiles([]);
+    setHasMore(false);
+    setTotalFiles(0);
+    setLoading(true);
+    setLoadingMore(false);
+  }, [loadPage]);
+
   const loadFiles = useCallback((reset = true) => {
     if (preventConcurrentLoads && loadInFlight.current) return loadInFlight.current;
 
-    const task = (async () => {
+    const generation = loadGenerationRef.current;
+    const requestId = requestSeqRef.current + 1;
+    requestSeqRef.current = requestId;
+    latestRequestRef.current = requestId;
+    let task: Promise<void> | null = null;
+
+    task = (async () => {
       if (reset) setLoading(true);
       else setLoadingMore(true);
       try {
         const page = await loadPage(reset ? 0 : filesLengthRef.current, pageSize);
+        if (generation !== loadGenerationRef.current || requestId !== latestRequestRef.current) return;
         setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
         setHasMore(page.has_more);
         setTotalFiles(page.total);
         onPageLoaded?.(page, reset);
       } catch (e) {
-        console.error(e);
+        if (generation === loadGenerationRef.current && requestId === latestRequestRef.current) {
+          console.error(e);
+        }
       } finally {
-        if (reset) setLoading(false);
-        else setLoadingMore(false);
-        loadInFlight.current = null;
+        if (generation === loadGenerationRef.current && requestId === latestRequestRef.current) {
+          if (reset) setLoading(false);
+          else setLoadingMore(false);
+        }
+        if (loadInFlight.current === task) loadInFlight.current = null;
       }
     })();
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { Lightbulb, MessageSquare } from "lucide-react";
 import ConversationsPage from "./ConversationsPage";
 import PlansPage from "./PlansPage";
@@ -26,6 +26,10 @@ export default function AiRecordsPage({
   const { t } = useI18n();
   const isMobile = usePlatform() === "mobile";
   const { aiRecordsTab: activeTab, setAiRecordsTab, pendingOpenPath } = useAppStore();
+  const tabItems = useMemo(
+    () => tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon })),
+    [t],
+  );
 
   useEffect(() => {
     if (pendingOpenPath?.startsWith("conversations/")) setAiRecordsTab("conversations");
@@ -34,33 +38,36 @@ export default function AiRecordsPage({
 
   const renderListHeader = useCallback((actions?: ReactNode) => (
     <PaneTabHeader
-      tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon }))}
+      tabs={tabItems}
       activeId={activeTab}
       onChange={setAiRecordsTab}
       actions={actions}
       isMobile={isMobile}
     />
-  ), [activeTab, isMobile, setAiRecordsTab, t]);
+  ), [activeTab, isMobile, setAiRecordsTab, tabItems]);
 
-  if (activeTab === "plans") {
-    return (
-      <PlansPage
-        active={active}
-        onFocusSidebar={onFocusSidebar}
-        enterTrigger={enterTrigger}
-        renderListHeader={renderListHeader}
-        registerMobileBackHandler={registerMobileBackHandler}
-      />
-    );
-  }
+  const renderNoListHeader = useCallback(() => null, []);
 
   return (
-    <ConversationsPage
-      active={active}
-      onFocusSidebar={onFocusSidebar}
-      enterTrigger={enterTrigger}
-      renderListHeader={renderListHeader}
-      registerMobileBackHandler={registerMobileBackHandler}
-    />
+    <div className="gm-ai-records-page">
+      <div className="gm-ai-records-pane-mount" data-active={activeTab === "conversations" ? "true" : "false"}>
+        <ConversationsPage
+          active={active && activeTab === "conversations"}
+          onFocusSidebar={onFocusSidebar}
+          enterTrigger={enterTrigger}
+          renderListHeader={activeTab === "conversations" ? renderListHeader : renderNoListHeader}
+          registerMobileBackHandler={active && activeTab === "conversations" ? registerMobileBackHandler : undefined}
+        />
+      </div>
+      <div className="gm-ai-records-pane-mount" data-active={activeTab === "plans" ? "true" : "false"}>
+        <PlansPage
+          active={active && activeTab === "plans"}
+          onFocusSidebar={onFocusSidebar}
+          enterTrigger={enterTrigger}
+          renderListHeader={activeTab === "plans" ? renderListHeader : renderNoListHeader}
+          registerMobileBackHandler={active && activeTab === "plans" ? registerMobileBackHandler : undefined}
+        />
+      </div>
+    </div>
   );
 }
