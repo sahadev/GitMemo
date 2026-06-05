@@ -7,7 +7,8 @@ import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useTimedCopy } from "../hooks/useTimedCopy";
-import { formatTitleWithShortcut } from "../utils/shortcuts";
+import { useAppStore } from "../hooks/useAppStore";
+import { formatTitleWithShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface FileMoreActionsMenuProps {
   relPath?: string;
@@ -36,6 +37,8 @@ export function FileMoreActionsMenu({
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { settings } = useAppStore();
+  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = useCallback((next: boolean | ((value: boolean) => boolean)) => {
@@ -100,7 +103,7 @@ export function FileMoreActionsMenu({
           event.stopPropagation();
           setOpen((value) => !value);
         }}
-        title={formatTitleWithShortcut(t("common.more"), shortcut)}
+        title={formatTitleWithShortcut(t("common.more"), shortcut ?? shortcuts.more_actions)}
       >
         <AppIcon icon={Ellipsis} size="sm" />
       </DetailIconButton>

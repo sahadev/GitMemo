@@ -83,6 +83,7 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "refresh_selected", labelKey: "settings.shortcutRefreshLabel", descKey: "settings.shortcutRefreshDesc" },
   { id: "favorite_selected", labelKey: "settings.shortcutFavoriteLabel", descKey: "settings.shortcutFavoriteDesc" },
   { id: "toggle_split_preview", labelKey: "settings.shortcutSplitPreviewLabel", descKey: "settings.shortcutSplitPreviewDesc" },
+  { id: "copy_selected", labelKey: "settings.shortcutCopyLabel", descKey: "settings.shortcutCopyDesc" },
   { id: "more_actions", labelKey: "settings.shortcutMoreActionsLabel", descKey: "settings.shortcutMoreActionsDesc" },
 ];
 

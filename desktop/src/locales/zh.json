@@ -329,6 +329,8 @@
     "shortcutFavoriteDesc": "将当前选中项加入或移出收藏",
     "shortcutSplitPreviewLabel": "切换分栏预览",
     "shortcutSplitPreviewDesc": "切换当前文件的分栏编辑预览",
+    "shortcutCopyLabel": "复制选中项",
+    "shortcutCopyDesc": "复制当前选中的剪贴板记录内容",
     "shortcutMoreActionsLabel": "更多操作",
     "shortcutMoreActionsDesc": "打开当前文件的更多操作菜单",
     "shortcutGlobalSearch": "Cmd+Shift+G：唤起 GitMemo 并聚焦搜索",

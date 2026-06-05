@@ -459,23 +459,19 @@ export default function NotesPage({
               titleText={selectedFile}
               onBack={closeDetail}
               onRefresh={handleRefresh}
-              refreshShortcut={shortcuts.refresh_selected}
               editing={editing}
               onEdit={startEdit}
               onSave={() => void handleSaveEdit()}
               onCancel={cancelEdit}
               editTitle={t("notes.edit")}
-              editShortcut={shortcuts.edit_selected}
               saveTitle={t("notes.save")}
               splitPreview={splitPreview}
               onToggleSplitPreview={toggleSplitPreview}
-              splitPreviewShortcut={shortcuts.toggle_split_preview}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
                   title={selectedFileName}
                   sourceType="note"
-                  shortcut={shortcuts.favorite_selected}
                   toggleSignal={favoriteToggleSignal}
                 />
               ) : null}
@@ -483,7 +479,6 @@ export default function NotesPage({
                 {
                   key: "delete",
                   title: t("common.delete"),
-                  shortcut: shortcuts.delete_selected,
                   icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
@@ -495,7 +490,6 @@ export default function NotesPage({
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFileName}
-                  shortcut={shortcuts.more_actions}
                   open={moreMenuOpen}
                   onOpenChange={setMoreMenuOpen}
                 />

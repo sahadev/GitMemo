@@ -311,19 +311,16 @@ export default function ImportsPage({
                   titleText={selectedFile}
                   onBack={closeDetail}
                   onRefresh={handleRefresh}
-                  refreshShortcut={shortcuts.refresh_selected}
                   editing={editing}
                   onEdit={startEdit}
                   onSave={() => void handleSave()}
                   onCancel={cancelEdit}
                   editTitle={t("common.edit")}
-                  editShortcut={shortcuts.edit_selected}
                   saveTitle={t("common.save")}
                   cancelTitle={t("common.preview")}
                   cancelIcon={<AppIcon icon={Eye} size="xs" />}
                   splitPreview={splitPreview}
                   onToggleSplitPreview={toggleSplitPreview}
-                  splitPreviewShortcut={shortcuts.toggle_split_preview}
                   saveDisabled={saving}
                   saveTone="accent"
                   metadata={selectedFile ? (
@@ -331,7 +328,6 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       title={selectedFile.split("/").pop()}
                       sourceType="import"
-                      shortcut={shortcuts.favorite_selected}
                       toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
@@ -339,7 +335,6 @@ export default function ImportsPage({
                     {
                       key: "delete",
                       title: t("common.delete"),
-                      shortcut: shortcuts.delete_selected,
                       icon: <AppIcon icon={Trash2} size="xs" />,
                       onClick: () => void handleDelete(),
                       tone: "danger",
@@ -351,7 +346,6 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       exportContent={fileContent}
                       exportTitle={selectedFile.split("/").pop()}
-                      shortcut={shortcuts.more_actions}
                       open={moreMenuOpen}
                       onOpenChange={setMoreMenuOpen}
                     />

@@ -285,13 +285,11 @@ export default function PlansPage({
                 void loadFiles();
                 if (selectedFile) void openFile(selectedFile);
               }}
-              refreshShortcut={shortcuts.refresh_selected}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
                   title={selectedFile.split("/").pop()?.replace(/\.md$/, "") ?? selectedFile}
                   sourceType="plan"
-                  shortcut={shortcuts.favorite_selected}
                   toggleSignal={favoriteToggleSignal}
                 />
               ) : null}
@@ -299,7 +297,6 @@ export default function PlansPage({
                 {
                   key: "delete",
                   title: t("plans.delete"),
-                  shortcut: shortcuts.delete_selected,
                   icon: <AppIcon icon={Trash2} size="xs" />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
@@ -311,7 +308,6 @@ export default function PlansPage({
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFile.split("/").pop()}
-                  shortcut={shortcuts.more_actions}
                   open={moreMenuOpen}
                   onOpenChange={setMoreMenuOpen}
                 />

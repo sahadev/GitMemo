@@ -7,7 +7,8 @@ import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
-import { formatTitleWithShortcut } from "../utils/shortcuts";
+import { useAppStore } from "../hooks/useAppStore";
+import { formatTitleWithShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
 interface FavoriteButtonProps {
   relPath?: string | null;
@@ -34,6 +35,8 @@ export function FavoriteButton({
 }: FavoriteButtonProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { settings } = useAppStore();
+  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
   const isMobile = usePlatform() === "mobile";
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,7 +112,7 @@ export function FavoriteButton({
       type="button"
       onClick={() => void toggle()}
       disabled={disabled || !hasTarget || loading}
-      title={formatTitleWithShortcut(favorited ? t("favorites.remove") : t("favorites.add"), shortcut)}
+      title={formatTitleWithShortcut(favorited ? t("favorites.remove") : t("favorites.add"), shortcut ?? shortcuts.favorite_selected)}
       tone={favorited ? "accent" : "default"}
     >
       {loading ? (

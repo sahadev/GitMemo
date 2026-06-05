@@ -5,7 +5,8 @@ import { AppIcon, type AppIconSize } from "./base/AppIcon";
 import { useTimedIconSpin } from "./base/useTimedIconSpin";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
-import { formatTitleWithShortcut } from "../utils/shortcuts";
+import { useAppStore } from "../hooks/useAppStore";
+import { formatTitleWithShortcut, type KeyboardShortcuts, type ShortcutId, withDefaultShortcuts } from "../utils/shortcuts";
 
 type DetailToolbarTone = "default" | "accent" | "success" | "danger";
 
@@ -18,6 +19,7 @@ export interface FileDetailToolbarAction {
   disabled?: boolean;
   hidden?: boolean;
   shortcut?: string;
+  shortcutId?: ShortcutId;
 }
 
 interface FileDetailToolbarProps {
@@ -58,14 +60,22 @@ interface FileDetailToolbarProps {
   density?: "default" | "compact";
 }
 
-function ToolbarActionButton({ action }: { action: FileDetailToolbarAction }) {
+function actionShortcut(shortcuts: KeyboardShortcuts, action: FileDetailToolbarAction): string | undefined {
+  if (action.shortcut) return action.shortcut;
+  if (action.shortcutId) return shortcuts[action.shortcutId];
+  if (action.key === "delete") return shortcuts.delete_selected;
+  if (action.key === "copy") return shortcuts.copy_selected;
+  return undefined;
+}
+
+function ToolbarActionButton({ action, shortcuts }: { action: FileDetailToolbarAction; shortcuts: KeyboardShortcuts }) {
   if (action.hidden) return null;
   return (
     <DetailIconButton
       type="button"
       onClick={action.onClick}
       disabled={action.disabled}
-      title={formatTitleWithShortcut(action.title, action.shortcut)}
+      title={formatTitleWithShortcut(action.title, actionShortcut(shortcuts, action))}
       tone={action.tone}
     >
       {action.icon}
@@ -111,6 +121,8 @@ export function FileDetailToolbar({
   density = "default",
 }: FileDetailToolbarProps) {
   const { t } = useI18n();
+  const { settings } = useAppStore();
+  const shortcuts = withDefaultShortcuts(settings?.shortcuts);
   const isMobile = usePlatform() === "mobile";
   const iconSize: AppIconSize = isMobile ? "sm" : "xs";
   const hasEditFlow = Boolean(onEdit || onSave || onCancel);
@@ -141,14 +153,14 @@ export function FileDetailToolbar({
           type="button"
           onClick={refreshSpin.handleClick}
           disabled={refreshDisabled}
-          title={formatTitleWithShortcut(refreshTitle ?? t("common.refresh"), refreshShortcut)}
+          title={formatTitleWithShortcut(refreshTitle ?? t("common.refresh"), refreshShortcut ?? shortcuts.refresh_selected)}
         >
           <AppIcon icon={RefreshCw} size={iconSize} spin={refreshSpin.spinning} />
         </DetailIconButton>
       ) : null}
       {metadata}
       {actionsBeforeEdit.filter((action) => !action.hidden).map((action) => (
-        <ToolbarActionButton key={action.key} action={action} />
+        <ToolbarActionButton key={action.key} action={action} shortcuts={shortcuts} />
       ))}
       {onToggleSplitPreview && !isMobile ? (
         <DetailIconButton
@@ -157,7 +169,7 @@ export function FileDetailToolbar({
           disabled={splitPreviewDisabled}
           title={formatTitleWithShortcut(
             splitPreview ? splitPreviewActiveTitle ?? t("common.hideSplitPreview") : splitPreviewTitle ?? t("common.splitPreview"),
-            splitPreviewShortcut,
+            splitPreviewShortcut ?? shortcuts.toggle_split_preview,
           )}
           tone={splitPreview ? "accent" : "default"}
           aria-pressed={splitPreview ? "true" : "false"}
@@ -194,14 +206,14 @@ export function FileDetailToolbar({
             type="button"
             onClick={onEdit}
             disabled={editDisabled}
-            title={formatTitleWithShortcut(editTitle ?? t("common.edit"), editShortcut)}
+            title={formatTitleWithShortcut(editTitle ?? t("common.edit"), editShortcut ?? shortcuts.edit_selected)}
           >
             <AppIcon icon={Pencil} size={iconSize} />
           </DetailIconButton>
         ) : null
       ) : null}
       {actionsAfterEdit.filter((action) => !action.hidden).map((action) => (
-        <ToolbarActionButton key={action.key} action={action} />
+        <ToolbarActionButton key={action.key} action={action} shortcuts={shortcuts} />
       ))}
       {more}
     </div>

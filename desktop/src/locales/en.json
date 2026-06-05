@@ -329,6 +329,8 @@
     "shortcutFavoriteDesc": "Add or remove the selected item from favorites",
     "shortcutSplitPreviewLabel": "Toggle split preview",
     "shortcutSplitPreviewDesc": "Toggle split editor preview for the selected file",
+    "shortcutCopyLabel": "Copy selected",
+    "shortcutCopyDesc": "Copy the selected clipboard record content",
     "shortcutMoreActionsLabel": "More actions",
     "shortcutMoreActionsDesc": "Open the selected file's more actions menu",
     "shortcutGlobalSearch": "Cmd+Shift+G: Show GitMemo and focus search",

@@ -8,6 +8,7 @@ export type ShortcutId =
   | "refresh_selected"
   | "favorite_selected"
   | "toggle_split_preview"
+  | "copy_selected"
   | "more_actions";
 
 export type KeyboardShortcuts = Record<ShortcutId, string>;
@@ -22,6 +23,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   refresh_selected: "CmdOrCtrl+R",
   favorite_selected: "CmdOrCtrl+Shift+S",
   toggle_split_preview: "CmdOrCtrl+\\",
+  copy_selected: "CmdOrCtrl+Shift+C",
   more_actions: "CmdOrCtrl+.",
 };
 

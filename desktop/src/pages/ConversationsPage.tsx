@@ -477,7 +477,6 @@ export default function ConversationsPage({
                 void loadFiles();
                 if (selectedFile) void openFile(selectedFile);
               }}
-              refreshShortcut={shortcuts.refresh_selected}
               onTitleClick={() => {
                 const text = currentMeta?.title || selectedFile || "";
                 navigator.clipboard.writeText(text);
@@ -498,7 +497,6 @@ export default function ConversationsPage({
                       relPath={selectedFile}
                       title={currentMeta?.title || selectedFile}
                       sourceType="conversation"
-                      shortcut={shortcuts.favorite_selected}
                       toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
@@ -509,17 +507,14 @@ export default function ConversationsPage({
               onSave={!isMobile ? () => void handleSaveEdit() : undefined}
               onCancel={!isMobile ? cancelEdit : undefined}
               editTitle={t("conversations.edit")}
-              editShortcut={shortcuts.edit_selected}
               saveTitle={t("conversations.save")}
               saveTone="accent"
               splitPreview={splitPreview}
               onToggleSplitPreview={!isMobile ? toggleSplitPreview : undefined}
-              splitPreviewShortcut={shortcuts.toggle_split_preview}
               actionsAfterEdit={[
                 {
                   key: "delete",
                   title: t("conversations.deleteConversation"),
-                  shortcut: shortcuts.delete_selected,
                   icon: <AppIcon icon={Trash2} size="xs" />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
@@ -530,7 +525,6 @@ export default function ConversationsPage({
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   canExportPdf={false}
-                  shortcut={shortcuts.more_actions}
                   open={moreMenuOpen}
                   onOpenChange={setMoreMenuOpen}
                 />
