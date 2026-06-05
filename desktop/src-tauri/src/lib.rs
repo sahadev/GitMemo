@@ -21,7 +21,13 @@ use tauri::{
 use tauri_plugin_autostart::MacosLauncher;
 
 #[derive(Default)]
-struct PendingExternalOpen(Mutex<Vec<String>>);
+struct PendingExternalOpen(Mutex<PendingExternalOpenState>);
+
+#[derive(Default)]
+struct PendingExternalOpenState {
+    frontend_ready: bool,
+    paths: Vec<String>,
+}
 
 #[cfg(desktop)]
 fn versioned_entry_url(entry: &str, version: &str) -> std::path::PathBuf {
@@ -139,8 +145,33 @@ fn emit_external_open(app: &AppHandle, file_path: String) {
 }
 
 fn flush_pending_external_open(app: &AppHandle, pending: &State<PendingExternalOpen>) {
-    let mut paths = pending.0.lock().unwrap();
-    for path in paths.drain(..) {
+    let paths = {
+        let mut state = pending.0.lock().unwrap();
+        state.frontend_ready = true;
+        std::mem::take(&mut state.paths)
+    };
+
+    for path in paths {
+        emit_external_open(app, path);
+    }
+}
+
+fn emit_or_queue_external_open(
+    app: &AppHandle,
+    pending: &State<PendingExternalOpen>,
+    file_path: String,
+) {
+    let path_to_emit = {
+        let mut state = pending.0.lock().unwrap();
+        if state.frontend_ready {
+            Some(file_path)
+        } else {
+            state.paths.push(file_path);
+            None
+        }
+    };
+
+    if let Some(path) = path_to_emit {
         emit_external_open(app, path);
     }
 }
@@ -380,15 +411,10 @@ pub fn run() {
         if let RunEvent::Opened { urls } = _event {
             show_main_window_from_app(_app_handle);
             let pending = _app_handle.state::<PendingExternalOpen>();
-            let has_window = _app_handle.get_webview_window("main").is_some();
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
                     let path = path.to_string_lossy().into_owned();
-                    if has_window {
-                        emit_external_open(_app_handle, path);
-                    } else {
-                        pending.0.lock().unwrap().push(path);
-                    }
+                    emit_or_queue_external_open(_app_handle, &pending, path);
                 }
             }
         }
