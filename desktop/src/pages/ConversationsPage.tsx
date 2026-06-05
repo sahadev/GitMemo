@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
@@ -133,7 +134,10 @@ export default function ConversationsPage({
   const [rawBody, setRawBody] = useState("");
   const [currentMeta, setCurrentMeta] = useState<ConversationMeta | null>(null);
   const [editing, setEditing] = useState(false);
+  const [splitPreview, setSplitPreview] = useState(false);
   const [editContent, setEditContent] = useState("");
+  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
 
@@ -189,6 +193,7 @@ export default function ConversationsPage({
     setRawBody(body);
     setIntroContent(parsed.intro);
     setMessages(parsed.messages);
+    setMoreMenuOpen(false);
   }, []);
 
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
@@ -196,6 +201,7 @@ export default function ConversationsPage({
       const raw = await invoke<string>("read_file", { filePath: path });
       applyConversationRaw(path, raw);
       setEditing(false);
+      setSplitPreview(false);
       setEditContent("");
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
@@ -214,9 +220,29 @@ export default function ConversationsPage({
     if (isMobile) return;
     if (!selectedFile) return;
     setEditing(true);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
     setEditContent(rawContent);
     window.setTimeout(() => editRef.current?.focus(), 0);
   }, [isMobile, selectedFile, rawContent]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setSplitPreview(false);
+    setEditContent("");
+  }, []);
+
+  const toggleSplitPreview = useCallback(() => {
+    if (isMobile || !selectedFile) return;
+    if (!editing) {
+      setEditContent(rawContent);
+      setEditing(true);
+      setSplitPreview(true);
+      window.setTimeout(() => editRef.current?.focus(), 0);
+      return;
+    }
+    setSplitPreview((value) => !value);
+  }, [editing, isMobile, rawContent, selectedFile]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
@@ -229,6 +255,7 @@ export default function ConversationsPage({
         return next;
       });
       setEditing(false);
+      setSplitPreview(false);
       setEditContent("");
       showToast(t("conversations.saved"));
       void loadFiles();
@@ -258,6 +285,8 @@ export default function ConversationsPage({
         setRawBody("");
         setRawContent("");
         setEditing(false);
+        setSplitPreview(false);
+        setMoreMenuOpen(false);
       }
       showToast(t("conversations.deleted"));
       loadFiles();
@@ -286,10 +315,28 @@ export default function ConversationsPage({
         e.preventDefault();
         startEdit();
       }
+      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
+        e.preventDefault();
+        void loadFiles();
+        void openFile(selectedFile);
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
+        e.preventDefault();
+        setFavoriteToggleSignal((value) => value + 1);
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
+        e.preventDefault();
+        toggleSplitPreview();
+      }
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
+        e.preventDefault();
+        setMoreMenuOpen((value) => !value);
+      }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (selectedFile) {
-          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false);
+          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false); setMoreMenuOpen(false);
+          setSplitPreview(false);
           setIntroContent("");
         } else {
           onFocusSidebar?.();
@@ -304,7 +351,25 @@ export default function ConversationsPage({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, isMobile, navPrev, navNext, selectedFile, files, editing, startEdit, onFocusSidebar, shortcuts.edit_selected]);
+  }, [
+    active,
+    isMobile,
+    navPrev,
+    navNext,
+    selectedFile,
+    files,
+    editing,
+    startEdit,
+    toggleSplitPreview,
+    loadFiles,
+    openFile,
+    onFocusSidebar,
+    shortcuts.edit_selected,
+    shortcuts.refresh_selected,
+    shortcuts.favorite_selected,
+    shortcuts.toggle_split_preview,
+    shortcuts.more_actions,
+  ]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
@@ -315,6 +380,8 @@ export default function ConversationsPage({
     setRawBody("");
     setRawContent("");
     setEditing(false);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
     setIntroContent("");
     detailOpenedFromCrossPageRef.current = false;
   }, []);
@@ -410,6 +477,7 @@ export default function ConversationsPage({
                 void loadFiles();
                 if (selectedFile) void openFile(selectedFile);
               }}
+              refreshShortcut={shortcuts.refresh_selected}
               onTitleClick={() => {
                 const text = currentMeta?.title || selectedFile || "";
                 navigator.clipboard.writeText(text);
@@ -430,6 +498,8 @@ export default function ConversationsPage({
                       relPath={selectedFile}
                       title={currentMeta?.title || selectedFile}
                       sourceType="conversation"
+                      shortcut={shortcuts.favorite_selected}
+                      toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
                 </>
@@ -437,14 +507,19 @@ export default function ConversationsPage({
               editing={editing}
               onEdit={!isMobile ? startEdit : undefined}
               onSave={!isMobile ? () => void handleSaveEdit() : undefined}
-              onCancel={!isMobile ? () => { setEditing(false); setEditContent(""); } : undefined}
+              onCancel={!isMobile ? cancelEdit : undefined}
               editTitle={t("conversations.edit")}
+              editShortcut={shortcuts.edit_selected}
               saveTitle={t("conversations.save")}
               saveTone="accent"
+              splitPreview={splitPreview}
+              onToggleSplitPreview={!isMobile ? toggleSplitPreview : undefined}
+              splitPreviewShortcut={shortcuts.toggle_split_preview}
               actionsAfterEdit={[
                 {
                   key: "delete",
                   title: t("conversations.deleteConversation"),
+                  shortcut: shortcuts.delete_selected,
                   icon: <AppIcon icon={Trash2} size="xs" />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
@@ -455,31 +530,52 @@ export default function ConversationsPage({
                 <FileMoreActionsMenu
                   relPath={selectedFile}
                   canExportPdf={false}
+                  shortcut={shortcuts.more_actions}
+                  open={moreMenuOpen}
+                  onOpenChange={setMoreMenuOpen}
                 />
               ) : null}
             />
 
             {/* Messages */}
-            <DetailScroll mobileBottomPadding={isMobile} selectable>
+            <DetailScroll mobileBottomPadding={isMobile} selectable className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
               {editing ? (
-                <textarea
-                  ref={editRef}
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                      e.preventDefault();
-                      void handleSaveEdit();
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      setEditing(false);
-                      setEditContent("");
-                    }
-                  }}
-                  spellCheck={false}
-                  className="gm-code-editor gm-code-editor-box gm-code-textarea"
-                />
+                splitPreview && !isMobile ? (
+                  <MarkdownSplitEditor
+                    ref={editRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                        e.preventDefault();
+                        void handleSaveEdit();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                    filePath={selectedFile ?? undefined}
+                  />
+                ) : (
+                  <textarea
+                    ref={editRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                        e.preventDefault();
+                        void handleSaveEdit();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEdit();
+                      }
+                    }}
+                    spellCheck={false}
+                    className="gm-code-editor gm-code-editor-box gm-code-textarea"
+                  />
+                )
               ) : messages.length > 0 ? (
                 <>
                   {introContent ? (

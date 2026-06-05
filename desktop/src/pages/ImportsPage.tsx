@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Download, Trash2, RefreshCw, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
@@ -52,7 +53,10 @@ export default function ImportsPage({
   const [fileContent, setFileContent] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editing, setEditing] = useState(false);
+  const [splitPreview, setSplitPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const detailOpenedFromCrossPageRef = useRef(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
@@ -81,6 +85,8 @@ export default function ImportsPage({
       setFileContent(content);
       setEditContent(content);
       setEditing(false);
+      setSplitPreview(false);
+      setMoreMenuOpen(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
@@ -122,6 +128,8 @@ export default function ImportsPage({
       setFileContent("");
       setEditContent("");
       setEditing(false);
+      setSplitPreview(false);
+      setMoreMenuOpen(false);
       showToast(t("imports.deleted"));
       void loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
@@ -146,8 +154,33 @@ export default function ImportsPage({
     setFileContent("");
     setEditContent("");
     setEditing(false);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
     detailOpenedFromCrossPageRef.current = false;
   }, []);
+
+  const startEdit = useCallback(() => {
+    setEditContent(fileContent);
+    setEditing(true);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
+  }, [fileContent]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setSplitPreview(false);
+  }, []);
+
+  const toggleSplitPreview = useCallback(() => {
+    if (isMobile || !selectedFile) return;
+    if (!editing) {
+      setEditContent(fileContent);
+      setEditing(true);
+      setSplitPreview(true);
+      return;
+    }
+    setSplitPreview((value) => !value);
+  }, [editing, fileContent, isMobile, selectedFile]);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -168,10 +201,40 @@ export default function ImportsPage({
         e.preventDefault();
         void handleDelete();
       }
+      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
+        e.preventDefault();
+        handleRefresh();
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
+        e.preventDefault();
+        setFavoriteToggleSignal((value) => value + 1);
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
+        e.preventDefault();
+        toggleSplitPreview();
+      }
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
+        e.preventDefault();
+        setMoreMenuOpen((value) => !value);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, navPrev, navNext, selectedFile, handleDelete, shortcuts.delete_selected]);
+  }, [
+    active,
+    navPrev,
+    navNext,
+    selectedFile,
+    editing,
+    handleRefresh,
+    handleDelete,
+    toggleSplitPreview,
+    shortcuts.delete_selected,
+    shortcuts.refresh_selected,
+    shortcuts.favorite_selected,
+    shortcuts.toggle_split_preview,
+    shortcuts.more_actions,
+  ]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
@@ -248,14 +311,19 @@ export default function ImportsPage({
                   titleText={selectedFile}
                   onBack={closeDetail}
                   onRefresh={handleRefresh}
+                  refreshShortcut={shortcuts.refresh_selected}
                   editing={editing}
-                  onEdit={() => setEditing(true)}
+                  onEdit={startEdit}
                   onSave={() => void handleSave()}
-                  onCancel={() => setEditing(false)}
+                  onCancel={cancelEdit}
                   editTitle={t("common.edit")}
+                  editShortcut={shortcuts.edit_selected}
                   saveTitle={t("common.save")}
                   cancelTitle={t("common.preview")}
                   cancelIcon={<AppIcon icon={Eye} size="xs" />}
+                  splitPreview={splitPreview}
+                  onToggleSplitPreview={toggleSplitPreview}
+                  splitPreviewShortcut={shortcuts.toggle_split_preview}
                   saveDisabled={saving}
                   saveTone="accent"
                   metadata={selectedFile ? (
@@ -263,12 +331,15 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       title={selectedFile.split("/").pop()}
                       sourceType="import"
+                      shortcut={shortcuts.favorite_selected}
+                      toggleSignal={favoriteToggleSignal}
                     />
                   ) : null}
                   actionsAfterEdit={[
                     {
                       key: "delete",
                       title: t("common.delete"),
+                      shortcut: shortcuts.delete_selected,
                       icon: <AppIcon icon={Trash2} size="xs" />,
                       onClick: () => void handleDelete(),
                       tone: "danger",
@@ -280,22 +351,40 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       exportContent={fileContent}
                       exportTitle={selectedFile.split("/").pop()}
+                      shortcut={shortcuts.more_actions}
+                      open={moreMenuOpen}
+                      onOpenChange={setMoreMenuOpen}
                     />
                   ) : null}
                 />
-                <DetailScroll>
+                <DetailScroll className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
                   {editing ? (
-                    <CodeTextarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      onKeyDown={(e) => {
-                        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                          e.preventDefault();
-                          void handleSave();
-                        }
-                      }}
-                      minHeight
-                    />
+                    splitPreview && !isMobile ? (
+                      <MarkdownSplitEditor
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                            e.preventDefault();
+                            void handleSave();
+                          }
+                        }}
+                        filePath={selectedFile}
+                        minHeight
+                      />
+                    ) : (
+                      <CodeTextarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+                            e.preventDefault();
+                            void handleSave();
+                          }
+                        }}
+                        minHeight
+                      />
+                    )
                   ) : (
                     <MarkdownView content={fileContent} filePath={selectedFile} />
                   )}

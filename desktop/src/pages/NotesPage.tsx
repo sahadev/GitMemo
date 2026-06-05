@@ -4,6 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Plus, FileText, BookOpen, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
@@ -65,7 +66,10 @@ export default function NotesPage({
   const [manualTitle, setManualTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [splitPreview, setSplitPreview] = useState(false);
   const [editContent, setEditContent] = useState("");
+  const [favoriteToggleSignal, setFavoriteToggleSignal] = useState(0);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
@@ -149,6 +153,7 @@ export default function NotesPage({
     setSelectedFile(null);
     setFileContent("");
     setEditing(false);
+    setSplitPreview(false);
   }, [activeTab, loadFiles]);
 
   useEffect(() => {
@@ -161,6 +166,8 @@ export default function NotesPage({
       setSelectedFile(path);
       setFileContent(content);
       setEditing(false);
+      setSplitPreview(false);
+      setMoreMenuOpen(false);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
@@ -218,6 +225,7 @@ export default function NotesPage({
       const result = await invoke<NoteResult>("update_note", { filePath: selectedFile, content: editContent });
       setFileContent(editContent);
       setEditing(false);
+      setSplitPreview(false);
       showToast(result.message);
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
@@ -232,16 +240,37 @@ export default function NotesPage({
       setSelectedFile(null);
       setFileContent("");
       setEditing(false);
+      setSplitPreview(false);
+      setMoreMenuOpen(false);
       showToast(t("notes.noteDeleted"));
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
 
-  const startEdit = () => {
+  const startEdit = useCallback(() => {
     setEditContent(fileContent);
     setEditing(true);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
     setTimeout(() => editRef.current?.focus(), 50);
-  };
+  }, [fileContent]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(false);
+    setSplitPreview(false);
+  }, []);
+
+  const toggleSplitPreview = useCallback(() => {
+    if (isMobile || !selectedFile) return;
+    if (!editing) {
+      setEditContent(fileContent);
+      setEditing(true);
+      setSplitPreview(true);
+      window.setTimeout(() => editRef.current?.focus(), 50);
+      return;
+    }
+    setSplitPreview((value) => !value);
+  }, [editing, fileContent, isMobile, selectedFile]);
 
   useEffect(() => {
     if (!active || isMobile) return;
@@ -263,10 +292,44 @@ export default function NotesPage({
         e.preventDefault();
         void handleDelete();
       }
+      if (selectedFile && shortcutMatches(e, shortcuts.refresh_selected)) {
+        e.preventDefault();
+        handleRefresh();
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.favorite_selected)) {
+        e.preventDefault();
+        setFavoriteToggleSignal((value) => value + 1);
+      }
+      if (selectedFile && shortcutMatches(e, shortcuts.toggle_split_preview)) {
+        e.preventDefault();
+        toggleSplitPreview();
+      }
+      if (!editing && selectedFile && shortcutMatches(e, shortcuts.more_actions)) {
+        e.preventDefault();
+        setMoreMenuOpen((value) => !value);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, isMobile, navPrev, navNext, newNote, editing, selectedFile, handleDelete, fileContent, shortcuts.edit_selected, shortcuts.delete_selected]);
+  }, [
+    active,
+    isMobile,
+    navPrev,
+    navNext,
+    newNote,
+    editing,
+    selectedFile,
+    handleRefresh,
+    handleDelete,
+    startEdit,
+    toggleSplitPreview,
+    shortcuts.edit_selected,
+    shortcuts.delete_selected,
+    shortcuts.refresh_selected,
+    shortcuts.favorite_selected,
+    shortcuts.toggle_split_preview,
+    shortcuts.more_actions,
+  ]);
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
@@ -275,6 +338,8 @@ export default function NotesPage({
     setSelectedFile(null);
     setFileContent("");
     setEditing(false);
+    setSplitPreview(false);
+    setMoreMenuOpen(false);
     detailOpenedFromCrossPageRef.current = false;
   }, []);
 
@@ -285,7 +350,7 @@ export default function NotesPage({
     closeDetail,
     openedFromCrossPageRef: detailOpenedFromCrossPageRef,
     editing,
-    cancelEdit: () => setEditing(false),
+    cancelEdit,
   });
 
   return (
@@ -394,23 +459,31 @@ export default function NotesPage({
               titleText={selectedFile}
               onBack={closeDetail}
               onRefresh={handleRefresh}
+              refreshShortcut={shortcuts.refresh_selected}
               editing={editing}
               onEdit={startEdit}
               onSave={() => void handleSaveEdit()}
-              onCancel={() => setEditing(false)}
+              onCancel={cancelEdit}
               editTitle={t("notes.edit")}
+              editShortcut={shortcuts.edit_selected}
               saveTitle={t("notes.save")}
+              splitPreview={splitPreview}
+              onToggleSplitPreview={toggleSplitPreview}
+              splitPreviewShortcut={shortcuts.toggle_split_preview}
               metadata={selectedFile ? (
                 <FavoriteButton
                   relPath={selectedFile}
                   title={selectedFileName}
                   sourceType="note"
+                  shortcut={shortcuts.favorite_selected}
+                  toggleSignal={favoriteToggleSignal}
                 />
               ) : null}
               actionsAfterEdit={[
                 {
                   key: "delete",
                   title: t("common.delete"),
+                  shortcut: shortcuts.delete_selected,
                   icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
                   onClick: () => void handleDelete(),
                   tone: "danger",
@@ -422,22 +495,40 @@ export default function NotesPage({
                   relPath={selectedFile}
                   exportContent={fileContent}
                   exportTitle={selectedFileName}
+                  shortcut={shortcuts.more_actions}
+                  open={moreMenuOpen}
+                  onOpenChange={setMoreMenuOpen}
                 />
               ) : null}
             />
-            <DetailScroll mobileBottomPadding={isMobile}>
+            <DetailScroll mobileBottomPadding={isMobile} className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
               {editing ? (
-                <CodeTextarea
-                  ref={editRef}
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
-                  onKeyDown={(e) => {
-                    if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
-                    if (e.key === "Escape") setEditing(false);
-                  }}
-                  mobile={isMobile}
-                />
+                splitPreview && !isMobile ? (
+                  <MarkdownSplitEditor
+                    ref={editRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
+                    onKeyDown={(e) => {
+                      if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    filePath={selectedFile ?? undefined}
+                    mobile={isMobile}
+                  />
+                ) : (
+                  <CodeTextarea
+                    ref={editRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
+                    onKeyDown={(e) => {
+                      if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    mobile={isMobile}
+                  />
+                )
               ) : (
                 <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
               )}

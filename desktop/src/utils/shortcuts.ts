@@ -4,7 +4,11 @@ export type ShortcutId =
   | "quick_note"
   | "find_in_document"
   | "edit_selected"
-  | "delete_selected";
+  | "delete_selected"
+  | "refresh_selected"
+  | "favorite_selected"
+  | "toggle_split_preview"
+  | "more_actions";
 
 export type KeyboardShortcuts = Record<ShortcutId, string>;
 
@@ -15,6 +19,10 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   find_in_document: "CmdOrCtrl+F",
   edit_selected: "CmdOrCtrl+E",
   delete_selected: "CmdOrCtrl+Delete",
+  refresh_selected: "CmdOrCtrl+R",
+  favorite_selected: "CmdOrCtrl+Shift+S",
+  toggle_split_preview: "CmdOrCtrl+\\",
+  more_actions: "CmdOrCtrl+.",
 };
 
 const MODIFIER_KEYS = new Set([
@@ -149,6 +157,11 @@ export function formatShortcut(shortcut: string): string {
   return normalized
     .replace(/CmdOrCtrl/g, "Cmd/Ctrl")
     .replace(/\+/g, "+");
+}
+
+export function formatTitleWithShortcut(title: string, shortcut?: string | null): string {
+  if (!shortcut) return title;
+  return `${title} (${formatShortcut(shortcut)})`;
 }
 
 export function findShortcutConflict(

@@ -7,6 +7,7 @@ import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useTimedCopy } from "../hooks/useTimedCopy";
+import { formatTitleWithShortcut } from "../utils/shortcuts";
 
 interface FileMoreActionsMenuProps {
   relPath?: string;
@@ -16,6 +17,9 @@ interface FileMoreActionsMenuProps {
   canExportPdf?: boolean;
   exportContent?: string;
   exportTitle?: string;
+  shortcut?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function FileMoreActionsMenu({
@@ -26,10 +30,19 @@ export function FileMoreActionsMenu({
   canExportPdf = true,
   exportContent = "",
   exportTitle,
+  shortcut,
+  open: controlledOpen,
+  onOpenChange,
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = useCallback((next: boolean | ((value: boolean) => boolean)) => {
+    const nextValue = typeof next === "function" ? next(open) : next;
+    if (controlledOpen === undefined) setUncontrolledOpen(nextValue);
+    onOpenChange?.(nextValue);
+  }, [controlledOpen, onOpenChange, open]);
   const { copied: pathCopied, copyText } = useTimedCopy<boolean>({ successMessage: t("common.pathCopied") });
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +100,7 @@ export function FileMoreActionsMenu({
           event.stopPropagation();
           setOpen((value) => !value);
         }}
-        title={t("common.more")}
+        title={formatTitleWithShortcut(t("common.more"), shortcut)}
       >
         <AppIcon icon={Ellipsis} size="sm" />
       </DetailIconButton>

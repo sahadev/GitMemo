@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Star } from "lucide-react";
+import { LoaderCircle, Star } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
+import { formatTitleWithShortcut } from "../utils/shortcuts";
 
 interface FavoriteButtonProps {
   relPath?: string | null;
@@ -14,6 +15,8 @@ interface FavoriteButtonProps {
   title?: string | null;
   sourceType?: string | null;
   disabled?: boolean;
+  shortcut?: string;
+  toggleSignal?: number;
 }
 
 interface FilesChangedEvent {
@@ -26,12 +29,15 @@ export function FavoriteButton({
   title,
   sourceType,
   disabled,
+  shortcut,
+  toggleSignal,
 }: FavoriteButtonProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const isMobile = usePlatform() === "mobile";
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
+  const lastToggleSignalRef = useRef(toggleSignal);
   const hasTarget = Boolean(relPath || absolutePath);
 
   const refresh = useCallback(async () => {
@@ -92,15 +98,25 @@ export function FavoriteButton({
     }
   }, [absolutePath, favorited, hasTarget, loading, relPath, showToast, sourceType, t, title]);
 
+  useEffect(() => {
+    if (!toggleSignal || toggleSignal === lastToggleSignalRef.current) return;
+    lastToggleSignalRef.current = toggleSignal;
+    void toggle();
+  }, [toggle, toggleSignal]);
+
   return (
     <DetailIconButton
       type="button"
       onClick={() => void toggle()}
       disabled={disabled || !hasTarget || loading}
-      title={favorited ? t("favorites.remove") : t("favorites.add")}
+      title={formatTitleWithShortcut(favorited ? t("favorites.remove") : t("favorites.add"), shortcut)}
       tone={favorited ? "accent" : "default"}
     >
-      <AppIcon icon={Star} size={isMobile ? "sm" : "xs"} fill={favorited ? "currentColor" : "none"} />
+      {loading ? (
+        <AppIcon icon={LoaderCircle} size={isMobile ? "sm" : "xs"} spin />
+      ) : (
+        <AppIcon icon={Star} size={isMobile ? "sm" : "xs"} fill={favorited ? "currentColor" : "none"} />
+      )}
     </DetailIconButton>
   );
 }

@@ -80,6 +80,10 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "find_in_document", labelKey: "settings.shortcutFindLabel", descKey: "settings.shortcutFindDesc" },
   { id: "edit_selected", labelKey: "settings.shortcutEditLabel", descKey: "settings.shortcutEditDesc" },
   { id: "delete_selected", labelKey: "settings.shortcutDeleteLabel", descKey: "settings.shortcutDeleteDesc" },
+  { id: "refresh_selected", labelKey: "settings.shortcutRefreshLabel", descKey: "settings.shortcutRefreshDesc" },
+  { id: "favorite_selected", labelKey: "settings.shortcutFavoriteLabel", descKey: "settings.shortcutFavoriteDesc" },
+  { id: "toggle_split_preview", labelKey: "settings.shortcutSplitPreviewLabel", descKey: "settings.shortcutSplitPreviewDesc" },
+  { id: "more_actions", labelKey: "settings.shortcutMoreActionsLabel", descKey: "settings.shortcutMoreActionsDesc" },
 ];
 
 interface MobileGitSpikeResult {

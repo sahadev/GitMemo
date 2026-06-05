@@ -1,10 +1,11 @@
 import { useCallback, type MouseEventHandler, type ReactNode } from "react";
-import { ChevronLeft, Pencil, RefreshCw, Save, X } from "lucide-react";
+import { ChevronLeft, Pencil, RefreshCw, Save, SquareSplitHorizontal, X } from "lucide-react";
 import { DetailIconButton } from "./DetailIconButton";
 import { AppIcon, type AppIconSize } from "./base/AppIcon";
 import { useTimedIconSpin } from "./base/useTimedIconSpin";
 import { useI18n } from "../hooks/useI18n";
 import { usePlatform } from "../hooks/usePlatform";
+import { formatTitleWithShortcut } from "../utils/shortcuts";
 
 type DetailToolbarTone = "default" | "accent" | "success" | "danger";
 
@@ -16,6 +17,7 @@ export interface FileDetailToolbarAction {
   tone?: DetailToolbarTone;
   disabled?: boolean;
   hidden?: boolean;
+  shortcut?: string;
 }
 
 interface FileDetailToolbarProps {
@@ -28,15 +30,25 @@ interface FileDetailToolbarProps {
   metadata?: ReactNode;
   onRefresh?: () => void;
   refreshTitle?: string;
+  refreshShortcut?: string;
   refreshDisabled?: boolean;
   editing?: boolean;
   onEdit?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
   editTitle?: string;
+  editShortcut?: string;
   saveTitle?: string;
+  saveShortcut?: string;
   cancelTitle?: string;
+  cancelShortcut?: string;
   cancelIcon?: ReactNode;
+  splitPreview?: boolean;
+  onToggleSplitPreview?: () => void;
+  splitPreviewDisabled?: boolean;
+  splitPreviewTitle?: string;
+  splitPreviewActiveTitle?: string;
+  splitPreviewShortcut?: string;
   editDisabled?: boolean;
   saveDisabled?: boolean;
   saveTone?: DetailToolbarTone;
@@ -53,7 +65,7 @@ function ToolbarActionButton({ action }: { action: FileDetailToolbarAction }) {
       type="button"
       onClick={action.onClick}
       disabled={action.disabled}
-      title={action.title}
+      title={formatTitleWithShortcut(action.title, action.shortcut)}
       tone={action.tone}
     >
       {action.icon}
@@ -71,15 +83,25 @@ export function FileDetailToolbar({
   metadata,
   onRefresh,
   refreshTitle,
+  refreshShortcut,
   refreshDisabled,
   editing = false,
   onEdit,
   onSave,
   onCancel,
   editTitle,
+  editShortcut,
   saveTitle,
+  saveShortcut,
   cancelTitle,
+  cancelShortcut,
   cancelIcon,
+  splitPreview = false,
+  onToggleSplitPreview,
+  splitPreviewDisabled,
+  splitPreviewTitle,
+  splitPreviewActiveTitle,
+  splitPreviewShortcut,
   editDisabled,
   saveDisabled,
   saveTone = "success",
@@ -119,7 +141,7 @@ export function FileDetailToolbar({
           type="button"
           onClick={refreshSpin.handleClick}
           disabled={refreshDisabled}
-          title={refreshTitle ?? t("common.refresh")}
+          title={formatTitleWithShortcut(refreshTitle ?? t("common.refresh"), refreshShortcut)}
         >
           <AppIcon icon={RefreshCw} size={iconSize} spin={refreshSpin.spinning} />
         </DetailIconButton>
@@ -128,6 +150,21 @@ export function FileDetailToolbar({
       {actionsBeforeEdit.filter((action) => !action.hidden).map((action) => (
         <ToolbarActionButton key={action.key} action={action} />
       ))}
+      {onToggleSplitPreview && !isMobile ? (
+        <DetailIconButton
+          type="button"
+          onClick={onToggleSplitPreview}
+          disabled={splitPreviewDisabled}
+          title={formatTitleWithShortcut(
+            splitPreview ? splitPreviewActiveTitle ?? t("common.hideSplitPreview") : splitPreviewTitle ?? t("common.splitPreview"),
+            splitPreviewShortcut,
+          )}
+          tone={splitPreview ? "accent" : "default"}
+          aria-pressed={splitPreview ? "true" : "false"}
+        >
+          <AppIcon icon={SquareSplitHorizontal} size={iconSize} />
+        </DetailIconButton>
+      ) : null}
       {hasEditFlow ? (
         editing ? (
           <>
@@ -135,7 +172,7 @@ export function FileDetailToolbar({
               <DetailIconButton
                 type="button"
                 onClick={onCancel}
-                title={cancelTitle ?? t("common.cancel")}
+                title={formatTitleWithShortcut(cancelTitle ?? t("common.cancel"), cancelShortcut)}
               >
                 {cancelIcon ?? <AppIcon icon={X} size={iconSize} />}
               </DetailIconButton>
@@ -145,7 +182,7 @@ export function FileDetailToolbar({
                 type="button"
                 onClick={onSave}
                 disabled={saveDisabled}
-                title={saveTitle ?? t("common.save")}
+                title={formatTitleWithShortcut(saveTitle ?? t("common.save"), saveShortcut)}
                 tone={saveTone}
               >
                 <AppIcon icon={Save} size={iconSize} />
@@ -157,7 +194,7 @@ export function FileDetailToolbar({
             type="button"
             onClick={onEdit}
             disabled={editDisabled}
-            title={editTitle ?? t("common.edit")}
+            title={formatTitleWithShortcut(editTitle ?? t("common.edit"), editShortcut)}
           >
             <AppIcon icon={Pencil} size={iconSize} />
           </DetailIconButton>
