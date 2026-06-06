@@ -29,6 +29,7 @@ import { useFileEditorState } from "../hooks/useFileEditorState";
 import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 
 interface ConversationMeta {
@@ -280,13 +281,18 @@ export default function ConversationsPage({
     loadMore,
   });
 
+  useListKeyboardNavigation({
+    active,
+    disabled: isMobile,
+    navPrev,
+    navNext,
+  });
+
   useEffect(() => {
     if (!active || isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (selectedFile) {
@@ -308,8 +314,6 @@ export default function ConversationsPage({
   }, [
     active,
     isMobile,
-    navPrev,
-    navNext,
     selectedFile,
     files,
     openFile,

@@ -18,6 +18,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
 import { relativeTime } from "../utils/time";
 import type { FavoriteContent, FavoriteEntry } from "../types/favorites";
 
@@ -142,6 +143,20 @@ export default function FavoritesPage({
       setContentLoading(false);
     }
   }, [showToast]);
+
+  const { navPrev, navNext } = useListNavigation({
+    items: favorites,
+    selectedKey: selectedTargetId,
+    getKey: (item) => item.target_id,
+    openItem: openFavorite,
+  });
+
+  useListKeyboardNavigation({
+    active,
+    disabled: isMobile,
+    navPrev,
+    navNext,
+  });
 
   const closeDetail = useCallback(() => {
     setSelectedTargetId(null);

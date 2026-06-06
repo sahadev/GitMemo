@@ -9,17 +9,17 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { DesktopSplitPane } from "../components/DesktopSplitPane";
-import { PageHeader } from "../components/AppHeaders";
+import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { MonoBlock } from "../components/base/MonoBlock";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
-import { PageFrame } from "../components/layout/PageFrame";
 import { useFileEditorState } from "../hooks/useFileEditorState";
+import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
@@ -76,6 +76,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const [entries, setEntries] = useState<EditorDirEntry[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState("");
+  const [focusedEntryRel, setFocusedEntryRel] = useState<string | null>(null);
   const [selectedFileRel, setSelectedFileRel] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [fileAbs, setFileAbs] = useState("");
@@ -114,8 +115,10 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     try {
       const list = await invoke<EditorDirEntry[]>("list_editor_directory", { root, rel });
       setEntries(list);
+      setFocusedEntryRel((current) => current && list.some((entry) => entry.rel_path === current) ? current : null);
     } catch (e) {
       setEntries([]);
+      setFocusedEntryRel(null);
       setListError(String(e));
     } finally {
       setListLoading(false);
@@ -123,6 +126,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   }, [root, rel]);
 
   const clearSelection = useCallback(() => {
+    setFocusedEntryRel(null);
     setSelectedFileRel(null);
     setFileContent("");
     setFileAbs("");
@@ -155,6 +159,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   }, [root, roots]);
 
   const openFile = useCallback(async (fileRel: string) => {
+    setFocusedEntryRel(fileRel);
     setSelectedFileRel(fileRel);
     setFileContent("");
     setFileError("");
@@ -271,10 +276,46 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   }, [root, rel, t, showToast, loadDir, clearSelection]);
 
   const selectedIsMarkdown = selectedFileRel ? isProbablyMarkdown(selectedFileRel) : false;
+  const selectedEntryKey = focusedEntryRel ?? selectedFileRel;
 
   const handleCancelEdit = useCallback(() => {
     cancelEdit(fileContent);
   }, [cancelEdit, fileContent]);
+
+  const openEntry = useCallback((entryRel: string, entry: EditorDirEntry) => {
+    setFocusedEntryRel(entryRel);
+    if (entry.is_dir) {
+      return;
+    }
+    void openFile(entryRel);
+  }, [openFile]);
+
+  const enterSelectedEntry = useCallback(() => {
+    const selectedEntry = selectedEntryKey
+      ? entries.find((entry) => entry.rel_path === selectedEntryKey)
+      : null;
+    if (!selectedEntry) return;
+    if (selectedEntry.is_dir) {
+      setRel(selectedEntry.rel_path);
+      clearSelection();
+      return;
+    }
+    void openFile(selectedEntry.rel_path);
+  }, [clearSelection, entries, openFile, selectedEntryKey]);
+
+  const { navPrev, navNext } = useListNavigation({
+    items: entries,
+    selectedKey: selectedEntryKey,
+    getKey: (entry) => entry.rel_path,
+    openItem: openEntry,
+  });
+
+  useListKeyboardNavigation({
+    active,
+    navPrev,
+    navNext,
+    onEnter: enterSelectedEntry,
+  });
 
   useEffect(() => {
     if (!openTarget) return;
@@ -299,12 +340,11 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
 
   const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
 
-  return (
-    <PageFrame column>
-      <PageHeader
+  const list = (
+    <ListPane>
+      <PaneHeader
         icon={FolderOpen}
         title={t("editorHome.title")}
-        subtitle={t("editorHome.subtitle")}
         actions={(
           <Button
             variant="toolbar"
@@ -315,190 +355,196 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
         )}
       />
 
-      <DesktopSplitPane
-        panelKey="editor-home"
-        left={(
-          <ListPane>
-            <div className="gm-segment-row">
-              {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
-                const exists = r === "claude"
-                  ? roots?.claude_exists
-                  : r === "cursor"
-                    ? roots?.cursor_exists
-                    : r === "codex"
-                      ? roots?.codex_exists
-                      : roots?.anonymous_exists;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    disabled={!exists}
-                    onClick={() => handleSwitchRoot(r)}
-                    className="gm-segment-button gm-segment-button-fluid"
-                    data-active={root === r ? "true" : "false"}
-                  >
-                    {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
-                  </button>
-                );
-              })}
-            </div>
+      <div className="gm-segment-row">
+        {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
+          const exists = r === "claude"
+            ? roots?.claude_exists
+            : r === "cursor"
+              ? roots?.cursor_exists
+              : r === "codex"
+                ? roots?.codex_exists
+                : roots?.anonymous_exists;
+          return (
+            <button
+              key={r}
+              type="button"
+              disabled={!exists}
+              onClick={() => handleSwitchRoot(r)}
+              className="gm-segment-button gm-segment-button-fluid"
+              data-active={root === r ? "true" : "false"}
+            >
+              {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
+            </button>
+          );
+        })}
+      </div>
 
-            <div className="gm-editor-path-row">
-              {rel ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
-                  icon={ChevronLeft}
-                >
-                  {t("editorHome.up")}
-                </Button>
-              ) : null}
-              <span className="gm-editor-path-text" title={rootPath || rel || "."}>
-                {rel || rootPath || "~"}
-              </span>
-            </div>
+      <div className="gm-editor-path-row">
+        {rel ? (
+          <Button
+            variant="secondary"
+            onClick={() => { setRel(parentRel(rel)); clearSelection(); }}
+            icon={ChevronLeft}
+          >
+            {t("editorHome.up")}
+          </Button>
+        ) : null}
+        <span className="gm-editor-path-text" title={rootPath || rel || "."}>
+          {rel || rootPath || "~"}
+        </span>
+      </div>
 
-            <div className="gm-editor-actions-row">
-              <Button
-                variant="secondary"
-                onClick={() => void handleCreateFile()}
-                disabled={!rootOk || creating}
-                icon={FilePlus2}
-                block
-              >
-                {t("editorHome.newFile")}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => void handleCreateFolder()}
-                disabled={!rootOk || creatingDir}
-                icon={FolderPlus}
-                block
-              >
-                {t("editorHome.newFolder")}
-              </Button>
-            </div>
+      <div className="gm-editor-actions-row">
+        <Button
+          variant="secondary"
+          onClick={() => void handleCreateFile()}
+          disabled={!rootOk || creating}
+          icon={FilePlus2}
+          block
+        >
+          {t("editorHome.newFile")}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => void handleCreateFolder()}
+          disabled={!rootOk || creatingDir}
+          icon={FolderPlus}
+          block
+        >
+          {t("editorHome.newFolder")}
+        </Button>
+      </div>
 
-            <ListPaneBody>
-              {!rootOk ? (
-                <EmptyState compact title={rootPath} description={t("editorHome.missingDir")} />
-              ) : listLoading ? (
-                <Loading compact text={t("dashboard.loading")} />
-              ) : listError ? (
-                <p className="gm-error-inline">{listError}</p>
-              ) : entries.length === 0 ? (
-                <EmptyState compact title={leftEmptyText} />
-              ) : (
-                entries.map((entry) => {
-                  const sel = selectedFileRel === entry.rel_path;
-                  return (
-                    <FileListItem
-                      key={entry.rel_path}
-                      onClick={() => {
-                        if (entry.is_dir) {
-                          setRel(entry.rel_path);
-                          clearSelection();
-                        } else {
-                          void openFile(entry.rel_path);
-                        }
-                      }}
-                      active={sel}
-                      icon={<AppIcon icon={entry.is_dir ? Folder : File} size="xs" />}
-                      title={entry.name}
-                    />
-                  );
-                })
-              )}
-            </ListPaneBody>
-          </ListPane>
-        )}
-        right={(
-          <DetailPane>
-            {!selectedFileRel ? (
-              <EmptyState
-                title={root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
-                description={t("editorHome.editableWarning")}
-                full
+      <ListPaneBody>
+        {!rootOk ? (
+          <EmptyState compact title={rootPath} description={t("editorHome.missingDir")} />
+        ) : listLoading ? (
+          <Loading compact text={t("dashboard.loading")} />
+        ) : listError ? (
+          <p className="gm-error-inline">{listError}</p>
+        ) : entries.length === 0 ? (
+          <EmptyState compact title={leftEmptyText} />
+        ) : (
+          entries.map((entry) => {
+            const sel = selectedEntryKey === entry.rel_path;
+            return (
+              <FileListItem
+                key={entry.rel_path}
+                onClick={() => {
+                  setFocusedEntryRel(entry.rel_path);
+                  if (entry.is_dir) {
+                    setRel(entry.rel_path);
+                    clearSelection();
+                  } else {
+                    void openFile(entry.rel_path);
+                  }
+                }}
+                active={sel}
+                icon={<AppIcon icon={entry.is_dir ? Folder : File} size="xs" />}
+                title={entry.name}
+                subtitle={entry.is_dir ? t("editorHome.folder") : undefined}
               />
-            ) : (
-              <>
-                <FileDetailToolbar
-                  title={selectedFileRel}
-                  titleText={fileAbs || selectedFileRel}
-                  active={active}
-                  onBack={clearSelection}
-                  onRefresh={handleRefresh}
-                  editing={editing}
-                  onEdit={startEdit}
-                  onSave={() => void handleSave()}
-                  onCancel={handleCancelEdit}
-                  editTitle={t("editorHome.edit")}
-                  saveTitle={t("editorHome.save")}
-                  cancelTitle={t("editorHome.cancel")}
-                  saveDisabled={saving}
-                  saveTone="accent"
-                  splitPreview={splitPreview}
-                  onToggleSplitPreview={selectedIsMarkdown ? toggleSplitPreview : undefined}
-                  metadata={selectedFileRel ? (
-                    <FavoriteButton
-                      absolutePath={fileAbs || undefined}
-                      active={active}
-                      title={selectedFileRel.split("/").pop()}
-                      sourceType="external"
-                    />
-                  ) : null}
-                  actionsAfterEdit={[
-                    {
-                      key: "delete",
-                      title: t("common.delete"),
-                      icon: <AppIcon icon={Trash2} size="xs" />,
-                      onClick: () => void handleDelete(),
-                      tone: "danger",
-                      hidden: editing,
-                    },
-                  ]}
-                  more={!editing && selectedFileRel ? (
-                    <FileMoreActionsMenu
-                      absolutePath={fileAbs || undefined}
-                      active={active}
-                      canExportPdf={isProbablyMarkdown(selectedFileRel)}
-                      exportContent={fileContent}
-                      exportTitle={selectedFileRel.split("/").pop()}
-                    />
-                  ) : null}
-                  density="compact"
-                />
-                {fileLoading || fileError ? (
-                  <DetailScroll>
-                    {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
-                    {!fileLoading && fileError ? (
-                      <p className="gm-error-inline">{fileError}</p>
-                    ) : null}
-                  </DetailScroll>
-                ) : (
-                  <FileEditorSurface
-                    editing={editing}
-                    value={editContent}
-                    onChange={setEditContent}
-                    onSave={handleSave}
-                    onCancel={handleCancelEdit}
-                    filePath={fileAbs || selectedFileRel}
-                    minHeight
-                    splitPreview={splitPreview}
-                    supportsSplitPreview={selectedIsMarkdown}
-                  >
-                    {selectedIsMarkdown ? (
-                      <MarkdownView content={fileContent} />
-                    ) : (
-                      <MonoBlock>{fileContent}</MonoBlock>
-                    )}
-                  </FileEditorSurface>
-                )}
-              </>
-            )}
-          </DetailPane>
+            );
+          })
         )}
-      />
-    </PageFrame>
+      </ListPaneBody>
+    </ListPane>
+  );
+
+  const detail = (
+    <DetailPane>
+      {!selectedFileRel ? (
+        <EmptyState
+          title={root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
+          description={t("editorHome.editableWarning")}
+          full
+        />
+      ) : (
+        <>
+          <FileDetailToolbar
+            title={selectedFileRel}
+            titleText={fileAbs || selectedFileRel}
+            active={active}
+            onBack={clearSelection}
+            onRefresh={handleRefresh}
+            editing={editing}
+            onEdit={startEdit}
+            onSave={() => void handleSave()}
+            onCancel={handleCancelEdit}
+            editTitle={t("editorHome.edit")}
+            saveTitle={t("editorHome.save")}
+            cancelTitle={t("editorHome.cancel")}
+            saveDisabled={saving}
+            saveTone="accent"
+            splitPreview={splitPreview}
+            onToggleSplitPreview={selectedIsMarkdown ? toggleSplitPreview : undefined}
+            metadata={selectedFileRel ? (
+              <FavoriteButton
+                absolutePath={fileAbs || undefined}
+                active={active}
+                title={selectedFileRel.split("/").pop()}
+                sourceType="external"
+              />
+            ) : null}
+            actionsAfterEdit={[
+              {
+                key: "delete",
+                title: t("common.delete"),
+                icon: <AppIcon icon={Trash2} size="xs" />,
+                onClick: () => void handleDelete(),
+                tone: "danger",
+                hidden: editing,
+              },
+            ]}
+            more={!editing && selectedFileRel ? (
+              <FileMoreActionsMenu
+                absolutePath={fileAbs || undefined}
+                active={active}
+                canExportPdf={isProbablyMarkdown(selectedFileRel)}
+                exportContent={fileContent}
+                exportTitle={selectedFileRel.split("/").pop()}
+              />
+            ) : null}
+            density="compact"
+          />
+          {fileLoading || fileError ? (
+            <DetailScroll>
+              {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
+              {!fileLoading && fileError ? (
+                <p className="gm-error-inline">{fileError}</p>
+              ) : null}
+            </DetailScroll>
+          ) : (
+            <FileEditorSurface
+              editing={editing}
+              value={editContent}
+              onChange={setEditContent}
+              onSave={handleSave}
+              onCancel={handleCancelEdit}
+              filePath={fileAbs || selectedFileRel}
+              minHeight
+              splitPreview={splitPreview}
+              supportsSplitPreview={selectedIsMarkdown}
+            >
+              {selectedIsMarkdown ? (
+                <MarkdownView content={fileContent} />
+              ) : (
+                <MonoBlock>{fileContent}</MonoBlock>
+              )}
+            </FileEditorSurface>
+          )}
+        </>
+      )}
+    </DetailPane>
+  );
+
+  return (
+    <FileWorkspace
+      panelKey="editor-home"
+      showList
+      showDetail
+      left={list}
+      right={detail}
+    />
   );
 }

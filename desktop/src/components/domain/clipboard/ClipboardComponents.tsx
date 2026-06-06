@@ -1,6 +1,7 @@
 import type {
   ButtonHTMLAttributes,
   HTMLAttributes,
+  KeyboardEvent,
   ReactNode,
   Ref,
 } from "react";
@@ -156,17 +157,42 @@ export function ClipboardEmptyState({
 export function ClipboardClipItem({
   active,
   selecting,
+  interactive = false,
   children,
+  className,
+  refNode,
+  onClick,
+  onKeyDown,
+  role,
+  tabIndex,
   ...props
 }: ChildrenProps & HTMLAttributes<HTMLDivElement> & {
   active: boolean;
   selecting: boolean;
+  interactive?: boolean;
+  refNode?: Ref<HTMLDivElement>;
 }) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented || !interactive) return;
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    event.currentTarget.click();
+  };
+
   return (
     <div
-      className="gm-clipboard-clip-item"
+      ref={refNode}
+      className={cx("gm-clipboard-clip-item", className)}
       data-active={active ? "true" : "false"}
+      data-interactive={interactive ? "true" : "false"}
       data-selecting={selecting ? "true" : "false"}
+      role={interactive ? "button" : role}
+      tabIndex={interactive ? 0 : tabIndex}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
       {...props}
     >
       {children}
@@ -200,25 +226,24 @@ export function ClipboardSelectionToggle({
   );
 }
 
-export function ClipboardClipButton({
+export function ClipboardClipContent({
   mobile,
   children,
   refNode,
   ...props
-}: ChildrenProps & ButtonHTMLAttributes<HTMLButtonElement> & {
+}: ChildrenProps & HTMLAttributes<HTMLDivElement> & {
   mobile: boolean;
-  refNode?: Ref<HTMLButtonElement>;
+  refNode?: Ref<HTMLDivElement>;
 }) {
   return (
-    <button
-      type="button"
+    <div
       ref={refNode}
-      className="gm-clipboard-clip-button"
+      className="gm-clipboard-clip-content"
       data-mobile={mobile ? "true" : "false"}
       {...props}
     >
       {children}
-    </button>
+    </div>
   );
 }
 

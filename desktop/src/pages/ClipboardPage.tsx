@@ -26,11 +26,12 @@ import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult } from "../types/notes";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import {
   ClipboardClipActionButton,
-  ClipboardClipButton,
+  ClipboardClipContent,
   ClipboardClipItem,
   ClipboardClipMetaRow,
   ClipboardClipMetaSpacer,
@@ -142,7 +143,7 @@ export default function ClipboardPage({
   const [creatingNote, setCreatingNote] = useState(false);
   const { copied: copiedId, markCopied: markCopiedId } = useTimedCopy<string>();
   const [deletingSelected, setDeletingSelected] = useState(false);
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement | null>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
   const multiSelectModeRef = useRef(false);
@@ -468,24 +469,27 @@ export default function ClipboardPage({
     loadMore,
   });
 
+  useListKeyboardNavigation({
+    active,
+    disabled: isMobile || multiSelectMode,
+    navPrev,
+    navNext,
+  });
+
   useEffect(() => {
-    if (!active || isMobile) return;
+    if (!active || isMobile || !multiSelectMode) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === "Escape" && multiSelectMode) {
-        e.preventDefault();
-        setMultiSelectMode(false);
-        setSelectedClipPaths([]);
-        return;
-      }
-      if (multiSelectMode) return;
-      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
+      if (e.key !== "Escape") return;
+
+      e.preventDefault();
+      setMultiSelectMode(false);
+      setSelectedClipPaths([]);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, isMobile, multiSelectMode, navPrev, navNext]);
+  }, [active, isMobile, multiSelectMode]);
 
   const copyContent = useCallback(async (content: string, copiedKey = "detail") => {
     try {
@@ -758,8 +762,26 @@ export default function ClipboardPage({
                         key={file.path}
                         active={active}
                         selecting={multiSelectMode}
+                        interactive
+                        refNode={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
                         onClick={() => {
-                          if (multiSelectMode) toggleClipSelection(file.path);
+                          if (multiSelectMode) {
+                            toggleClipSelection(file.path);
+                            return;
+                          }
+                          void openFile(file.path);
+                        }}
+                        onContextMenu={(e) => {
+                          if (!isMobile || multiSelectMode) return;
+                          e.preventDefault();
+                          clearDetail();
+                          setMultiSelectMode(true);
+                          toggleClipSelection(file.path);
+                        }}
+                        onDoubleClick={(e) => {
+                          if (multiSelectMode) return;
+                          e.preventDefault();
+                          void copyClipContent(file.path);
                         }}
                       >
                         {multiSelectMode && (
@@ -775,24 +797,8 @@ export default function ClipboardPage({
                             }}
                           />
                         )}
-                        <ClipboardClipButton
+                        <ClipboardClipContent
                           mobile={isMobile}
-                          refNode={(el) => { if (el) itemRefs.current.set(file.path, el); else itemRefs.current.delete(file.path); }}
-                          onClick={() => {
-                            if (!multiSelectMode) void openFile(file.path);
-                          }}
-                          onContextMenu={(e) => {
-                            if (!isMobile || multiSelectMode) return;
-                            e.preventDefault();
-                            clearDetail();
-                            setMultiSelectMode(true);
-                            toggleClipSelection(file.path);
-                          }}
-                          onDoubleClick={(e) => {
-                            if (multiSelectMode) return;
-                            e.preventDefault();
-                            void copyClipContent(file.path);
-                          }}
                         >
                           <ClipboardClipPreviewWrap>
                             {file.preview_image ? (
@@ -801,7 +807,7 @@ export default function ClipboardPage({
                               <ClipboardClipText>{file.preview || file.name}</ClipboardClipText>
                             )}
                           </ClipboardClipPreviewWrap>
-                        </ClipboardClipButton>
+                        </ClipboardClipContent>
                         <ClipboardClipMetaRow mobile={isMobile}>
                           <ClipboardClipMetaText>{relativeTime(file.modified, t)}</ClipboardClipMetaText>
                           {file.preview_image ? <ClipboardClipMetaText muted>{file.name}</ClipboardClipMetaText> : null}

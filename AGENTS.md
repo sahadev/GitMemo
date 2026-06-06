@@ -23,6 +23,10 @@ Follow existing local style. Rust uses standard `rustfmt` conventions, `snake_ca
 
 All new code should be decomposed into small, atomic units and assembled through composition. For visual work, use the existing base design tokens as the source of truth; derive higher-level tokens or component styles from those base tokens instead of hard-coding near-duplicates. For React/TypeScript work, extract similar behavior into shared components, hooks, or utilities before copying patterns across pages. When touching existing code, if you encounter obvious similar or redundant logic in the same area, refactor it into shared code as part of the change rather than leaving another copy behind.
 
+## Interactive State & Persistence
+
+For continuous interactions such as dragging sliders, resizing panes, sorting, scrubbing, or pointer-driven adjustments, separate transient draft state from durable application state. Update local component state during the gesture so the UI stays responsive, and commit persistence, Tauri commands, global store refreshes, expensive recomputation, or storage writes only when the user releases, blurs, confirms, or otherwise completes the interaction. Avoid putting network/native calls, `refreshSettings()`, large `sessionStorage` writes, or repeated `localStorage` writes directly in high-frequency handlers like `onChange`, `mousemove`, `pointermove`, or drag callbacks.
+
 ## Testing Guidelines
 
 Rust tests are mostly inline `#[cfg(test)]` modules next to the code they validate. Add focused tests when changing storage, sync, datetime parsing, MCP, or search behavior. For frontend changes, run the relevant build command at minimum; add manual verification notes for desktop/mobile UI behavior, especially Android navigation, clipboard, sync, and download flows.

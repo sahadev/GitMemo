@@ -26,6 +26,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 
 export default function PlansPage({
@@ -146,22 +147,12 @@ export default function PlansPage({
     }
   }, [isMobile, selectedFile, files, t, showToast, openFile, loadFiles]);
 
-  useEffect(() => {
-    if (!active || isMobile) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
+  useListKeyboardNavigation({
     active,
-    isMobile,
+    disabled: isMobile,
     navPrev,
     navNext,
-  ]);
+  });
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;

@@ -1,8 +1,8 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -220,6 +220,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [mobileGitRunning, setMobileGitRunning] = useState(false);
   const [mobileGitResult, setMobileGitResult] = useState<MobileGitSpikeResult | null>(null);
   const [savingImportLimit, setSavingImportLimit] = useState(false);
+  const [importFileSizeLimitDraftKb, setImportFileSizeLimitDraftKb] = useState(IMPORT_SIZE_LIMIT_DEFAULT_KB);
+  const savingImportLimitValueRef = useRef<number | null>(null);
+  const [shortcutsExpanded, setShortcutsExpanded] = useState(false);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -232,6 +235,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   useEffect(() => {
     setShortcutDrafts(withDefaultShortcuts(settings?.shortcuts));
   }, [settings?.shortcuts]);
+
+  useEffect(() => {
+    setImportFileSizeLimitDraftKb(settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB);
+  }, [settings?.import_file_size_limit_kb]);
 
   const openChangelog = async () => {
     try {
@@ -298,6 +305,10 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
   const setImportFileSizeLimit = async (kb: number) => {
     const nextKb = Math.max(IMPORT_SIZE_LIMIT_MIN_KB, Math.min(IMPORT_SIZE_LIMIT_MAX_KB, Math.round(kb)));
+    if (nextKb === (settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB)) return;
+    if (savingImportLimitValueRef.current === nextKb) return;
+
+    savingImportLimitValueRef.current = nextKb;
     setSavingImportLimit(true);
     try {
       await invoke<string>("set_import_file_size_limit_kb", { kb: nextKb });
@@ -305,6 +316,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
+      savingImportLimitValueRef.current = null;
       setSavingImportLimit(false);
     }
   };
@@ -601,6 +613,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     defaultDetail: t("settings.mobileDiagnosticDefaultDetail"),
   });
   const importFileSizeLimitKb = settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB;
+  const displayedImportFileSizeLimitKb = importFileSizeLimitDraftKb;
   const cliStatusLabel = !cliStatus
     ? t("settings.cliChecking")
     : cliStatus.installed
@@ -674,10 +687,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   min={IMPORT_SIZE_LIMIT_MIN_KB}
                   max={IMPORT_SIZE_LIMIT_MAX_KB}
                   step={100}
-                  value={importFileSizeLimitKb}
-                  valueLabel={formatImportSizeLimit(importFileSizeLimitKb)}
-                  onChange={(e) => void setImportFileSizeLimit(Number(e.target.value))}
-                  disabled={savingImportLimit}
+                  value={displayedImportFileSizeLimitKb}
+                  valueLabel={formatImportSizeLimit(displayedImportFileSizeLimitKb)}
+                  onChange={(e) => setImportFileSizeLimitDraftKb(Number(e.target.value))}
+                  onPointerUp={(e) => void setImportFileSizeLimit(Number(e.currentTarget.value))}
+                  onBlur={(e) => void setImportFileSizeLimit(Number(e.currentTarget.value))}
+                  onKeyUp={(e) => {
+                    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") {
+                      void setImportFileSizeLimit(Number(e.currentTarget.value));
+                    }
+                  }}
+                  aria-busy={savingImportLimit}
                   aria-label={t("settings.importFileSizeLimit")}
                 />
               </SettingsRow>
@@ -1019,47 +1039,61 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               title={t("settings.shortcuts")}
               description={t("settings.shortcutsDesc")}
               actions={(
-                <SettingsActionButton
-                  icon={RotateCcw}
-                  variant="ghost"
-                  disabled={savingShortcut !== null}
-                  onClick={resetAllShortcuts}
-                >
-                  {t("settings.resetShortcuts")}
-                </SettingsActionButton>
+                <SettingsControlGroup>
+                  <SettingsActionButton
+                    icon={shortcutsExpanded ? ChevronDown : ChevronRight}
+                    variant="ghost"
+                    onClick={() => setShortcutsExpanded((expanded) => !expanded)}
+                    aria-expanded={shortcutsExpanded}
+                  >
+                    {shortcutsExpanded ? t("settings.collapseShortcuts") : t("settings.expandShortcuts")}
+                  </SettingsActionButton>
+                  {shortcutsExpanded && (
+                    <SettingsActionButton
+                      icon={RotateCcw}
+                      variant="ghost"
+                      disabled={savingShortcut !== null}
+                      onClick={resetAllShortcuts}
+                    >
+                      {t("settings.resetShortcuts")}
+                    </SettingsActionButton>
+                  )}
+                </SettingsControlGroup>
               )}
             />
-            <SettingsSubStack>
-              {shortcutRows.map((row) => {
-                const recording = recordingShortcut === row.id;
-                const saving = savingShortcut === row.id || savingShortcut === "all";
-                return (
-                  <SettingsPlainRow
-                    key={row.id}
-                    title={t(row.labelKey)}
-                    description={t(row.descKey)}
-                  >
-                    <SettingsControlGroup>
-                      <SettingsActionButton
-                        data-shortcut-recorder="true"
-                        variant={recording ? "secondary" : "ghost"}
-                        onClick={() => setRecordingShortcut(row.id)}
-                        onKeyDown={(e) => captureShortcut(row.id, e)}
-                        disabled={saving}
-                      >
-                        {recording ? t("settings.pressShortcut") : formatShortcut(shortcutDrafts[row.id])}
-                      </SettingsActionButton>
-                      <SettingsIconButton
-                        icon={RotateCcw}
-                        onClick={() => resetShortcut(row.id)}
-                        disabled={saving}
-                        title={t("settings.resetShortcut")}
-                      />
-                    </SettingsControlGroup>
-                  </SettingsPlainRow>
-                );
-              })}
-            </SettingsSubStack>
+            {shortcutsExpanded && (
+              <SettingsSubStack>
+                {shortcutRows.map((row) => {
+                  const recording = recordingShortcut === row.id;
+                  const saving = savingShortcut === row.id || savingShortcut === "all";
+                  return (
+                    <SettingsPlainRow
+                      key={row.id}
+                      title={t(row.labelKey)}
+                      description={t(row.descKey)}
+                    >
+                      <SettingsControlGroup>
+                        <SettingsActionButton
+                          data-shortcut-recorder="true"
+                          variant={recording ? "secondary" : "ghost"}
+                          onClick={() => setRecordingShortcut(row.id)}
+                          onKeyDown={(e) => captureShortcut(row.id, e)}
+                          disabled={saving}
+                        >
+                          {recording ? t("settings.pressShortcut") : formatShortcut(shortcutDrafts[row.id])}
+                        </SettingsActionButton>
+                        <SettingsIconButton
+                          icon={RotateCcw}
+                          onClick={() => resetShortcut(row.id)}
+                          disabled={saving}
+                          title={t("settings.resetShortcut")}
+                        />
+                      </SettingsControlGroup>
+                    </SettingsPlainRow>
+                  );
+                })}
+              </SettingsSubStack>
+            )}
           </SettingsStack>
         </SettingsCard>
       )}

@@ -16,6 +16,7 @@ import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { type FileEntry } from "../types/files";
@@ -140,17 +141,11 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
     openFile,
   });
 
-  useEffect(() => {
-    if (!active) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, navPrev, navNext]);
+  useListKeyboardNavigation({
+    active,
+    navPrev,
+    navNext,
+  });
 
   const TabIcon = tabs.find((t) => t.id === activeTab)?.icon ?? Brain;
 

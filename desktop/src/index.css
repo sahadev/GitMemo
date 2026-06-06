@@ -142,7 +142,8 @@
   --gm-size-mobile-bottom-content-offset: 44px;
   --gm-size-mobile-dashboard-bottom-offset: 96px;
   --gm-size-mobile-selection-bottom-offset: 100px;
-  --gm-size-settings-row-icon-offset: calc(var(--gm-icon-sm) + var(--gm-nav-item-gap));
+  --gm-settings-row-icon-gap: var(--gm-space-4);
+  --gm-size-settings-row-icon-offset: calc(var(--gm-icon-sm) + var(--gm-settings-row-icon-gap));
   --gm-size-settings-input-branch: 120px;
   --gm-size-settings-input-proxy: 320px;
   --gm-size-settings-input-remote: 280px;
@@ -1111,8 +1112,13 @@ a:focus-visible {
   border-left-color: var(--accent);
 }
 
-.gm-clipboard-clip-item[data-selecting="true"] {
+.gm-clipboard-clip-item[data-interactive="true"] {
   cursor: pointer;
+}
+
+.gm-clipboard-clip-item[data-interactive="true"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: -2px;
 }
 
 .gm-clipboard-selection-toggle {
@@ -1165,11 +1171,9 @@ a:focus-visible {
   color: var(--accent);
 }
 
-.gm-clipboard-clip-button {
+.gm-clipboard-clip-content {
   background: transparent;
-  border: none;
   color: inherit;
-  cursor: pointer;
   display: block;
   padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x) var(--gm-space-2);
   position: relative;
@@ -1177,7 +1181,7 @@ a:focus-visible {
   width: 100%;
 }
 
-.gm-clipboard-clip-button[data-mobile="true"] {
+.gm-clipboard-clip-content[data-mobile="true"] {
   padding: var(--gm-card-pad-mobile) var(--gm-list-row-pad-x) var(--gm-icon-text-gap);
 }
 
@@ -3603,7 +3607,7 @@ a:focus-visible {
   align-items: center;
   display: flex;
   flex: 1;
-  gap: var(--gm-nav-item-gap);
+  gap: var(--gm-settings-row-icon-gap);
   min-width: 0;
 }
 
@@ -3622,7 +3626,7 @@ a:focus-visible {
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
   line-height: var(--gm-leading-normal);
-  margin-top: var(--gm-space-1);
+  margin-top: var(--gm-space-2);
 }
 
 .gm-settings-row-status {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useListNavigation } from "./useListNavigation";
 
 interface UseFileListNavigationOptions<T extends { path: string }> {
   files: T[];
@@ -19,52 +19,14 @@ export function useFileListNavigation<T extends { path: string }>({
   loadMore,
   selectFromEmpty = false,
 }: UseFileListNavigationOptions<T>) {
-  const pendingNextIndexRef = useRef<number | null>(null);
-
-  const navPrev = useCallback(() => {
-    if (files.length === 0) return;
-    if (!selectedPath) {
-      if (selectFromEmpty) void openFile(files[files.length - 1].path);
-      return;
-    }
-    const idx = files.findIndex((f) => f.path === selectedPath);
-    if (idx > 0) void openFile(files[idx - 1].path);
-  }, [files, openFile, selectFromEmpty, selectedPath]);
-
-  const navNext = useCallback(() => {
-    if (files.length === 0) return;
-    if (!selectedPath) {
-      if (selectFromEmpty) void openFile(files[0].path);
-      return;
-    }
-    const idx = files.findIndex((f) => f.path === selectedPath);
-    if (idx < 0) return;
-    if (idx < files.length - 1) {
-      void openFile(files[idx + 1].path);
-      return;
-    }
-    if (hasMore && !loadingMore && loadMore) {
-      pendingNextIndexRef.current = idx + 1;
-      loadMore();
-    }
-  }, [files, hasMore, loadMore, loadingMore, openFile, selectFromEmpty, selectedPath]);
-
-  useEffect(() => {
-    const pendingIndex = pendingNextIndexRef.current;
-    if (pendingIndex === null) return;
-    if (files.length > pendingIndex) {
-      pendingNextIndexRef.current = null;
-      void openFile(files[pendingIndex].path);
-      return;
-    }
-    if (!hasMore && !loadingMore) {
-      pendingNextIndexRef.current = null;
-    }
-  }, [files, hasMore, loadingMore, openFile]);
-
-  const resetPendingNavigation = useCallback(() => {
-    pendingNextIndexRef.current = null;
-  }, []);
-
-  return { navPrev, navNext, resetPendingNavigation };
+  return useListNavigation({
+    items: files,
+    selectedKey: selectedPath,
+    getKey: (file) => file.path,
+    openItem: openFile,
+    hasMore,
+    loadingMore,
+    loadMore,
+    selectFromEmpty,
+  });
 }

@@ -30,6 +30,7 @@ import { type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult, type SavedAttachment } from "../types/notes";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
@@ -253,28 +254,13 @@ export default function NotesPage({
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
 
-  useEffect(() => {
-    if (!active || isMobile) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
-      const isArrowNavigation = e.key === "ArrowUp" || e.key === "ArrowDown";
-      const target = e.target;
-      const isQuickNoteTextarea = target === textareaRef.current;
-      if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
-        if (!isArrowNavigation || !isQuickNoteTextarea || newNote.trim()) return;
-      }
-      if (e.key === "ArrowUp") { e.preventDefault(); navPrev(); }
-      if (e.key === "ArrowDown") { e.preventDefault(); navNext(); }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
+  useListKeyboardNavigation({
     active,
-    isMobile,
+    disabled: isMobile,
     navPrev,
     navNext,
-    newNote,
-  ]);
+    allowFromEditable: (event) => event.target === textareaRef.current && !newNote.trim(),
+  });
 
   const showList = !isMobile || !selectedFile;
   const showDetail = !isMobile || !!selectedFile;
