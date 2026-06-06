@@ -7,9 +7,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import {
   emitNotificationNavigate,
-  installNotificationFocusFallback,
   isNotificationNavigateTarget,
-  rememberNotificationNavigateTarget,
   type NotificationNavigateTarget,
 } from "./notificationNavigation";
 
@@ -56,13 +54,11 @@ export function initNotificationListeners() {
   if (notificationListenersInitialized) return;
   notificationListenersInitialized = true;
 
-  installNotificationFocusFallback();
-
   void onAction((event: unknown) => {
     const target = extractNotificationTarget(event);
     if (target) emitNotificationNavigate(target);
   }).catch(() => {
-    // Desktop notification clicks are handled by the focus fallback above.
+    // Native macOS notification clicks are handled by the Rust delegate.
   });
 }
 
@@ -99,7 +95,6 @@ export async function notify(title: string, body?: string, options?: NotifyOptio
   lastNotification = { title, body: normalizedBody, at: now };
   const ok = await ensurePermission();
   if (!ok) return;
-  if (options?.target) rememberNotificationNavigateTarget(options.target);
   try {
     await invoke("send_desktop_notification", {
       title,

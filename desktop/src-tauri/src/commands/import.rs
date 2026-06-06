@@ -153,6 +153,11 @@ fn is_supported_directory_import_file(path: &Path) -> bool {
     )
 }
 
+fn read_text_lossy(path: &Path) -> Result<String, String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("Failed to read file: {}", e))?;
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
 /// Process a single dropped file: copy to correct location, optionally wrap in markdown
 fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile, String> {
     let source = Path::new(source_path);
@@ -204,8 +209,7 @@ fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile
     match &category {
         FileCategory::Markdown => {
             // Read text content and wrap with frontmatter
-            let content = std::fs::read_to_string(source)
-                .map_err(|e| format!("Failed to read file: {}", e))?;
+            let content = read_text_lossy(source)?;
 
             let title = source
                 .file_stem()
@@ -246,7 +250,7 @@ fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile
         }
         FileCategory::Code => {
             // Code files → wrap in markdown with code fence
-            let content = std::fs::read_to_string(source)
+            let content = read_text_lossy(source)
                 .unwrap_or_else(|_| "[binary or unreadable]".to_string());
 
             let lang = &ext;

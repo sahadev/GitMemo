@@ -60,15 +60,17 @@
         "role": "Editor",
         "mimeType": "text/markdown",
         "contentTypes": [
-          "net.daringfireball.markdown"
+          "net.daringfireball.markdown",
+          "public.plain-text"
         ]
       },
       {
         "ext": [
-          "mdx"
+          "mdx",
+          "mdc"
         ],
-        "name": "GitMemo MDX Document",
-        "description": "Open MDX files in GitMemo",
+        "name": "GitMemo Markdown-Like Document",
+        "description": "Open Markdown-like files in GitMemo",
         "role": "Editor",
         "mimeType": "text/markdown",
         "contentTypes": [

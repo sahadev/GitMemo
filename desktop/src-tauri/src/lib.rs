@@ -144,16 +144,10 @@ fn emit_external_open(app: &AppHandle, file_path: String) {
     let _ = app.emit("system-open-file", file_path);
 }
 
-fn flush_pending_external_open(app: &AppHandle, pending: &State<PendingExternalOpen>) {
-    let paths = {
-        let mut state = pending.0.lock().unwrap();
-        state.frontend_ready = true;
-        std::mem::take(&mut state.paths)
-    };
-
-    for path in paths {
-        emit_external_open(app, path);
-    }
+fn take_pending_external_open(pending: &State<PendingExternalOpen>) -> Vec<String> {
+    let mut state = pending.0.lock().unwrap();
+    state.frontend_ready = true;
+    std::mem::take(&mut state.paths)
 }
 
 fn emit_or_queue_external_open(
@@ -177,8 +171,8 @@ fn emit_or_queue_external_open(
 }
 
 #[tauri::command]
-fn app_ready(app: AppHandle, pending: State<PendingExternalOpen>) {
-    flush_pending_external_open(&app, &pending);
+fn app_ready(pending: State<PendingExternalOpen>) -> Vec<String> {
+    take_pending_external_open(&pending)
 }
 
 #[tauri::command]

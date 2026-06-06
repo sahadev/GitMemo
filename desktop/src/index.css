@@ -2255,8 +2255,35 @@ a:focus-visible {
   padding: 0;
 }
 
+.gm-detail-scroll-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gm-detail-scroll-editor > .gm-code-textarea {
+  box-sizing: border-box;
+  flex: 1 0 auto;
+  min-height: 100%;
+  width: 100%;
+}
+
 .gm-detail-scroll-mobile-pad {
   padding: var(--gm-detail-pad-mobile-y) var(--gm-detail-pad-mobile-x) var(--gm-mobile-bottom-content-padding);
+}
+
+.gm-external-file-preview-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gm-external-file-preview-scroll > .markdown-body,
+.gm-external-file-preview-scroll > .gm-mono-block {
+  box-sizing: border-box;
+  flex: 1 0 auto;
+  min-height: 100%;
+  width: 100%;
 }
 
 .gm-file-detail-toolbar {

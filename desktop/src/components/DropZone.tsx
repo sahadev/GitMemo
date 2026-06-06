@@ -69,7 +69,7 @@ function formatSizeLimitFromKb(kb: number): string {
 
 function isOpenableByGitMemo(name: string) {
   const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc") || lower.endsWith(".txt");
+  return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc") || lower.endsWith(".txt");
 }
 
 function describeDrop(paths: string[], t: (key: string, ...args: (string | number)[]) => string) {

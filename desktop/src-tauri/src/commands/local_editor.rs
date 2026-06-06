@@ -144,7 +144,12 @@ fn is_supported_external_file(abs_path: &Path) -> bool {
     abs_path
         .extension()
         .and_then(OsStr::to_str)
-        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "md" | "mdx" | "txt"))
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "md" | "markdown" | "mdx" | "mdc" | "txt"
+            )
+        })
         .unwrap_or(false)
 }
 
@@ -470,6 +475,16 @@ pub fn classify_external_open_target(file_path: String) -> Result<ExternalOpenTa
         }
     }
 
+    if is_supported_external_file(&abs_path) {
+        return Ok(ExternalOpenTarget {
+            kind: "external-file".into(),
+            page: Some("external-files".into()),
+            root: None,
+            rel_path: None,
+            file_path: abs_path.to_string_lossy().into(),
+        });
+    }
+
     if let Some((root_name, root_dir)) = detect_editor_root(&abs_path)? {
         let rel_path = abs_path
             .strip_prefix(&root_dir)
@@ -481,16 +496,6 @@ pub fn classify_external_open_target(file_path: String) -> Result<ExternalOpenTa
             page: Some("editor-home".into()),
             root: Some(root_name.into()),
             rel_path: Some(rel_path),
-            file_path: abs_path.to_string_lossy().into(),
-        });
-    }
-
-    if is_supported_external_file(&abs_path) {
-        return Ok(ExternalOpenTarget {
-            kind: "external-file".into(),
-            page: Some("external-files".into()),
-            root: None,
-            rel_path: None,
             file_path: abs_path.to_string_lossy().into(),
         });
     }

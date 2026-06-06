@@ -62,7 +62,7 @@ interface ExternalFileOpenTarget {
 
 function isProbablyMarkdown(name: string) {
   const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
+  return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
 }
 
 export default function ExternalFilesPage({
@@ -146,22 +146,22 @@ export default function ExternalFilesPage({
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
-    startEdit({ content: "", focus: false });
+    resetEditor();
     try {
       const result = await invoke<ExternalFileOpenResult>("open_external_file", { filePath });
       setSelectedFilePath(result.entry.file_path);
       setFileContent(result.content);
-      setEditContent(result.content);
+      resetEditor(result.content);
       upsertEntry(result.entry);
       void loadEntries();
     } catch (e) {
       setFileContent("");
-      setEditContent("");
+      resetEditor();
       setFileError(String(e));
     } finally {
       setFileLoading(false);
     }
-  }, [loadEntries, setEditContent, startEdit, upsertEntry]);
+  }, [loadEntries, resetEditor, upsertEntry]);
 
   useEffect(() => {
     void loadEntries();
@@ -387,6 +387,14 @@ export default function ExternalFilesPage({
                     <p className="gm-error-inline">{fileError}</p>
                   ) : null}
                 </DetailScroll>
+              ) : !editing ? (
+                <DetailScroll selectable className="gm-external-file-preview-scroll">
+                  {selectedIsMarkdown ? (
+                    <MarkdownView content={fileContent} />
+                  ) : (
+                    <MonoBlock>{fileContent}</MonoBlock>
+                  )}
+                </DetailScroll>
               ) : (
                 <FileEditorSurface
                   editing={editing}
@@ -396,16 +404,10 @@ export default function ExternalFilesPage({
                   onCancel={cancelEdit}
                   filePath={selectedEntry.file_path}
                   mobile={isMobile}
-                  minHeight
+                  minHeight={editing}
                   splitPreview={splitPreview}
                   supportsSplitPreview={selectedIsMarkdown}
-                >
-                  {selectedIsMarkdown ? (
-                    <MarkdownView content={fileContent} />
-                  ) : (
-                    <MonoBlock>{fileContent}</MonoBlock>
-                  )}
-                </FileEditorSurface>
+                />
               )}
             </>
             </DetailPane>

@@ -103,11 +103,13 @@ function App() {
   const mobileHistoryGuardActiveRef = useRef(false);
   const performMobileBackRef = useRef<() => boolean>(() => false);
   const routeNotificationTargetRef = useRef<(target: NotificationNavigateTarget) => void>(() => {});
+  const initializedRef = useRef<boolean | null>(initialized);
+  const routeExternalFileRef = useRef<(filePath: string) => Promise<boolean>>(async () => false);
   const mobileTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useEffect(() => {
-    void invoke("app_ready").catch(() => {});
-  }, []);
+    initializedRef.current = initialized;
+  }, [initialized]);
 
   // Lazy-mount: track visited pages so they stay mounted once opened
   useEffect(() => {
@@ -313,6 +315,10 @@ function App() {
     return false;
   }, [isDesktop, setAiRecordsTab, setPendingOpenPath]);
 
+  useEffect(() => {
+    routeExternalFileRef.current = routeExternalFile;
+  }, [routeExternalFile]);
+
   // Derive initialization state from global gitStatus
   useEffect(() => {
     if (gitStatus) {
@@ -328,6 +334,44 @@ function App() {
   }, [initialized, deferredSystemFilePath, routeExternalFile]);
 
   const focusSidebar = useCallback(() => setSidebarFocused(true), []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    let cancelled = false;
+    const handleOpenFile = ({ payload }: { payload: string | { filePath?: string } }) => {
+      const filePath = typeof payload === "string" ? payload : payload?.filePath;
+      if (!filePath) return;
+      if (initializedRef.current === false) {
+        setDeferredSystemFilePath(filePath);
+        return;
+      }
+      void routeExternalFileRef.current(filePath);
+    };
+
+    const unlistenSystemOpen = listen<string>("system-open-file", handleOpenFile);
+    const unlistenQuickPasteOpenFile = listen<{ filePath?: string }>(
+      "quick-paste-open-file",
+      handleOpenFile,
+    );
+
+    unlistenSystemOpen
+      .then(async () => {
+        if (cancelled) return;
+        const pending = await invoke<string[]>("app_ready").catch(() => []);
+        if (cancelled) return;
+        for (const filePath of pending) {
+          handleOpenFile({ payload: filePath });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      unlistenSystemOpen.then((fn) => fn());
+      unlistenQuickPasteOpenFile.then((fn) => fn());
+    };
+  }, [isDesktop]);
 
   // Intercept link clicks to open in external browser
   useEffect(() => {
@@ -355,20 +399,8 @@ function App() {
       navigateAndFocus(page);
     };
 
-    const handleOpenFile = ({ payload }: { payload: string | { filePath?: string } }) => {
-      const filePath = typeof payload === "string" ? payload : payload?.filePath;
-      if (!filePath) return;
-      if (initialized === false) {
-        setDeferredSystemFilePath(filePath);
-        return;
-      }
-      void routeExternalFile(filePath);
-    };
-
     const unlistenSearch = listen("global-shortcut-search", () => navigateAndFocus("search"));
     const unlistenClip = listen("tray-toggle-clipboard", () => setCurrentPage("clipboard"));
-    const unlistenSystemOpen = listen<string>("system-open-file", handleOpenFile);
-    const unlistenQuickPasteOpenFile = listen<{ filePath?: string }>("quick-paste-open-file", handleOpenFile);
     const unlistenQuickPasteOpenPage = listen<{ page?: string }>("quick-paste-open-page", handleOpenPage);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -416,11 +448,9 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
       unlistenSearch.then((fn) => fn());
       unlistenClip.then((fn) => fn());
-      unlistenSystemOpen.then((fn) => fn());
-      unlistenQuickPasteOpenFile.then((fn) => fn());
       unlistenQuickPasteOpenPage.then((fn) => fn());
     };
-  }, [navigateAndFocus, sidebarFocused, initialized, routeExternalFile, shortcuts]);
+  }, [isDesktop, navigateAndFocus, sidebarFocused, shortcuts]);
 
   const handleExternalFileTargetConsumed = useCallback(() => {
     setExternalFileOpenTarget(null);

@@ -30,7 +30,7 @@ interface FileEditorProps {
 
 interface FileEditorSurfaceProps extends FileEditorProps {
   editing: boolean;
-  children: ReactNode;
+  children?: ReactNode;
   mobileBottomPadding?: boolean;
   selectable?: boolean;
   scrollClassName?: string;
@@ -120,7 +120,11 @@ export const FileEditorSurface = forwardRef<HTMLTextAreaElement, FileEditorSurfa
     <DetailScroll
       mobileBottomPadding={mobileBottomPadding}
       selectable={selectable}
-      className={cx(scrollClassName, splitActive && "gm-detail-scroll-split")}
+      className={cx(
+        scrollClassName,
+        editing && !splitActive && "gm-detail-scroll-editor",
+        splitActive && "gm-detail-scroll-split",
+      )}
     >
       {editing ? (
         <FileEditor
