@@ -4,7 +4,6 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { MessageSquare, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
@@ -14,10 +13,11 @@ import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { ConversationMessageCard } from "../components/domain/conversations/ConversationMessageCard";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
-import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
@@ -25,6 +25,7 @@ import { formatDateOnly, relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
@@ -131,10 +132,24 @@ export default function ConversationsPage({
   const [rawContent, setRawContent] = useState("");
   const [rawBody, setRawBody] = useState("");
   const [currentMeta, setCurrentMeta] = useState<ConversationMeta | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [splitPreview, setSplitPreview] = useState(false);
-  const [editContent, setEditContent] = useState("");
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: rawContent,
+    mobile: isMobile,
+    focusRef: editRef,
+    clearContentOnCancel: true,
+    clearContentOnComplete: true,
+  });
   const detailOpenedFromCrossPageRef = useRef(false);
 
   const metaFromEntry = useCallback((f: FileEntry): ConversationMeta => ({
@@ -178,7 +193,7 @@ export default function ConversationsPage({
   const handleWatchedFilesChanged = useCallback(() => {
     if (active) void loadFiles();
   }, [active, loadFiles]);
-  useFileWatcher(watchedFolders, handleWatchedFilesChanged);
+  useFileWatcher(watchedFolders, handleWatchedFilesChanged, { active });
 
   const applyConversationRaw = useCallback((path: string, raw: string) => {
     const { meta, body } = parseFrontmatter(raw);
@@ -195,48 +210,19 @@ export default function ConversationsPage({
     try {
       const raw = await invoke<string>("read_file", { filePath: path });
       applyConversationRaw(path, raw);
-      setEditing(false);
-      setSplitPreview(false);
-      setEditContent("");
+      resetEditor();
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) {
       console.error(e);
     }
-  }, [applyConversationRaw, isMobile, scrollItemIntoView]);
+  }, [applyConversationRaw, isMobile, resetEditor, scrollItemIntoView]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("conversations/")) return;
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
-
-  const startEdit = useCallback(() => {
-    if (isMobile) return;
-    if (!selectedFile) return;
-    setEditing(true);
-    setSplitPreview(false);
-    setEditContent(rawContent);
-    window.setTimeout(() => editRef.current?.focus(), 0);
-  }, [isMobile, selectedFile, rawContent]);
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false);
-    setSplitPreview(false);
-    setEditContent("");
-  }, []);
-
-  const toggleSplitPreview = useCallback(() => {
-    if (isMobile || !selectedFile) return;
-    if (!editing) {
-      setEditContent(rawContent);
-      setEditing(true);
-      setSplitPreview(true);
-      window.setTimeout(() => editRef.current?.focus(), 0);
-      return;
-    }
-    setSplitPreview((value) => !value);
-  }, [editing, isMobile, rawContent, selectedFile]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
@@ -248,15 +234,13 @@ export default function ConversationsPage({
         next.set(selectedFile, parseFrontmatter(editContent).meta);
         return next;
       });
-      setEditing(false);
-      setSplitPreview(false);
-      setEditContent("");
+      completeEdit();
       showToast(t("conversations.saved"));
       void loadFiles();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [selectedFile, editContent, applyConversationRaw, showToast, t]);
+  }, [selectedFile, editContent, applyConversationRaw, completeEdit, loadFiles, showToast, t]);
 
   const handleDelete = async () => {
     if (isMobile) return;
@@ -278,8 +262,7 @@ export default function ConversationsPage({
         setCurrentMeta(null);
         setRawBody("");
         setRawContent("");
-        setEditing(false);
-        setSplitPreview(false);
+        resetEditor();
         }
       showToast(t("conversations.deleted"));
       loadFiles();
@@ -307,8 +290,7 @@ export default function ConversationsPage({
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (selectedFile) {
-          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); setEditing(false);
-          setSplitPreview(false);
+          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); resetEditor();
           setIntroContent("");
         } else {
           onFocusSidebar?.();
@@ -330,7 +312,9 @@ export default function ConversationsPage({
     navNext,
     selectedFile,
     files,
+    openFile,
     onFocusSidebar,
+    resetEditor,
   ]);
 
   const showList = !isMobile || !selectedFile;
@@ -341,11 +325,10 @@ export default function ConversationsPage({
     setCurrentMeta(null);
     setRawBody("");
     setRawContent("");
-    setEditing(false);
-    setSplitPreview(false);
+    resetEditor();
     setIntroContent("");
     detailOpenedFromCrossPageRef.current = false;
-  }, []);
+  }, [resetEditor]);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -493,45 +476,22 @@ export default function ConversationsPage({
             />
 
             {/* Messages */}
-            <DetailScroll mobileBottomPadding={isMobile} selectable className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
-              {editing ? (
-                splitPreview && !isMobile ? (
-                  <MarkdownSplitEditor
-                    ref={editRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                        e.preventDefault();
-                        void handleSaveEdit();
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        cancelEdit();
-                      }
-                    }}
-                    filePath={selectedFile ?? undefined}
-                  />
-                ) : (
-                  <textarea
-                    ref={editRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onKeyDown={(e) => {
-                      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                        e.preventDefault();
-                        void handleSaveEdit();
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        cancelEdit();
-                      }
-                    }}
-                    spellCheck={false}
-                    className="gm-code-editor gm-code-editor-box gm-code-textarea"
-                  />
-                )
-              ) : messages.length > 0 ? (
+            <FileEditorSurface
+              ref={editRef}
+              editing={editing}
+              value={editContent}
+              onChange={setEditContent}
+              onSave={handleSaveEdit}
+              onCancel={cancelEdit}
+              filePath={selectedFile ?? undefined}
+              mobile={isMobile}
+              boxed
+              splitPreview={splitPreview}
+              supportsSplitPreview
+              mobileBottomPadding={isMobile}
+              selectable
+            >
+              {messages.length > 0 ? (
                 <>
                   {introContent ? (
                     <div className="gm-section-block">
@@ -552,7 +512,7 @@ export default function ConversationsPage({
               ) : (
                 <MarkdownView content={rawBody} />
               )}
-            </DetailScroll>
+            </FileEditorSurface>
           </>
         )}
       </DetailPane>

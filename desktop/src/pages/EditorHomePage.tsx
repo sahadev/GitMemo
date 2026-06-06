@@ -13,12 +13,13 @@ import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PageHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
-import { CodeTextarea } from "../components/base/CodeTextarea";
 import { EmptyState } from "../components/base/EmptyState";
 import { MonoBlock } from "../components/base/MonoBlock";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { PageFrame } from "../components/layout/PageFrame";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 
 type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
@@ -77,11 +78,20 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const [listError, setListError] = useState("");
   const [selectedFileRel, setSelectedFileRel] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
-  const [editContent, setEditContent] = useState("");
   const [fileAbs, setFileAbs] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState("");
-  const [editing, setEditing] = useState(false);
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({ sourceContent: fileContent });
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [creatingDir, setCreatingDir] = useState(false);
@@ -115,11 +125,10 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const clearSelection = useCallback(() => {
     setSelectedFileRel(null);
     setFileContent("");
-    setEditContent("");
     setFileAbs("");
     setFileError("");
-    setEditing(false);
-  }, []);
+    resetEditor();
+  }, [resetEditor]);
 
   useEffect(() => {
     void loadRoots();
@@ -148,10 +157,9 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const openFile = useCallback(async (fileRel: string) => {
     setSelectedFileRel(fileRel);
     setFileContent("");
-    setEditContent("");
     setFileError("");
     setFileAbs("");
-    setEditing(false);
+    resetEditor();
     setFileLoading(true);
     try {
       const [text, abs] = await Promise.all([
@@ -165,7 +173,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     } finally {
       setFileLoading(false);
     }
-  }, [root]);
+  }, [resetEditor, root]);
 
   const handleRefresh = useCallback(() => {
     void loadRoots();
@@ -189,7 +197,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
         content: editContent,
       });
       setFileContent(editContent);
-      setEditing(false);
+      completeEdit();
       showToast(result.message || t("editorHome.saved"));
       void loadDir();
       void openFile(result.rel_path);
@@ -198,7 +206,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     } finally {
       setSaving(false);
     }
-  }, [selectedFileRel, root, editContent, showToast, t, loadDir, openFile]);
+  }, [selectedFileRel, root, editContent, completeEdit, showToast, t, loadDir, openFile]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedFileRel) return;
@@ -234,14 +242,13 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
       showToast(result.message || t("editorHome.created"));
       await loadDir();
       await openFile(result.rel_path);
-      setEditContent("");
-      setEditing(true);
+      startEdit({ content: "", focus: false });
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setCreating(false);
     }
-  }, [root, rel, t, showToast, loadDir, openFile]);
+  }, [root, rel, t, showToast, loadDir, openFile, startEdit]);
 
   const handleCreateFolder = useCallback(async () => {
     const base = t("editorHome.newFolderName");
@@ -263,17 +270,11 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     }
   }, [root, rel, t, showToast, loadDir, clearSelection]);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!editing || !selectedFileRel) return;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        void handleSave();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [editing, selectedFileRel, handleSave]);
+  const selectedIsMarkdown = selectedFileRel ? isProbablyMarkdown(selectedFileRel) : false;
+
+  const handleCancelEdit = useCallback(() => {
+    cancelEdit(fileContent);
+  }, [cancelEdit, fileContent]);
 
   useEffect(() => {
     if (!openTarget) return;
@@ -428,14 +429,16 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
                   onBack={clearSelection}
                   onRefresh={handleRefresh}
                   editing={editing}
-                  onEdit={() => { setEditContent(fileContent); setEditing(true); }}
+                  onEdit={startEdit}
                   onSave={() => void handleSave()}
-                  onCancel={() => { setEditing(false); setEditContent(fileContent); }}
+                  onCancel={handleCancelEdit}
                   editTitle={t("editorHome.edit")}
                   saveTitle={t("editorHome.save")}
                   cancelTitle={t("editorHome.cancel")}
                   saveDisabled={saving}
                   saveTone="accent"
+                  splitPreview={splitPreview}
+                  onToggleSplitPreview={selectedIsMarkdown ? toggleSplitPreview : undefined}
                   metadata={selectedFileRel ? (
                     <FavoriteButton
                       absolutePath={fileAbs || undefined}
@@ -465,25 +468,32 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
                   ) : null}
                   density="compact"
                 />
-                <DetailScroll>
-                  {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
-                  {!fileLoading && fileError ? (
-                    <p className="gm-error-inline">{fileError}</p>
-                  ) : null}
-                  {!fileLoading && !fileError && selectedFileRel ? (
-                    editing ? (
-                      <CodeTextarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        minHeight
-                      />
-                    ) : isProbablyMarkdown(selectedFileRel) ? (
+                {fileLoading || fileError ? (
+                  <DetailScroll>
+                    {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
+                    {!fileLoading && fileError ? (
+                      <p className="gm-error-inline">{fileError}</p>
+                    ) : null}
+                  </DetailScroll>
+                ) : (
+                  <FileEditorSurface
+                    editing={editing}
+                    value={editContent}
+                    onChange={setEditContent}
+                    onSave={handleSave}
+                    onCancel={handleCancelEdit}
+                    filePath={fileAbs || selectedFileRel}
+                    minHeight
+                    splitPreview={splitPreview}
+                    supportsSplitPreview={selectedIsMarkdown}
+                  >
+                    {selectedIsMarkdown ? (
                       <MarkdownView content={fileContent} />
                     ) : (
                       <MonoBlock>{fileContent}</MonoBlock>
-                    )
-                  ) : null}
-                </DetailScroll>
+                    )}
+                  </FileEditorSurface>
+                )}
               </>
             )}
           </DetailPane>

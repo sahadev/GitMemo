@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useResizablePanel } from "../hooks/useResizablePanel";
 import { usePlatform } from "../hooks/usePlatform";
 
@@ -18,10 +19,14 @@ export function DesktopSplitPane({
   panelKey,
   left,
   right,
+  collapsed = false,
+  onCollapsedChange,
 }: {
   panelKey: string;
   left: ReactNode;
   right: ReactNode;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }) {
   const isMobile = usePlatform() === "mobile";
   const defaultWidth = readRootPxToken("--gm-size-split-pane-left-default", splitPanelDefaultWidthFallback);
@@ -45,13 +50,28 @@ export function DesktopSplitPane({
   }
 
   return (
-    <div className="gm-split-pane" data-panel-key={panelKey} style={splitStyle}>
-      <div className="gm-split-pane-left">
-        {left}
+    <div className="gm-split-pane" data-panel-key={panelKey} data-collapsed={collapsed ? "true" : "false"} style={splitStyle}>
+      <div className="gm-split-pane-left" aria-hidden={collapsed ? "true" : undefined}>
+        {!collapsed && left}
       </div>
-      <div onMouseDown={panel.onMouseDown} className="gm-split-resizer">
+      <div onMouseDown={collapsed ? undefined : panel.onMouseDown} className="gm-split-resizer" data-collapsed={collapsed ? "true" : "false"}>
         <div className="gm-split-resizer-line" />
         <div className="gm-split-resizer-hit" />
+        {onCollapsedChange && (
+          <button
+            type="button"
+            className="gm-layout-boundary-toggle gm-split-boundary-toggle"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onCollapsedChange(!collapsed);
+            }}
+            title={collapsed ? "展开列表" : "收起列表"}
+            aria-label={collapsed ? "展开列表" : "收起列表"}
+          >
+            {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+          </button>
+        )}
       </div>
       <div className="gm-split-pane-right">
         {right}

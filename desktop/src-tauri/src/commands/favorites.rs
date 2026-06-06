@@ -399,10 +399,6 @@ fn bg_commit_and_push(app: AppHandle, msg: String) {
         if !sync_event.ok {
             sync_log::write_sync_log("background sync", false, &sync_event.message, None);
         }
-        let _ = app.emit(
-            "files-changed",
-            serde_json::json!({ "folder": FAVORITES_DIR }),
-        );
     });
 }
 

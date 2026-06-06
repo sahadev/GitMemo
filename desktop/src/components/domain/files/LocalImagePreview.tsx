@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLongPressImageSave } from "../../../hooks/useLongPressImageSave";
-import { localImageDataUrl } from "../../../utils/localImages";
+import { cacheLocalImageDataUrl, getCachedLocalImageDataUrl } from "../../../utils/localImages";
 import { cx } from "../../base/classNames";
 
 interface LocalImagePreviewProps {
@@ -23,7 +23,7 @@ export function LocalImagePreview({
   placeholderStyle,
   selected = false,
 }: LocalImagePreviewProps) {
-  const [src, setSrc] = useState<string | null>(null);
+  const [src, setSrc] = useState<string | null>(() => getCachedLocalImageDataUrl(relPath));
   const imageSaveProps = useLongPressImageSave({
     src,
     filePath: relPath,
@@ -32,10 +32,11 @@ export function LocalImagePreview({
 
   useEffect(() => {
     let cancelled = false;
-    setSrc(null);
+    const cached = getCachedLocalImageDataUrl(relPath);
+    setSrc(cached);
     invoke<string>("read_file_base64", { filePath: relPath })
       .then((b64) => {
-        if (!cancelled) setSrc(localImageDataUrl(relPath, b64));
+        if (!cancelled) setSrc(cacheLocalImageDataUrl(relPath, b64));
       })
       .catch(() => undefined);
     return () => { cancelled = true; };

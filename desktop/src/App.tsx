@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -94,7 +95,7 @@ function App() {
   const [deferredSystemFilePath, setDeferredSystemFilePath] = useState<string | null>(null);
   const sync = useSync();
   const { gitStatus } = sync;
-  const { theme, toggleTheme, setPendingOpenPath, setAiRecordsTab, settings } = useAppStore();
+  const { theme, toggleTheme, setPendingOpenPath, setAiRecordsTab, settings, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const pageOrder = isDesktop ? desktopPageOrder : mobilePageOrder;
   const mobilePageStackRef = useRef<Page[]>([]);
@@ -492,15 +493,28 @@ function App() {
       onTouchEnd={handleMobileTouchEnd}
     >
       {isDesktop && initialized !== false && (
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
-          focused={sidebarFocused}
-          syncing={sync.isSyncing}
-          syncMsg={sync.message}
-          syncFailed={sync.isFailed}
-          onSync={sync.triggerSync}
-        />
+        <div className="gm-app-sidebar-shell" data-collapsed={sidebarCollapsed ? "true" : "false"}>
+          {!sidebarCollapsed && (
+            <Sidebar
+              currentPage={currentPage}
+              onNavigate={(p) => { setCurrentPage(p); setSidebarFocused(false); }}
+              focused={sidebarFocused}
+              syncing={sync.isSyncing}
+              syncMsg={sync.message}
+              syncFailed={sync.isFailed}
+              onSync={sync.triggerSync}
+            />
+          )}
+          <button
+            type="button"
+            className="gm-layout-boundary-toggle gm-sidebar-boundary-toggle"
+            onClick={toggleSidebarCollapsed}
+            title={sidebarCollapsed ? "展开导航" : "收起导航"}
+            aria-label={sidebarCollapsed ? "展开导航" : "收起导航"}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+          </button>
+        </div>
       )}
       <main
         className="gm-app-main"

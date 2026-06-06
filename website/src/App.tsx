@@ -31,6 +31,9 @@ function App() {
       <Downloads />
       <QuickStart />
       <Footer />
+      <div className="wechat-float" aria-label="微信交流">
+        <img src="/wechat-qr.png" alt="Sahadev WeChat QR code" loading="eager" />
+      </div>
     </div>
   )
 }

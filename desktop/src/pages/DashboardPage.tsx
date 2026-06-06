@@ -184,11 +184,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   // Refresh content stats when sync completes (state-driven)
   useEffect(() => {
-    if (isSuccess || isFailed) {
+    if (active && (isSuccess || isFailed)) {
       loadData();
     }
-  }, [isSuccess, isFailed, loadData]);
-  useFileWatcher(watchedFolders, loadData);
+  }, [active, isSuccess, isFailed, loadData]);
+  useFileWatcher(watchedFolders, loadData, { active });
 
   const handleRefresh = useCallback(() => {
     loadData();

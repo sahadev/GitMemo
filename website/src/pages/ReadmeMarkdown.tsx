@@ -12,12 +12,12 @@ export default function ReadmeMarkdown({ content, resolveLink }: ReadmeMarkdownP
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ node: _node, href, children, ...props }) => (
+          a: ({ href, children, ...props }) => (
             <a href={resolveLink(href)} {...props}>
               {children}
             </a>
           ),
-          img: ({ node: _node, alt, ...props }) => (
+          img: ({ alt, ...props }) => (
             <img alt={alt ?? ''} {...props} loading="lazy" />
           ),
         }}

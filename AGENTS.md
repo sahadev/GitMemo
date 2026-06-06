@@ -19,6 +19,10 @@ GitMemo is split into three main areas. The Rust CLI/core lives at `src/`, with 
 
 Follow existing local style. Rust uses standard `rustfmt` conventions, `snake_case` modules/functions, and `PascalCase` types. React/TypeScript files use 2-space indentation, `PascalCase` components, `use*` hook names, and colocated utilities under `desktop/src/utils` or `website/src`. Prefer existing Mantine, Zustand, Tauri command, and i18n patterns instead of introducing new abstractions.
 
+## Atomic Composition & Reuse
+
+All new code should be decomposed into small, atomic units and assembled through composition. For visual work, use the existing base design tokens as the source of truth; derive higher-level tokens or component styles from those base tokens instead of hard-coding near-duplicates. For React/TypeScript work, extract similar behavior into shared components, hooks, or utilities before copying patterns across pages. When touching existing code, if you encounter obvious similar or redundant logic in the same area, refactor it into shared code as part of the change rather than leaving another copy behind.
+
 ## Testing Guidelines
 
 Rust tests are mostly inline `#[cfg(test)]` modules next to the code they validate. Add focused tests when changing storage, sync, datetime parsing, MCP, or search behavior. For frontend changes, run the relevant build command at minimum; add manual verification notes for desktop/mobile UI behavior, especially Android navigation, clipboard, sync, and download flows.

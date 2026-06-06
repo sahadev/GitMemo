@@ -7,11 +7,10 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
-import { CodeTextarea } from "../components/base/CodeTextarea";
 import { EmptyState } from "../components/base/EmptyState";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { SearchInput } from "../components/domain/search/SearchInput";
 import { SearchResultCard } from "../components/domain/search/SearchResultCard";
-import { DetailScroll } from "../components/layout/Pane";
 import { PageFrame } from "../components/layout/PageFrame";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -19,6 +18,8 @@ import { relativeTime } from "../utils/time";
 import { useAppStore } from "../hooks/useAppStore";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useFileDetailState } from "../hooks/useFileDetailState";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
@@ -95,15 +96,49 @@ export default function SearchPage({
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [rawFileContent, setRawFileContent] = useState("");
-  const [fileContent, setFileContent] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const resetEditorRef = useRef<(() => void) | null>(null);
   const imeComposingRef = useRef(false);
   const { copied: copiedClip, markCopied: markCopiedClip, clearCopied: clearCopiedClip } = useTimedCopy<boolean>();
+  const {
+    selectedFile,
+    rawFileContent,
+    fileContent,
+    setRawFileContent,
+    setFileContent,
+    openFile,
+    clearDetail,
+  } = useFileDetailState({
+    canOpen: (path) => isDesktop || isMobileContentPath(path),
+    deriveContent: (content, path) => path.startsWith("clips/") ? stripMarkdownFrontmatter(content) : content,
+    onOpened: () => {
+      resetEditorRef.current?.();
+      clearCopiedClip();
+    },
+    onClosed: () => {
+      resetEditorRef.current?.();
+      clearCopiedClip();
+    },
+  });
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: fileContent,
+    mobile: isMobile,
+    focusRef: editRef,
+    clearContentOnCancel: true,
+    clearContentOnComplete: true,
+  });
+  resetEditorRef.current = resetEditor;
 
   useEffect(() => {
     try {
@@ -157,26 +192,6 @@ export default function SearchPage({
     finally { setLoading(false); }
   };
 
-  const openFile = async (path: string) => {
-    if (!isDesktop && !isMobileContentPath(path)) return;
-    try {
-      const content = await invoke<string>("read_file", { filePath: path });
-      setSelectedFile(path);
-      setRawFileContent(content);
-      setFileContent(path.startsWith("clips/") ? stripMarkdownFrontmatter(content) : content);
-      setEditing(false);
-      setEditContent("");
-      clearCopiedClip();
-    } catch (e) { console.error(e); }
-  };
-
-  const startEdit = useCallback(() => {
-    if (!selectedFile) return;
-    setEditing(true);
-    setEditContent(fileContent);
-    window.setTimeout(() => editRef.current?.focus(), 0);
-  }, [selectedFile, fileContent]);
-
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
     try {
@@ -186,13 +201,12 @@ export default function SearchPage({
       await invoke("update_note", { filePath: selectedFile, content: nextContent });
       setFileContent(editContent);
       setRawFileContent(nextContent);
-      setEditing(false);
-      setEditContent("");
+      completeEdit();
       showToast(t("notes.save"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [rawFileContent, selectedFile, editContent, showToast, t]);
+  }, [completeEdit, rawFileContent, selectedFile, editContent, showToast, t]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
@@ -218,11 +232,7 @@ export default function SearchPage({
         await invoke("delete_note", { filePath: selectedFile });
       }
       setResults((prev) => prev.filter((r) => r.file_path !== selectedFile));
-      setSelectedFile(null);
-      setRawFileContent("");
-      setFileContent("");
-      setEditing(false);
-      setEditContent("");
+      clearDetail();
       showToast(
         sourceType === "clip" ? t("clipboard.clipDeleted") :
         sourceType === "plan" ? t("plans.deleted") :
@@ -233,7 +243,7 @@ export default function SearchPage({
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [selectedFile, showToast, t]);
+  }, [clearDetail, selectedFile, showToast, t]);
 
   const selectedIsClip = selectedFile?.startsWith("clips/") ?? false;
   const selectedSourceType = selectedFile ? sourceTypeFromPath(selectedFile) : "unknown";
@@ -250,18 +260,8 @@ export default function SearchPage({
     (isDesktop && (selectedSourceType === "conversation" || selectedSourceType === "plan"))
   ) : false;
   const closeDetail = useCallback(() => {
-    setSelectedFile(null);
-    setRawFileContent("");
-    setFileContent("");
-    setEditing(false);
-    setEditContent("");
-    clearCopiedClip();
-  }, [clearCopiedClip]);
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false);
-    setEditContent("");
-  }, []);
+    clearDetail();
+  }, [clearDetail]);
 
   const copySelectedClip = useCallback(async () => {
     if (!selectedFile?.startsWith("clips/")) return;
@@ -309,6 +309,8 @@ export default function SearchPage({
           onCancel={selectedCanEdit ? cancelEdit : undefined}
           editTitle={t("notes.edit")}
           saveTitle={t("notes.save")}
+          splitPreview={splitPreview}
+          onToggleSplitPreview={selectedCanEdit ? toggleSplitPreview : undefined}
           metadata={selectedFile ? (
             <FavoriteButton
               relPath={selectedFile}
@@ -346,24 +348,22 @@ export default function SearchPage({
             />
           ) : null}
         />
-      <DetailScroll mobileBottomPadding={isMobile} selectable>
-          {editing ? (
-            <CodeTextarea
-              ref={editRef}
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                  e.preventDefault();
-                  void handleSaveEdit();
-                }
-              }}
-              mobile={isMobile}
-            />
-          ) : (
+      <FileEditorSurface
+        ref={editRef}
+        editing={editing}
+        value={editContent}
+        onChange={setEditContent}
+        onSave={handleSaveEdit}
+        onCancel={cancelEdit}
+        filePath={selectedFile ?? undefined}
+        mobile={isMobile}
+        splitPreview={splitPreview}
+        supportsSplitPreview={selectedCanEdit}
+        mobileBottomPadding={isMobile}
+        selectable
+      >
             <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
-          )}
-        </DetailScroll>
+      </FileEditorSurface>
       </PageFrame>
     );
   }

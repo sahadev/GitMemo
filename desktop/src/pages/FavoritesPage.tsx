@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Star, FileText, MessageSquare, Clipboard, Lightbulb, Download, Settings, FileSymlink } from "lucide-react";
@@ -49,6 +49,21 @@ function sourceLabelKey(sourceType: string) {
   }
 }
 
+function areFavoriteEntriesEquivalent(a: FavoriteEntry[], b: FavoriteEntry[]) {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      item.target_id === other.target_id &&
+      item.title === other.title &&
+      item.source_type === other.source_type &&
+      item.modified === other.modified &&
+      item.preview === other.preview &&
+      item.exists === other.exists
+    );
+  });
+}
+
 export default function FavoritesPage({
   active = true,
   registerMobileBackHandler,
@@ -64,6 +79,7 @@ export default function FavoritesPage({
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [content, setContent] = useState<FavoriteContent | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
+  const refreshTimerRef = useRef<number | null>(null);
 
   const selectedEntry = useMemo(
     () => favorites.find((item) => item.target_id === selectedTargetId) ?? null,
@@ -77,7 +93,7 @@ export default function FavoritesPage({
     setLoading(true);
     try {
       const next = await invoke<FavoriteEntry[]>("list_favorites");
-      setFavorites(next);
+      setFavorites((current) => areFavoriteEntriesEquivalent(current, next) ? current : next);
       setSelectedTargetId((current) => current && next.some((item) => item.target_id === current) ? current : null);
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -87,25 +103,31 @@ export default function FavoritesPage({
   }, [showToast]);
 
   useEffect(() => {
-    void loadFavorites();
+    if (active) void loadFavorites();
+  }, [active, loadFavorites]);
+
+  const scheduleLoadFavorites = useCallback(() => {
+    if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+      void loadFavorites();
+    }, 120);
   }, [loadFavorites]);
 
   useEffect(() => {
+    if (!active) return;
     const unlistenFavorites = listen("favorites-changed", () => {
-      void loadFavorites();
+      scheduleLoadFavorites();
     });
     const unlistenFiles = listen<FilesChangedEvent>("files-changed", ({ payload }) => {
-      if (payload?.folder === "favorites") void loadFavorites();
-    });
-    const unlistenSync = listen("git-sync-end", () => {
-      void loadFavorites();
+      if (payload?.folder === "favorites") scheduleLoadFavorites();
     });
     return () => {
+      if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
       unlistenFavorites.then((fn) => fn());
       unlistenFiles.then((fn) => fn());
-      unlistenSync.then((fn) => fn());
     };
-  }, [loadFavorites]);
+  }, [active, scheduleLoadFavorites]);
 
   const openFavorite = useCallback(async (targetId: string) => {
     setSelectedTargetId(targetId);

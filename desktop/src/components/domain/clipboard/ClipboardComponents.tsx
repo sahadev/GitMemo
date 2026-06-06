@@ -3,7 +3,6 @@ import type {
   HTMLAttributes,
   ReactNode,
   Ref,
-  TextareaHTMLAttributes,
 } from "react";
 import { RefreshCw, type LucideIcon } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
@@ -327,31 +326,9 @@ export function ClipboardDetailPane({ children }: ChildrenProps) {
 
 export function ClipboardEmptyDetail({ icon, children }: ChildrenProps & { icon: LucideIcon }) {
   return (
-    <div className="gm-center-state">
-      <div className="gm-clipboard-empty-detail">
-        <AppIcon icon={icon} size="empty-lg" tone="empty" className="gm-empty-state-icon" />
-        <p className="gm-empty-state-title">{children}</p>
-      </div>
+    <div className="gm-empty-state gm-empty-state-full gm-clipboard-empty-detail">
+      <AppIcon icon={icon} size="empty" tone="empty" className="gm-empty-state-icon" />
+      <p className="gm-empty-state-title">{children}</p>
     </div>
   );
-}
-
-export function ClipboardDetailScroll({
-  mobile,
-  children,
-}: ChildrenProps & { mobile: boolean }) {
-  return (
-    <div className="gm-detail-scroll" data-mobile={mobile ? "true" : "false"}>
-      {children}
-    </div>
-  );
-}
-
-export function ClipboardEditor({
-  mobile,
-  className,
-  refNode,
-  ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { mobile: boolean; refNode?: Ref<HTMLTextAreaElement> }) {
-  return <textarea ref={refNode} className={cx("gm-code-editor", "gm-clipboard-editor", className)} data-mobile={mobile ? "true" : "false"} {...props} />;
 }

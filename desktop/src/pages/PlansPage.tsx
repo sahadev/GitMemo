@@ -93,7 +93,7 @@ export default function PlansPage({
   const handleWatchedFilesChanged = useCallback(() => {
     if (active) void loadFiles();
   }, [active, loadFiles]);
-  useFileWatcher(watchedFolders, handleWatchedFilesChanged);
+  useFileWatcher(watchedFolders, handleWatchedFilesChanged, { active });
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
       const content = await invoke<string>("read_file", { filePath: path });

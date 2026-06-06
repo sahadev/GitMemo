@@ -387,13 +387,17 @@ fn build_file_entries(dir: &Path, candidates: Vec<FileCandidate>) -> Vec<FileEnt
 }
 
 /// Notify the frontend that content folders may have changed.
-/// Used after git pull / commit so pages refresh even if OS file-watcher misses events.
-fn emit_files_changed() {
+/// Used after git pull so pages refresh even if OS file-watcher misses events.
+fn emit_files_changed_for_folders(folders: &[&str]) {
     if let Some(handle) = APP_HANDLE.get() {
-        for folder in CONTENT_FOLDERS {
+        for folder in folders {
             let _ = handle.emit("files-changed", serde_json::json!({ "folder": folder }));
         }
     }
+}
+
+fn emit_files_changed() {
+    emit_files_changed_for_folders(CONTENT_FOLDERS);
 }
 
 /// Spawn git commit+push in background so the UI isn't blocked.
@@ -440,8 +444,6 @@ fn bg_commit_and_push(msg: String) {
         if !sync_event.ok {
             sync_log::write_sync_log("background sync", false, &sync_event.message, None);
         }
-        // Notify pages to refresh (file watcher may miss git-internal file ops)
-        emit_files_changed();
     });
 }
 
@@ -1634,7 +1636,7 @@ pub async fn sync_external_plans() -> Result<PlanSyncResult, String> {
         let result = sync_external_plans_to_gitmemo(&dir);
         if result.changed() {
             refresh_index(&dir);
-            emit_files_changed();
+            emit_files_changed_for_folders(&["plans"]);
         }
         Ok(result)
     })

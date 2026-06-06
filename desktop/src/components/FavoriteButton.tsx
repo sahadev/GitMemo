@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { LoaderCircle, Star } from "lucide-react";
@@ -40,6 +40,7 @@ export function FavoriteButton({
   const isMobile = usePlatform() === "mobile";
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
+  const refreshTimerRef = useRef<number | null>(null);
   const hasTarget = Boolean(relPath || absolutePath);
 
   const refresh = useCallback(async () => {
@@ -52,32 +53,38 @@ export function FavoriteButton({
         relPath: relPath ?? null,
         absolutePath: absolutePath ?? null,
       });
-      setFavorited(next);
+      setFavorited((current) => current === next ? current : next);
     } catch {
       setFavorited(false);
     }
   }, [absolutePath, hasTarget, relPath]);
 
   useEffect(() => {
-    void refresh();
+    if (active) void refresh();
+  }, [active, refresh]);
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+      void refresh();
+    }, 120);
   }, [refresh]);
 
   useEffect(() => {
+    if (!active) return;
     const unlistenFavorites = listen("favorites-changed", () => {
-      void refresh();
+      scheduleRefresh();
     });
     const unlistenFiles = listen<FilesChangedEvent>("files-changed", ({ payload }) => {
-      if (payload?.folder === "favorites") void refresh();
-    });
-    const unlistenSync = listen("git-sync-end", () => {
-      void refresh();
+      if (payload?.folder === "favorites") scheduleRefresh();
     });
     return () => {
+      if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
       unlistenFavorites.then((fn) => fn());
       unlistenFiles.then((fn) => fn());
-      unlistenSync.then((fn) => fn());
     };
-  }, [refresh]);
+  }, [active, scheduleRefresh]);
 
   const toggle = useCallback(async () => {
     if (!hasTarget || loading) return;

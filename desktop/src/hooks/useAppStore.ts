@@ -104,6 +104,13 @@ interface AppStore {
   theme: Theme;
   toggleTheme: () => void;
 
+  // Desktop layout
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebarCollapsed: () => void;
+  collapsedPanels: Record<string, boolean>;
+  setPanelCollapsed: (panelKey: string, collapsed: boolean) => void;
+
   // Cross-page notes tab selection
   notesTab: NotesTab;
   setNotesTab: (tab: NotesTab) => void;
@@ -141,12 +148,26 @@ function loadTheme(): Theme {
   return "dark";
 }
 
+function loadBoolean(key: string): boolean {
+  return localStorage.getItem(key) === "true";
+}
+
+function panelCollapsedStorageKey(panelKey: string): string {
+  return `gitmemo-layout-panel-collapsed-${panelKey}`;
+}
+
+function loadCollapsedPanels(panelKeys: string[]): Record<string, boolean> {
+  return Object.fromEntries(panelKeys.map((panelKey) => [panelKey, loadBoolean(panelCollapsedStorageKey(panelKey))]));
+}
+
 const useAppStoreInternal = create<AppStore>((set, get) => ({
   clipboardStatus: null,
   settings: null,
   claudeEnabled: false,
   cursorEnabled: false,
   theme: loadTheme(),
+  sidebarCollapsed: loadBoolean("gitmemo-layout-sidebar-collapsed"),
+  collapsedPanels: loadCollapsedPanels(["notes", "conversations", "plans", "clipboard"]),
   notesTab: "scratch",
   aiRecordsTab: "conversations",
   pendingOpenPath: null,
@@ -192,6 +213,22 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
     const next = get().theme === "dark" ? "light" : "dark";
     localStorage.setItem("gitmemo-theme", next);
     set({ theme: next });
+  },
+
+  setSidebarCollapsed: (collapsed) => {
+    localStorage.setItem("gitmemo-layout-sidebar-collapsed", String(collapsed));
+    set({ sidebarCollapsed: collapsed });
+  },
+
+  toggleSidebarCollapsed: () => {
+    get().setSidebarCollapsed(!get().sidebarCollapsed);
+  },
+
+  setPanelCollapsed: (panelKey, collapsed) => {
+    localStorage.setItem(panelCollapsedStorageKey(panelKey), String(collapsed));
+    set((state) => ({
+      collapsedPanels: { ...state.collapsedPanels, [panelKey]: collapsed },
+    }));
   },
 
   setNotesTab: (tab) => {

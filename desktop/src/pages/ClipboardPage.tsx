@@ -20,6 +20,8 @@ import { useFileWatcher } from "../hooks/useFileWatcher";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "../components/ClipboardPrivacyDialog";
 import { AppIcon } from "../components/base/AppIcon";
 import { useAppStore, type ClipboardStatus } from "../hooks/useAppStore";
+import { useFileDetailState } from "../hooks/useFileDetailState";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult } from "../types/notes";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
@@ -36,8 +38,6 @@ import {
   ClipboardClipPreviewWrap,
   ClipboardClipText,
   ClipboardDetailPane,
-  ClipboardDetailScroll,
-  ClipboardEditor,
   ClipboardEmptyDetail,
   ClipboardEmptyState,
   ClipboardFilterBar,
@@ -54,6 +54,7 @@ import {
   ClipboardStatusBadge,
   ClipboardToolbarButton,
 } from "../components/domain/clipboard/ClipboardComponents";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { ClipImageThumb } from "../components/domain/files/ClipImageThumb";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
@@ -89,6 +90,20 @@ function normalizeClipImageLinks(content: string, clipPath: string) {
   });
 }
 
+function areClipEntriesEquivalent(a: FileEntry[], b: FileEntry[]) {
+  if (a.length !== b.length) return false;
+  return a.every((clip, index) => {
+    const other = b[index];
+    return (
+      clip.path === other.path &&
+      clip.modified === other.modified &&
+      clip.size === other.size &&
+      clip.preview === other.preview &&
+      clip.preview_image === other.preview_image
+    );
+  });
+}
+
 export default function ClipboardPage({
   active = true,
   onFocusSidebar: _onFocusSidebar,
@@ -112,6 +127,8 @@ export default function ClipboardPage({
     consumePendingOpenPath,
     setNotesTab,
     setPendingOpenPath,
+    collapsedPanels,
+    setPanelCollapsed,
   } = useAppStore();
   const [savedClips, setSavedClips] = useState<FileEntry[]>([]);
   const [clipsLoading, setClipsLoading] = useState(true);
@@ -120,11 +137,6 @@ export default function ClipboardPage({
   const [clipTotal, setClipTotal] = useState<number | null>(null);
   const [clipFilter, setClipFilter] = useState<ClipFilter>("all");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [rawFileContent, setRawFileContent] = useState("");
-  const [fileContent, setFileContent] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState("");
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
   const [creatingNote, setCreatingNote] = useState(false);
@@ -132,16 +144,64 @@ export default function ClipboardPage({
   const [deletingSelected, setDeletingSelected] = useState(false);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement | null>(null);
+  const resetEditorRef = useRef<(() => void) | null>(null);
+  const multiSelectModeRef = useRef(false);
+  const detailOpenedFromCrossPageRef = useRef(false);
+  const {
+    selectedFile,
+    rawFileContent,
+    fileContent,
+    setRawFileContent,
+    setFileContent,
+    openFile,
+    clearDetail,
+  } = useFileDetailState({
+    canOpen: (_path, { force }) => !multiSelectModeRef.current || force,
+    deriveContent: (content) => stripMarkdownFrontmatter(content),
+    onOpened: ({ path, fromCrossPage }) => {
+      resetEditorRef.current?.();
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
+      window.setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
+    },
+    onClosed: () => {
+      resetEditorRef.current?.();
+      detailOpenedFromCrossPageRef.current = false;
+    },
+  });
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: fileContent,
+    mobile: isMobile,
+    focusRef: editRef,
+    focusDelayMs: 50,
+    clearContentOnCancel: true,
+    clearContentOnComplete: true,
+  });
+  resetEditorRef.current = resetEditor;
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
   const refreshTimerRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
   const refreshQueuedRef = useRef(false);
-  const detailOpenedFromCrossPageRef = useRef(false);
   const deletedClipPathsRef = useRef<Set<string>>(new Set());
+  const suppressClipWatcherUntilRef = useRef(0);
+  const wasActiveRef = useRef(active);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
+
+  useEffect(() => {
+    multiSelectModeRef.current = multiSelectMode;
+  }, [multiSelectMode]);
 
   useEffect(() => {
     savedClipsRef.current = savedClips;
@@ -225,7 +285,7 @@ export default function ClipboardPage({
         }
 
         const visibleEntries = entries.filter((entry) => !deletedClipPathsRef.current.has(entry.path));
-        setSavedClips(visibleEntries);
+        setSavedClips((prev) => areClipEntriesEquivalent(prev, visibleEntries) ? prev : visibleEntries);
         setClipTotal(total);
         setHasMore(entries.length < total);
         if (preserveScroll) restoreScrollAnchor(anchor);
@@ -287,7 +347,21 @@ export default function ClipboardPage({
     }, 250);
   }, [runRefreshSavedClipsInPlace]);
 
-  useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace);
+  const suppressClipWatcherRefresh = useCallback((durationMs = 1500) => {
+    suppressClipWatcherUntilRef.current = Math.max(
+      suppressClipWatcherUntilRef.current,
+      Date.now() + durationMs,
+    );
+  }, []);
+
+  const shouldIgnoreClipWatcherRefresh = useCallback(() => {
+    return Date.now() < suppressClipWatcherUntilRef.current;
+  }, []);
+
+  useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace, {
+    active,
+    shouldIgnore: shouldIgnoreClipWatcherRefresh,
+  });
 
   useEffect(() => {
     return () => {
@@ -295,15 +369,25 @@ export default function ClipboardPage({
     };
   }, []);
 
+  useEffect(() => {
+    if (active && !wasActiveRef.current) refreshSavedClipsInPlace();
+    wasActiveRef.current = active;
+  }, [active, refreshSavedClipsInPlace]);
+
   // Event sources that trigger refresh should not push the list back to page one.
   useEffect(() => {
-    const unlisten = listen<ClipboardEvent>("clipboard-saved", refreshSavedClipsInPlace);
+    if (!active) return;
+    const handleClipboardSaved = () => {
+      suppressClipWatcherRefresh();
+      refreshSavedClipsInPlace();
+    };
+    const unlisten = listen<ClipboardEvent>("clipboard-saved", handleClipboardSaved);
     window.addEventListener("focus", refreshSavedClipsInPlace);
     return () => {
       unlisten.then((fn) => fn());
       window.removeEventListener("focus", refreshSavedClipsInPlace);
     };
-  }, [refreshSavedClipsInPlace]);
+  }, [active, refreshSavedClipsInPlace, suppressClipWatcherRefresh]);
 
   const { sentinelRef, loadMore } = useAutoLoadMore({
     hasMore,
@@ -342,27 +426,32 @@ export default function ClipboardPage({
         showToast(t("clipboard.tooShort"));
         return;
       }
-      const result = await invoke<ClipboardEvent>("save_clipboard_now", { content: text });
+      suppressClipWatcherRefresh();
+      await invoke<ClipboardEvent>("save_clipboard_now", { content: text });
       showToast(t("clipboard.saved"));
       loadSavedClips();
       refreshClipboardStatus();
     } catch (e) { showToast(`Error: ${e}`); }
   };
 
-  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
-    try {
-      if (multiSelectMode) return;
-      const content = await invoke<string>("read_file", { filePath: path });
-      const body = stripMarkdownFrontmatter(content);
-      setSelectedFile(path);
-      setRawFileContent(content);
-      setFileContent(body);
-      setEditing(false);
-      setEditContent("");
-      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      setTimeout(() => itemRefs.current.get(path)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
-    } catch (e) { console.error(e); }
-  }, [isMobile, multiSelectMode]);
+  const openAdjacentClipAfterDeletion = useCallback((deletedPaths: string[], deletedSelectedPath: string | null) => {
+    if (!deletedSelectedPath || !deletedPaths.includes(deletedSelectedPath)) return;
+
+    const deleted = new Set(deletedPaths);
+    const clipsBeforeDelete = savedClipsRef.current;
+    const deletedIndex = clipsBeforeDelete.findIndex((clip) => clip.path === deletedSelectedPath);
+    const remainingClips = clipsBeforeDelete.filter((clip) => !deleted.has(clip.path));
+
+    if (remainingClips.length === 0) {
+      clearDetail();
+      return;
+    }
+
+    const nextIndex = deletedIndex === -1 ? 0 : Math.min(deletedIndex, remainingClips.length - 1);
+    const nextClip = remainingClips[nextIndex];
+    if (nextClip) void openFile(nextClip.path, false, true);
+    else clearDetail();
+  }, [clearDetail, openFile]);
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("clips/")) return;
@@ -416,15 +505,11 @@ export default function ClipboardPage({
     setMultiSelectMode((enabled) => {
       if (enabled) setSelectedClipPaths([]);
       else {
-        setSelectedFile(null);
-        setRawFileContent("");
-        setFileContent("");
-        setEditing(false);
-        setEditContent("");
+        clearDetail();
       }
       return !enabled;
     });
-  }, []);
+  }, [clearDetail]);
 
   const toggleClipSelection = useCallback((path: string) => {
     setSelectedClipPaths((prev) => {
@@ -436,16 +521,12 @@ export default function ClipboardPage({
   const changeClipFilter = useCallback((nextFilter: ClipFilter) => {
     if (nextFilter === clipFilter) return;
     setClipFilter(nextFilter);
-    setSelectedFile(null);
-    setRawFileContent("");
-    setFileContent("");
-    setEditing(false);
-    setEditContent("");
+    clearDetail();
     setMultiSelectMode(false);
     setSelectedClipPaths([]);
     resetPendingNavigation();
     listScrollRef.current?.scrollTo({ top: 0 });
-  }, [clipFilter, resetPendingNavigation]);
+  }, [clearDetail, clipFilter, resetPendingNavigation]);
 
   const createNoteFromSelectedClips = useCallback(async () => {
     if (selectedClipPaths.length === 0 || creatingNote || deletingSelected) return;
@@ -481,33 +562,29 @@ export default function ClipboardPage({
     const ok = await ask(t("clipboard.deleteSelectedConfirm", paths.length), { title: t("common.confirm"), kind: "warning" });
     if (!ok) return;
     setDeletingSelected(true);
+    suppressClipWatcherRefresh(2500);
     try {
       await invoke<NoteResult>("delete_clips", { filePaths: paths });
       showToast(t("clipboard.selectedDeleted", paths.length));
       paths.forEach((path) => deletedClipPathsRef.current.add(path));
+      const deletedSelectedPath = selectedFile && paths.includes(selectedFile) ? selectedFile : null;
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
       setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - paths.length));
-      if (selectedFile && paths.includes(selectedFile)) {
-        setSelectedFile(null);
-        setRawFileContent("");
-        setFileContent("");
-        setEditing(false);
-        setEditContent("");
-      }
+      openAdjacentClipAfterDeletion(paths, deletedSelectedPath);
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
-      refreshSavedClipsInPlace();
       void refreshClipboardStatus();
     } catch (e) {
       showToast(String(e), true);
     } finally {
       setDeletingSelected(false);
     }
-  }, [creatingNote, deletingSelected, refreshClipboardStatus, refreshSavedClipsInPlace, selectedClipPaths, selectedFile, showToast, t]);
+  }, [creatingNote, deletingSelected, openAdjacentClipAfterDeletion, refreshClipboardStatus, selectedClipPaths, selectedFile, showToast, suppressClipWatcherRefresh, t]);
 
   const confirmDeleteClip = async (path: string) => {
     const ok = await ask(t("clipboard.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!ok) return;
+    suppressClipWatcherRefresh(2500);
     try {
       await invoke<NoteResult>("delete_clip", { filePath: path });
       showToast(t("clipboard.clipDeleted"));
@@ -515,14 +592,7 @@ export default function ClipboardPage({
       setSavedClips((prev) => prev.filter((clip) => clip.path !== path));
       setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - 1));
       setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
-      if (selectedFile === path) {
-        setSelectedFile(null);
-        setRawFileContent("");
-        setFileContent("");
-        setEditing(false);
-        setEditContent("");
-      }
-      refreshSavedClipsInPlace();
+      openAdjacentClipAfterDeletion([path], selectedFile === path ? path : null);
       void refreshClipboardStatus();
     } catch (e) {
       showToast(String(e));
@@ -533,41 +603,24 @@ export default function ClipboardPage({
   const showDetail = !isMobile || !!selectedFile;
   const selectedFileName = selectedFile?.split("/").pop() ?? "";
   const closeDetail = useCallback(() => {
-    setSelectedFile(null);
-    setRawFileContent("");
-    setFileContent("");
-    setEditing(false);
-    setEditContent("");
-    detailOpenedFromCrossPageRef.current = false;
-  }, []);
-
-  const startEdit = useCallback(() => {
-    if (!selectedFile) return;
-    setEditContent(fileContent);
-    setEditing(true);
-    window.setTimeout(() => editRef.current?.focus(), 50);
-  }, [fileContent, selectedFile]);
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false);
-    setEditContent("");
-  }, []);
+    clearDetail();
+  }, [clearDetail]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
     try {
       const nextContent = replaceMarkdownBody(rawFileContent, editContent);
+      suppressClipWatcherRefresh();
       await invoke<NoteResult>("update_note", { filePath: selectedFile, content: nextContent });
       setRawFileContent(nextContent);
       setFileContent(editContent);
-      setEditing(false);
-      setEditContent("");
+      completeEdit();
       showToast(t("clipboard.saved"));
       refreshSavedClipsInPlace();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [editContent, rawFileContent, refreshSavedClipsInPlace, selectedFile, showToast, t]);
+  }, [completeEdit, editContent, rawFileContent, refreshSavedClipsInPlace, selectedFile, showToast, t]);
 
   const handleMultiSelectBack = useCallback(() => {
     if (!multiSelectMode) return false;
@@ -598,6 +651,7 @@ export default function ClipboardPage({
       : t("clipboard.noClips");
   const displayedClipTotal = clipTotal ?? status?.clips_count ?? 0;
   const selectionActionsDisabled = selectedClipPaths.length === 0 || creatingNote || deletingSelected;
+  const clipboardPanelCollapsed = collapsedPanels.clipboard ?? false;
 
   return (
     <ClipboardPageFrame>
@@ -614,6 +668,8 @@ export default function ClipboardPage({
 
       <DesktopSplitPane
         panelKey="clipboard"
+        collapsed={clipboardPanelCollapsed}
+        onCollapsedChange={(collapsed) => setPanelCollapsed("clipboard", collapsed)}
         left={showList && (
           <ClipboardListPane>
             <PaneHeader
@@ -728,8 +784,7 @@ export default function ClipboardPage({
                           onContextMenu={(e) => {
                             if (!isMobile || multiSelectMode) return;
                             e.preventDefault();
-                            setSelectedFile(null);
-                            setFileContent("");
+                            clearDetail();
                             setMultiSelectMode(true);
                             toggleClipSelection(file.path);
                           }}
@@ -852,6 +907,8 @@ export default function ClipboardPage({
                   onCancel={cancelEdit}
                   editTitle={t("notes.edit")}
                   saveTitle={t("notes.save")}
+                  splitPreview={splitPreview}
+                  onToggleSplitPreview={toggleSplitPreview}
                   metadata={selectedFile ? (
                     <FavoriteButton
                       relPath={selectedFile}
@@ -890,25 +947,21 @@ export default function ClipboardPage({
                   ) : null}
                 />
 
-                <ClipboardDetailScroll mobile={isMobile}>
-                  {editing ? (
-                    <ClipboardEditor
-                      refNode={editRef}
-                      mobile={isMobile}
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      onKeyDown={(e) => {
-                        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                          e.preventDefault();
-                          void handleSaveEdit();
-                        }
-                        if (e.key === "Escape") cancelEdit();
-                      }}
-                    />
-                  ) : (
+                <FileEditorSurface
+                  ref={editRef}
+                  editing={editing}
+                  value={editContent}
+                  onChange={setEditContent}
+                  onSave={handleSaveEdit}
+                  onCancel={cancelEdit}
+                  filePath={selectedFile ?? undefined}
+                  mobile={isMobile}
+                  splitPreview={splitPreview}
+                  supportsSplitPreview
+                  mobileBottomPadding={isMobile}
+                >
                     <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
-                  )}
-                </ClipboardDetailScroll>
+                </FileEditorSurface>
               </>
             )}
           </ClipboardDetailPane>

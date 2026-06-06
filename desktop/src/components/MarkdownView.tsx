@@ -7,7 +7,7 @@ import { Search, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
-import { localImageDataUrl } from "../utils/localImages";
+import { cacheLocalImageDataUrl, getCachedLocalImageDataUrl } from "../utils/localImages";
 import { AppIcon } from "./base/AppIcon";
 
 export interface MarkdownViewProps {
@@ -213,9 +213,9 @@ function resolveMarkdownImagePath(src?: string, filePath?: string) {
  * Custom img renderer that loads local images via Tauri's read_file_base64.
  */
 function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { filePath?: string }) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [localImageState, setLocalImageState] = useState<"ready" | "loading" | "error">("ready");
   const imgRelPath = useMemo(() => resolveMarkdownImagePath(src, filePath), [src, filePath]);
+  const [dataUrl, setDataUrl] = useState<string | null>(() => imgRelPath ? getCachedLocalImageDataUrl(imgRelPath) : null);
+  const [localImageState, setLocalImageState] = useState<"ready" | "loading" | "error">("ready");
   const imageSaveProps = useLongPressImageSave({
     src: dataUrl ?? src ?? null,
     filePath: imgRelPath,
@@ -224,17 +224,19 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
 
   useEffect(() => {
     let cancelled = false;
-    setDataUrl(null);
     if (!src || !imgRelPath) {
+      setDataUrl(null);
       setLocalImageState("ready");
       return;
     }
 
+    const cached = getCachedLocalImageDataUrl(imgRelPath);
+    setDataUrl(cached);
     setLocalImageState("loading");
     invoke<string>("read_file_base64", { filePath: imgRelPath })
       .then((b64) => {
         if (cancelled) return;
-        setDataUrl(localImageDataUrl(imgRelPath, b64));
+        setDataUrl(cacheLocalImageDataUrl(imgRelPath, b64));
         setLocalImageState("ready");
       })
       .catch(() => {

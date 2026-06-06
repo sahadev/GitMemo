@@ -4,19 +4,18 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Download, Trash2, RefreshCw, Eye } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
-import { CodeTextarea } from "../components/base/CodeTextarea";
 import { EmptyState } from "../components/base/EmptyState";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
-import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -24,6 +23,8 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore } from "../hooks/useAppStore";
+import { useFileDetailState } from "../hooks/useFileDetailState";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult } from "../types/notes";
 import { usePagedFileList } from "../hooks/usePagedFileList";
@@ -47,13 +48,38 @@ export default function ImportsPage({
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [fileContent, setFileContent] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [splitPreview, setSplitPreview] = useState(false);
-  const [saving, setSaving] = useState(false);
   const detailOpenedFromCrossPageRef = useRef(false);
+  const {
+    selectedFile,
+    fileContent,
+    setFileContent,
+    openFile,
+    clearDetail,
+  } = useFileDetailState({
+    onOpened: ({ path, content, fromCrossPage }) => {
+      resetEditor(content);
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
+      scrollItemIntoView(path);
+    },
+    onClosed: () => {
+      resetEditor();
+      detailOpenedFromCrossPageRef.current = false;
+    },
+  });
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: fileContent,
+    mobile: isMobile,
+  });
+  const [saving, setSaving] = useState(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
   const loadImportsPage = useCallback((offset: number, limit: number) => {
@@ -73,19 +99,6 @@ export default function ImportsPage({
     loadPage: loadImportsPage,
     preventConcurrentLoads: true,
   });
-
-  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
-    try {
-      const content = await invoke<string>("read_file", { filePath: path });
-      setSelectedFile(path);
-      setFileContent(content);
-      setEditContent(content);
-      setEditing(false);
-      setSplitPreview(false);
-      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      scrollItemIntoView(path);
-    } catch (e) { console.error(e); }
-  }, [isMobile, scrollItemIntoView]);
 
   const { navPrev, navNext } = useFileListNavigation({
     files,
@@ -111,7 +124,7 @@ export default function ImportsPage({
     if (selectedFile) void openFile(selectedFile);
   }, [selectedFile, loadFiles, openFile]);
 
-  useFileWatcher(watchedFolders, loadFiles);
+  useFileWatcher(watchedFolders, loadFiles, { active: active !== false });
 
   const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
@@ -119,15 +132,11 @@ export default function ImportsPage({
     if (!confirmed) return;
     try {
       await invoke<NoteResult>("delete_note", { filePath: selectedFile });
-      setSelectedFile(null);
-      setFileContent("");
-      setEditContent("");
-      setEditing(false);
-      setSplitPreview(false);
+      clearDetail();
       showToast(t("imports.deleted"));
       void loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
-  }, [selectedFile, t, showToast, loadFiles]);
+  }, [selectedFile, t, clearDetail, showToast, loadFiles]);
 
   const handleSave = useCallback(async () => {
     if (!selectedFile) return;
@@ -144,35 +153,8 @@ export default function ImportsPage({
   }, [selectedFile, editContent, showToast, t]);
 
   const closeDetail = useCallback(() => {
-    setSelectedFile(null);
-    setFileContent("");
-    setEditContent("");
-    setEditing(false);
-    setSplitPreview(false);
-    detailOpenedFromCrossPageRef.current = false;
-  }, []);
-
-  const startEdit = useCallback(() => {
-    setEditContent(fileContent);
-    setEditing(true);
-    setSplitPreview(false);
-  }, [fileContent]);
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false);
-    setSplitPreview(false);
-  }, []);
-
-  const toggleSplitPreview = useCallback(() => {
-    if (isMobile || !selectedFile) return;
-    if (!editing) {
-      setEditContent(fileContent);
-      setEditing(true);
-      setSplitPreview(true);
-      return;
-    }
-    setSplitPreview((value) => !value);
-  }, [editing, fileContent, isMobile, selectedFile]);
+    clearDetail();
+  }, [clearDetail]);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -313,38 +295,20 @@ export default function ImportsPage({
                     />
                   ) : null}
                 />
-                <DetailScroll className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
-                  {editing ? (
-                    splitPreview && !isMobile ? (
-                      <MarkdownSplitEditor
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        onKeyDown={(e) => {
-                          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                            e.preventDefault();
-                            void handleSave();
-                          }
-                        }}
-                        filePath={selectedFile}
-                        minHeight
-                      />
-                    ) : (
-                      <CodeTextarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        onKeyDown={(e) => {
-                          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                            e.preventDefault();
-                            void handleSave();
-                          }
-                        }}
-                        minHeight
-                      />
-                    )
-                  ) : (
+                <FileEditorSurface
+                  editing={editing}
+                  value={editContent}
+                  onChange={setEditContent}
+                  onSave={handleSave}
+                  onCancel={cancelEdit}
+                  filePath={selectedFile}
+                  mobile={isMobile}
+                  minHeight
+                  splitPreview={splitPreview}
+                  supportsSplitPreview
+                >
                     <MarkdownView content={fileContent} filePath={selectedFile} />
-                  )}
-                </DetailScroll>
+                </FileEditorSurface>
               </>
             ) : (
               <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />

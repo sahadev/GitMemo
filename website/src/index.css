@@ -88,6 +88,35 @@ body {
   animation: blink 1s infinite;
 }
 
+.wechat-float {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100vw - 2rem);
+  padding: 0.375rem;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.wechat-float img {
+  width: 152px;
+  height: auto;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .wechat-float img {
+    width: 116px;
+    height: auto;
+  }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }

@@ -4,20 +4,19 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
 import { Plus, FileText, BookOpen, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
-import { MarkdownSplitEditor } from "../components/MarkdownSplitEditor";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { PaneTabHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
-import { CodeTextarea } from "../components/base/CodeTextarea";
 import { EmptyState } from "../components/base/EmptyState";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { NoteComposer } from "../components/domain/notes/NoteComposer";
-import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -25,6 +24,8 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { useAppStore, type NotesTab } from "../hooks/useAppStore";
+import { useFileDetailState } from "../hooks/useFileDetailState";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { type FileEntry, type FilePage } from "../types/files";
 import { type NoteResult, type SavedAttachment } from "../types/notes";
 import { usePagedFileList } from "../hooks/usePagedFileList";
@@ -60,17 +61,45 @@ export default function NotesPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [fileContent, setFileContent] = useState("");
   const [newNote, setNewNote] = useState("");
   const [manualTitle, setManualTitle] = useState("");
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [splitPreview, setSplitPreview] = useState(false);
-  const [editContent, setEditContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
+  const {
+    selectedFile,
+    fileContent,
+    setFileContent,
+    openFile,
+    clearDetail,
+  } = useFileDetailState({
+    onOpened: ({ path, fromCrossPage }) => {
+      resetEditor();
+      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
+      scrollItemIntoView(path);
+    },
+    onClosed: () => {
+      resetEditor();
+      detailOpenedFromCrossPageRef.current = false;
+    },
+  });
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: fileContent,
+    mobile: isMobile,
+    focusRef: editRef,
+    focusDelayMs: 50,
+  });
   /** True while IME composition is active (more reliable than keydown.isComposing alone in some WebViews). */
   const imeComposingRef = useRef(false);
 
@@ -148,33 +177,18 @@ export default function NotesPage({
 
   useEffect(() => {
     void loadFiles();
-    setSelectedFile(null);
-    setFileContent("");
-    setEditing(false);
-    setSplitPreview(false);
-  }, [activeTab, loadFiles]);
+    clearDetail();
+  }, [activeTab, clearDetail, loadFiles]);
 
   useEffect(() => {
     if (focusTrigger && textareaRef.current) textareaRef.current.focus();
   }, [focusTrigger]);
 
-  const openFile = useCallback(async (path: string, fromCrossPage = false) => {
-    try {
-      const content = await invoke<string>("read_file", { filePath: path });
-      setSelectedFile(path);
-      setFileContent(content);
-      setEditing(false);
-      setSplitPreview(false);
-      detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
-      scrollItemIntoView(path);
-    } catch (e) { console.error(e); }
-  }, [isMobile, scrollItemIntoView]);
-
   const handleRefresh = useCallback(() => {
     void loadFiles();
     if (selectedFile) void openFile(selectedFile);
   }, [loadFiles, openFile, selectedFile]);
-  useFileWatcher(["notes"], loadFiles);
+  useFileWatcher(["notes"], loadFiles, { active });
 
   useEffect(() => {
     if (!pendingOpenPath?.startsWith("notes/")) return;
@@ -221,8 +235,7 @@ export default function NotesPage({
     try {
       const result = await invoke<NoteResult>("update_note", { filePath: selectedFile, content: editContent });
       setFileContent(editContent);
-      setEditing(false);
-      setSplitPreview(false);
+      completeEdit();
       showToast(result.message);
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
@@ -234,38 +247,11 @@ export default function NotesPage({
     if (!confirmed) return;
     try {
       await invoke<NoteResult>("delete_note", { filePath: selectedFile });
-      setSelectedFile(null);
-      setFileContent("");
-      setEditing(false);
-      setSplitPreview(false);
+      clearDetail();
       showToast(t("notes.noteDeleted"));
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
   };
-
-  const startEdit = useCallback(() => {
-    setEditContent(fileContent);
-    setEditing(true);
-    setSplitPreview(false);
-    setTimeout(() => editRef.current?.focus(), 50);
-  }, [fileContent]);
-
-  const cancelEdit = useCallback(() => {
-    setEditing(false);
-    setSplitPreview(false);
-  }, []);
-
-  const toggleSplitPreview = useCallback(() => {
-    if (isMobile || !selectedFile) return;
-    if (!editing) {
-      setEditContent(fileContent);
-      setEditing(true);
-      setSplitPreview(true);
-      window.setTimeout(() => editRef.current?.focus(), 50);
-      return;
-    }
-    setSplitPreview((value) => !value);
-  }, [editing, fileContent, isMobile, selectedFile]);
 
   useEffect(() => {
     if (!active || isMobile) return;
@@ -294,12 +280,8 @@ export default function NotesPage({
   const showDetail = !isMobile || !!selectedFile;
   const selectedFileName = selectedFile?.split("/").pop() ?? "";
   const closeDetail = useCallback(() => {
-    setSelectedFile(null);
-    setFileContent("");
-    setEditing(false);
-    setSplitPreview(false);
-    detailOpenedFromCrossPageRef.current = false;
-  }, []);
+    clearDetail();
+  }, [clearDetail]);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -453,38 +435,22 @@ export default function NotesPage({
                 />
               ) : null}
             />
-            <DetailScroll mobileBottomPadding={isMobile} className={editing && splitPreview ? "gm-detail-scroll-split" : undefined}>
-              {editing ? (
-                splitPreview && !isMobile ? (
-                  <MarkdownSplitEditor
-                    ref={editRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
-                    onKeyDown={(e) => {
-                      if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                    filePath={selectedFile ?? undefined}
-                    mobile={isMobile}
-                  />
-                ) : (
-                  <CodeTextarea
-                    ref={editRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
-                    onKeyDown={(e) => {
-                      if (e.key === "s" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSaveEdit(); }
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                    mobile={isMobile}
-                  />
-                )
-              ) : (
+            <FileEditorSurface
+              ref={editRef}
+              editing={editing}
+              value={editContent}
+              onChange={setEditContent}
+              onSave={handleSaveEdit}
+              onCancel={cancelEdit}
+              onPaste={(e) => void handlePasteAttachments(e, setEditContent)}
+              filePath={selectedFile ?? undefined}
+              mobile={isMobile}
+              splitPreview={splitPreview}
+              supportsSplitPreview
+              mobileBottomPadding={isMobile}
+            >
                 <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
-              )}
-            </DetailScroll>
+            </FileEditorSurface>
           </>
         ) : (
           <EmptyState

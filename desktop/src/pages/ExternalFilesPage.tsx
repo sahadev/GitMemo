@@ -12,13 +12,14 @@ import { FavoriteButton } from "../components/FavoriteButton";
 import { AppIcon } from "../components/base/AppIcon";
 import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
-import { CodeTextarea } from "../components/base/CodeTextarea";
 import { EmptyState } from "../components/base/EmptyState";
 import { MonoBlock } from "../components/base/MonoBlock";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { usePlatform } from "../hooks/usePlatform";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { relativeTime } from "../utils/time";
 import { PaneHeader } from "../components/AppHeaders";
 
@@ -82,10 +83,21 @@ export default function ExternalFilesPage({
   const [loading, setLoading] = useState(true);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
-  const [editContent, setEditContent] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState("");
-  const [editing, setEditing] = useState(false);
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: fileContent,
+    mobile: isMobile,
+  });
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const selectedFilePathRef = useRef<string | null>(null);
@@ -98,10 +110,9 @@ export default function ExternalFilesPage({
   const clearSelection = useCallback(() => {
     setSelectedFilePath(null);
     setFileContent("");
-    setEditContent("");
-    setEditing(false);
+    resetEditor();
     setFileError("");
-  }, []);
+  }, [resetEditor]);
 
   const upsertEntry = useCallback((entry: ExternalFileEntry) => {
     setEntries((prev) => {
@@ -135,8 +146,7 @@ export default function ExternalFilesPage({
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
-    setEditing(true);
-    setEditContent("");
+    startEdit({ content: "", focus: false });
     try {
       const result = await invoke<ExternalFileOpenResult>("open_external_file", { filePath });
       setSelectedFilePath(result.entry.file_path);
@@ -151,7 +161,7 @@ export default function ExternalFilesPage({
     } finally {
       setFileLoading(false);
     }
-  }, [loadEntries, upsertEntry]);
+  }, [loadEntries, setEditContent, startEdit, upsertEntry]);
 
   useEffect(() => {
     void loadEntries();
@@ -172,6 +182,7 @@ export default function ExternalFilesPage({
     () => entries.find((item) => item.file_path === selectedFilePath) ?? null,
     [entries, selectedFilePath],
   );
+  const selectedIsMarkdown = selectedEntry ? isProbablyMarkdown(selectedEntry.file_name) : false;
 
   const handleSave = useCallback(async () => {
     if (!selectedFilePath) return;
@@ -318,13 +329,15 @@ export default function ExternalFilesPage({
                 }}
                 refreshDisabled={fileLoading}
                 editing={editing}
-                onEdit={() => setEditing(true)}
+                onEdit={startEdit}
                 onSave={() => void handleSave()}
-                onCancel={() => setEditing(false)}
+                onCancel={cancelEdit}
                 editTitle={t("externalFiles.edit")}
                 saveTitle={t("externalFiles.save")}
                 cancelTitle={t("common.preview")}
                 cancelIcon={<AppIcon icon={Eye} size="xs" />}
+                splitPreview={splitPreview}
+                onToggleSplitPreview={selectedIsMarkdown ? toggleSplitPreview : undefined}
                 editDisabled={!selectedEntry.exists}
                 saveDisabled={saving}
                 saveTone="accent"
@@ -367,31 +380,33 @@ export default function ExternalFilesPage({
                 ) : null}
               />
 
-              <DetailScroll>
-                {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
-                {!fileLoading && fileError ? (
-                  <p className="gm-error-inline">{fileError}</p>
-                ) : null}
-                {!fileLoading && !fileError && selectedEntry ? (
-                  editing ? (
-                    <CodeTextarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      onKeyDown={(e) => {
-                        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-                          e.preventDefault();
-                          void handleSave();
-                        }
-                      }}
-                      minHeight
-                    />
-                  ) : isProbablyMarkdown(selectedEntry.file_name) ? (
+              {fileLoading || fileError ? (
+                <DetailScroll>
+                  {fileLoading ? <Loading compact text={t("dashboard.loading")} /> : null}
+                  {!fileLoading && fileError ? (
+                    <p className="gm-error-inline">{fileError}</p>
+                  ) : null}
+                </DetailScroll>
+              ) : (
+                <FileEditorSurface
+                  editing={editing}
+                  value={editContent}
+                  onChange={setEditContent}
+                  onSave={handleSave}
+                  onCancel={cancelEdit}
+                  filePath={selectedEntry.file_path}
+                  mobile={isMobile}
+                  minHeight
+                  splitPreview={splitPreview}
+                  supportsSplitPreview={selectedIsMarkdown}
+                >
+                  {selectedIsMarkdown ? (
                     <MarkdownView content={fileContent} />
                   ) : (
                     <MonoBlock>{fileContent}</MonoBlock>
-                  )
-                ) : null}
-              </DetailScroll>
+                  )}
+                </FileEditorSurface>
+              )}
             </>
             </DetailPane>
           )
