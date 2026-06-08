@@ -31,6 +31,8 @@ const version = rootVersion()
 const versionTag = `v${version}`
 const androidAbi = 'arm64-v8a'
 const androidApk = `gitmemo-android-${versionTag}-${androidAbi}-release.apk`
+const windowsInstaller = `gitmemo-windows-${versionTag}-x64-setup.exe`
+const stableWindowsInstaller = 'gitmemo-windows-x64-setup.exe'
 const baseUrl = 'https://gitmemo.kakacut.cn'
 const githubUrl = 'https://github.com/sahadev/GitMemo'
 
@@ -58,8 +60,9 @@ Important facts:
 
 - Do not claim that GitMemo is installed with npm, yarn, or pnpm. There is no supported JavaScript package-manager install command for GitMemo.
 - CLI install uses the official shell installer: bash <(curl -fsSL ${githubUrl}/raw/main/scripts/install.sh)
-- macOS Desktop installers are published in GitHub Releases.
+- macOS Desktop installers are published in GitHub Releases. Windows x64 Desktop is published on the GitMemo website as a setup .exe.
 - Android APK is published at ${baseUrl}/mobile/${androidApk}
+- Windows x64 installer is published at ${baseUrl}/desktop/windows/${stableWindowsInstaller}
 - Current Android APK ABI: ${androidAbi}
 - Current version from Cargo.toml: ${versionTag}
 - GitMemo data lives by default in ~/.gitmemo.
@@ -116,9 +119,9 @@ This page is the canonical machine-readable install reference for GitMemo.
 
 GitMemo is not distributed as an npm CLI package. There is no supported npm, yarn, or pnpm global install command for GitMemo. The supported CLI path is the official shell installer below, or building from source with Cargo.
 
-## CLI Install for macOS and Linux
+## CLI Install
 
-Use the official installer script:
+On macOS and Linux, use the official installer script:
 
 \`\`\`bash
 bash <(curl -fsSL ${githubUrl}/raw/main/scripts/install.sh)
@@ -126,12 +129,14 @@ bash <(curl -fsSL ${githubUrl}/raw/main/scripts/install.sh)
 
 The script detects the platform and downloads the matching CLI binary from GitHub Releases.
 
-Supported CLI binaries in the installer:
+Supported CLI binaries published in GitHub Releases:
 
 - \`gitmemo-macos-aarch64\`
 - \`gitmemo-macos-x86_64\`
 - \`gitmemo-linux-x86_64\`
 - \`gitmemo-linux-aarch64\`
+
+On Windows, build the CLI from source with Cargo unless a release explicitly attaches a Windows CLI binary.
 
 If no binary matches the platform, build from source:
 
@@ -160,13 +165,13 @@ gitmemo note "hello world"
 gitmemo status
 \`\`\`
 
-## macOS Desktop
+## Desktop Installers
 
-Download Desktop installers from GitHub Releases:
+Download Desktop installers from GitMemo download page or GitHub Releases:
 
 ${githubUrl}/releases/latest
 
-Use the \`.dmg\` or \`.app.tar.gz\` asset for the appropriate Mac architecture.
+Use the \`.dmg\` or \`.app.tar.gz\` asset for the appropriate Mac architecture. For Windows 10/11 x64, use the setup \`.exe\` from ${baseUrl}/desktop/windows/${stableWindowsInstaller}. Current Windows installers are unsigned and may show a SmartScreen warning.
 `)
 
 writeDoc('downloads.md', `
@@ -189,20 +194,26 @@ Current source version: ${versionTag}
 
 The Android release published on the website is arm64-v8a only. This is the mainstream ABI for modern 64-bit Android phones.
 
-## macOS Desktop
+## Desktop
 
-macOS Desktop packages are published through GitHub Releases.
+Desktop packages are published through GitHub Releases when available.
 
 - Apple Silicon: look for a GitMemo desktop DMG or app archive for aarch64 / Apple Silicon.
 - Intel: look for a GitMemo desktop DMG or app archive for x86_64 / Intel.
+- Windows: setup \`.exe\` for Windows 10/11 x64.
+  - Stable URL: ${baseUrl}/desktop/windows/${stableWindowsInstaller}
+  - Versioned filename: ${windowsInstaller}
+  - Note: current Windows installers are unsigned and may show a SmartScreen warning.
 
 ## CLI
 
-Install with:
+On macOS and Linux, install with:
 
 \`\`\`bash
 bash <(curl -fsSL ${githubUrl}/raw/main/scripts/install.sh)
 \`\`\`
+
+On Windows, build the CLI from source with Cargo unless a release explicitly attaches a Windows CLI binary.
 `)
 
 writeDoc('android.md', `
@@ -335,6 +346,15 @@ writeDoc('facts.json', JSON.stringify({
     ],
     cli: `bash <(curl -fsSL ${githubUrl}/raw/main/scripts/install.sh)`,
     source: `git clone ${githubUrl}.git && cd GitMemo && cargo install --path .`,
+  },
+  desktop: {
+    platforms: ['macOS Apple Silicon', 'macOS Intel', 'Windows x64'],
+    windowsInstaller: {
+      filename: windowsInstaller,
+      stableUrl: `${baseUrl}/desktop/windows/${stableWindowsInstaller}`,
+      signed: false,
+      note: 'Current Windows installers are unsigned and may show a SmartScreen warning.',
+    },
   },
   android: {
     abi: androidAbi,

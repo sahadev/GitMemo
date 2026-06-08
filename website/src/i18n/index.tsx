@@ -77,9 +77,12 @@ const en: Record<string, string> = {
   'download.macosAppleSilicon.desc': 'For Macs with Apple Silicon chips.',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': 'For Intel-based Macs.',
+  'download.windowsDesktop.title': 'Windows',
+  'download.windowsDesktop.desc': 'Windows 10/11 x64 desktop installer. Unsigned builds may show a SmartScreen warning.',
   'download.androidApk.title': 'Android APK (arm64-v8a)',
   'download.androidApk.desc': 'For mainstream 64-bit Android phones.',
   'download.action': 'Download',
+  'download.comingSoon': 'Coming soon',
 
   // Pain Points
   'pain.label': 'The Problem',
@@ -334,9 +337,12 @@ const zh: Record<string, string> = {
   'download.macosAppleSilicon.desc': '适用于 Apple Silicon 架构的 macOS 系统。',
   'download.macosIntel.title': 'macOS Intel',
   'download.macosIntel.desc': '适用于 Intel 架构的 macOS 系统。',
+  'download.windowsDesktop.title': 'Windows',
+  'download.windowsDesktop.desc': '适用于 Windows 10/11 x64 的桌面端安装包，未签名版本可能触发 SmartScreen 提示。',
   'download.androidApk.title': 'Android APK（arm64-v8a）',
   'download.androidApk.desc': '适用于主流 64 位 Android 手机。',
   'download.action': '下载',
+  'download.comingSoon': '即将推出',
 
   // Pain Points
   'pain.label': '痛点',

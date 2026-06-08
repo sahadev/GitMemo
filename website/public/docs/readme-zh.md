@@ -45,19 +45,20 @@ GitMemo 成立的原因，是这些临时来源需要一个长期、可迁移、
 
 ### 安装
 
-#### GitMemo Desktop（macOS）— 图形界面优先
+#### GitMemo Desktop（macOS / Windows）— 图形界面优先
 
-1. **下载**：打开 **[GitHub Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**，在 **Assets** 中下载 **桌面端**安装包：  
-   - 优先选 **`.dmg`**（拖拽安装到「应用程序」）；或  
-   - **`.app.tar.gz`**（解压后得到 `.app`，具体文件名随版本变化，认准 **desktop / GitMemo** 相关资源即可）。  
-   **Linux / Windows**：当前仓库 **不提供** Desktop 安装包；请使用下方 **CLI 安装**（Linux 支持 CLI）。
+1. **下载**：选择与你设备匹配的 **桌面端**安装包：
+   - **macOS**：优先选 **`.dmg`**（拖拽安装到「应用程序」），或 **`.app.tar.gz`**（解压后得到 `.app`，具体文件名随版本变化，认准 **desktop / GitMemo** 相关资源即可）。
+   - **Windows**：从 **[GitMemo 下载页](https://gitmemo.kakacut.cn/#downloads)** 下载 x64 **`.exe`** 安装程序。
+   - **Linux**：当前仓库 **不提供** Desktop 安装包；请使用下方 **CLI 安装**。
 2. **首次设置**：先完成一次初始化——**可在 GitMemo Desktop 里按界面引导完成**；若你更习惯终端，也可安装下方 **CLI** 后执行 **`gitmemo init`**。完成后会生成 `~/.gitmemo` 并可选接入 Claude / Cursor 或启用 Codex 日志捕获。之后日常可**主要用 Desktop** 做浏览、搜索与剪贴板。
 
 > **macOS Desktop 说明**：当前发布的 Desktop 安装包已经完成签名，正常情况下直接通过发布页提供的 `.dmg` 或 `.app.tar.gz` 安装即可。若你的机器仍然拦截启动，应视为少数环境相关异常，而不是标准安装流程的一部分。
+> **Windows Desktop 说明**：当前 Windows x64 安装包暂未签名，可能触发 Windows SmartScreen 的“未知发布者”提示；请从 GitMemo 官方下载页获取，并只在确认来源可信时继续安装。
 
 #### CLI 安装（macOS / Linux）
 
-一键安装脚本（同时包含 `gitmemo` CLI，并可在脚本流程中安装/更新相关组件）：
+macOS / Linux 可使用一键安装脚本（同时包含 `gitmemo` CLI，并可在脚本流程中安装/更新相关组件）：
 
 ```bash
 # 一键安装（自动检测平台）
@@ -67,12 +68,16 @@ bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh
 <details>
 <summary>手动下载 CLI / 从源码编译</summary>
 
-从 [Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest) 的 **Assets** 中下载对应平台的 **CLI** 二进制（如 `gitmemo-macos-aarch64`），然后：
+从 [Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest) 的 **Assets** 中下载对应平台的 **CLI** 二进制（如 `gitmemo-macos-aarch64` 或 `gitmemo-linux-x86_64`）。
+
+macOS / Linux：
 
 ```bash
 chmod +x gitmemo-macos-aarch64
 sudo mv gitmemo-macos-aarch64 /usr/local/bin/gitmemo
 ```
+
+Windows：目前请通过 Cargo 从源码构建。
 
 或从源码编译（需要 Rust 工具链）：
 
@@ -112,17 +117,17 @@ gitmemo init --path /path/to/your/repo
 
 ### Desktop 客户端
 
-**安装包下载**：见上文 **「安装」→「GitMemo Desktop（macOS）」**，直达 **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**。完成初始化后，打开 GitMemo Desktop，它会读取与 CLI 相同的同步目录（通常是 `~/.gitmemo`）。
+**安装包下载**：见上文 **「安装」→「GitMemo Desktop（macOS / Windows）」**，或直接打开 **[GitMemo 下载页](https://gitmemo.kakacut.cn/#downloads)**。完成初始化后，打开 GitMemo Desktop，它会读取与 CLI 相同的同步目录（通常是 `~/.gitmemo`）。
 
 - **仪表盘**：统计卡片、同步状态、最近动态 Feed、剪贴板监控指示器
 - **全文搜索**：跨对话、笔记、剪贴板、计划和配置搜索
 - **剪贴板监控**：支持文本和图片捕获，缩略图预览
-- **系统通知**：通过 macOS 通知中心推送同步错误和剪贴板捕获（仅后台）
-- **Quick Paste**：浮窗命令面板（Cmd+Shift+Space）
+- **系统通知**：推送同步错误和剪贴板捕获
+- **Quick Paste**：浮窗命令面板和可配置全局快捷键
 - **系统托盘**：快捷操作（打开/同步/剪贴板/退出）
-- **诊断日志**：与「检查更新」相关的条目带 `[updater]` 前缀，写入应用日志文件 `gitmemo.log`（macOS 一般在 `~/Library/Logs/` 下与应用相关的目录中；也可用「控制台」搜索 GitMemo）
+- **诊断日志**：与「检查更新」相关的条目带 `[updater]` 前缀，写入应用日志文件 `gitmemo.log`（macOS 一般在 `~/Library/Logs/` 下与应用相关的目录中；其他平台使用各自的应用日志位置）
 - Claude Code 和 Cursor 生成的 plans 都会导入到 `plans/`
-- 当前桌面端安装包仅支持 **macOS**（Apple Silicon + Intel）
+- 当前桌面端安装包支持 **macOS**（Apple Silicon + Intel）和 **Windows x64**
 - Desktop 日常使用不必开着终端；**初始化可在应用内完成**，也可用 CLI 执行 `gitmemo init`。CLI 还便于在终端里用 `gitmemo note`、`sync` 等命令
 
 ### 对话如何保存

@@ -45,19 +45,20 @@ That changes the role of the knowledge base: it is no longer only a place for hu
 
 ### Install
 
-#### GitMemo Desktop (macOS) — start here for the GUI
+#### GitMemo Desktop (macOS and Windows) — start here for the GUI
 
-1. **Download**: open **[GitHub Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**, expand **Assets**, and pick the **Desktop** build:  
-   - Prefer **`.dmg`** (drag into Applications), or  
-   - **`.app.tar.gz`** (extract to get `.app`; filenames change each release — look for **desktop** / **GitMemo** in the asset name).  
-   **Linux / Windows**: this repository does **not** ship Desktop installers yet; use **CLI install** below (Linux CLI binaries are published).
+1. **Download**: choose the matching **Desktop** build:
+   - **macOS**: prefer **`.dmg`** (drag into Applications), or **`.app.tar.gz`** (extract to get `.app`; filenames change each release — look for **desktop** / **GitMemo** in the asset name).
+   - **Windows**: download the x64 **`.exe`** installer from the **[GitMemo download page](https://gitmemo.kakacut.cn/#downloads)**.
+   - **Linux**: this repository does **not** ship Desktop installers yet; use **CLI install** below.
 2. **First-time setup**: finish initialization once—**use the guided setup inside GitMemo Desktop**, or install the **CLI** below and run **`gitmemo init`** in a terminal if you prefer. This creates `~/.gitmemo` and optionally wires Claude / Cursor or enables Codex log capture. After that you can stay mostly in Desktop for browsing, search, and clipboard.
 
 > **macOS Desktop note**: current Desktop releases are signed and intended for normal installation via the published `.dmg` or `.app.tar.gz` assets. If macOS still blocks launch on your machine, treat that as an unexpected environment-specific issue rather than the standard install path.
+> **Windows Desktop note**: current Windows x64 installers are unsigned. Windows SmartScreen may show an "unknown publisher" warning; use the official GitMemo download page and continue only if you trust the source.
 
 #### CLI install (macOS & Linux)
 
-One-line installer (installs / updates the `gitmemo` CLI and related pieces the script manages):
+One-line installer for macOS and Linux (installs / updates the `gitmemo` CLI and related pieces the script manages):
 
 ```bash
 # One-line install (auto-detects your platform)
@@ -67,12 +68,16 @@ bash <(curl -fsSL https://github.com/sahadev/GitMemo/raw/main/scripts/install.sh
 <details>
 <summary>Manual CLI download / Build from source</summary>
 
-From **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)** → **Assets**, download the **CLI** binary for your platform (e.g. `gitmemo-macos-aarch64`), then:
+From **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)** → **Assets**, download the **CLI** binary for your platform (e.g. `gitmemo-macos-aarch64` or `gitmemo-linux-x86_64`).
+
+On macOS/Linux:
 
 ```bash
 chmod +x gitmemo-macos-aarch64
 sudo mv gitmemo-macos-aarch64 /usr/local/bin/gitmemo
 ```
+
+On Windows, build from source with Cargo for now.
 
 Or build from source (requires Rust toolchain):
 
@@ -112,17 +117,17 @@ After initialization, conversations, notes, and other supported sources flow int
 
 ### Desktop App
 
-**Installer**: see **Install → GitMemo Desktop (macOS)** above, or go straight to **[Releases · Latest](https://github.com/sahadev/GitMemo/releases/latest)**. After initialization, open GitMemo Desktop and it will read the same sync directory as the CLI (usually `~/.gitmemo`).
+**Installer**: see **Install → GitMemo Desktop (macOS and Windows)** above, or go straight to the **[GitMemo download page](https://gitmemo.kakacut.cn/#downloads)**. After initialization, open GitMemo Desktop and it will read the same sync directory as the CLI (usually `~/.gitmemo`).
 
 - **Dashboard** with stats, sync status, recent activity feed, and clipboard monitoring indicator
 - **Full-text search** across conversations, notes, clips, plans, and config
 - **Clipboard monitor** with text and image capture, thumbnail previews
-- **System notifications** via macOS Notification Center (sync errors, clipboard captures)
-- **Quick Paste** floating window (Cmd+Shift+Space) for command palette access
+- **System notifications** for sync errors and clipboard captures
+- **Quick Paste** floating window and configurable global shortcuts
 - **System tray** with quick actions (Open/Sync/Clipboard/Quit)
-- **Diagnostics**: update-check events are logged with the `[updater]` prefix to `gitmemo.log` (on macOS, under `~/Library/Logs/` in the app’s log folder; you can also search for GitMemo in Console)
+- **Diagnostics**: update-check events are logged with the `[updater]` prefix to `gitmemo.log` (on macOS, under `~/Library/Logs/` in the app’s log folder; other platforms use their native app log location)
 - Plans created by Claude Code and Cursor are both imported into `plans/`
-- Current desktop packages target **macOS only** (Apple Silicon + Intel)
+- Current desktop packages target **macOS** (Apple Silicon + Intel) and **Windows x64**
 - You don’t need a terminal day-to-day; **first-time setup can finish inside the app**, or you can use the CLI to run `gitmemo init`. The CLI is also handy for `gitmemo note`, `sync`, and other commands
 
 ### How Conversations Are Saved

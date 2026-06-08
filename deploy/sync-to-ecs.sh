@@ -17,6 +17,7 @@ set -euo pipefail
 #   VITE_DOWNLOAD_MANIFEST_URL — OSS downloads.json 地址（可选，配置后下载区优先走 OSS）
 #   VITE_WEBSITE_ASSET_BASE_URL — 官网大图等静态资源域名（可选，配置后从 OSS/CDN 加载）
 #   ANDROID_APK — Android APK 源文件路径（可选，默认自动查找 arm64-v8a release 包）
+#   WINDOWS_EXE — Windows x64 installer 源文件路径（可选，默认查找 release-assets/windows）
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -33,6 +34,9 @@ ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
 ANDROID_VERSION="${ANDROID_VERSION:-v${PROJECT_VERSION}}"
 ANDROID_APK_FILENAME="${ANDROID_APK_FILENAME:-gitmemo-android-${ANDROID_VERSION}-${ANDROID_ABI}-release.apk}"
 ANDROID_STABLE_APK_FILENAME="${ANDROID_STABLE_APK_FILENAME:-gitmemo-android-${ANDROID_ABI}-release.apk}"
+WINDOWS_VERSION="${WINDOWS_VERSION:-v${PROJECT_VERSION}}"
+WINDOWS_EXE_FILENAME="${WINDOWS_EXE_FILENAME:-gitmemo-windows-${WINDOWS_VERSION}-x64-setup.exe}"
+WINDOWS_STABLE_EXE_FILENAME="${WINDOWS_STABLE_EXE_FILENAME:-gitmemo-windows-x64-setup.exe}"
 ECS_IP="${ECS_IP:-101.200.217.80}"
 ECS_USER="${ECS_USER:-root}"
 ECS_DIR="${ECS_DIR:-/opt/kakacut}"
@@ -137,6 +141,32 @@ resolve_android_apk() {
     return 1
 }
 
+resolve_windows_exe() {
+    local candidates=()
+
+    if [ -n "${WINDOWS_EXE:-}" ]; then
+        candidates+=("$WINDOWS_EXE")
+    fi
+
+    candidates+=(
+        "$PROJECT_DIR/release-assets/windows/GitMemo_${PROJECT_VERSION}_x64-setup.exe"
+        "$PROJECT_DIR/release-assets/windows/GitMemo_${WINDOWS_VERSION#v}_x64-setup.exe"
+        "$PROJECT_DIR/release-assets/windows/$WINDOWS_EXE_FILENAME"
+        "$PROJECT_DIR/release-assets/windows/$WINDOWS_STABLE_EXE_FILENAME"
+        "$HOME/Downloads/GitMemo_${PROJECT_VERSION}_x64-setup.exe"
+    )
+
+    local candidate
+    for candidate in "${candidates[@]}"; do
+        if [ -f "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 # ============================================
 # 替换 Google Fonts 为国内镜像
 # ============================================
@@ -185,7 +215,7 @@ build_website() {
     else
         warn "未设置 VITE_WEBSITE_ASSET_BASE_URL，官网大图将使用站内 fallback 资源"
     fi
-    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" VITE_WEBSITE_ASSET_BASE_URL="${VITE_WEBSITE_ASSET_BASE_URL:-}" VITE_ANDROID_APK_VERSION="$ANDROID_VERSION" VITE_ANDROID_APK_FILENAME="$ANDROID_APK_FILENAME" npm run build
+    VITE_DEFAULT_LANG=zh VITE_SITE_URL=https://gitmemo.kakacut.cn VITE_DOWNLOAD_MANIFEST_URL="${VITE_DOWNLOAD_MANIFEST_URL:-}" VITE_WEBSITE_ASSET_BASE_URL="${VITE_WEBSITE_ASSET_BASE_URL:-}" VITE_ANDROID_APK_VERSION="$ANDROID_VERSION" VITE_ANDROID_APK_FILENAME="$ANDROID_APK_FILENAME" VITE_WINDOWS_DESKTOP_VERSION="$WINDOWS_VERSION" npm run build
     cd "$PROJECT_DIR"
 
     rm -rf "$SCRIPT_DIR/dist/gitmemo"
@@ -205,6 +235,20 @@ build_website() {
         warn "未找到 Android ${ANDROID_VERSION} ${ANDROID_ABI} release APK，无法发布 /mobile/${ANDROID_APK_FILENAME}"
         warn "请先运行 pnpm --dir desktop build:android:arm64，或通过 ANDROID_APK=/path/to/app.apk 指定源文件"
         exit 1
+    fi
+
+    local resolved_windows_exe
+    resolved_windows_exe="$(resolve_windows_exe || true)"
+    if [ -n "$resolved_windows_exe" ]; then
+        mkdir -p "$SCRIPT_DIR/dist/gitmemo/desktop/windows"
+        cp "$resolved_windows_exe" "$SCRIPT_DIR/dist/gitmemo/desktop/windows/$WINDOWS_EXE_FILENAME"
+        cp "$resolved_windows_exe" "$SCRIPT_DIR/dist/gitmemo/desktop/windows/$WINDOWS_STABLE_EXE_FILENAME"
+        log "Windows x64 安装包已复制到 /desktop/windows/${WINDOWS_EXE_FILENAME}"
+        log "Windows x64 稳定下载别名已复制到 /desktop/windows/${WINDOWS_STABLE_EXE_FILENAME}"
+        info "Windows 安装包源文件: $resolved_windows_exe"
+    else
+        warn "未找到 Windows ${WINDOWS_VERSION} x64 安装包，跳过 /desktop/windows 下载文件"
+        warn "可通过 WINDOWS_EXE=/path/to/GitMemo_x.y.z_x64-setup.exe 指定源文件"
     fi
 
     fix_for_china

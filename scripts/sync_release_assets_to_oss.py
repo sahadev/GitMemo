@@ -102,6 +102,16 @@ def put_json(bucket: Any, key: str, payload: dict[str, Any]) -> None:
     print(f"Uploaded {key}")
 
 
+def iter_asset_files() -> list[pathlib.Path]:
+    if not ROOT.is_dir():
+        return []
+    return sorted(
+        path
+        for path in ROOT.rglob("*")
+        if path.is_file() and not path.name.startswith(".")
+    )
+
+
 def rewrite_latest_json(version_tag: str, prefix: str, base_url: str) -> dict[str, Any]:
     latest_path = ROOT / "latest.json"
     if not latest_path.is_file():
@@ -119,27 +129,62 @@ def rewrite_latest_json(version_tag: str, prefix: str, base_url: str) -> dict[st
 
 def build_downloads_manifest(version_tag: str, prefix: str, base_url: str) -> dict[str, Any]:
     def find_one(pattern: str) -> str:
-        matches = sorted(p.name for p in ROOT.iterdir() if p.is_file() and re.match(pattern, p.name))
+        matches = sorted(p.name for p in iter_asset_files() if re.match(pattern, p.name))
         if not matches:
             print(f"ERROR: no asset matching {pattern} in {ROOT}", file=sys.stderr)
             sys.exit(1)
         return matches[-1]
 
+    def find_optional(patterns: list[str]) -> str | None:
+        matches: list[str] = []
+        for pattern in patterns:
+            matches.extend(
+                p.name
+                for p in iter_asset_files()
+                if not p.name.endswith(".sig") and re.match(pattern, p.name)
+            )
+        if not matches:
+            return None
+        return sorted(set(matches), key=asset_priority)[0]
+
     aarch64_dmg = find_one(r"^GitMemo_v?.+_aarch64\.dmg$")
     x86_64_dmg = find_one(r"^GitMemo_v?.+_(?:x86_64|x64)\.dmg$")
-    return {
-        "version": version_tag,
-        "assets": {
-            "macosAppleSilicon": {
-                "name": aarch64_dmg,
-                "url": object_url(base_url, f"{prefix}/{version_tag}/{aarch64_dmg}"),
-            },
-            "macosIntel": {
-                "name": x86_64_dmg,
-                "url": object_url(base_url, f"{prefix}/{version_tag}/{x86_64_dmg}"),
-            },
+    assets = {
+        "macosAppleSilicon": {
+            "name": aarch64_dmg,
+            "url": object_url(base_url, f"{prefix}/{version_tag}/{aarch64_dmg}"),
+        },
+        "macosIntel": {
+            "name": x86_64_dmg,
+            "url": object_url(base_url, f"{prefix}/{version_tag}/{x86_64_dmg}"),
         },
     }
+
+    windows_installer = find_optional(
+        [
+            r"^GitMemo.*(?:setup|x64|x86_64|windows).*\.exe$",
+            r"^GitMemo.*(?:setup|x64|x86_64|windows).*\.msi$",
+        ]
+    )
+    if windows_installer:
+        assets["windowsDesktop"] = {
+            "name": windows_installer,
+            "url": object_url(base_url, f"{prefix}/{version_tag}/{windows_installer}"),
+        }
+
+    return {
+        "version": version_tag,
+        "assets": assets,
+    }
+
+
+def asset_priority(name: str) -> tuple[int, str]:
+    lower = name.lower()
+    if lower.endswith(".exe"):
+        return (0, lower)
+    if lower.endswith(".msi"):
+        return (1, lower)
+    return (2, lower)
 
 
 def upload_assets(bucket: Any, version_tag: str, prefix: str) -> None:
@@ -147,7 +192,7 @@ def upload_assets(bucket: Any, version_tag: str, prefix: str) -> None:
         print(f"ERROR: missing assets directory {ROOT}", file=sys.stderr)
         sys.exit(1)
 
-    files = sorted(path for path in ROOT.iterdir() if path.is_file())
+    files = iter_asset_files()
     if not files:
         print(f"ERROR: no files found in {ROOT}", file=sys.stderr)
         sys.exit(1)

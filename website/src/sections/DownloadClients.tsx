@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Apple, Cpu, Download, Smartphone, type LucideIcon } from 'lucide-react'
+import { Apple, Cpu, Download, Laptop, Smartphone, type LucideIcon } from 'lucide-react'
 import { useI18n } from '../i18n/useI18n'
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/sahadev/GitMemo/releases/latest'
 const FALLBACK_RELEASE_VERSION = 'v1.0.65'
 const FIXED_ANDROID_VERSION = (import.meta.env.VITE_ANDROID_APK_VERSION || '').trim()
+const FIXED_WINDOWS_VERSION = (import.meta.env.VITE_WINDOWS_DESKTOP_VERSION || '').trim()
 const FIXED_ANDROID_ABI = 'arm64-v8a'
 const STABLE_ANDROID_APK_URL = `https://gitmemo.kakacut.cn/mobile/gitmemo-android-${FIXED_ANDROID_ABI}-release.apk`
+const STABLE_WINDOWS_EXE_URL = 'https://gitmemo.kakacut.cn/desktop/windows/gitmemo-windows-x64-setup.exe'
 const DOWNLOADS_MANIFEST_URL = (import.meta.env.VITE_DOWNLOAD_MANIFEST_URL || '').trim()
 
 interface GitHubReleaseAsset {
@@ -30,13 +32,14 @@ interface DownloadManifest {
 }
 
 interface DownloadItem {
-  key: 'macosAppleSilicon' | 'macosIntel' | 'androidApk'
+  key: 'macosAppleSilicon' | 'macosIntel' | 'windowsDesktop' | 'androidApk'
   icon: LucideIcon
   fallbackHref: string
   assetPattern?: RegExp
   ext: string
   fixedVersion?: string
   useManifest?: boolean
+  comingSoon?: boolean
 }
 
 const downloads: DownloadItem[] = [
@@ -53,6 +56,13 @@ const downloads: DownloadItem[] = [
     fallbackHref: 'https://github.com/sahadev/GitMemo/releases/download/v1.0.65/GitMemo_v1.0.65_x86_64.dmg',
     assetPattern: /^GitMemo_v?.+_(?:x86_64|x64)\.dmg$/,
     ext: '.dmg',
+  },
+  {
+    key: 'windowsDesktop',
+    icon: Laptop,
+    fallbackHref: STABLE_WINDOWS_EXE_URL,
+    ext: '.exe · x64',
+    fixedVersion: FIXED_WINDOWS_VERSION || undefined,
   },
   {
     key: 'androidApk',
@@ -127,22 +137,17 @@ export default function DownloadClients({ showHeader = true, showVersion = false
         </div>
       )}
 
-      <div className={`${showHeader ? 'mt-10' : ''} grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6`}>
+      <div className={`${showHeader ? 'mt-10' : ''} grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6`}>
         {downloads.map((item) => {
           const Icon = item.icon
           const title = t(`download.${item.key}.title`)
-          const manifestAsset = item.useManifest === false ? undefined : manifest?.assets[item.key]
-          const asset = item.assetPattern
+          const manifestAsset = !item.comingSoon && item.useManifest !== false ? manifest?.assets[item.key] : undefined
+          const asset = !item.comingSoon && item.assetPattern
             ? release?.assets.find((candidate) => item.assetPattern?.test(candidate.name))
             : undefined
           const version = item.fixedVersion ?? manifest?.version ?? release?.tag_name ?? FALLBACK_RELEASE_VERSION
-          return (
-            <a
-              key={item.key}
-              href={manifestAsset?.url ?? asset?.browser_download_url ?? item.fallbackHref}
-              className="group flex min-h-34 min-w-0 flex-col justify-between rounded-lg border border-border bg-surface/80 p-5 text-left shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-colors hover:border-[rgba(0,122,255,0.45)] hover:bg-surface-2/80"
-              aria-label={`${t('download.action')} ${title}`}
-            >
+          const cardContent = (
+            <>
               <div>
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="flex min-w-0 items-start gap-3">
@@ -155,7 +160,7 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                   </div>
                   {showVersion && (
                     <span className="shrink-0 rounded-full border border-green/30 px-2 py-0.5 text-xs font-medium text-green">
-                      {version}
+                      {item.comingSoon ? t('download.comingSoon') : version}
                     </span>
                   )}
                 </div>
@@ -169,10 +174,30 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                   {item.ext}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-2 text-sm sm:text-base font-semibold text-accent transition-colors group-hover:text-accent-light">
-                  {t('download.action')}
-                  <Download size={18} />
+                  {item.comingSoon ? t('download.comingSoon') : t('download.action')}
+                  {!item.comingSoon && <Download size={18} />}
                 </span>
               </div>
+            </>
+          )
+          if (item.comingSoon) {
+            return (
+              <div
+                key={item.key}
+                className="group flex min-h-34 min-w-0 flex-col justify-between rounded-lg border border-border bg-surface/80 p-5 text-left shadow-[0_16px_40px_rgba(0,0,0,0.08)]"
+              >
+                {cardContent}
+              </div>
+            )
+          }
+          return (
+            <a
+              key={item.key}
+              href={manifestAsset?.url ?? asset?.browser_download_url ?? item.fallbackHref}
+              className="group flex min-h-34 min-w-0 flex-col justify-between rounded-lg border border-border bg-surface/80 p-5 text-left shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-colors hover:border-[rgba(0,122,255,0.45)] hover:bg-surface-2/80"
+              aria-label={`${t('download.action')} ${title}`}
+            >
+              {cardContent}
             </a>
           )
         })}
