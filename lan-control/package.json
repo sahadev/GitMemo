@@ -1,0 +1,17 @@
+{
+  "name": "lan-control",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A standalone LAN control tool for pairing with Windows machines, running tasks, collecting logs, installing artifacts, and taking screenshots.",
+  "bin": {
+    "lan-control": "./server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

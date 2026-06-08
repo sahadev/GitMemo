@@ -1,0 +1,4 @@
+.state/
+artifacts/*
+!artifacts/.gitkeep
+*.log
