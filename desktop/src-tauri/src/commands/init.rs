@@ -130,7 +130,12 @@ pub struct SshKeyScanResult {
 
 #[tauri::command]
 pub fn scan_ssh_keys(git_url: String) -> Result<SshKeyScanResult, String> {
-    let candidates = ssh::list_ssh_key_candidates(&git_url);
+    let mut candidates = ssh::list_ssh_key_candidates(&git_url);
+    if !candidates.iter().any(|candidate| candidate.recommended) {
+        if let Some(candidate) = candidates.iter_mut().find(|candidate| !candidate.encrypted) {
+            candidate.recommended = true;
+        }
+    }
     let recommended_key_path = candidates
         .iter()
         .find(|candidate| candidate.recommended)
@@ -236,6 +241,20 @@ fn init_gitmemo_sync(
                 };
 
                 let key_path = std::path::PathBuf::from(ssh_key_path);
+                match ssh::is_private_key_encrypted(&key_path) {
+                    Ok(true) => {
+                        result.add_err(
+                            "ssh_key",
+                            "SSH private key requires a passphrase; generate a dedicated GitMemo key for background sync",
+                        );
+                        return Ok(result);
+                    }
+                    Err(e) => {
+                        result.add_err("ssh_key", &format!("SSH key error: {e}"));
+                        return Ok(result);
+                    }
+                    Ok(false) => {}
+                }
                 match ssh::read_public_key(&key_path) {
                     Ok(pub_key) => {
                         result.ssh_public_key = Some(pub_key);
@@ -615,7 +634,7 @@ fn setup_claude_full(sync_dir: &str, lang: &str) -> Result<(), String> {
 
     // 3. MCP server registration
     let claude_json = home.join(".claude.json");
-    let cli_path = which_gitmemo().unwrap_or_else(|| "gitmemo".to_string());
+    let cli_path = crate::platform::gitmemo_command_for_registration();
     mcp_register::register(&claude_json, &cli_path)
         .map_err(|e| format!("MCP registration failed: {e}"))?;
 
@@ -652,27 +671,11 @@ fn setup_cursor_full(sync_dir: &str, lang: &str) -> Result<(), String> {
 
     // 3. MCP for Cursor
     let cursor_mcp_path = home.join(".cursor").join("mcp.json");
-    let cli_path = which_gitmemo().unwrap_or_else(|| "gitmemo".to_string());
+    let cli_path = crate::platform::gitmemo_command_for_registration();
     cursor_mcp::register(&cursor_mcp_path, &cli_path)
         .map_err(|e| format!("Cursor MCP failed: {e}"))?;
 
     Ok(())
-}
-
-/// Try to find the gitmemo CLI binary in PATH
-#[cfg(not(target_os = "android"))]
-fn which_gitmemo() -> Option<String> {
-    let output = std::process::Command::new("which")
-        .arg("gitmemo")
-        .output()
-        .ok()?;
-    if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !path.is_empty() {
-            return Some(path);
-        }
-    }
-    None
 }
 
 // ── Post-init remote sync ─────────────────────────────────────────────────

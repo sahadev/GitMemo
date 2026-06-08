@@ -80,6 +80,7 @@ interface SshKeyCandidate {
   public_key: string;
   source: string;
   recommended: boolean;
+  encrypted: boolean;
   reason?: string | null;
 }
 
@@ -222,7 +223,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     try {
       const scan = await invoke<SshKeyScanResult>("scan_ssh_keys", { gitUrl });
       setSshCandidates(scan.candidates);
-      setSelectedSshKeyPath(scan.recommended_key_path ?? scan.candidates[0]?.path ?? null);
+      const firstUsable = scan.candidates.find(candidate => !candidate.encrypted)?.path ?? null;
+      setSelectedSshKeyPath(scan.recommended_key_path ?? firstUsable);
       setDeployKeysUrl(scan.deploy_keys_url ?? null);
       setStep("ssh_key");
     } catch (e) {
@@ -551,8 +553,10 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <SetupOptionButton
                   key={candidate.path}
                   selected={selectedSshKeyPath === candidate.path}
+                  disabled={candidate.encrypted}
                   className="gm-setup-option-top"
                   onClick={() => {
+                    if (candidate.encrypted) return;
                     setSelectedSshKeyPath(candidate.path);
                     setSshKeyCopied(false);
                   }}
@@ -561,8 +565,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                     <div className="gm-setup-candidate-head">
                       <span className="gm-setup-candidate-path">{candidate.path}</span>
                       {candidate.recommended && <SetupBadge tone="accent">{t("setup.recommended")}</SetupBadge>}
+                      {candidate.encrypted && <SetupBadge tone="warning">{t("setup.sshKeyEncrypted")}</SetupBadge>}
                     </div>
-                    {candidate.reason && <div className="gm-setup-candidate-reason">{candidate.reason}</div>}
+                    <div className="gm-setup-candidate-reason">
+                      {candidate.encrypted ? t("setup.sshKeyEncryptedReason") : candidate.reason}
+                    </div>
                   </div>
                   <SetupCheck selected={selectedSshKeyPath === candidate.path} />
                 </SetupOptionButton>
@@ -613,6 +620,9 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
 
             {sshCandidates.length === 0 && !scanningSsh && (
               <SetupText>{t("setup.noSshKeysFound")}</SetupText>
+            )}
+            {sshCandidates.length > 0 && sshCandidates.every(candidate => candidate.encrypted) && (
+              <SetupFieldHint tone="warning">{t("setup.onlyEncryptedSshKeysFound")}</SetupFieldHint>
             )}
 
             <SetupButtonRow>

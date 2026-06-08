@@ -61,6 +61,18 @@ fn update_index_for_path(path: &Path, sync_dir: &Path, removed: bool) {
     }
 }
 
+#[cfg(desktop)]
+fn is_internal_path(path: &Path, sync_dir: &Path) -> bool {
+    path.strip_prefix(sync_dir)
+        .ok()
+        .is_some_and(|rel| {
+            rel.components().any(|component| {
+                let name = component.as_os_str().to_string_lossy();
+                name == ".git" || name == ".metadata"
+            })
+        })
+}
+
 /// Start watching the sync directory for file changes.
 /// Emits `files-changed` events to the frontend with debouncing.
 /// Safe to call multiple times — only the first successful call starts a watcher.
@@ -120,8 +132,7 @@ pub fn start_file_watcher(app_handle: AppHandle) {
 
                     for path in &event.paths {
                         // Skip .git and .metadata internal changes
-                        let path_str = path.to_string_lossy();
-                        if path_str.contains("/.git/") || path_str.contains("/.metadata/") {
+                        if is_internal_path(path, &sync_dir) {
                             continue;
                         }
 

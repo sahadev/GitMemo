@@ -527,7 +527,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
               supportsSplitPreview={selectedIsMarkdown}
             >
               {selectedIsMarkdown ? (
-                <MarkdownView content={fileContent} />
+                <MarkdownView content={fileContent} filePath={fileAbs || selectedFileRel} />
               ) : (
                 <MonoBlock>{fileContent}</MonoBlock>
               )}

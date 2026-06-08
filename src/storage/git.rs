@@ -76,20 +76,14 @@ fn configured_access_token(repo_path: &Path) -> Option<String> {
 }
 
 fn git_command(repo_path: &Path, args: &[&str]) -> Command {
-    let mut command = Command::new("git");
+    let mut command = crate::platform::background_command("git");
     command.args(args).current_dir(repo_path);
     command
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GCM_INTERACTIVE", "Never");
 
-    let ssh_command = if let Some(key_path) = configured_ssh_key_path(repo_path) {
-        format!(
-            "ssh -i '{}' -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=2",
-            key_path.replace('\'', r#"'\''"#)
-        )
-    } else {
-        "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=2".to_string()
-    };
+    let ssh_key_path = configured_ssh_key_path(repo_path);
+    let ssh_command = crate::platform::git_ssh_command(ssh_key_path.as_deref());
     command.env("GIT_SSH_COMMAND", ssh_command);
 
     command

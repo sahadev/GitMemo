@@ -47,7 +47,16 @@ fn anonymous_root_dir() -> Result<PathBuf, String> {
     Ok(home.join(".gitmemo").join("editor-anonymous"))
 }
 
+fn metadata_root_dir() -> Result<PathBuf, String> {
+    let home = home_dir().ok_or_else(|| "HOME/USERPROFILE not set".to_string())?;
+    Ok(home.join(".gitmemo").join(".metadata"))
+}
+
 fn external_files_index_path() -> Result<PathBuf, String> {
+    Ok(metadata_root_dir()?.join("external-files-index.json"))
+}
+
+fn legacy_external_files_index_path() -> Result<PathBuf, String> {
     Ok(anonymous_root_dir()?.join("external-files-index.json"))
 }
 
@@ -213,6 +222,7 @@ fn entry_from_abs_path(abs_path: &Path, last_opened_at: String) -> ExternalFileE
 }
 
 fn read_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
+    migrate_external_files_index()?;
     let path = external_files_index_path()?;
     let parent = path
         .parent()
@@ -230,6 +240,7 @@ fn read_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
 }
 
 fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), String> {
+    migrate_external_files_index()?;
     let path = external_files_index_path()?;
     let parent = path
         .parent()
@@ -237,6 +248,27 @@ fn write_external_files_index(entries: &[ExternalFileEntry]) -> Result<(), Strin
     fs::create_dir_all(parent).map_err(|e| format!("{}: {}", parent.display(), e))?;
     let json = serde_json::to_string_pretty(entries).map_err(|e| e.to_string())?;
     fs::write(&path, json).map_err(|e| format!("{}: {}", path.display(), e))
+}
+
+fn migrate_external_files_index() -> Result<(), String> {
+    let next = external_files_index_path()?;
+    let legacy = legacy_external_files_index_path()?;
+    if legacy == next || !legacy.exists() {
+        return Ok(());
+    }
+
+    if let Some(parent) = next.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("{}: {}", parent.display(), e))?;
+    }
+    if !next.exists() {
+        fs::rename(&legacy, &next).or_else(|_| {
+            fs::copy(&legacy, &next)?;
+            fs::remove_file(&legacy)
+        }).map_err(|e| format!("{} -> {}: {}", legacy.display(), next.display(), e))?;
+    } else {
+        let _ = fs::remove_file(&legacy);
+    }
+    Ok(())
 }
 
 fn save_external_file_entry(abs_path: &Path) -> Result<ExternalFileEntry, String> {
@@ -567,26 +599,19 @@ pub fn clear_external_files() -> Result<Vec<ExternalFileEntry>, String> {
 }
 
 #[tauri::command]
-pub fn reveal_external_file_in_finder(file_path: String) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        let status = std::process::Command::new("open")
-            .arg("-R")
-            .arg(file_path.trim())
-            .status()
-            .map_err(|e| e.to_string())?;
-        if status.success() {
-            Ok(())
-        } else {
-            Err(format!("open -R exited with status {status}"))
-        }
-    }
+pub fn clear_missing_external_files() -> Result<Vec<ExternalFileEntry>, String> {
+    let entries = refresh_external_files_index()?;
+    let existing: Vec<ExternalFileEntry> = entries
+        .into_iter()
+        .filter(|entry| entry.exists)
+        .collect();
+    write_external_files_index(&existing)?;
+    Ok(existing)
+}
 
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = file_path;
-        Err("Reveal in file manager is only supported on macOS here".into())
-    }
+#[tauri::command]
+pub fn reveal_external_file_in_finder(file_path: String) -> Result<(), String> {
+    crate::platform::reveal_in_file_manager(&file_path)
 }
 
 #[tauri::command]

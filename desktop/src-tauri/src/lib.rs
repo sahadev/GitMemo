@@ -1,4 +1,5 @@
 mod commands;
+mod platform;
 
 use commands::{
     clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes,
@@ -6,6 +7,7 @@ use commands::{
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
+use serde::Serialize;
 #[cfg(target_os = "macos")]
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -15,8 +17,10 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Listener, RunEvent, WebviewWindow,
+    Listener, WebviewWindow,
 };
+#[cfg(target_os = "macos")]
+use tauri::RunEvent;
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -140,6 +144,7 @@ pub(crate) fn show_main_window_from_app(app: &AppHandle) {
     }
 }
 
+#[cfg(target_os = "macos")]
 fn emit_external_open(app: &AppHandle, file_path: String) {
     let _ = app.emit("system-open-file", file_path);
 }
@@ -150,6 +155,7 @@ fn take_pending_external_open(pending: &State<PendingExternalOpen>) -> Vec<Strin
     std::mem::take(&mut state.paths)
 }
 
+#[cfg(target_os = "macos")]
 fn emit_or_queue_external_open(
     app: &AppHandle,
     pending: &State<PendingExternalOpen>,
@@ -177,13 +183,20 @@ fn app_ready(pending: State<PendingExternalOpen>) -> Vec<String> {
 
 #[tauri::command]
 fn get_runtime_platform() -> &'static str {
-    #[cfg(mobile)]
-    {
-        "mobile"
-    }
-    #[cfg(not(mobile))]
-    {
-        "desktop"
+    platform::runtime_family()
+}
+
+#[derive(Serialize)]
+struct RuntimeInfo {
+    family: &'static str,
+    os: &'static str,
+}
+
+#[tauri::command]
+fn get_runtime_info() -> RuntimeInfo {
+    RuntimeInfo {
+        family: platform::runtime_family(),
+        os: platform::runtime_os(),
     }
 }
 
@@ -310,6 +323,7 @@ pub fn run() {
             local_editor::save_external_file,
             local_editor::remove_external_file,
             local_editor::clear_external_files,
+            local_editor::clear_missing_external_files,
             local_editor::reveal_external_file_in_finder,
             local_editor::import_external_file_to_anonymous,
             local_editor::list_editor_directory,
@@ -347,6 +361,7 @@ pub fn run() {
             sync_log::get_sync_logs,
             sync_log::clear_sync_logs,
             get_runtime_platform,
+            get_runtime_info,
             print_current_window,
             app_ready,
             notifications::send_desktop_notification,
@@ -401,7 +416,7 @@ pub fn run() {
             show_main_window_from_app(_app_handle);
         }
 
-        #[cfg(desktop)]
+        #[cfg(target_os = "macos")]
         if let RunEvent::Opened { urls } = _event {
             show_main_window_from_app(_app_handle);
             let pending = _app_handle.state::<PendingExternalOpen>();

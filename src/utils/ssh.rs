@@ -2,7 +2,6 @@ use anyhow::Result;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// Known SSH key filenames to search for (in priority order)
 const KEY_NAMES: &[&str] = &["id_ed25519", "id_rsa", "id_ecdsa"];
@@ -15,6 +14,118 @@ pub struct SshKeyCandidate {
     pub source: String,
     pub recommended: bool,
     pub reason: Option<String>,
+    pub encrypted: bool,
+}
+
+fn read_openssh_string(bytes: &[u8], offset: &mut usize) -> Option<Vec<u8>> {
+    let end = offset.checked_add(4)?;
+    let len_bytes: [u8; 4] = bytes.get(*offset..end)?.try_into().ok()?;
+    let len = u32::from_be_bytes(len_bytes) as usize;
+    *offset = end;
+
+    let value_end = offset.checked_add(len)?;
+    let value = bytes.get(*offset..value_end)?.to_vec();
+    *offset = value_end;
+    Some(value)
+}
+
+fn pem_body(content: &str) -> Option<String> {
+    let mut in_body = false;
+    let mut body = String::new();
+
+    for line in content.lines().map(str::trim) {
+        if line.starts_with("-----BEGIN ") {
+            in_body = true;
+            continue;
+        }
+        if line.starts_with("-----END ") {
+            break;
+        }
+        if in_body && !line.is_empty() {
+            body.push_str(line);
+        }
+    }
+
+    (!body.is_empty()).then_some(body)
+}
+
+fn base64_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'A'..=b'Z' => Some(byte - b'A'),
+        b'a'..=b'z' => Some(byte - b'a' + 26),
+        b'0'..=b'9' => Some(byte - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    }
+}
+
+fn decode_base64(input: &str) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    let mut chunk = [0u8; 4];
+    let mut chunk_len = 0usize;
+    let mut padding = 0usize;
+
+    for byte in input.bytes().filter(|byte| !byte.is_ascii_whitespace()) {
+        if byte == b'=' {
+            chunk[chunk_len] = 0;
+            chunk_len += 1;
+            padding += 1;
+        } else if let Some(value) = base64_value(byte) {
+            chunk[chunk_len] = value;
+            chunk_len += 1;
+        } else {
+            anyhow::bail!("invalid base64 character");
+        }
+
+        if chunk_len == 4 {
+            out.push((chunk[0] << 2) | (chunk[1] >> 4));
+            if padding < 2 {
+                out.push((chunk[1] << 4) | (chunk[2] >> 2));
+            }
+            if padding == 0 {
+                out.push((chunk[2] << 6) | chunk[3]);
+            }
+            chunk_len = 0;
+            padding = 0;
+        }
+    }
+
+    if chunk_len != 0 {
+        anyhow::bail!("invalid base64 length");
+    }
+
+    Ok(out)
+}
+
+pub fn is_private_key_encrypted(key_path: &Path) -> Result<bool> {
+    let content = std::fs::read_to_string(key_path)?;
+    is_private_key_content_encrypted(&content)
+}
+
+fn is_private_key_content_encrypted(content: &str) -> Result<bool> {
+    if content.contains("ENCRYPTED") {
+        return Ok(true);
+    }
+
+    if !content.starts_with("-----BEGIN OPENSSH PRIVATE KEY-----") {
+        return Ok(false);
+    }
+
+    let body = pem_body(&content).ok_or_else(|| anyhow::anyhow!("invalid OpenSSH private key"))?;
+    let decoded = decode_base64(&body)?;
+    const MAGIC: &[u8] = b"openssh-key-v1\0";
+    if !decoded.starts_with(MAGIC) {
+        return Ok(false);
+    }
+
+    let mut offset = MAGIC.len();
+    let cipher = read_openssh_string(&decoded, &mut offset)
+        .ok_or_else(|| anyhow::anyhow!("invalid OpenSSH private key cipher"))?;
+    let kdf = read_openssh_string(&decoded, &mut offset)
+        .ok_or_else(|| anyhow::anyhow!("invalid OpenSSH private key kdf"))?;
+
+    Ok(cipher.as_slice() != b"none" || kdf.as_slice() != b"none")
 }
 
 fn expand_ssh_path(raw: &str) -> Option<PathBuf> {
@@ -198,8 +309,9 @@ fn push_candidate(
     let Ok(public_key) = read_public_key(&key_path) else {
         return;
     };
+    let encrypted = is_private_key_encrypted(&key_path).unwrap_or(false);
 
-    let is_recommended = recommended.map(|path| path == key_path).unwrap_or(false);
+    let is_recommended = !encrypted && recommended.map(|path| path == key_path).unwrap_or(false);
 
     candidates.push(SshKeyCandidate {
         path: key_path.to_string_lossy().to_string(),
@@ -207,6 +319,7 @@ fn push_candidate(
         source: source.to_string(),
         recommended: is_recommended,
         reason,
+        encrypted,
     });
 }
 
@@ -219,6 +332,7 @@ pub fn generate_key_candidate(git_url: &str) -> Result<SshKeyCandidate> {
         source: "generated".to_string(),
         recommended: true,
         reason: Some("Generated for GitMemo setup".to_string()),
+        encrypted: false,
     })
 }
 
@@ -278,15 +392,11 @@ fn generate_new_key(host: Option<&str>) -> Result<(PathBuf, bool)> {
         .join(".ssh");
     std::fs::create_dir_all(&ssh_dir)?;
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&ssh_dir, std::fs::Permissions::from_mode(0o700))?;
-    }
+    crate::platform::restrict_dir_to_owner_if_needed(&ssh_dir)?;
 
     let key_path = next_generated_key_path(&ssh_dir, host);
 
-    let status = Command::new("ssh-keygen")
+    let status = crate::platform::background_command("ssh-keygen")
         .args([
             "-t",
             "ed25519",
@@ -380,7 +490,7 @@ pub fn test_ssh_connection(key_path: &Path, git_url: &str) -> Result<SshTestResu
         None => return Ok(SshTestResult::NotSsh),
     };
 
-    let mut cmd = Command::new("ssh");
+    let mut cmd = crate::platform::background_command("ssh");
     cmd.args(["-T", &format!("git@{}", host)])
         .args(["-i", key_path.to_str().unwrap()])
         .args(["-o", "StrictHostKeyChecking=accept-new"])
@@ -467,13 +577,7 @@ pub fn deploy_keys_url(git_url: &str) -> Option<String> {
 
 /// Open a URL in the default browser
 pub fn open_browser(url: &str) {
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    let _ = url;
-
-    #[cfg(target_os = "macos")]
-    let _ = std::process::Command::new("open").arg(url).spawn();
-    #[cfg(target_os = "linux")]
-    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+    crate::platform::open_url(url);
 }
 
 /// Convert HTTPS GitHub/GitLab URL to SSH format
@@ -491,4 +595,35 @@ pub fn https_to_ssh(url: &str) -> Option<String> {
     let host = parts[0];
     let path = parts[1];
     Some(format!("git@{}:{}", host, path))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn openssh_private_key_with_body(body: &str) -> String {
+        format!(
+            "-----BEGIN OPENSSH PRIVATE KEY-----\n{}\n-----END OPENSSH PRIVATE KEY-----\n",
+            body
+        )
+    }
+
+    #[test]
+    fn detects_encrypted_openssh_private_key() {
+        let content =
+            openssh_private_key_with_body("b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0");
+        assert!(is_private_key_content_encrypted(&content).unwrap());
+    }
+
+    #[test]
+    fn allows_unencrypted_openssh_private_key() {
+        let content = openssh_private_key_with_body("b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ==");
+        assert!(!is_private_key_content_encrypted(&content).unwrap());
+    }
+
+    #[test]
+    fn detects_legacy_encrypted_pem() {
+        let content = "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\n-----END RSA PRIVATE KEY-----\n";
+        assert!(is_private_key_content_encrypted(content).unwrap());
+    }
 }

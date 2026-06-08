@@ -108,6 +108,15 @@ interface SyncLogEntry {
   content: string;
 }
 
+type CopyField = "syncDir" | "gitRemote" | "cliCommand" | "syncLogs";
+
+function formatSyncLogsForClipboard(logs: SyncLogEntry[]): string {
+  return logs
+    .map((entry) => `===== ${entry.filename} =====\n${entry.content}`)
+    .join("\n\n")
+    .trim();
+}
+
 function accessTokenHelpUrl(remoteUrl: string): string {
   const lower = remoteUrl.toLowerCase();
   if (lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
@@ -191,7 +200,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [editingBranch, setEditingBranch] = useState(false);
   const syncDir = gitStatus?.sync_dir ?? "";
   const gitRemote = gitStatus?.git_remote ?? "";
-  const { copied: copiedField, markCopied: markCopiedField } = useTimedCopy<"syncDir" | "gitRemote" | "cliCommand">();
+  const { copied: copiedField, markCopied: markCopiedField } = useTimedCopy<CopyField>();
   const [editingRemote, setEditingRemote] = useState(false);
   const [remoteInput, setRemoteInput] = useState("");
   const [remoteTokenInput, setRemoteTokenInput] = useState("");
@@ -514,15 +523,25 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     }
   };
 
-  const copyValue = async (value: string, field: "syncDir" | "gitRemote" | "cliCommand") => {
+  const copyValue = async (value: string, field: CopyField) => {
     if (!value) return;
     try {
       await writeText(value);
       markCopiedField(field);
-      showToast(field === "cliCommand" ? t("settings.cliCommandCopied") : t("common.copied"));
+      showToast(
+        field === "cliCommand"
+          ? t("settings.cliCommandCopied")
+          : field === "syncLogs"
+            ? t("settings.syncLogsCopied")
+            : t("common.copied"),
+      );
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
+  };
+
+  const copySyncLogs = async () => {
+    await copyValue(formatSyncLogsForClipboard(syncLogs), "syncLogs");
   };
 
   const handleRefresh = async () => {
@@ -1165,6 +1184,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <SettingsModalHeader icon={ScrollText} title={t("settings.syncLogs")} onClose={() => setShowSyncLogs(false)}>
             <SettingsActionButton variant="ghost" disabled={loadingSyncLogs} onClick={() => void loadSyncLogs()}>
               {t("common.refresh")}
+            </SettingsActionButton>
+            <SettingsActionButton
+              variant="ghost"
+              icon={copiedField === "syncLogs" ? undefined : Copy}
+              disabled={loadingSyncLogs || syncLogs.length === 0}
+              onClick={() => void copySyncLogs()}
+            >
+              {copiedField === "syncLogs" ? t("common.copied") : t("settings.copySyncLogs")}
             </SettingsActionButton>
             <SettingsActionButton
               variant="ghost"

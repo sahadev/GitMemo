@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser } from "lucide-react";
+import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser, FileX } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
@@ -100,6 +100,7 @@ export default function ExternalFilesPage({
   });
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [clearingMissing, setClearingMissing] = useState(false);
   const selectedFilePathRef = useRef<string | null>(null);
   const lastConsumedOpenTargetRef = useRef<number | null>(null);
 
@@ -183,6 +184,7 @@ export default function ExternalFilesPage({
     [entries, selectedFilePath],
   );
   const selectedIsMarkdown = selectedEntry ? isProbablyMarkdown(selectedEntry.file_name) : false;
+  const missingCount = useMemo(() => entries.filter((entry) => !entry.exists).length, [entries]);
 
   const handleSave = useCallback(async () => {
     if (!selectedFilePath) return;
@@ -237,6 +239,23 @@ export default function ExternalFilesPage({
     }
   }, [clearSelection, showToast, t]);
 
+  const handleClearMissing = useCallback(async () => {
+    if (missingCount === 0 || clearingMissing) return;
+    setClearingMissing(true);
+    try {
+      const next = await invoke<ExternalFileEntry[]>("clear_missing_external_files");
+      setEntries(next);
+      if (selectedFilePath && !next.some((entry) => entry.file_path === selectedFilePath)) {
+        clearSelection();
+      }
+      showToast(t("externalFiles.clearedMissing", missingCount));
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setClearingMissing(false);
+    }
+  }, [clearSelection, clearingMissing, missingCount, selectedFilePath, showToast, t]);
+
   const handleImport = useCallback(async () => {
     if (!selectedFilePath) return;
     setImporting(true);
@@ -269,6 +288,13 @@ export default function ExternalFilesPage({
               title={t("externalFiles.title")}
               actions={(
                 <>
+                  <Button
+                    variant="toolbar"
+                    onClick={() => void handleClearMissing()}
+                    disabled={loading || clearingMissing || missingCount === 0}
+                    title={t("externalFiles.clearMissing")}
+                    icon={FileX}
+                  />
                   <Button
                     variant="toolbar"
                     onClick={() => void handleClearAll()}
@@ -390,7 +416,7 @@ export default function ExternalFilesPage({
               ) : !editing ? (
                 <DetailScroll selectable className="gm-external-file-preview-scroll">
                   {selectedIsMarkdown ? (
-                    <MarkdownView content={fileContent} />
+                    <MarkdownView content={fileContent} filePath={selectedEntry.file_path} />
                   ) : (
                     <MonoBlock>{fileContent}</MonoBlock>
                   )}

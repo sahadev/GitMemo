@@ -33,7 +33,14 @@ pub fn git_error_for_user(error: impl AsRef<str>) -> String {
     }
 
     let lower = sanitized.to_ascii_lowercase();
-    let hint = if lower.contains("authentication failed")
+    let hint = if lower.contains("publickey")
+        || lower.contains("could not read from remote repository")
+        || lower.contains("git@gitee.com: permission denied")
+        || lower.contains("git@github.com: permission denied")
+        || lower.contains("git@gitlab.com: permission denied")
+    {
+        Some("SSH authentication failed. Check that the selected public key is added to the Git host and that the private key does not require a passphrase; for background sync, generate a dedicated GitMemo SSH key.")
+    } else if lower.contains("authentication failed")
         || lower.contains("auth failed")
         || lower.contains("unauthorized")
         || lower.contains("401")

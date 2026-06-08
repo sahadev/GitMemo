@@ -3068,6 +3068,11 @@ a:focus-visible {
   border-color: var(--accent);
 }
 
+.gm-setup-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .gm-setup-option-top {
   align-items: flex-start;
 }

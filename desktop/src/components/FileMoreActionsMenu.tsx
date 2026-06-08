@@ -141,7 +141,7 @@ export function FileMoreActionsMenu({
           {showExportPdf ? (
             <ExportPdfButton
               content={exportContent}
-              filePath={relPath}
+              filePath={relPath ?? absolutePath}
               title={exportTitle}
               variant="menuItem"
             />

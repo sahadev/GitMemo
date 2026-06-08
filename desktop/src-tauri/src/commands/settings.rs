@@ -272,89 +272,11 @@ pub fn get_app_meta() -> Result<AppMeta, String> {
 }
 
 #[cfg(not(target_os = "android"))]
-fn common_cli_candidates() -> Vec<std::path::PathBuf> {
-    let mut candidates = Vec::new();
-
-    if let Some(path_var) = std::env::var_os("PATH") {
-        candidates.extend(std::env::split_paths(&path_var).map(|path| path.join("gitmemo")));
-    }
-
-    if let Ok(home) = std::env::var("HOME") {
-        let home = std::path::PathBuf::from(home);
-        candidates.push(home.join(".local").join("bin").join("gitmemo"));
-        candidates.push(home.join(".cargo").join("bin").join("gitmemo"));
-        candidates.push(home.join(".bun").join("bin").join("gitmemo"));
-        candidates.push(home.join(".volta").join("bin").join("gitmemo"));
-        candidates.push(home.join(".asdf").join("shims").join("gitmemo"));
-        candidates.push(home.join(".npm-global").join("bin").join("gitmemo"));
-        candidates.push(home.join("Library").join("pnpm").join("gitmemo"));
-        candidates.push(
-            home.join(".local")
-                .join("share")
-                .join("pnpm")
-                .join("gitmemo"),
-        );
-        candidates.push(home.join("bin").join("gitmemo"));
-        if let Ok(entries) = std::fs::read_dir(home.join(".nvm").join("versions").join("node")) {
-            for entry in entries.flatten() {
-                candidates.push(entry.path().join("bin").join("gitmemo"));
-            }
-        }
-        if let Ok(entries) = std::fs::read_dir(home.join(".fnm").join("node-versions")) {
-            for entry in entries.flatten() {
-                candidates.push(
-                    entry
-                        .path()
-                        .join("installation")
-                        .join("bin")
-                        .join("gitmemo"),
-                );
-            }
-        }
-    }
-
-    candidates.push(std::path::PathBuf::from("/opt/homebrew/bin/gitmemo"));
-    candidates.push(std::path::PathBuf::from("/usr/local/bin/gitmemo"));
-    candidates.push(std::path::PathBuf::from("/usr/bin/gitmemo"));
-    candidates
-}
-
-#[cfg(not(target_os = "android"))]
-fn find_gitmemo_cli() -> Option<String> {
-    for candidate in common_cli_candidates() {
-        if candidate.is_file() {
-            return Some(candidate.to_string_lossy().to_string());
-        }
-    }
-
-    if let Ok(output) = std::process::Command::new("which").arg("gitmemo").output() {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() {
-                return Some(path);
-            }
-        }
-    }
-
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-    let output = std::process::Command::new(shell)
-        .args(["-lc", "command -v gitmemo"])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-
-    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if path.is_empty() || !std::path::Path::new(&path).is_file() {
-        return None;
-    }
-    Some(path)
-}
-
-#[cfg(not(target_os = "android"))]
 fn cli_version(path: &str) -> String {
-    let Ok(output) = std::process::Command::new(path).arg("--version").output() else {
+    let Ok(output) = gitmemo_core::platform::background_command(path)
+        .arg("--version")
+        .output()
+    else {
         return String::new();
     };
     if !output.status.success() {
@@ -414,7 +336,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
 
     #[cfg(not(target_os = "android"))]
     {
-        let Some(path) = find_gitmemo_cli() else {
+        let Some(path) = crate::platform::find_gitmemo_cli() else {
             return Ok(CliStatus {
                 installed: false,
                 path: String::new(),
@@ -573,9 +495,9 @@ pub fn apply_proxy_env() {
             std::env::remove_var("NO_PROXY");
         }
         _ => {
-            // System: detect macOS system proxy and set env vars
+            // System: detect platform system proxy and set env vars
             std::env::remove_var("NO_PROXY");
-            if let Some(proxy) = detect_macos_system_proxy() {
+            if let Some(proxy) = crate::platform::detect_system_proxy() {
                 std::env::set_var("HTTP_PROXY", &proxy);
                 std::env::set_var("HTTPS_PROXY", &proxy);
             } else {
@@ -584,43 +506,6 @@ pub fn apply_proxy_env() {
             }
         }
     }
-}
-
-/// Detect macOS system proxy by parsing `scutil --proxy` output.
-fn detect_macos_system_proxy() -> Option<String> {
-    let output = std::process::Command::new("scutil")
-        .arg("--proxy")
-        .output()
-        .ok()?;
-    let text = String::from_utf8_lossy(&output.stdout);
-
-    // Try HTTPS proxy first, fall back to HTTP
-    if let Some(url) = parse_scutil_proxy(&text, "HTTPS") {
-        return Some(url);
-    }
-    parse_scutil_proxy(&text, "HTTP")
-}
-
-/// Parse a specific proxy type (HTTP or HTTPS) from scutil output.
-/// Looks for `{prefix}Enable : 1`, `{prefix}Proxy : host`, `{prefix}Port : port`.
-fn parse_scutil_proxy(text: &str, prefix: &str) -> Option<String> {
-    let enabled_key = format!("{}Enable : 1", prefix);
-    if !text.contains(&enabled_key) {
-        return None;
-    }
-    let proxy_key = format!("{}Proxy : ", prefix);
-    let port_key = format!("{}Port : ", prefix);
-    let host = text
-        .lines()
-        .find(|l| l.contains(&proxy_key))
-        .and_then(|l| l.split(" : ").nth(1))
-        .map(|s| s.trim())?;
-    let port = text
-        .lines()
-        .find(|l| l.contains(&port_key))
-        .and_then(|l| l.split(" : ").nth(1))
-        .map(|s| s.trim())?;
-    Some(format!("http://{}:{}", host, port))
 }
 
 #[tauri::command]
@@ -772,22 +657,22 @@ pub fn set_remote(url: String, access_token: Option<String>) -> Result<String, S
     #[cfg(not(target_os = "android"))]
     {
         if url.is_empty() {
-            let _ = std::process::Command::new("git")
+            let _ = gitmemo_core::platform::background_command("git")
                 .args(["remote", "remove", "origin"])
                 .current_dir(&sync_dir)
                 .output();
         } else {
-            let check = std::process::Command::new("git")
+            let check = gitmemo_core::platform::background_command("git")
                 .args(["remote", "get-url", "origin"])
                 .current_dir(&sync_dir)
                 .output();
             if check.map(|o| o.status.success()).unwrap_or(false) {
-                let _ = std::process::Command::new("git")
+                let _ = gitmemo_core::platform::background_command("git")
                     .args(["remote", "set-url", "origin", &url])
                     .current_dir(&sync_dir)
                     .output();
             } else {
-                let _ = std::process::Command::new("git")
+                let _ = gitmemo_core::platform::background_command("git")
                     .args(["remote", "add", "origin", &url])
                     .current_dir(&sync_dir)
                     .output();

@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{inject, storage, utils};
+use crate::{inject, platform, storage, utils};
 
 #[derive(Debug, Clone, Copy)]
 enum EditorChoice {
@@ -79,12 +79,7 @@ pub fn cmd_init(
             anyhow::bail!(t.not_a_git_repo(&real_path.display().to_string()));
         }
 
-        // Create symlink if needed
-        if default_sync_dir.exists() || default_sync_dir.symlink_metadata().is_ok() {
-            std::fs::remove_file(&default_sync_dir).ok();
-            std::fs::remove_dir(&default_sync_dir).ok();
-        }
-        std::os::unix::fs::symlink(&real_path, &default_sync_dir)?;
+        platform::link_sync_dir(&real_path, &default_sync_dir)?;
         println!(
             "  {} {}: {} → {}",
             style("✓").green(),

@@ -192,21 +192,29 @@ function scrollToFragment(anchor: HTMLAnchorElement, href: string) {
   return true;
 }
 
+function normalizePathSeparators(value: string) {
+  return value.replace(/\\/g, "/");
+}
+
 function resolveMarkdownImagePath(src?: string, filePath?: string) {
   if (!src || !filePath) return null;
-  if (src.startsWith("http") || src.startsWith("data:")) return null;
+  const normalizedSrc = normalizePathSeparators(src.trim()).split(/[?#]/, 1)[0];
+  if (!normalizedSrc) return null;
+  if (/^(https?:|data:|blob:|file:)/i.test(normalizedSrc)) return null;
+  if (/^[A-Za-z]:\//.test(normalizedSrc) || normalizedSrc.startsWith("//")) return null;
 
-  const slashIndex = filePath.lastIndexOf("/");
-  const dir = slashIndex >= 0 ? filePath.substring(0, slashIndex) : "";
-  const isRootRelative = src.startsWith("/");
-  const isSyncRootPath = /^(clips|imports|notes|conversations|plans|claude-config)\//.test(src);
+  const normalizedFilePath = normalizePathSeparators(filePath);
+  const slashIndex = normalizedFilePath.lastIndexOf("/");
+  const dir = slashIndex >= 0 ? normalizedFilePath.substring(0, slashIndex) : "";
+  const isRootRelative = normalizedSrc.startsWith("/");
+  const isSyncRootPath = /^(clips|imports|notes|conversations|plans|claude-config)\//.test(normalizedSrc);
   return isRootRelative
-    ? src.slice(1)
+    ? normalizedSrc.slice(1)
     : isSyncRootPath
-    ? src
+    ? normalizedSrc
     : dir
-    ? `${dir}/${src}`
-    : src;
+    ? `${dir}/${normalizedSrc}`
+    : normalizedSrc;
 }
 
 /**

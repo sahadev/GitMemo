@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Commands};
 use gitmemo_core::services::sync::StartupMode;
-pub(crate) use gitmemo_core::{inject, mcp, services, storage, utils};
+pub(crate) use gitmemo_core::{inject, mcp, platform, services, storage, utils};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

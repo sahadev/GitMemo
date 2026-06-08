@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Context, Result};
 use console::style;
 use serde::Deserialize;
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::Path;
+
+use crate::platform;
 
 const GITHUB_API_RELEASES: &str = "https://api.github.com/repos/sahadev/GitMemo/releases/latest";
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -21,21 +21,9 @@ struct Asset {
     browser_download_url: String,
 }
 
-/// Detect the current platform and return the appropriate asset name
-fn detect_platform() -> Result<&'static str> {
-    let arch = env::consts::ARCH;
-    let os = env::consts::OS;
-
-    match (os, arch) {
-        ("macos", "aarch64") => Ok("gitmemo-macos-aarch64"),
-        ("macos", "x86_64") => Ok("gitmemo-macos-x86_64"),
-        _ => Err(anyhow!("Unsupported platform: {}-{}", os, arch)),
-    }
-}
-
 /// Fetch the latest release info from GitHub
 fn fetch_latest_release() -> Result<Release> {
-    let output = Command::new("curl")
+    let output = crate::platform::background_command("curl")
         .args([
             "-sL",
             "-H",
@@ -57,7 +45,7 @@ fn fetch_latest_release() -> Result<Release> {
 
 /// Download a file from URL to destination
 fn download_file(url: &str, dest: &Path) -> Result<()> {
-    let output = Command::new("curl")
+    let output = crate::platform::background_command("curl")
         .args(["-sL", "-o", dest.to_str().unwrap(), url])
         .output()
         .context("Failed to download binary")?;
@@ -67,41 +55,6 @@ fn download_file(url: &str, dest: &Path) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Get the current binary path
-fn current_binary_path() -> Result<PathBuf> {
-    env::current_exe().context("Failed to get current binary path")
-}
-
-/// Determine the best installation path
-/// Priority: current binary location > ~/.cargo/bin > /usr/local/bin
-fn determine_install_path() -> Result<PathBuf> {
-    // Try to use the current binary's location
-    if let Ok(current) = current_binary_path() {
-        if let Some(parent) = current.parent() {
-            // Check if we have write permission
-            if parent.join(".write_test").metadata().is_ok()
-                || fs::File::create(parent.join(".write_test")).is_ok()
-            {
-                let _ = fs::remove_file(parent.join(".write_test"));
-                return Ok(current);
-            }
-        }
-    }
-
-    // Try ~/.cargo/bin
-    if let Some(home) = dirs::home_dir() {
-        let cargo_bin = home.join(".cargo/bin/gitmemo");
-        if let Some(parent) = cargo_bin.parent() {
-            if parent.exists() {
-                return Ok(cargo_bin);
-            }
-        }
-    }
-
-    // Fallback to /usr/local/bin (requires sudo)
-    Ok(PathBuf::from("/usr/local/bin/gitmemo"))
 }
 
 pub fn cmd_upgrade(check_only: bool) -> Result<()> {
@@ -138,7 +91,13 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
     }
 
     // Detect platform
-    let platform = detect_platform()?;
+    let platform = platform::cli_release_asset_name().ok_or_else(|| {
+        anyhow!(
+            "Unsupported platform: {}-{}",
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        )
+    })?;
 
     // Find the matching asset
     let asset = release
@@ -156,17 +115,10 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
 
     download_file(&asset.browser_download_url, &temp_file)?;
 
-    // Make executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&temp_file)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&temp_file, perms)?;
-    }
+    platform::make_executable_if_needed(&temp_file)?;
 
     // Determine install path
-    let install_path = determine_install_path()?;
+    let install_path = platform::determine_install_path()?;
 
     println!("\n{}", style(i18n.upgrade_installing()).cyan());
     println!("  {}", install_path.display());
@@ -180,7 +132,7 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
     }
 
     // Try direct replacement
-    match fs::rename(&temp_file, &install_path) {
+    match platform::replace_file_direct(&temp_file, &install_path) {
         Ok(_) => {
             // Success - clean up backup
             let _ = fs::remove_file(&backup_path);
@@ -192,7 +144,7 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
             );
 
             // If we updated a different location than current binary, warn user
-            if let Ok(current) = current_binary_path() {
+            if let Ok(current) = platform::current_binary_path() {
                 if current != install_path {
                     println!("\n{}", style(i18n.upgrade_path_warning()).yellow());
                     println!("  {} {}", i18n.upgrade_old_path(), current.display());
@@ -201,19 +153,17 @@ pub fn cmd_upgrade(check_only: bool) -> Result<()> {
             }
         }
         Err(_) => {
-            // Permission denied - try with sudo
+            if !platform::can_elevate_file_replacement() {
+                if backup_path.exists() {
+                    let _ = fs::rename(&backup_path, &install_path);
+                }
+                return Err(anyhow!("Failed to install new binary"));
+            }
+
+            // Permission denied - try with platform elevation
             println!("\n{}", style(i18n.upgrade_need_sudo()).yellow());
 
-            let status = Command::new("sudo")
-                .args([
-                    "mv",
-                    temp_file.to_str().unwrap(),
-                    install_path.to_str().unwrap(),
-                ])
-                .status()
-                .context("Failed to execute sudo mv")?;
-
-            if status.success() {
+            if platform::replace_file_with_elevation(&temp_file, &install_path).is_ok() {
                 let _ = fs::remove_file(&backup_path);
                 println!("\n{}", style(i18n.upgrade_success()).green().bold());
                 println!(
