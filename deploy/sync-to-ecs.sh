@@ -18,6 +18,7 @@ set -euo pipefail
 #   VITE_WEBSITE_ASSET_BASE_URL — 官网大图等静态资源域名（可选，配置后从 OSS/CDN 加载）
 #   ANDROID_APK — Android APK 源文件路径（可选，默认自动查找 arm64-v8a release 包）
 #   WINDOWS_EXE — Windows x64 installer 源文件路径（可选，默认查找 release-assets/windows）
+#   ECS_DOWNLOADS_DIR — ECS 上持久下载目录（默认 /opt/kakacut/downloads/gitmemo）
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -40,6 +41,7 @@ WINDOWS_STABLE_EXE_FILENAME="${WINDOWS_STABLE_EXE_FILENAME:-gitmemo-windows-x64-
 ECS_IP="${ECS_IP:-101.200.217.80}"
 ECS_USER="${ECS_USER:-root}"
 ECS_DIR="${ECS_DIR:-/opt/kakacut}"
+ECS_DOWNLOADS_DIR="${ECS_DOWNLOADS_DIR:-$ECS_DIR/downloads/gitmemo}"
 SKIP_BUILD=false
 NGINX_ONLY=false
 
@@ -222,34 +224,9 @@ build_website() {
     mkdir -p "$SCRIPT_DIR/dist"
     cp -r "$WEBSITE_DIR/dist/client" "$SCRIPT_DIR/dist/gitmemo"
 
-    local resolved_android_apk
-    resolved_android_apk="$(resolve_android_apk || true)"
-    if [ -n "$resolved_android_apk" ]; then
-        mkdir -p "$SCRIPT_DIR/dist/gitmemo/mobile"
-        cp "$resolved_android_apk" "$SCRIPT_DIR/dist/gitmemo/mobile/$ANDROID_APK_FILENAME"
-        cp "$resolved_android_apk" "$SCRIPT_DIR/dist/gitmemo/mobile/$ANDROID_STABLE_APK_FILENAME"
-        log "Android ${ANDROID_ABI} APK 已复制到 /mobile/${ANDROID_APK_FILENAME}"
-        log "Android ${ANDROID_ABI} 稳定下载别名已复制到 /mobile/${ANDROID_STABLE_APK_FILENAME}"
-        info "APK 源文件: $resolved_android_apk"
-    else
-        warn "未找到 Android ${ANDROID_VERSION} ${ANDROID_ABI} release APK，无法发布 /mobile/${ANDROID_APK_FILENAME}"
-        warn "请先运行 pnpm --dir desktop build:android:arm64，或通过 ANDROID_APK=/path/to/app.apk 指定源文件"
-        exit 1
-    fi
+    info "Android APK 不写入官网 dist；将由 sync_downloads 同步到 ECS 持久下载目录"
 
-    local resolved_windows_exe
-    resolved_windows_exe="$(resolve_windows_exe || true)"
-    if [ -n "$resolved_windows_exe" ]; then
-        mkdir -p "$SCRIPT_DIR/dist/gitmemo/desktop/windows"
-        cp "$resolved_windows_exe" "$SCRIPT_DIR/dist/gitmemo/desktop/windows/$WINDOWS_EXE_FILENAME"
-        cp "$resolved_windows_exe" "$SCRIPT_DIR/dist/gitmemo/desktop/windows/$WINDOWS_STABLE_EXE_FILENAME"
-        log "Windows x64 安装包已复制到 /desktop/windows/${WINDOWS_EXE_FILENAME}"
-        log "Windows x64 稳定下载别名已复制到 /desktop/windows/${WINDOWS_STABLE_EXE_FILENAME}"
-        info "Windows 安装包源文件: $resolved_windows_exe"
-    else
-        warn "未找到 Windows ${WINDOWS_VERSION} x64 安装包，跳过 /desktop/windows 下载文件"
-        warn "可通过 WINDOWS_EXE=/path/to/GitMemo_x.y.z_x64-setup.exe 指定源文件"
-    fi
+    info "Windows 安装包不写入官网 dist；将由 sync_downloads 同步到 ECS 持久下载目录"
 
     fix_for_china
     log "构建完成"
@@ -275,11 +252,73 @@ sync_nginx() {
 # ============================================
 sync_website() {
     log "========== 同步 GitMemo 静态文件 =========="
+    if [ ! -d "$SCRIPT_DIR/dist/gitmemo" ] || [ -z "$(find "$SCRIPT_DIR/dist/gitmemo" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+        warn "未找到非空构建产物目录: $SCRIPT_DIR/dist/gitmemo"
+        exit 1
+    fi
     ssh "$ECS_SSH" "mkdir -p $ECS_DIR/deploy/dist/gitmemo"
     rsync -avz --progress --delete \
         "$SCRIPT_DIR/dist/gitmemo/" \
         "$ECS_SSH:$ECS_DIR/deploy/dist/gitmemo/"
     log "静态文件同步完成"
+}
+
+# ============================================
+# 同步下载文件到独立持久目录
+# ============================================
+sync_downloads() {
+    log "========== 同步 GitMemo 下载文件 =========="
+
+    local resolved_android_apk
+    resolved_android_apk="$(resolve_android_apk || true)"
+    if [ -z "$resolved_android_apk" ]; then
+        warn "未找到 Android ${ANDROID_VERSION} ${ANDROID_ABI} release APK，保留 ECS 现有下载文件"
+        if ssh "$ECS_SSH" "test -f $ECS_DOWNLOADS_DIR/mobile/$ANDROID_STABLE_APK_FILENAME"; then
+            info "ECS 已存在 Android 稳定下载文件: $ECS_DOWNLOADS_DIR/mobile/$ANDROID_STABLE_APK_FILENAME"
+        else
+            warn "ECS 也没有 Android 稳定下载文件，请通过 ANDROID_APK=/path/to/app.apk 指定源文件后重跑"
+        fi
+    else
+        ssh "$ECS_SSH" "mkdir -p $ECS_DOWNLOADS_DIR/mobile"
+        rsync -avz --progress \
+            "$resolved_android_apk" \
+            "$ECS_SSH:$ECS_DOWNLOADS_DIR/mobile/$ANDROID_APK_FILENAME"
+        rsync -avz --progress \
+            "$resolved_android_apk" \
+            "$ECS_SSH:$ECS_DOWNLOADS_DIR/mobile/$ANDROID_STABLE_APK_FILENAME"
+
+        ssh "$ECS_SSH" "find $ECS_DOWNLOADS_DIR/mobile -maxdepth 1 -type f -name 'gitmemo-android-v*-${ANDROID_ABI}-release.apk' ! -name '$ANDROID_APK_FILENAME' -delete"
+
+        log "Android ${ANDROID_ABI} APK 已同步到持久下载目录"
+        log "Android ${ANDROID_ABI} 稳定下载别名已同步: /mobile/${ANDROID_STABLE_APK_FILENAME}"
+        info "APK 源文件: $resolved_android_apk"
+    fi
+
+    local resolved_windows_exe
+    resolved_windows_exe="$(resolve_windows_exe || true)"
+    if [ -z "$resolved_windows_exe" ]; then
+        warn "未找到 Windows ${WINDOWS_VERSION} x64 安装包，保留 ECS 现有下载文件"
+        if ssh "$ECS_SSH" "test -f $ECS_DOWNLOADS_DIR/desktop/windows/$WINDOWS_STABLE_EXE_FILENAME"; then
+            info "ECS 已存在 Windows 稳定下载文件: $ECS_DOWNLOADS_DIR/desktop/windows/$WINDOWS_STABLE_EXE_FILENAME"
+        else
+            warn "ECS 也没有 Windows 稳定下载文件，可通过 WINDOWS_EXE=/path/to/GitMemo_x.y.z_x64-setup.exe 指定源文件后重跑"
+        fi
+        return 0
+    fi
+
+    ssh "$ECS_SSH" "mkdir -p $ECS_DOWNLOADS_DIR/desktop/windows"
+    rsync -avz --progress \
+        "$resolved_windows_exe" \
+        "$ECS_SSH:$ECS_DOWNLOADS_DIR/desktop/windows/$WINDOWS_EXE_FILENAME"
+    rsync -avz --progress \
+        "$resolved_windows_exe" \
+        "$ECS_SSH:$ECS_DOWNLOADS_DIR/desktop/windows/$WINDOWS_STABLE_EXE_FILENAME"
+
+    ssh "$ECS_SSH" "find $ECS_DOWNLOADS_DIR/desktop/windows -maxdepth 1 -type f -name 'gitmemo-windows-v*-x64-setup.exe' ! -name '$WINDOWS_EXE_FILENAME' -delete"
+
+    log "Windows x64 安装包已同步到持久下载目录"
+    log "Windows x64 稳定下载别名已同步: /desktop/windows/${WINDOWS_STABLE_EXE_FILENAME}"
+    info "Windows 安装包源文件: $resolved_windows_exe"
 }
 
 # ============================================
@@ -296,6 +335,7 @@ if [ "$SKIP_BUILD" = false ]; then
 fi
 
 sync_website
+sync_downloads
 sync_nginx
 
 log "=========================================="
