@@ -1,7 +1,7 @@
 [package]
 name = "gitmemo"
 
-version = "1.0.112"
+version = "1.0.113"
 edition = "2021"
 description = "Local-first Git-native personal knowledge capture and reuse system"
 license = "MIT"
