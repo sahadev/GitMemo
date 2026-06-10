@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
-import { useAppStore, type AiRecordsTab, type NotesTab } from "../hooks/useAppStore";
+import { useAppStore } from "../hooks/useAppStore";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -13,10 +13,8 @@ import { useTimedCopy } from "../hooks/useTimedCopy";
 import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
 import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
-import { EmptyState } from "../components/base/EmptyState";
 import {
   DashboardActivityRow,
-  DashboardCard,
   DashboardQuickInfoRow,
   DashboardStatCard,
 } from "../components/domain/dashboard/DashboardComponents";
@@ -27,40 +25,47 @@ import {
 } from "lucide-react";
 import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
-
-interface AppStats {
-  conversations: number;
-  manuals: number;
-  scratch_notes: number;
-  clips: number;
-  plans: number;
-  tracked_files?: number;
-  total_size_kb: number;
-  repository_size_kb?: number;
-}
-
-interface RecentItem {
-  name: string;
-  path: string;
-  category: string;
-  modified: string;
-  modified_ts: number;
-}
+import {
+  canOpenDashboardRecentItem,
+  formatDashboardText,
+  getCliStatusBadgeTone,
+  getCliStatusText,
+  getDashboardCategoryRoute,
+  getDashboardContentCategory,
+  getDashboardDisplayedFileCount,
+  getDashboardDisplayedRepoSizeKb,
+  getDashboardMobileSyncState,
+  getDashboardSyncStatus,
+  getDashboardVisibleRecentItems,
+  hasDashboardConversations,
+  hasGitRemote,
+  isDashboardEditorConfigured,
+  shouldShowCliCapabilityCard,
+  shouldShowDashboardEmptyGuide,
+  shouldShowDashboardReviewItem,
+  type AppStats,
+  type DashboardCategoryRoute,
+  type DashboardContentCategory,
+  type RecentItem,
+} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
 
-const categoryConfig: Record<string, { icon: typeof MessageSquare; tone: AppIconTone; page: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }> = {
-  conversation: { icon: MessageSquare, tone: "accent", page: "ai-records", aiRecordsTab: "conversations" },
-  manual: { icon: BookOpen, tone: "warning", page: "notes", notesTab: "manual" },
-  scratch: { icon: FileText, tone: "purple", page: "notes", notesTab: "scratch" },
-  clip: { icon: Clipboard, tone: "pink", page: "clipboard" },
-  plan: { icon: Lightbulb, tone: "warning", page: "ai-records", aiRecordsTab: "plans" },
+const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
+  conversation: { icon: MessageSquare, tone: "accent" },
+  manual: { icon: BookOpen, tone: "warning" },
+  scratch: { icon: FileText, tone: "purple" },
+  clip: { icon: Clipboard, tone: "pink" },
+  plan: { icon: Lightbulb, tone: "warning" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
 const CLI_CARD_DISMISSED_KEY = "gitmemo-dashboard-cli-card-dismissed";
-const mobileContentCategories = new Set(["conversation", "manual", "scratch", "clip", "plan"]);
+
+function getCategoryVisual(category: string) {
+  return categoryVisuals[getDashboardContentCategory(category)];
+}
 
 const formatSize = (sizeKb: number) => (
   sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`
@@ -93,19 +98,19 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
   const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, cliStatus, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
   useRelativeTimeTick();
-  const navigateTo = useCallback((page: Page, notesTab?: NotesTab, aiRecordsTab?: AiRecordsTab) => {
+  const navigateTo = useCallback(({ page, notesTab, aiRecordsTab }: DashboardCategoryRoute) => {
     if (page === "notes" && notesTab) setNotesTab(notesTab);
     if (page === "ai-records" && aiRecordsTab) setAiRecordsTab(aiRecordsTab);
     onNavigate?.(page);
   }, [onNavigate, setAiRecordsTab, setNotesTab]);
 
   const openRecord = useCallback((item: RecentItem) => {
-    if (!isDesktop && !mobileContentCategories.has(item.category)) return;
-    const cfg = categoryConfig[item.category] || categoryConfig.scratch;
-    if (cfg.page === "notes" && cfg.notesTab) setNotesTab(cfg.notesTab);
-    if (cfg.page === "ai-records" && cfg.aiRecordsTab) setAiRecordsTab(cfg.aiRecordsTab);
+    if (!canOpenDashboardRecentItem(isDesktop, item)) return;
+    const route = getDashboardCategoryRoute(item.category);
+    if (route.page === "notes" && route.notesTab) setNotesTab(route.notesTab);
+    if (route.page === "ai-records" && route.aiRecordsTab) setAiRecordsTab(route.aiRecordsTab);
     setPendingOpenPath(item.path);
-    onNavigate?.(cfg.page);
+    onNavigate?.(route.page);
   }, [isDesktop, onNavigate, setAiRecordsTab, setNotesTab, setPendingOpenPath]);
 
 
@@ -118,16 +123,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
 
   // Derived state
-  const editorConfigured = isDesktop && (claudeEnabled || cursorEnabled);
-  const cliNeedsAttention = !cliStatus?.installed || (cliStatus.installed && !cliStatus.version_matches);
-  const showCliCapabilityCard = isDesktop && !cliCardDismissed && cliNeedsAttention;
-  const cliStatusText = !cliStatus
-    ? t("dashboard.cliCardChecking")
-    : cliStatus.installed
-      ? cliStatus.version_matches
-        ? t("dashboard.cliCardInstalled", cliStatus.version || cliStatus.recommended_version)
-        : t("dashboard.cliCardUpgrade", cliStatus.version || "?", cliStatus.recommended_version)
-      : t("dashboard.cliCardNotInstalled");
+  const editorConfigured = isDashboardEditorConfigured(isDesktop, claudeEnabled, cursorEnabled);
+  const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatus);
+  const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
+  const cliStatusBadgeTone = getCliStatusBadgeTone(cliStatus);
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
   const lastCommitBrowseUrl = useMemo(
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
@@ -213,55 +212,35 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     return <Loading text={t("dashboard.loading")} />;
   }
 
-  const contentFileCount = stats.conversations + stats.manuals + stats.scratch_notes + stats.clips + stats.plans;
-  const displayedFileCount = stats.tracked_files ?? contentFileCount;
-  const displayedRepoSizeKb = stats.repository_size_kb ?? stats.total_size_kb;
-  const displayedRecent = isDesktop
-    ? recent
-    : recent.filter((item) => mobileContentCategories.has(item.category));
-  const showReviewItem = !!reviewItem && (isDesktop || mobileContentCategories.has(reviewItem.category));
+  const displayedFileCount = getDashboardDisplayedFileCount(stats);
+  const displayedRepoSizeKb = getDashboardDisplayedRepoSizeKb(stats);
+  const displayedRecent = getDashboardVisibleRecentItems(isDesktop, recent);
+  const showReviewItem = shouldShowDashboardReviewItem(isDesktop, reviewItem);
+  const showEmptyGuide = shouldShowDashboardEmptyGuide(stats, displayedRecent);
 
-  const statCards: { icon: typeof MessageSquare; label: string; value: number | string; tone: AppIconTone; page?: Page; notesTab?: NotesTab; aiRecordsTab?: AiRecordsTab }[] = [
-    { icon: MessageSquare, label: t("dashboard.conversations"), value: stats.conversations, tone: "accent", page: "ai-records", aiRecordsTab: "conversations" },
-    { icon: BookOpen, label: t("dashboard.manuals"), value: stats.manuals, tone: "warning", page: "notes", notesTab: "manual" },
-    { icon: FileText, label: t("dashboard.scratchNotes"), value: stats.scratch_notes, tone: "purple", page: "notes", notesTab: "scratch" },
-    { icon: Clipboard, label: t("dashboard.clips"), value: stats.clips, tone: "pink", page: "clipboard" },
-    { icon: Lightbulb, label: t("dashboard.plans"), value: stats.plans, tone: "warning", page: "ai-records", aiRecordsTab: "plans" },
-  ];
+  const statCards = [
+    { category: "conversation" as const, label: t("dashboard.conversations"), value: stats.conversations },
+    { category: "manual" as const, label: t("dashboard.manuals"), value: stats.manuals },
+    { category: "scratch" as const, label: t("dashboard.scratchNotes"), value: stats.scratch_notes },
+    { category: "clip" as const, label: t("dashboard.clips"), value: stats.clips },
+    { category: "plan" as const, label: t("dashboard.plans"), value: stats.plans },
+  ].map((card) => ({
+    ...card,
+    ...categoryVisuals[card.category],
+    ...getDashboardCategoryRoute(card.category),
+  }));
 
-  const syncStatus = (() => {
-    if (!gitStatus) return { text: t("dashboard.loading"), tone: "secondary" as const };
-    if (gitStatus.behind > 0 && gitStatus.unpushed > 0) {
-      return {
-        text: t("dashboard.diverged", String(gitStatus.unpushed), String(gitStatus.behind)),
-        tone: "warning" as const,
-      };
-    }
-    if (gitStatus.behind > 0) {
-      return {
-        text: t("dashboard.behind", String(gitStatus.behind)),
-        tone: "danger" as const,
-      };
-    }
-    if (gitStatus.unpushed > 0) {
-      return {
-        text: `${gitStatus.unpushed} ${t("dashboard.unpushed")}`,
-        tone: "warning" as const,
-      };
-    }
-    return {
-      text: t("dashboard.synced"),
-      tone: "success" as const,
-    };
-  })();
-  const mobileSyncText = isSyncing
-    ? t("sidebar.syncing")
-    : syncMessage || (gitStatus?.git_remote ? syncStatus.text : t("dashboard.noRemote"));
-  const mobileSyncTone = isSyncing
-    ? "accent"
-    : syncMessage
-      ? (isFailed ? "danger" : "success")
-      : (gitStatus?.git_remote ? syncStatus.tone : "secondary");
+  const syncStatus = getDashboardSyncStatus(gitStatus);
+  const syncStatusText = formatDashboardText(syncStatus.text, t);
+  const mobileSyncState = getDashboardMobileSyncState({
+    isSyncing,
+    syncMessage,
+    isFailed,
+    gitStatus,
+    syncStatus,
+  });
+  const mobileSyncText = formatDashboardText(mobileSyncState.text, t);
+  const mobileSyncActionText = formatDashboardText(mobileSyncState.actionText, t);
 
   return (
     <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
@@ -308,21 +287,21 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         <div className="gm-dashboard-card gm-dashboard-mobile-sync">
           <div className="gm-dashboard-mobile-sync-main">
             <div className="gm-dashboard-mobile-sync-head">
-              <AppIcon icon={RefreshCw} size="xs" tone={mobileSyncTone} spin={isSyncing} />
+              <AppIcon icon={RefreshCw} size="xs" tone={mobileSyncState.tone} spin={isSyncing} />
               <span className="gm-muted-text">{t("dashboard.syncStatus")}</span>
             </div>
-            <p className="gm-dashboard-mobile-sync-value" data-tone={mobileSyncTone}>
+            <p className="gm-dashboard-mobile-sync-value" data-tone={mobileSyncState.tone}>
               {mobileSyncText}
             </p>
           </div>
           <Button
-            variant={gitStatus?.git_remote ? "primary" : "secondary"}
-            disabled={!gitStatus?.git_remote || isSyncing}
+            variant={mobileSyncState.actionVariant}
+            disabled={mobileSyncState.actionDisabled}
             onClick={() => void triggerSync()}
             icon={RefreshCw}
             iconSpin={isSyncing}
           >
-            {gitStatus?.git_remote ? t("sidebar.syncToGit") : t("dashboard.noRemote")}
+            {mobileSyncActionText}
           </Button>
         </div>
       )}
@@ -331,7 +310,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {isDesktop && (
         <OnboardingChecklist
           onNavigate={(page) => onNavigate?.(page)}
-          hasConversations={stats.conversations > 0}
+          hasConversations={hasDashboardConversations(stats)}
           clipboardActive={clipStatus?.watching ?? false}
           editorConfigured={editorConfigured}
         />
@@ -344,7 +323,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <div className="gm-min-0">
               <div className="gm-inline-cluster-wrap">
                 <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>
-                <Badge tone={cliStatus?.installed && cliStatus.version_matches ? "success" : "warning"}>
+                <Badge tone={cliStatusBadgeTone}>
                   {cliStatusText}
                 </Badge>
               </div>
@@ -387,13 +366,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               label={card.label}
               value={card.value}
               tone={card.tone}
-              onClick={card.page ? () => navigateTo(card.page!, card.notesTab, card.aiRecordsTab) : undefined}
+              onClick={() => navigateTo(card)}
             />
         ))}
       </div>
 
       {/* Empty state guide */}
-      {contentFileCount === 0 && displayedRecent.length === 0 && (
+      {showEmptyGuide && (
         <div className="gm-dashboard-empty-guide">
           <p className="gm-dashboard-empty-title">{t("dashboard.emptyGuideTitle")}</p>
           <p className="gm-dashboard-empty-copy">
@@ -403,7 +382,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Git Info — only when remote is configured */}
-      {gitStatus?.git_remote && (
+      {hasGitRemote(gitStatus) && (
       <div className="gm-dashboard-git-grid">
         {/* Sync Status */}
         <div className="gm-dashboard-card">
@@ -412,7 +391,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <span className="gm-section-title">{t("dashboard.syncStatus")}</span>
           </div>
           <p className="gm-dashboard-value">
-            <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatus.text}</span>
+            <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatusText}</span>
           </p>
           <p className="gm-dashboard-meta">
             {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
@@ -461,7 +440,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           ) : (
             <div className="gm-dashboard-activity-list">
               {displayedRecent.map((item) => {
-                const cfg = categoryConfig[item.category] || categoryConfig.scratch;
+                const cfg = getCategoryVisual(item.category);
                 return (
                   <DashboardActivityRow
                     key={item.path}
