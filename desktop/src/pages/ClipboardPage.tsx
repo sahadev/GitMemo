@@ -55,7 +55,24 @@ import {
   ClipboardStatusBadge,
   ClipboardToolbarButton,
 } from "../components/domain/clipboard/ClipboardComponents";
+import {
+  areClipEntriesEquivalent,
+  canStartClipboardWatch,
+  getDisplayedClipTotal,
+  getEmptyClipsMessageKey,
+  getNewClipEntries,
+  getSelectedClipDeletionPath,
+  getVisibleClipEntries,
+  normalizeClipImageLinks,
+  resolveAdjacentClipAfterDelete,
+  shouldDisableClipboardSelectionActions,
+  shouldIgnoreClipWatcherRefresh as shouldIgnoreClipWatcherRefreshUntil,
+  shouldShowClipboardPrivacyDialog,
+  updateClipTotalAfterDelete,
+  type ClipFilter,
+} from "../components/domain/clipboard/clipboardLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import { getFileName, getFileWorkspacePaneState, isPendingPathForFolder } from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { ClipImageThumb } from "../components/domain/files/ClipImageThumb";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
@@ -73,36 +90,10 @@ const CLIP_WATCH_FOLDERS = ["clips"];
 const CLIP_REFRESH_PAGE_SIZE = 100;
 const CLIP_REFRESH_MAX_PRESERVED_ITEMS = 1000;
 
-type ClipFilter = "all" | "text" | "image";
-
 interface ScrollAnchor {
   path: string | null;
   offsetTop: number;
   scrollTop: number;
-}
-
-function normalizeClipImageLinks(content: string, clipPath: string) {
-  const clipDir = clipPath.includes("/") ? clipPath.slice(0, clipPath.lastIndexOf("/")) : "";
-  return content.replace(/(!\[[^\]]*]\()([^)\s]+)(\))/g, (match, prefix, src, suffix) => {
-    if (!clipDir || src.startsWith("http") || src.startsWith("data:") || src.startsWith("/") || /^(clips|imports|notes|conversations|plans|claude-config)\//.test(src)) {
-      return match;
-    }
-    return `${prefix}${clipDir}/${src}${suffix}`;
-  });
-}
-
-function areClipEntriesEquivalent(a: FileEntry[], b: FileEntry[]) {
-  if (a.length !== b.length) return false;
-  return a.every((clip, index) => {
-    const other = b[index];
-    return (
-      clip.path === other.path &&
-      clip.modified === other.modified &&
-      clip.size === other.size &&
-      clip.preview === other.preview &&
-      clip.preview_image === other.preview_image
-    );
-  });
 }
 
 export default function ClipboardPage({
@@ -285,7 +276,7 @@ export default function ClipboardPage({
           if (!page.has_more || page.entries.length === 0) break;
         }
 
-        const visibleEntries = entries.filter((entry) => !deletedClipPathsRef.current.has(entry.path));
+        const visibleEntries = getVisibleClipEntries(entries, deletedClipPathsRef.current);
         setSavedClips((prev) => areClipEntriesEquivalent(prev, visibleEntries) ? prev : visibleEntries);
         setClipTotal(total);
         setHasMore(entries.length < total);
@@ -299,11 +290,7 @@ export default function ClipboardPage({
         });
         setClipTotal(page.total);
         setSavedClips((prev) => {
-          const seen = new Set(prev.map((clip) => clip.path));
-          return [
-            ...prev,
-            ...page.entries.filter((clip) => !seen.has(clip.path) && !deletedClipPathsRef.current.has(clip.path)),
-          ];
+          return [...prev, ...getNewClipEntries(prev, page.entries, deletedClipPathsRef.current)];
         });
         setHasMore(page.has_more);
       }
@@ -356,7 +343,7 @@ export default function ClipboardPage({
   }, []);
 
   const shouldIgnoreClipWatcherRefresh = useCallback(() => {
-    return Date.now() < suppressClipWatcherUntilRef.current;
+    return shouldIgnoreClipWatcherRefreshUntil(suppressClipWatcherUntilRef.current);
   }, []);
 
   useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace, {
@@ -411,11 +398,11 @@ export default function ClipboardPage({
         refreshClipboardStatus();
       } else {
         // Show privacy dialog on first enable
-        if (!privacy.isConfirmed) {
+        if (shouldShowClipboardPrivacyDialog(status, privacy.isConfirmed)) {
           setShowPrivacyDialog(true);
           return;
         }
-        await doStartWatch();
+        if (canStartClipboardWatch(status, privacy.isConfirmed)) await doStartWatch();
       }
     } catch (e) { showToast(`Error: ${e}`); }
   };
@@ -436,26 +423,20 @@ export default function ClipboardPage({
   };
 
   const openAdjacentClipAfterDeletion = useCallback((deletedPaths: string[], deletedSelectedPath: string | null) => {
-    if (!deletedSelectedPath || !deletedPaths.includes(deletedSelectedPath)) return;
-
-    const deleted = new Set(deletedPaths);
-    const clipsBeforeDelete = savedClipsRef.current;
-    const deletedIndex = clipsBeforeDelete.findIndex((clip) => clip.path === deletedSelectedPath);
-    const remainingClips = clipsBeforeDelete.filter((clip) => !deleted.has(clip.path));
-
-    if (remainingClips.length === 0) {
+    const { nextClip, shouldClearDetail } = resolveAdjacentClipAfterDelete(
+      savedClipsRef.current,
+      deletedPaths,
+      deletedSelectedPath,
+    );
+    if (shouldClearDetail) {
       clearDetail();
       return;
     }
-
-    const nextIndex = deletedIndex === -1 ? 0 : Math.min(deletedIndex, remainingClips.length - 1);
-    const nextClip = remainingClips[nextIndex];
     if (nextClip) void openFile(nextClip.path, false, true);
-    else clearDetail();
   }, [clearDetail, openFile]);
 
   useEffect(() => {
-    if (!pendingOpenPath?.startsWith("clips/")) return;
+    if (!isPendingPathForFolder(pendingOpenPath, "clips/")) return;
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
@@ -571,9 +552,9 @@ export default function ClipboardPage({
       await invoke<NoteResult>("delete_clips", { filePaths: paths });
       showToast(t("clipboard.selectedDeleted", paths.length));
       paths.forEach((path) => deletedClipPathsRef.current.add(path));
-      const deletedSelectedPath = selectedFile && paths.includes(selectedFile) ? selectedFile : null;
+      const deletedSelectedPath = getSelectedClipDeletionPath(selectedFile, paths);
       setSavedClips((prev) => prev.filter((clip) => !paths.includes(clip.path)));
-      setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - paths.length));
+      setClipTotal((prev) => updateClipTotalAfterDelete(prev, paths.length));
       openAdjacentClipAfterDeletion(paths, deletedSelectedPath);
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
@@ -594,7 +575,7 @@ export default function ClipboardPage({
       showToast(t("clipboard.clipDeleted"));
       deletedClipPathsRef.current.add(path);
       setSavedClips((prev) => prev.filter((clip) => clip.path !== path));
-      setClipTotal((prev) => prev === null ? prev : Math.max(0, prev - 1));
+      setClipTotal((prev) => updateClipTotalAfterDelete(prev, 1));
       setSelectedClipPaths((prev) => prev.filter((p) => p !== path));
       openAdjacentClipAfterDeletion([path], selectedFile === path ? path : null);
       void refreshClipboardStatus();
@@ -603,9 +584,8 @@ export default function ClipboardPage({
     }
   };
 
-  const showList = !isMobile || !selectedFile;
-  const showDetail = !isMobile || !!selectedFile;
-  const selectedFileName = selectedFile?.split("/").pop() ?? "";
+  const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
+  const selectedFileName = getFileName(selectedFile);
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -648,13 +628,9 @@ export default function ClipboardPage({
     { id: "text" as ClipFilter, label: t("clipboard.filterText"), Icon: FileText },
     { id: "image" as ClipFilter, label: t("clipboard.filterImage"), Icon: ImageIcon },
   ];
-  const emptyClipsMessage = clipFilter === "image"
-    ? t("clipboard.noImageClips")
-    : clipFilter === "text"
-      ? t("clipboard.noTextClips")
-      : t("clipboard.noClips");
-  const displayedClipTotal = clipTotal ?? status?.clips_count ?? 0;
-  const selectionActionsDisabled = selectedClipPaths.length === 0 || creatingNote || deletingSelected;
+  const emptyClipsMessage = t(getEmptyClipsMessageKey(clipFilter));
+  const displayedClipTotal = getDisplayedClipTotal(clipTotal, status);
+  const selectionActionsDisabled = shouldDisableClipboardSelectionActions(selectedClipPaths, creatingNote, deletingSelected);
   const clipboardPanelCollapsed = collapsedPanels.clipboard ?? false;
 
   return (

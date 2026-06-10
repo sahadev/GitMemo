@@ -15,6 +15,16 @@ import { EmptyState } from "../components/base/EmptyState";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  getFileCountLabel,
+  getFileName,
+  getFileWorkspacePaneState,
+  getMarkdownTitleFromPath,
+  getMobileFileTitle,
+  getNextFileAfterDelete,
+  getRemainingFilesAfterDelete,
+  isPendingPathForFolder,
+} from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { relativeTime } from "../utils/time";
@@ -106,7 +116,7 @@ export default function PlansPage({
   }, [isMobile, scrollItemIntoView]);
 
   useEffect(() => {
-    if (!pendingOpenPath?.startsWith("plans/")) return;
+    if (!isPendingPathForFolder(pendingOpenPath, "plans/")) return;
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
@@ -132,13 +142,13 @@ export default function PlansPage({
         kind: "warning",
       });
       await invoke("delete_plan", { filePath: current, deleteSource });
-      const remaining = files.filter((f) => f.path !== current);
+      const remaining = getRemainingFilesAfterDelete(files, current);
       setFiles(remaining);
       setSelectedFile(null);
       setFileContent("");
       showToast(t("plans.deleted"));
-      if (remaining.length > 0) {
-        const next = remaining[0];
+      const next = getNextFileAfterDelete(files, current);
+      if (next) {
         void openFile(next.path);
       }
       void loadFiles();
@@ -154,8 +164,7 @@ export default function PlansPage({
     navNext,
   });
 
-  const showList = !isMobile || !selectedFile;
-  const showDetail = !isMobile || !!selectedFile;
+  const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
     setFileContent("");
@@ -179,7 +188,7 @@ export default function PlansPage({
         icon={RefreshCw}
       />
       <Badge>
-        {hasMore ? `${files.length} / ${totalFiles}` : files.length}
+        {getFileCountLabel(hasMore, files.length, totalFiles)}
       </Badge>
     </>
   );
@@ -209,7 +218,7 @@ export default function PlansPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
-                  title={f.name.replace(/\.md$/, "")}
+                  title={getMarkdownTitleFromPath(f.name)}
                   subtitle={relativeTime(f.modified, t)}
                 />
               );
@@ -237,7 +246,7 @@ export default function PlansPage({
         ) : (
           <>
             <FileDetailToolbar
-              title={isMobile ? selectedFile.split("/").pop()?.replace(/\.md$/, "") : selectedFile}
+              title={getMobileFileTitle(isMobile, selectedFile, true)}
               titleText={selectedFile}
               active={active}
               onBack={closeDetail}
@@ -249,7 +258,7 @@ export default function PlansPage({
                 <FavoriteButton
                   relPath={selectedFile}
                   active={active}
-                  title={selectedFile.split("/").pop()?.replace(/\.md$/, "") ?? selectedFile}
+                  title={getMarkdownTitleFromPath(selectedFile)}
                   sourceType="plan"
                 />
               ) : null}
@@ -268,7 +277,7 @@ export default function PlansPage({
                   relPath={selectedFile}
                   active={active}
                   exportContent={fileContent}
-                  exportTitle={selectedFile.split("/").pop()}
+                  exportTitle={getFileName(selectedFile)}
                 />
               ) : null}
             />

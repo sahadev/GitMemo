@@ -17,55 +17,32 @@ import { MonoBlock } from "../components/base/MonoBlock";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  EDITOR_ROOTS,
+  getEditorEmptyTextKey,
+  getEditorRootLabelKey,
+  getEditorRootPath,
+  getEditorSelectTitleKey,
+  getNewEditorFileRel,
+  getSelectedEditorEntry,
+  isEditorRootAvailable,
+  isProbablyMarkdownEditorPath,
+  joinRel,
+  parentRel,
+  pruneFocusedEditorEntry,
+  resolveAvailableEditorRoot,
+  shouldSkipEditorTargetOpen,
+  shouldSwitchEditorTargetDirectory,
+  shouldSwitchEditorTargetRoot,
+  type EditorDirEntry,
+  type EditorOpenTarget,
+  type EditorRoot,
+  type EditorRootsStatus,
+  type EditorWriteResult,
+} from "../components/domain/editor-home/editorHomeLogic";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
-
-type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
-
-interface EditorRootsStatus {
-  claude_path: string;
-  claude_exists: boolean;
-  cursor_path: string;
-  cursor_exists: boolean;
-  codex_path: string;
-  codex_exists: boolean;
-  anonymous_path: string;
-  anonymous_exists: boolean;
-}
-
-interface EditorDirEntry {
-  name: string;
-  rel_path: string;
-  is_dir: boolean;
-}
-
-interface EditorWriteResult {
-  success: boolean;
-  rel_path: string;
-  message: string;
-}
-
-interface EditorOpenTarget {
-  root: EditorRoot;
-  relPath: string;
-}
-
-function parentRel(rel: string): string {
-  const t = rel.replace(/\\/g, "/").replace(/\/+$/, "");
-  if (!t) return "";
-  const i = t.lastIndexOf("/");
-  return i < 0 ? "" : t.slice(0, i);
-}
-
-function isProbablyMarkdown(name: string): boolean {
-  const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
-}
-
-function joinRel(base: string, name: string): string {
-  return base ? `${base.replace(/\/+$/, "")}/${name}` : name;
-}
 
 export default function EditorHomePage({ active = true, openTarget, onOpenTargetConsumed }: { active?: boolean; openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
   const { t } = useI18n();
@@ -101,9 +78,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     try {
       const r = await invoke<EditorRootsStatus>("get_editor_data_roots");
       setRoots(r);
-      if (!r.claude_exists && r.cursor_exists) setRoot("cursor");
-      if (!r.claude_exists && !r.cursor_exists && r.codex_exists) setRoot("codex");
-      if (!r.claude_exists && !r.cursor_exists && !r.codex_exists) setRoot("anonymous");
+      setRoot((current) => resolveAvailableEditorRoot(current, r));
     } catch {
       setRoots(null);
     }
@@ -115,7 +90,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     try {
       const list = await invoke<EditorDirEntry[]>("list_editor_directory", { root, rel });
       setEntries(list);
-      setFocusedEntryRel((current) => current && list.some((entry) => entry.rel_path === current) ? current : null);
+      setFocusedEntryRel((current) => pruneFocusedEditorEntry(list, current));
     } catch (e) {
       setEntries([]);
       setFocusedEntryRel(null);
@@ -142,21 +117,9 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     void loadDir();
   }, [loadDir]);
 
-  const rootOk = useMemo(() => {
-    if (!roots) return false;
-    if (root === "claude") return roots.claude_exists;
-    if (root === "cursor") return roots.cursor_exists;
-    if (root === "codex") return roots.codex_exists;
-    return roots.anonymous_exists;
-  }, [root, roots]);
+  const rootOk = useMemo(() => isEditorRootAvailable(roots, root), [root, roots]);
 
-  const rootPath = useMemo(() => {
-    if (!roots) return "";
-    if (root === "claude") return roots.claude_path;
-    if (root === "cursor") return roots.cursor_path;
-    if (root === "codex") return roots.codex_path;
-    return roots.anonymous_path;
-  }, [root, roots]);
+  const rootPath = useMemo(() => getEditorRootPath(roots, root), [root, roots]);
 
   const openFile = useCallback(async (fileRel: string) => {
     setFocusedEntryRel(fileRel);
@@ -236,9 +199,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const handleCreateFile = useCallback(async () => {
     setCreating(true);
     try {
-      const relPath = root === "anonymous"
-        ? null
-        : joinRel(rel, `${t("editorHome.untitled")}.md`);
+      const relPath = getNewEditorFileRel(root, rel, t("editorHome.untitled"));
       const result = await invoke<EditorWriteResult>("create_editor_file", {
         root,
         rel: relPath,
@@ -275,7 +236,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     }
   }, [root, rel, t, showToast, loadDir, clearSelection]);
 
-  const selectedIsMarkdown = selectedFileRel ? isProbablyMarkdown(selectedFileRel) : false;
+  const selectedIsMarkdown = selectedFileRel ? isProbablyMarkdownEditorPath(selectedFileRel) : false;
   const selectedEntryKey = focusedEntryRel ?? selectedFileRel;
 
   const handleCancelEdit = useCallback(() => {
@@ -291,9 +252,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   }, [openFile]);
 
   const enterSelectedEntry = useCallback(() => {
-    const selectedEntry = selectedEntryKey
-      ? entries.find((entry) => entry.rel_path === selectedEntryKey)
-      : null;
+    const selectedEntry = getSelectedEditorEntry(entries, selectedEntryKey);
     if (!selectedEntry) return;
     if (selectedEntry.is_dir) {
       setRel(selectedEntry.rel_path);
@@ -319,26 +278,25 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
 
   useEffect(() => {
     if (!openTarget) return;
-    if (root !== openTarget.root) {
+    if (shouldSwitchEditorTargetRoot(root, openTarget)) {
       setRoot(openTarget.root);
       setRel(parentRel(openTarget.relPath));
       clearSelection();
       return;
     }
-    const nextRel = parentRel(openTarget.relPath);
-    if (rel !== nextRel) {
-      setRel(nextRel);
+    if (shouldSwitchEditorTargetDirectory(rel, openTarget)) {
+      setRel(parentRel(openTarget.relPath));
       clearSelection();
       return;
     }
-    if (selectedFileRel === openTarget.relPath) {
+    if (shouldSkipEditorTargetOpen(selectedFileRel, openTarget)) {
       onOpenTargetConsumed?.();
       return;
     }
     void openFile(openTarget.relPath).finally(() => onOpenTargetConsumed?.());
   }, [openTarget, root, rel, selectedFileRel, openFile, clearSelection, onOpenTargetConsumed]);
 
-  const leftEmptyText = root === "anonymous" ? t("editorHome.emptyAnonymous") : t("editorHome.emptyDir");
+  const leftEmptyText = t(getEditorEmptyTextKey(root));
 
   const list = (
     <ListPane>
@@ -356,14 +314,8 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
       />
 
       <div className="gm-segment-row">
-        {(["claude", "cursor", "codex", "anonymous"] as EditorRoot[]).map((r) => {
-          const exists = r === "claude"
-            ? roots?.claude_exists
-            : r === "cursor"
-              ? roots?.cursor_exists
-              : r === "codex"
-                ? roots?.codex_exists
-                : roots?.anonymous_exists;
+        {EDITOR_ROOTS.map((r) => {
+          const exists = isEditorRootAvailable(roots, r);
           return (
             <button
               key={r}
@@ -373,7 +325,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
               className="gm-segment-button gm-segment-button-fluid"
               data-active={root === r ? "true" : "false"}
             >
-              {r === "claude" ? t("editorHome.claude") : r === "cursor" ? t("editorHome.cursor") : r === "codex" ? t("editorHome.codex") : t("editorHome.anonymous")}
+              {t(getEditorRootLabelKey(r))}
             </button>
           );
         })}
@@ -455,7 +407,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     <DetailPane>
       {!selectedFileRel ? (
         <EmptyState
-          title={root === "anonymous" ? t("editorHome.selectOrCreate") : t("editorHome.selectFile")}
+          title={t(getEditorSelectTitleKey(root))}
           description={t("editorHome.editableWarning")}
           full
         />
@@ -500,7 +452,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
               <FileMoreActionsMenu
                 absolutePath={fileAbs || undefined}
                 active={active}
-                canExportPdf={isProbablyMarkdown(selectedFileRel)}
+                canExportPdf={isProbablyMarkdownEditorPath(selectedFileRel)}
                 exportContent={fileContent}
                 exportTitle={selectedFileRel.split("/").pop()}
               />

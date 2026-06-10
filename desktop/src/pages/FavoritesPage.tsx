@@ -14,6 +14,15 @@ import { EmptyState } from "../components/base/EmptyState";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  areFavoriteEntriesEquivalent,
+  getFavoriteDetailPath,
+  getFavoriteDetailTitle,
+  getFavoritesPaneState,
+  getNextSelectedFavoriteTargetId,
+  getSelectedFavoriteEntry,
+  sourceLabelKey,
+} from "../components/domain/favorites/favoritesLogic";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
@@ -37,34 +46,6 @@ const sourceIcon = {
   unknown: FileText,
 };
 
-function sourceLabelKey(sourceType: string) {
-  switch (sourceType) {
-    case "conversation": return "favorites.sourceConversation";
-    case "note": return "favorites.sourceNote";
-    case "clip": return "favorites.sourceClip";
-    case "plan": return "favorites.sourcePlan";
-    case "import": return "favorites.sourceImport";
-    case "config": return "favorites.sourceConfig";
-    case "external": return "favorites.sourceExternal";
-    default: return "favorites.sourceUnknown";
-  }
-}
-
-function areFavoriteEntriesEquivalent(a: FavoriteEntry[], b: FavoriteEntry[]) {
-  if (a.length !== b.length) return false;
-  return a.every((item, index) => {
-    const other = b[index];
-    return (
-      item.target_id === other.target_id &&
-      item.title === other.title &&
-      item.source_type === other.source_type &&
-      item.modified === other.modified &&
-      item.preview === other.preview &&
-      item.exists === other.exists
-    );
-  });
-}
-
 export default function FavoritesPage({
   active = true,
   registerMobileBackHandler,
@@ -83,19 +64,18 @@ export default function FavoritesPage({
   const refreshTimerRef = useRef<number | null>(null);
 
   const selectedEntry = useMemo(
-    () => favorites.find((item) => item.target_id === selectedTargetId) ?? null,
+    () => getSelectedFavoriteEntry(favorites, selectedTargetId),
     [favorites, selectedTargetId],
   );
 
-  const showList = !isMobile || !selectedTargetId;
-  const showDetail = !isMobile || !!selectedTargetId;
+  const { showList, showDetail } = getFavoritesPaneState(isMobile, selectedTargetId);
 
   const loadFavorites = useCallback(async () => {
     setLoading(true);
     try {
       const next = await invoke<FavoriteEntry[]>("list_favorites");
       setFavorites((current) => areFavoriteEntriesEquivalent(current, next) ? current : next);
-      setSelectedTargetId((current) => current && next.some((item) => item.target_id === current) ? current : null);
+      setSelectedTargetId((current) => getNextSelectedFavoriteTargetId(next, current));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
@@ -212,8 +192,8 @@ export default function FavoritesPage({
     </ListPane>
   );
 
-  const detailTitle = content?.title || selectedEntry?.title || t("favorites.title");
-  const detailPath = content?.rel_path || content?.absolute_path || selectedEntry?.rel_path || selectedEntry?.absolute_path || "";
+  const detailTitle = getFavoriteDetailTitle(content, selectedEntry, t("favorites.title"));
+  const detailPath = getFavoriteDetailPath(content, selectedEntry);
 
   const detail = (
     <DetailPane>

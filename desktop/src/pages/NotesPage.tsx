@@ -14,8 +14,23 @@ import { EmptyState } from "../components/base/EmptyState";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  getFileName,
+  getFileWorkspacePaneState,
+  getNoteListItemTitle,
+  isPendingPathForFolder,
+} from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { NoteComposer } from "../components/domain/notes/NoteComposer";
+import {
+  canCreateNote,
+  canNavigateListFromEmptyComposer,
+  getEmptyNotesDescriptionKey,
+  getNotePlaceholderKey,
+  getNotesTabForPath,
+  isManualNotesTab,
+  shouldShowNoteComposerHelper,
+} from "../components/domain/notes/notesLogic";
 import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
@@ -38,11 +53,6 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
-
-function notesTabForPath(path: string): NotesTab {
-  return path.startsWith("notes/manual/") ? "manual" : "scratch";
-}
-
 export default function NotesPage({
   active = true,
   focusTrigger,
@@ -192,8 +202,8 @@ export default function NotesPage({
   useFileWatcher(["notes"], loadFiles, { active });
 
   useEffect(() => {
-    if (!pendingOpenPath?.startsWith("notes/")) return;
-    const targetTab = notesTabForPath(pendingOpenPath);
+    if (!isPendingPathForFolder(pendingOpenPath, "notes/")) return;
+    const targetTab = getNotesTabForPath(pendingOpenPath);
     if (activeTab !== targetTab) {
       setNotesTab(targetTab);
       return;
@@ -213,12 +223,11 @@ export default function NotesPage({
   });
 
   const handleCreateNote = async () => {
-    if (!newNote.trim()) return;
-    if (activeTab === "manual" && !manualTitle.trim()) return;
+    if (!canCreateNote(activeTab, newNote, manualTitle, saving)) return;
     setSaving(true);
     try {
       let result: NoteResult;
-      if (activeTab === "manual") {
+      if (isManualNotesTab(activeTab)) {
         result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: newNote, append: false });
       } else {
         result = await invoke<NoteResult>("create_note", { content: newNote });
@@ -259,12 +268,11 @@ export default function NotesPage({
     disabled: isMobile,
     navPrev,
     navNext,
-    allowFromEditable: (event) => event.target === textareaRef.current && !newNote.trim(),
+    allowFromEditable: (event) => event.target === textareaRef.current && canNavigateListFromEmptyComposer(newNote),
   });
 
-  const showList = !isMobile || !selectedFile;
-  const showDetail = !isMobile || !!selectedFile;
-  const selectedFileName = selectedFile?.split("/").pop() ?? "";
+  const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
+  const selectedFileName = getFileName(selectedFile);
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -303,20 +311,20 @@ export default function NotesPage({
 
         {/* Quick note input */}
         <NoteComposer
-          showTitle={activeTab === "manual"}
+          showTitle={isManualNotesTab(activeTab)}
           title={manualTitle}
           onTitleChange={setManualTitle}
           titlePlaceholder={t("notes.placeholderTitle")}
           note={newNote}
           onNoteChange={setNewNote}
-          notePlaceholder={activeTab === "manual" ? t("notes.placeholderManual") : t("notes.placeholderScratch")}
+          notePlaceholder={t(getNotePlaceholderKey(activeTab))}
           textareaRef={textareaRef}
           rows={isMobile ? 4 : 3}
           mobile={isMobile}
           saving={saving}
-          disabled={!newNote.trim() || saving || (activeTab === "manual" && !manualTitle.trim())}
+          disabled={!canCreateNote(activeTab, newNote, manualTitle, saving)}
           helperText={saving ? t("notes.saving") : t("notes.enterToSave")}
-          showHelper={!isMobile || saving}
+          showHelper={shouldShowNoteComposerHelper(isMobile, saving)}
           onPaste={(e) => void handlePasteAttachments(e, setNewNote)}
           onCompositionStart={() => { imeComposingRef.current = true; }}
           onCompositionEnd={() => { imeComposingRef.current = false; }}
@@ -340,13 +348,12 @@ export default function NotesPage({
             <EmptyState
               icon={FileText}
               title={t("notes.noNotes", t(`notes.${activeTab}`))}
-              description={activeTab === "manual" ? t("notes.docsHint") : t("notes.useInputAbove")}
+              description={t(getEmptyNotesDescriptionKey(activeTab))}
             />
           ) : (
             <>
             {files.map((file) => {
-              const isDateName = /^\d{4}-\d{2}-\d{2}/.test(file.name);
-              const title = isDateName && file.preview ? file.preview : file.name;
+              const title = getNoteListItemTitle(file);
               const selected = selectedFile === file.path;
               return (
               <FileListItem

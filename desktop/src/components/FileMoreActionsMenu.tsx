@@ -9,6 +9,11 @@ import { useToast } from "../hooks/useToast";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { useAppStore } from "../hooks/useAppStore";
 import { formatTitleWithShortcut, isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import {
+  getFileMoreActionVisibility,
+  hasVisibleFileMoreActions,
+  shouldEnableFileMoreActionsShortcut,
+} from "./domain/files/fileActionsLogic";
 
 interface FileMoreActionsMenuProps {
   relPath?: string;
@@ -91,13 +96,18 @@ export function FileMoreActionsMenu({
     }
   }, [copyText, resolvePath, showToast]);
 
-  const hasFilePath = Boolean(relPath || absolutePath);
-  const showReveal = canReveal && hasFilePath;
-  const showCopyPath = canCopyPath && hasFilePath;
-  const showExportPdf = canExportPdf && Boolean(exportContent.trim());
+  const actionVisibility = getFileMoreActionVisibility({
+    relPath,
+    absolutePath,
+    canReveal,
+    canCopyPath,
+    canExportPdf,
+    exportContent,
+  });
+  const { showReveal, showCopyPath, showExportPdf } = actionVisibility;
 
   useEffect(() => {
-    if (!active || !showReveal && !showCopyPath && !showExportPdf) return;
+    if (!shouldEnableFileMoreActionsShortcut(active, actionVisibility)) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutEditableTarget(event.target)) return;
       if (!shortcutMatches(event, shortcut ?? shortcuts.more_actions)) return;
@@ -108,7 +118,7 @@ export function FileMoreActionsMenu({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [active, shortcut, shortcuts.more_actions, setOpen, showCopyPath, showExportPdf, showReveal]);
 
-  if (!showReveal && !showCopyPath && !showExportPdf) return null;
+  if (!hasVisibleFileMoreActions(actionVisibility)) return null;
 
   return (
     <div ref={rootRef} className="gm-menu-anchor">

@@ -13,9 +13,25 @@ import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { ConversationMessageCard } from "../components/domain/conversations/ConversationMessageCard";
+import {
+  getConversationListCountLabel,
+  getConversationMetaFromEntry,
+  getConversationPaneState,
+  getNextConversationAfterDelete,
+  parseConversationFrontmatter,
+  parseConversationMarkdown,
+  shouldOpenFirstConversationFromKeyboard,
+  type ChatMessage,
+  type ConversationMeta,
+} from "../components/domain/conversations/conversationsLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  getMarkdownTitleFromPath,
+  getRemainingFilesAfterDelete,
+  isPendingPathForFolder,
+} from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -31,82 +47,6 @@ import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
-
-interface ConversationMeta {
-  title: string;
-  date: string;
-  model: string;
-  messages: string;
-}
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  timestamp: string;
-  content: string;
-}
-
-interface ParsedConversationBody {
-  intro: string;
-  messages: ChatMessage[];
-}
-
-function parseFrontmatter(raw: string): { meta: ConversationMeta; body: string } {
-  const meta: ConversationMeta = { title: "", date: "", model: "", messages: "" };
-  // Must start with --- to have frontmatter
-  if (!raw.startsWith("---")) return { meta, body: raw };
-
-  const second = raw.indexOf("---", 3);
-  if (second === -1) return { meta, body: raw };
-
-  const fm = raw.slice(3, second);
-  for (const line of fm.split("\n")) {
-    const m = line.match(/^(\w+):\s*(.+)$/);
-    if (!m) continue;
-    const [, key, val] = m;
-    if (key === "title") meta.title = val.trim();
-    else if (key === "date") meta.date = val.trim();
-    else if (key === "model") meta.model = val.trim();
-    else if (key === "messages") meta.messages = val.trim();
-  }
-
-  const body = raw.slice(second + 3).trim();
-  return { meta, body };
-}
-
-function parseConversationBody(body: string): ParsedConversationBody {
-  const msgs: ChatMessage[] = [];
-  const pattern = /^### (User|Assistant)\s*(?:\(([^)]*)\))?\s*$/gm;
-  const matches: { role: string; timestamp: string; index: number }[] = [];
-
-  let m: RegExpExecArray | null;
-  while ((m = pattern.exec(body)) !== null) {
-    matches.push({
-      role: m[1].toLowerCase(),
-      timestamp: m[2] || "",
-      index: m.index,
-    });
-  }
-
-  if (matches.length === 0) {
-    return { intro: body.trim(), messages: [] };
-  }
-
-  for (let i = 0; i < matches.length; i++) {
-    const start = body.indexOf("\n", matches[i].index) + 1;
-    const end = i + 1 < matches.length ? matches[i + 1].index : body.length;
-    const content = body.slice(start, end).trim();
-    msgs.push({
-      role: matches[i].role as "user" | "assistant",
-      timestamp: matches[i].timestamp,
-      content,
-    });
-  }
-
-  return {
-    intro: body.slice(0, matches[0].index).trim(),
-    messages: msgs,
-  };
-}
 
 export default function ConversationsPage({
   active = true,
@@ -153,22 +93,16 @@ export default function ConversationsPage({
   });
   const detailOpenedFromCrossPageRef = useRef(false);
 
-  const metaFromEntry = useCallback((f: FileEntry): ConversationMeta => ({
-    title: f.title || "",
-    date: "",
-    model: f.model || "",
-    messages: f.messages || "",
-  }), []);
   const loadConversationsPage = useCallback((offset: number, limit: number) => {
     return invoke<FilePage>("list_files_page", { folder: "conversations", offset, limit });
   }, []);
   const handleConversationPageLoaded = useCallback((page: FilePage, reset: boolean) => {
     setMetaCache((prev) => {
       const cache = reset ? new Map<string, ConversationMeta>() : new Map(prev);
-      page.entries.forEach((f) => cache.set(f.path, metaFromEntry(f)));
+      page.entries.forEach((file) => cache.set(file.path, getConversationMetaFromEntry(file)));
       return cache;
     });
-  }, [metaFromEntry]);
+  }, []);
   const {
     files,
     setFiles,
@@ -197,15 +131,25 @@ export default function ConversationsPage({
   useFileWatcher(watchedFolders, handleWatchedFilesChanged, { active });
 
   const applyConversationRaw = useCallback((path: string, raw: string) => {
-    const { meta, body } = parseFrontmatter(raw);
-    const parsed = parseConversationBody(body);
+    const parsed = parseConversationMarkdown(raw);
     setSelectedFile(path);
-    setCurrentMeta(meta);
+    setCurrentMeta(parsed.meta);
     setRawContent(raw);
-    setRawBody(body);
+    setRawBody(parsed.body);
     setIntroContent(parsed.intro);
     setMessages(parsed.messages);
   }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedFile(null);
+    setMessages([]);
+    setCurrentMeta(null);
+    setRawBody("");
+    setRawContent("");
+    resetEditor();
+    setIntroContent("");
+    detailOpenedFromCrossPageRef.current = false;
+  }, [resetEditor]);
 
   const openFile = useCallback(async (path: string, fromCrossPage = false) => {
     try {
@@ -220,7 +164,7 @@ export default function ConversationsPage({
   }, [applyConversationRaw, isMobile, resetEditor, scrollItemIntoView]);
 
   useEffect(() => {
-    if (!pendingOpenPath?.startsWith("conversations/")) return;
+    if (!isPendingPathForFolder(pendingOpenPath, "conversations/")) return;
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
@@ -232,7 +176,7 @@ export default function ConversationsPage({
       applyConversationRaw(selectedFile, editContent);
       setMetaCache((prev) => {
         const next = new Map(prev);
-        next.set(selectedFile, parseFrontmatter(editContent).meta);
+        next.set(selectedFile, parseConversationFrontmatter(editContent).meta);
         return next;
       });
       completeEdit();
@@ -249,24 +193,18 @@ export default function ConversationsPage({
     const confirmed = await ask(t("conversations.deleteConfirm"), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
     try {
-      const idx = files.findIndex((f) => f.path === selectedFile);
+      const current = selectedFile;
       await invoke("delete_note", { filePath: selectedFile });
-      const remaining = files.filter((f) => f.path !== selectedFile);
+      const remaining = getRemainingFilesAfterDelete(files, current);
+      const next = getNextConversationAfterDelete(files, current);
       setFiles(remaining);
-      if (remaining.length > 0) {
-        const nextIdx = idx < remaining.length ? idx : remaining.length - 1;
-        openFile(remaining[nextIdx].path);
+      if (next) {
+        void openFile(next.path);
       } else {
-        setSelectedFile(null);
-        setMessages([]);
-        setIntroContent("");
-        setCurrentMeta(null);
-        setRawBody("");
-        setRawContent("");
-        resetEditor();
-        }
+        closeDetail();
+      }
       showToast(t("conversations.deleted"));
-      loadFiles();
+      void loadFiles();
     } catch (e) {
       showToast(`Error: ${e}`);
     }
@@ -296,15 +234,14 @@ export default function ConversationsPage({
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (selectedFile) {
-          setSelectedFile(null); setMessages([]); setCurrentMeta(null); setRawBody(""); setRawContent(""); resetEditor();
-          setIntroContent("");
+          closeDetail();
         } else {
           onFocusSidebar?.();
         }
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        if (!selectedFile && files.length > 0) {
+        if (shouldOpenFirstConversationFromKeyboard(selectedFile, files)) {
           openFile(files[0].path);
         }
       }
@@ -318,21 +255,10 @@ export default function ConversationsPage({
     files,
     openFile,
     onFocusSidebar,
-    resetEditor,
+    closeDetail,
   ]);
 
-  const showList = !isMobile || !selectedFile;
-  const showDetail = !isMobile || !!selectedFile;
-  const closeDetail = useCallback(() => {
-    setSelectedFile(null);
-    setMessages([]);
-    setCurrentMeta(null);
-    setRawBody("");
-    setRawContent("");
-    resetEditor();
-    setIntroContent("");
-    detailOpenedFromCrossPageRef.current = false;
-  }, [resetEditor]);
+  const { showList, showDetail } = getConversationPaneState(isMobile, selectedFile);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -351,8 +277,7 @@ export default function ConversationsPage({
         icon={RefreshCw}
       />
       <Badge>
-        {selectedFile ? `${files.findIndex((f) => f.path === selectedFile) + 1} / ` : ""}{files.length}
-        {hasMore ? ` / ${totalFiles}` : ""}
+        {getConversationListCountLabel({ selectedFile, files, hasMore, totalFiles })}
       </Badge>
     </>
   );
@@ -384,7 +309,7 @@ export default function ConversationsPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
-                  title={meta?.title || f.name.replace(/\.md$/, "")}
+                  title={meta?.title || getMarkdownTitleFromPath(f.name)}
                   subtitle={relativeTime(f.modified, t)}
                   meta={(
                     <>

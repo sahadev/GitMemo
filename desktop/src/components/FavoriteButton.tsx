@@ -9,6 +9,15 @@ import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useAppStore } from "../hooks/useAppStore";
 import { formatTitleWithShortcut, isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import {
+  canToggleFavoriteTarget,
+  getFavoriteTitleKey,
+  getNextFavoriteState,
+  hasActionFilePath,
+  isFavoriteButtonDisabled,
+  shouldEnableFavoriteShortcut,
+  shouldRefreshForFavoritesFolder,
+} from "./domain/files/fileActionsLogic";
 
 interface FavoriteButtonProps {
   relPath?: string | null;
@@ -41,7 +50,7 @@ export function FavoriteButton({
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
   const refreshTimerRef = useRef<number | null>(null);
-  const hasTarget = Boolean(relPath || absolutePath);
+  const hasTarget = hasActionFilePath(relPath, absolutePath);
 
   const refresh = useCallback(async () => {
     if (!hasTarget) {
@@ -77,7 +86,7 @@ export function FavoriteButton({
       scheduleRefresh();
     });
     const unlistenFiles = listen<FilesChangedEvent>("files-changed", ({ payload }) => {
-      if (payload?.folder === "favorites") scheduleRefresh();
+      if (shouldRefreshForFavoritesFolder(payload?.folder)) scheduleRefresh();
     });
     return () => {
       if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
@@ -87,10 +96,10 @@ export function FavoriteButton({
   }, [active, scheduleRefresh]);
 
   const toggle = useCallback(async () => {
-    if (!hasTarget || loading) return;
+    if (!canToggleFavoriteTarget(hasTarget, loading)) return;
     setLoading(true);
     try {
-      const next = !favorited;
+      const next = getNextFavoriteState(favorited);
       await invoke<boolean>("set_favorite", {
         relPath: relPath ?? null,
         absolutePath: absolutePath ?? null,
@@ -108,7 +117,7 @@ export function FavoriteButton({
   }, [absolutePath, favorited, hasTarget, loading, relPath, showToast, sourceType, t, title]);
 
   useEffect(() => {
-    if (!active || isMobile || disabled || !hasTarget || loading) return;
+    if (!shouldEnableFavoriteShortcut({ active, isMobile, disabled, hasTarget, loading })) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutEditableTarget(event.target)) return;
       if (!shortcutMatches(event, shortcut ?? shortcuts.favorite_selected)) return;
@@ -123,8 +132,8 @@ export function FavoriteButton({
     <DetailIconButton
       type="button"
       onClick={() => void toggle()}
-      disabled={disabled || !hasTarget || loading}
-      title={formatTitleWithShortcut(favorited ? t("favorites.remove") : t("favorites.add"), shortcut ?? shortcuts.favorite_selected)}
+      disabled={isFavoriteButtonDisabled(disabled, hasTarget, loading)}
+      title={formatTitleWithShortcut(t(getFavoriteTitleKey(favorited)), shortcut ?? shortcuts.favorite_selected)}
       tone={favorited ? "accent" : "default"}
     >
       {loading ? (

@@ -13,6 +13,13 @@ import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  getClaudeConfigTabs,
+  getInitialClaudeConfigTab,
+  loadClaudeConfigFiles,
+  type ClaudeConfigEditor,
+  type ClaudeConfigTab,
+} from "../components/domain/claude-config/claudeConfigLogic";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
@@ -21,88 +28,31 @@ import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { type FileEntry } from "../types/files";
 
-type Tab = "memory" | "knowledge" | "skills" | "config" | "rules";
-type Editor = "claude" | "cursor";
-
-const claudeTabs: { id: Tab; labelKey: string; folder: string; icon: typeof Brain }[] = [
-  { id: "memory", labelKey: "claudeConfig.memory", folder: "claude-config/memory", icon: Brain },
-  { id: "knowledge", labelKey: "claudeConfig.knowledge", folder: "claude-config/root-docs", icon: BookOpen },
-  { id: "skills", labelKey: "claudeConfig.skills", folder: "claude-config/skills", icon: Wrench },
-  { id: "config", labelKey: "claudeConfig.config", folder: "claude-config", icon: FileText },
-];
-
-const cursorTabs: { id: Tab; labelKey: string; folder: string; icon: typeof Brain }[] = [
-  { id: "rules", labelKey: "claudeConfig.rules", folder: "cursor-config/rules", icon: ScrollText },
-  { id: "knowledge", labelKey: "claudeConfig.knowledge", folder: "cursor-config/root-docs", icon: BookOpen },
-  { id: "skills", labelKey: "claudeConfig.skills", folder: "cursor-config/skills", icon: Wrench },
-  { id: "config", labelKey: "claudeConfig.config", folder: "cursor-config", icon: FileText },
-];
+const tabIcons: Record<ClaudeConfigTab, typeof Brain> = {
+  memory: Brain,
+  knowledge: BookOpen,
+  skills: Wrench,
+  config: FileText,
+  rules: ScrollText,
+};
 
 export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFocusSidebar, enterTrigger: _enterTrigger }: { active?: boolean; onFocusSidebar?: () => void; enterTrigger?: number } = {}) {
   const { t } = useI18n();
   useRelativeTimeTick();
-  const [editor, setEditor] = useState<Editor>("claude");
-  const [activeTab, setActiveTab] = useState<Tab>("memory");
+  const [editor, setEditor] = useState<ClaudeConfigEditor>("claude");
+  const [activeTab, setActiveTab] = useState<ClaudeConfigTab>("memory");
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
   const [loading, setLoading] = useState(true);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const tabs = editor === "claude" ? claudeTabs : cursorTabs;
+  const tabs = getClaudeConfigTabs(editor);
 
-  const loadFiles = useCallback(async (tab: Tab) => {
-    const tabDef = (editor === "claude" ? claudeTabs : cursorTabs).find((t) => t.id === tab);
-    if (!tabDef) return;
+  const loadFiles = useCallback(async (tab: ClaudeConfigTab) => {
     setLoading(true);
     try {
-      let allFiles: FileEntry[];
-      // Claude global memory + per-project memory (synced to claude-config/projects/*/memory/)
-      if (editor === "claude" && tab === "memory") {
-        const [globalMem, projectsTree] = await Promise.all([
-          invoke<FileEntry[]>("list_files", { folder: "claude-config/memory" }),
-          invoke<FileEntry[]>("list_files", { folder: "claude-config/projects" }),
-        ]);
-        const projectMemory = projectsTree.filter(
-          (f) => f.path.includes("/memory/") && f.path.endsWith(".md"),
-        );
-        allFiles = [...globalMem, ...projectMemory].sort(
-          (a, b) => (b.modifiedTs ?? 0) - (a.modifiedTs ?? 0),
-        );
-      } else if (tab === "knowledge") {
-        const base = editor === "claude" ? "claude-config" : "cursor-config";
-        const [rootDocs, projectsTree] = await Promise.all([
-          invoke<FileEntry[]>("list_files", { folder: `${base}/root-docs` }),
-          invoke<FileEntry[]>("list_files", { folder: `${base}/projects` }),
-        ]);
-        const projectKnowledge = projectsTree.filter((f) =>
-          (f.path.includes("/docs/") || f.path.includes("/references/") || f.path.includes("/specs/")) &&
-          f.path.endsWith(".md"),
-        );
-        allFiles = [...rootDocs, ...projectKnowledge].sort(
-          (a, b) => (b.modifiedTs ?? 0) - (a.modifiedTs ?? 0),
-        );
-      } else {
-        allFiles = await invoke<FileEntry[]>("list_files", { folder: tabDef.folder });
-      }
-      // For "config" tab, only show root-level files, exclude subdirs
-      if (tab === "config") {
-        if (editor === "claude") {
-          allFiles = allFiles.filter((f) =>
-            !f.path.includes("claude-config/memory/") &&
-            !f.path.includes("claude-config/root-docs/") &&
-            !f.path.includes("claude-config/skills/") &&
-            !f.path.includes("claude-config/projects/")
-          );
-        } else {
-          allFiles = allFiles.filter((f) =>
-            !f.path.includes("cursor-config/root-docs/") &&
-            !f.path.includes("cursor-config/rules/") &&
-            !f.path.includes("cursor-config/skills/")
-          );
-        }
-      }
-      setFiles(allFiles);
+      setFiles(await loadClaudeConfigFiles(editor, tab, (folder) => invoke<FileEntry[]>("list_files", { folder })));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [editor]);
@@ -115,8 +65,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
 
   // Reset tab when switching editors
   useEffect(() => {
-    const firstTab = editor === "claude" ? "memory" : "rules";
-    setActiveTab(firstTab);
+    setActiveTab(getInitialClaudeConfigTab(editor));
     setSelectedFile(null);
     setFileContent("");
   }, [editor]);
@@ -147,7 +96,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
     navNext,
   });
 
-  const TabIcon = tabs.find((t) => t.id === activeTab)?.icon ?? Brain;
+  const TabIcon = tabIcons[activeTab] ?? Brain;
 
   return (
     <FileWorkspace
@@ -172,7 +121,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
 
         {/* Editor selector */}
         <div className="gm-segment-row">
-          {(["claude", "cursor"] as Editor[]).map((e) => (
+          {(["claude", "cursor"] as ClaudeConfigEditor[]).map((e) => (
             <button
               key={e}
               onClick={() => setEditor(e)}
@@ -188,7 +137,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         <div className="gm-compact-tab-row">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
-            const Icon = tab.icon;
+            const Icon = tabIcons[tab.id];
             return (
               <button
                 key={tab.id}

@@ -14,6 +14,12 @@ import { EmptyState } from "../components/base/EmptyState";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  getFileName,
+  getFileWorkspacePaneState,
+  hasFilePreviewImage,
+  isPendingPathForFolder,
+} from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -115,7 +121,7 @@ export default function ImportsPage({
   }, [active, loadFiles]);
 
   useEffect(() => {
-    if (!pendingOpenPath?.startsWith("imports/")) return;
+    if (!isPendingPathForFolder(pendingOpenPath, "imports/")) return;
     void loadFiles().then(() => openFile(pendingOpenPath, true));
     consumePendingOpenPath();
   }, [pendingOpenPath, consumePendingOpenPath, loadFiles, openFile]);
@@ -171,8 +177,7 @@ export default function ImportsPage({
     navNext,
   });
 
-  const showList = !isMobile || !selectedFile;
-  const showDetail = !isMobile || !!selectedFile;
+  const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
 
   return (
     <FileWorkspace
@@ -201,7 +206,7 @@ export default function ImportsPage({
                 <>
                 {files.map((file) => {
                   const selected = selectedFile === file.path;
-                  const hasImage = !!file.preview_image;
+                  const hasImage = hasFilePreviewImage(file);
                   return (
                     <FileListItem
                       key={file.path}
@@ -263,7 +268,7 @@ export default function ImportsPage({
                     <FavoriteButton
                       relPath={selectedFile}
                       active={active}
-                      title={selectedFile.split("/").pop()}
+                      title={getFileName(selectedFile)}
                       sourceType="import"
                     />
                   ) : null}
@@ -282,7 +287,7 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       active={active}
                       exportContent={fileContent}
-                      exportTitle={selectedFile.split("/").pop()}
+                      exportTitle={getFileName(selectedFile)}
                     />
                   ) : null}
                 />

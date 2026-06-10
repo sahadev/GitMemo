@@ -11,6 +11,21 @@ import { EmptyState } from "../components/base/EmptyState";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { SearchInput } from "../components/domain/search/SearchInput";
 import { SearchResultCard } from "../components/domain/search/SearchResultCard";
+import {
+  canDeleteSearchSource,
+  canEditSearchSource,
+  canOpenSearchPath,
+  filterSearchResultsForPlatform,
+  getSearchDeletedToastKey,
+  getSearchDeleteConfirmKey,
+  getSearchResultLimit,
+  getSearchSourceTypeFromPath,
+  isClipSearchSource,
+  isPlanSearchSource,
+  shouldCopySelectedSearchClip,
+  shouldWriteSearchEditAsMarkdownBody,
+  type SearchResultItem,
+} from "../components/domain/search/searchLogic";
 import { PageFrame } from "../components/layout/PageFrame";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -25,33 +40,7 @@ import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
-interface SearchResultItem {
-  source_type: string;
-  title: string;
-  file_path: string;
-  snippet: string;
-  date: string;
-}
-
 const SEARCH_STATE_KEY = "gitmemo-search-state";
-const mobileSourceTypes = new Set(["conversation", "note", "clip", "plan", "import"]);
-
-function isMobileContentPath(path: string) {
-  return path.startsWith("conversations/")
-    || path.startsWith("notes/")
-    || path.startsWith("clips/")
-    || path.startsWith("plans/")
-    || path.startsWith("imports/");
-}
-
-function sourceTypeFromPath(path: string) {
-  if (path.startsWith("conversations/")) return "conversation";
-  if (path.startsWith("clips/")) return "clip";
-  if (path.startsWith("plans/")) return "plan";
-  if (path.startsWith("imports/")) return "import";
-  if (path.startsWith("claude-config/") || path.startsWith("cursor-config/")) return "config";
-  return path.startsWith("notes/") ? "note" : "unknown";
-}
 
 function sourceVisual(sourceType: string): { icon: typeof MessageSquare; tone: AppIconTone } {
   switch (sourceType) {
@@ -110,8 +99,8 @@ export default function SearchPage({
     openFile,
     clearDetail,
   } = useFileDetailState({
-    canOpen: (path) => isDesktop || isMobileContentPath(path),
-    deriveContent: (content, path) => path.startsWith("clips/") ? stripMarkdownFrontmatter(content) : content,
+    canOpen: (path) => canOpenSearchPath(isDesktop, path),
+    deriveContent: (content, path) => isClipSearchSource(getSearchSourceTypeFromPath(path)) ? stripMarkdownFrontmatter(content) : content,
     onOpened: () => {
       resetEditorRef.current?.();
       clearCopiedClip();
@@ -151,7 +140,7 @@ export default function SearchPage({
         selectedFile?: string | null;
       };
       setQuery(saved.query || "");
-      setResults((saved.results || []).filter((item) => isDesktop || mobileSourceTypes.has(item.source_type)));
+      setResults(filterSearchResultsForPlatform(isDesktop, saved.results || []));
       setSearched(Boolean(saved.searched));
       if (isDesktop && saved.selectedFile) {
         void openFile(saved.selectedFile);
@@ -166,7 +155,7 @@ export default function SearchPage({
   }, [focusTrigger]);
 
   useEffect(() => {
-    if (openFilePath && (isDesktop || isMobileContentPath(openFilePath))) {
+    if (openFilePath && canOpenSearchPath(isDesktop, openFilePath)) {
       openFile(openFilePath);
       onFileOpened?.();
     }
@@ -186,16 +175,21 @@ export default function SearchPage({
     setLoading(true);
     setSearched(true);
     try {
-      const res = await invoke<SearchResultItem[]>("search_all", { query: query.trim(), typeFilter: null, limit: isMobile ? 60 : 30 });
-      setResults(isDesktop ? res : res.filter((item) => mobileSourceTypes.has(item.source_type)));
+      const res = await invoke<SearchResultItem[]>("search_all", {
+        query: query.trim(),
+        typeFilter: null,
+        limit: getSearchResultLimit(isMobile),
+      });
+      setResults(filterSearchResultsForPlatform(isDesktop, res));
     } catch (e) { console.error(e); setResults([]); }
     finally { setLoading(false); }
   };
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
+    const selectedSourceType = getSearchSourceTypeFromPath(selectedFile);
     try {
-      const nextContent = selectedFile.startsWith("clips/")
+      const nextContent = shouldWriteSearchEditAsMarkdownBody(selectedSourceType)
         ? replaceMarkdownBody(rawFileContent, editContent)
         : editContent;
       await invoke("update_note", { filePath: selectedFile, content: nextContent });
@@ -210,19 +204,14 @@ export default function SearchPage({
 
   const handleDelete = useCallback(async () => {
     if (!selectedFile) return;
-    const sourceType = sourceTypeFromPath(selectedFile);
-    const confirmKey =
-      sourceType === "clip" ? "clipboard.deleteConfirm" :
-      sourceType === "plan" ? "plans.deleteConfirm" :
-      sourceType === "conversation" ? "conversations.deleteConfirm" :
-      sourceType === "import" ? "imports.deleteConfirm" :
-      "notes.deleteConfirm";
+    const sourceType = getSearchSourceTypeFromPath(selectedFile);
+    const confirmKey = getSearchDeleteConfirmKey(sourceType);
     const confirmed = await ask(t(confirmKey), { title: t("common.confirm"), kind: "warning" });
     if (!confirmed) return;
     try {
-      if (sourceType === "clip") {
+      if (isClipSearchSource(sourceType)) {
         await invoke("delete_clip", { filePath: selectedFile });
-      } else if (sourceType === "plan") {
+      } else if (isPlanSearchSource(sourceType)) {
         const deleteSource = await ask(t("plans.deleteSourceConfirm"), {
           title: t("plans.deleteSource"),
           kind: "warning",
@@ -233,38 +222,22 @@ export default function SearchPage({
       }
       setResults((prev) => prev.filter((r) => r.file_path !== selectedFile));
       clearDetail();
-      showToast(
-        sourceType === "clip" ? t("clipboard.clipDeleted") :
-        sourceType === "plan" ? t("plans.deleted") :
-        sourceType === "conversation" ? t("conversations.deleted") :
-        sourceType === "import" ? t("imports.deleted") :
-        t("notes.noteDeleted")
-      );
+      showToast(t(getSearchDeletedToastKey(sourceType)));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
   }, [clearDetail, selectedFile, showToast, t]);
 
-  const selectedIsClip = selectedFile?.startsWith("clips/") ?? false;
-  const selectedSourceType = selectedFile ? sourceTypeFromPath(selectedFile) : "unknown";
-  const selectedCanEdit = selectedFile ? (
-    selectedSourceType === "note" ||
-    selectedSourceType === "clip" ||
-    selectedSourceType === "import" ||
-    (isDesktop && selectedSourceType === "conversation")
-  ) : false;
-  const selectedCanDelete = selectedFile ? (
-    selectedSourceType === "note" ||
-    selectedSourceType === "clip" ||
-    selectedSourceType === "import" ||
-    (isDesktop && (selectedSourceType === "conversation" || selectedSourceType === "plan"))
-  ) : false;
+  const selectedIsClip = shouldCopySelectedSearchClip(selectedFile);
+  const selectedSourceType = selectedFile ? getSearchSourceTypeFromPath(selectedFile) : "unknown";
+  const selectedCanEdit = selectedFile ? canEditSearchSource(isDesktop, selectedSourceType) : false;
+  const selectedCanDelete = selectedFile ? canDeleteSearchSource(isDesktop, selectedSourceType) : false;
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
 
   const copySelectedClip = useCallback(async () => {
-    if (!selectedFile?.startsWith("clips/")) return;
+    if (!shouldCopySelectedSearchClip(selectedFile)) return;
     try {
       await writeTextWithClipboardWatchPaused(
         stripMarkdownFrontmatter(rawFileContent || fileContent),
@@ -316,7 +289,7 @@ export default function SearchPage({
               relPath={selectedFile}
               active={active}
               title={selectedFile.split("/").pop()}
-              sourceType={sourceTypeFromPath(selectedFile)}
+              sourceType={getSearchSourceTypeFromPath(selectedFile)}
             />
           ) : null}
           actionsAfterEdit={[

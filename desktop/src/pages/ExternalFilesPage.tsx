@@ -17,53 +17,29 @@ import { MonoBlock } from "../components/base/MonoBlock";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import {
+  canClearMissingExternalFiles,
+  getFirstExternalImportError,
+  getMissingExternalFileCount,
+  getSelectedExternalEntry,
+  hasExternalEntry,
+  hasImportedExternalFiles,
+  isExternalOpenTargetAlreadyLoaded,
+  isProbablyMarkdownFileName,
+  shouldClearExternalSelection,
+  shouldConsumeExternalOpenTarget,
+  upsertExternalFileEntry,
+  type ExternalFileEntry,
+  type ExternalFileOpenResult,
+  type ExternalFileOpenTarget,
+  type ExternalFileWriteResult,
+  type ImportResult,
+} from "../components/domain/external-files/externalFilesLogic";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { relativeTime } from "../utils/time";
 import { PaneHeader } from "../components/AppHeaders";
-
-interface ExternalFileEntry {
-  file_path: string;
-  file_name: string;
-  parent_dir: string;
-  exists: boolean;
-  last_opened_at: string;
-  last_modified_at: string | null;
-}
-
-interface ExternalFileOpenResult {
-  entry: ExternalFileEntry;
-  content: string;
-}
-
-interface ExternalFileWriteResult {
-  entry: ExternalFileEntry;
-  message: string;
-}
-
-interface ImportedFile {
-  original_name: string;
-  dest_path: string;
-  category: string;
-  size: number;
-}
-
-interface ImportResult {
-  success: boolean;
-  imported: ImportedFile[];
-  errors: string[];
-}
-
-interface ExternalFileOpenTarget {
-  filePath: string;
-  requestId: number;
-}
-
-function isProbablyMarkdown(name: string) {
-  const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
-}
 
 export default function ExternalFilesPage({
   active = true,
@@ -116,15 +92,7 @@ export default function ExternalFilesPage({
   }, [resetEditor]);
 
   const upsertEntry = useCallback((entry: ExternalFileEntry) => {
-    setEntries((prev) => {
-      const existingIndex = prev.findIndex((item) => item.file_path === entry.file_path);
-      if (existingIndex === -1) {
-        return [...prev, entry];
-      }
-      const next = [...prev];
-      next[existingIndex] = entry;
-      return next;
-    });
+    setEntries((prev) => upsertExternalFileEntry(prev, entry));
   }, []);
 
   const loadEntries = useCallback(async () => {
@@ -133,7 +101,7 @@ export default function ExternalFilesPage({
       const next = await invoke<ExternalFileEntry[]>("list_external_files");
       setEntries(next);
       const currentSelectedPath = selectedFilePathRef.current;
-      if (currentSelectedPath && !next.some((item) => item.file_path === currentSelectedPath)) {
+      if (shouldClearExternalSelection(next, currentSelectedPath)) {
         clearSelection();
       }
     } catch (e) {
@@ -169,22 +137,21 @@ export default function ExternalFilesPage({
   }, [loadEntries]);
 
   useEffect(() => {
-    if (!openTarget?.filePath) return;
-    if (lastConsumedOpenTargetRef.current === openTarget.requestId) return;
+    if (!shouldConsumeExternalOpenTarget(openTarget, lastConsumedOpenTargetRef.current)) return;
     lastConsumedOpenTargetRef.current = openTarget.requestId;
     onOpenTargetConsumed?.();
-    if (selectedFilePathRef.current === openTarget.filePath && fileContent) {
+    if (isExternalOpenTargetAlreadyLoaded(openTarget, selectedFilePathRef.current, fileContent)) {
       return;
     }
     void openExternalFile(openTarget.filePath);
   }, [openTarget, openExternalFile, onOpenTargetConsumed, fileContent]);
 
   const selectedEntry = useMemo(
-    () => entries.find((item) => item.file_path === selectedFilePath) ?? null,
+    () => getSelectedExternalEntry(entries, selectedFilePath),
     [entries, selectedFilePath],
   );
-  const selectedIsMarkdown = selectedEntry ? isProbablyMarkdown(selectedEntry.file_name) : false;
-  const missingCount = useMemo(() => entries.filter((entry) => !entry.exists).length, [entries]);
+  const selectedIsMarkdown = selectedEntry ? isProbablyMarkdownFileName(selectedEntry.file_name) : false;
+  const missingCount = useMemo(() => getMissingExternalFileCount(entries), [entries]);
 
   const handleSave = useCallback(async () => {
     if (!selectedFilePath) return;
@@ -240,12 +207,12 @@ export default function ExternalFilesPage({
   }, [clearSelection, showToast, t]);
 
   const handleClearMissing = useCallback(async () => {
-    if (missingCount === 0 || clearingMissing) return;
+    if (!canClearMissingExternalFiles(missingCount, clearingMissing)) return;
     setClearingMissing(true);
     try {
       const next = await invoke<ExternalFileEntry[]>("clear_missing_external_files");
       setEntries(next);
-      if (selectedFilePath && !next.some((entry) => entry.file_path === selectedFilePath)) {
+      if (selectedFilePath && !hasExternalEntry(next, selectedFilePath)) {
         clearSelection();
       }
       showToast(t("externalFiles.clearedMissing", missingCount));
@@ -263,11 +230,12 @@ export default function ExternalFilesPage({
       const result = await invoke<ImportResult>("import_files", {
         paths: [selectedFilePath],
       });
-      if (result.imported.length > 0) {
+      if (hasImportedExternalFiles(result)) {
         showToast(t("externalFiles.imported"));
         onImportResult?.(result);
-      } else if (result.errors.length > 0) {
-        showToast(`Error: ${result.errors[0]}`, true);
+      } else {
+        const firstError = getFirstExternalImportError(result);
+        if (firstError) showToast(`Error: ${firstError}`, true);
       }
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -291,7 +259,7 @@ export default function ExternalFilesPage({
                   <Button
                     variant="toolbar"
                     onClick={() => void handleClearMissing()}
-                    disabled={loading || clearingMissing || missingCount === 0}
+                    disabled={loading || !canClearMissingExternalFiles(missingCount, clearingMissing)}
                     title={t("externalFiles.clearMissing")}
                     icon={FileX}
                   />
@@ -399,7 +367,7 @@ export default function ExternalFilesPage({
                     absolutePath={selectedEntry.file_path}
                     active={active}
                     canReveal={selectedEntry.exists}
-                    canExportPdf={isProbablyMarkdown(selectedEntry.file_name)}
+                    canExportPdf={isProbablyMarkdownFileName(selectedEntry.file_name)}
                     exportContent={fileContent}
                     exportTitle={selectedEntry.file_name}
                   />

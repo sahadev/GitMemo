@@ -68,10 +68,36 @@ import {
   SettingsUpdateProgress,
   SettingsUpdateStatus,
 } from "../components/domain/settings/SettingsComponents";
-
-const IMPORT_SIZE_LIMIT_MIN_KB = 500;
-const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
-const IMPORT_SIZE_LIMIT_DEFAULT_KB = 2 * 1024;
+import {
+  IMPORT_SIZE_LIMIT_DEFAULT_KB,
+  IMPORT_SIZE_LIMIT_MAX_KB,
+  IMPORT_SIZE_LIMIT_MIN_KB,
+  accessTokenHelpUrl,
+  accessTokenProvider,
+  canRunMobileGitSpike,
+  canStartRemoteDiagnostic,
+  canStartRemoteTest,
+  clampImportSizeLimitKb,
+  formatImportSizeLimit,
+  formatSyncLogsForClipboard,
+  getCopySuccessToastKey,
+  getCurrentImportSizeLimitKb,
+  getMobileRemoteStatusView,
+  getProxyUrlForMode,
+  getRemoteSaveDecision,
+  getSettingsCliStatusView,
+  hasMobileGitSpikeInputs,
+  shouldSaveImportSizeLimitKb,
+  shouldShowCustomProxyInput,
+  shouldShowMobileRemoteStatus,
+  summarizeMobileDiagnostic,
+  visibleMobileDiagnosticSteps,
+  type CopyField,
+  type MobileGitDiagnosticStep,
+  type MobileGitSpikeResult,
+  type ProxyMode,
+  type SyncLogEntry,
+} from "../components/domain/settings/settingsLogic";
 
 const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "global_search", labelKey: "settings.shortcutGlobalSearchLabel", descKey: "settings.shortcutGlobalSearchDesc" },
@@ -87,98 +113,6 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "more_actions", labelKey: "settings.shortcutMoreActionsLabel", descKey: "settings.shortcutMoreActionsDesc" },
 ];
 
-interface MobileGitSpikeResult {
-  success: boolean;
-  repo_path: string;
-  note_path: string | null;
-  commit_id: string | null;
-  ahead: number;
-  behind: number;
-  steps: { name: string; ok: boolean; message: string }[];
-}
-
-interface MobileGitDiagnosticStep {
-  name: string;
-  ok: boolean;
-  message: string;
-}
-
-interface SyncLogEntry {
-  filename: string;
-  content: string;
-}
-
-type CopyField = "syncDir" | "gitRemote" | "cliCommand" | "syncLogs";
-
-function formatSyncLogsForClipboard(logs: SyncLogEntry[]): string {
-  return logs
-    .map((entry) => `===== ${entry.filename} =====\n${entry.content}`)
-    .join("\n\n")
-    .trim();
-}
-
-function accessTokenHelpUrl(remoteUrl: string): string {
-  const lower = remoteUrl.toLowerCase();
-  if (lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
-  if (lower.includes("gitlab")) return "https://gitlab.com/-/user_settings/personal_access_tokens";
-  if (lower.includes("bitbucket")) return "https://bitbucket.org/account/settings/app-passwords/";
-  return "https://github.com/settings/personal-access-tokens/new";
-}
-
-function accessTokenProvider(remoteUrl: string): string {
-  const lower = remoteUrl.toLowerCase();
-  if (lower.includes("gitee.com")) return "Gitee";
-  if (lower.includes("github.com")) return "GitHub";
-  if (lower.includes("gitlab")) return "GitLab";
-  if (lower.includes("bitbucket")) return "Bitbucket";
-  return "Git";
-}
-
-function summarizeMobileDiagnostic(
-  steps: MobileGitDiagnosticStep[] | null,
-  labels: { needsAttention: string; ready: string; defaultDetail: string },
-): { ok: boolean; title: string; detail: string } | null {
-  if (!steps) return null;
-  const failed = steps.find((step) => !step.ok);
-  if (failed) {
-    return {
-      ok: false,
-      title: labels.needsAttention,
-      detail: `${failed.name}: ${failed.message}`,
-    };
-  }
-  const history = steps.find((step) => step.name === "history")?.message;
-  const push = steps.find((step) => step.name === "push_auth")?.message;
-  return {
-    ok: true,
-    title: labels.ready,
-    detail: history || push || labels.defaultDetail,
-  };
-}
-
-function visibleMobileDiagnosticSteps(steps: MobileGitDiagnosticStep[]): MobileGitDiagnosticStep[] {
-  const important = new Set([
-    "config",
-    "origin",
-    "fetch",
-    "repo_state",
-    "head",
-    "local_head",
-    "remote_head",
-    "worktree",
-    "history",
-    "merge_preview",
-    "push_auth",
-    "tls_fallback",
-  ]);
-  return steps.filter((step) => !step.ok || important.has(step.name));
-}
-
-function formatImportSizeLimit(kb: number): string {
-  if (kb < 1024) return `${kb} KB`;
-  const mb = kb / 1024;
-  return Number.isInteger(mb) ? `${mb} MB` : `${mb.toFixed(1)} MB`;
-}
 
 export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
   const { t, locale, setLocale } = useI18n();
@@ -313,9 +247,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const setImportFileSizeLimit = async (kb: number) => {
-    const nextKb = Math.max(IMPORT_SIZE_LIMIT_MIN_KB, Math.min(IMPORT_SIZE_LIMIT_MAX_KB, Math.round(kb)));
-    if (nextKb === (settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB)) return;
-    if (savingImportLimitValueRef.current === nextKb) return;
+    const nextKb = clampImportSizeLimitKb(kb);
+    const currentKb = getCurrentImportSizeLimitKb(settings?.import_file_size_limit_kb);
+    if (!shouldSaveImportSizeLimitKb(nextKb, currentKb, savingImportLimitValueRef.current)) return;
 
     savingImportLimitValueRef.current = nextKb;
     setSavingImportLimit(true);
@@ -330,8 +264,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     }
   };
 
-  const setProxyMode = async (mode: "system" | "none" | "custom") => {
-    const url = mode === "custom" ? (proxyUrlInput || settings?.proxy_url || "") : "";
+  const setProxyMode = async (mode: ProxyMode) => {
+    const url = getProxyUrlForMode(mode, proxyUrlInput, settings?.proxy_url);
     try {
       await invoke<string>("set_proxy", { mode, url });
       refreshSettings();
@@ -434,28 +368,34 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const saveRemote = async () => {
-    const trimmed = remoteInput.trim();
-    const hasNewMobileToken = isMobile && !!remoteTokenInput.trim();
-    if (trimmed === gitRemote && !hasNewMobileToken) {
+    const decision = getRemoteSaveDecision({
+      isMobile,
+      remoteInput,
+      remoteTokenInput,
+      currentRemote: gitRemote,
+    });
+
+    if (decision.kind === "unchanged") {
       setEditingRemote(false);
       setRemoteTokenInput("");
       return;
     }
-    if (isMobile && trimmed && !remoteTokenInput.trim() && !gitRemote) {
+    if (decision.kind === "missing_mobile_token") {
       showToast(t("settings.remoteTokenRequired"), true);
       return;
     }
+
     setSavingRemote(true);
     try {
       await invoke<string>("set_remote", {
-        url: trimmed,
-        accessToken: isMobile ? (remoteTokenInput.trim() || null) : null,
+        url: decision.url,
+        accessToken: decision.accessToken,
       });
       await refreshGitStatus();
-      setRemoteInput(trimmed);
+      setRemoteInput(decision.url);
       setRemoteTokenInput("");
       setEditingRemote(false);
-      showToast(trimmed ? "Saved" : "Removed");
+      showToast(decision.url ? "Saved" : "Removed");
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
@@ -464,7 +404,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const testRemoteSync = async () => {
-    if (testingRemote) return;
+    if (!canStartRemoteTest(testingRemote)) return;
     setTestingRemote(true);
     try {
       const msg = await invoke<string>("test_remote_sync");
@@ -477,7 +417,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const diagnoseRemoteSync = async () => {
-    if (diagnosingRemote) return;
+    if (!canStartRemoteDiagnostic(diagnosingRemote)) return;
     setDiagnosingRemote(true);
     setMobileGitDiagnostic(null);
     try {
@@ -493,11 +433,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const runMobileGitSpike = async () => {
-    if (mobileGitRunning) return;
+    if (!canRunMobileGitSpike(mobileGitRunning)) return;
     const remoteUrl = mobileGitRemote.trim();
     const branch = mobileGitBranch.trim() || "main";
     const token = mobileGitToken.trim();
-    if (!remoteUrl || !token) {
+    if (!hasMobileGitSpikeInputs(remoteUrl, token)) {
       showToast(t("settings.mobileGitSpikeMissingInput"), true);
       return;
     }
@@ -528,13 +468,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     try {
       await writeText(value);
       markCopiedField(field);
-      showToast(
-        field === "cliCommand"
-          ? t("settings.cliCommandCopied")
-          : field === "syncLogs"
-            ? t("settings.syncLogsCopied")
-            : t("common.copied"),
-      );
+      showToast(t(getCopySuccessToastKey(field)));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -608,38 +542,16 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     void saveShortcuts(DEFAULT_KEYBOARD_SHORTCUTS, "all");
   };
 
-  const mobileRemoteStatus = isMobile && gitRemote ? (() => {
-    if (!gitStatus) {
-      return { text: t("settings.mobileRemoteStatusUnknown"), color: "var(--text-secondary)" };
-    }
-    if (gitStatus.unpushed > 0 && gitStatus.behind > 0) {
-      return {
-        text: t("dashboard.diverged", String(gitStatus.unpushed), String(gitStatus.behind)),
-        color: "var(--yellow)",
-      };
-    }
-    if (gitStatus.behind > 0) {
-      return { text: t("dashboard.behind", String(gitStatus.behind)), color: "var(--red)" };
-    }
-    if (gitStatus.unpushed > 0) {
-      return { text: `${gitStatus.unpushed} ${t("dashboard.unpushed")}`, color: "var(--yellow)" };
-    }
-    return { text: t("dashboard.synced"), color: "var(--green)" };
-  })() : null;
+  const mobileRemoteStatus = shouldShowMobileRemoteStatus(isMobile, gitRemote)
+    ? getMobileRemoteStatusView(gitStatus, t)
+    : null;
   const mobileDiagnosticSummary = summarizeMobileDiagnostic(mobileGitDiagnostic, {
     needsAttention: t("settings.mobileDiagnosticNeedsAttention"),
     ready: t("settings.mobileDiagnosticReady"),
     defaultDetail: t("settings.mobileDiagnosticDefaultDetail"),
   });
-  const importFileSizeLimitKb = settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB;
   const displayedImportFileSizeLimitKb = importFileSizeLimitDraftKb;
-  const cliStatusLabel = !cliStatus
-    ? t("settings.cliChecking")
-    : cliStatus.installed
-      ? cliStatus.version_matches
-        ? t("settings.cliInstalled", cliStatus.version || cliStatus.recommended_version)
-        : t("settings.cliVersionMismatch", cliStatus.version || "?", cliStatus.recommended_version)
-      : t("settings.cliMissing");
+  const cliStatusView = getSettingsCliStatusView(cliStatus, t);
   const languages: { id: Locale; label: string }[] = [
     { id: "en", label: "English" },
     { id: "zh", label: "中文" },
@@ -743,7 +655,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 ))}
               </SettingsSegmentedGroup>
             </SettingsRow>
-            {(settings?.proxy_mode === "custom" || editingProxy) && (
+            {shouldShowCustomProxyInput(settings?.proxy_mode, editingProxy) && (
               <SettingsIndentedFieldGroup>
                 <SettingsInput
                   autoFocus
@@ -772,8 +684,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                   icon={Terminal}
                   title={t("settings.cliCapability")}
                   description={t("settings.cliCapabilityDesc")}
-                  status={cliStatusLabel}
-                  statusTone={cliStatus?.installed && cliStatus.version_matches ? "success" : cliStatus ? "warning" : "muted"}
+                  status={cliStatusView.label}
+                  statusTone={cliStatusView.tone}
                 >
                   <SettingsControlGroup wrap>
                     <SettingsActionButton
@@ -969,7 +881,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               )}
             </SettingsRow>
 
-            {isMobile && gitRemote && (
+            {mobileRemoteStatus && (
               <SettingsInfoPanel tone="muted">
                 <SettingsCardHeader
                   title={t("settings.mobileRemoteStatus")}
@@ -983,8 +895,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     </SettingsActionButton>
                   )}
                 >
-                  <SettingsStatus tone={gitStatus && mobileRemoteStatus?.color === "var(--green)" ? "success" : "warning"}>
-                    {mobileRemoteStatus?.text ?? t("settings.mobileRemoteStatusUnknown")}
+                  <SettingsStatus tone={mobileRemoteStatus.tone}>
+                    {mobileRemoteStatus.text}
                   </SettingsStatus>
                 </SettingsCardHeader>
                 <SettingsPanelText>{t("settings.mobileRemoteSummary")}</SettingsPanelText>
