@@ -15,6 +15,8 @@ use std::collections::HashMap;
 use std::io::{BufRead, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
+const MAX_HISTORY_DISPLAY_LEN: usize = 200;
+
 // ── State tracking ──────────────────────────────────────────────────────────
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -121,6 +123,10 @@ struct CodexHistoryEntry {
     text: String,
 }
 
+fn should_keep_history_display(text: &str) -> bool {
+    !text.is_empty() && text.len() < MAX_HISTORY_DISPLAY_LEN
+}
+
 /// Discover sessions with new activity since last capture.
 fn discover_sessions(history_path: &Path, state: &mut CaptureState) -> Result<Vec<SessionInfo>> {
     if !history_path.exists() {
@@ -161,7 +167,7 @@ fn discover_sessions(history_path: &Path, state: &mut CaptureState) -> Result<Ve
             if entry.timestamp > info.last_ts {
                 info.last_ts = entry.timestamp;
             }
-            if !entry.display.is_empty() && entry.display.len() < 200 {
+            if should_keep_history_display(&entry.display) {
                 info.display_texts.push(entry.display);
             }
         }
@@ -223,7 +229,7 @@ fn discover_codex_sessions(
             if ts > info.last_ts {
                 info.last_ts = ts;
             }
-            if !entry.text.is_empty() && entry.text.len() < 200 {
+            if should_keep_history_display(&entry.text) {
                 info.display_texts.push(entry.text);
             }
         }
@@ -289,12 +295,7 @@ fn codex_session_jsonl_path(session: &SessionInfo) -> PathBuf {
                             if let Ok(files) = std::fs::read_dir(day.path()) {
                                 for file in files.filter_map(|entry| entry.ok()) {
                                     let file_path = file.path();
-                                    if file_path.extension().is_some_and(|ext| ext == "jsonl")
-                                        && file_path
-                                            .file_name()
-                                            .and_then(|name| name.to_str())
-                                            .is_some_and(|name| name.contains(session_id))
-                                    {
+                                    if is_codex_session_jsonl_for_id(&file_path, session_id) {
                                         return file_path;
                                     }
                                 }
@@ -307,6 +308,14 @@ fn codex_session_jsonl_path(session: &SessionInfo) -> PathBuf {
     }
     path.push(format!("{}.jsonl", session_id));
     path
+}
+
+fn is_codex_session_jsonl_for_id(file_path: &Path, session_id: &str) -> bool {
+    file_path.extension().is_some_and(|ext| ext == "jsonl")
+        && file_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.contains(session_id))
 }
 
 #[derive(Deserialize)]
@@ -327,7 +336,7 @@ struct SessionEntry {
 fn content_value_to_text(content: Option<&serde_json::Value>) -> Option<String> {
     match content {
         Some(serde_json::Value::String(s)) => {
-            if s.starts_with("<command-name>") || s.starts_with("<local-command-caveat>") {
+            if is_internal_command_content(s) {
                 return None;
             }
             Some(s.clone())
@@ -337,10 +346,7 @@ fn content_value_to_text(content: Option<&serde_json::Value>) -> Option<String> 
                 .iter()
                 .filter_map(|block| {
                     let block_type = block.get("type")?.as_str()?;
-                    if block_type == "text"
-                        || block_type == "input_text"
-                        || block_type == "output_text"
-                    {
+                    if is_supported_message_content_block(block_type) {
                         Some(block.get("text")?.as_str()?.to_string())
                     } else {
                         None
@@ -355,6 +361,26 @@ fn content_value_to_text(content: Option<&serde_json::Value>) -> Option<String> 
         }
         _ => None,
     }
+}
+
+fn is_internal_command_content(text: &str) -> bool {
+    text.starts_with("<command-name>") || text.starts_with("<local-command-caveat>")
+}
+
+fn is_supported_message_content_block(block_type: &str) -> bool {
+    matches!(block_type, "text" | "input_text" | "output_text")
+}
+
+fn is_conversation_role(role: &str) -> bool {
+    matches!(role, "user" | "assistant")
+}
+
+fn should_skip_session_entry(entry: &SessionEntry) -> bool {
+    entry.is_snapshot_update.unwrap_or(false)
+        || matches!(
+            entry.entry_type.as_str(),
+            "file-history-snapshot" | "system" | "queue-operation" | "agent-name"
+        )
 }
 
 fn codex_payload_message(entry: &SessionEntry) -> Option<ConversationMessage> {
@@ -389,7 +415,7 @@ fn codex_payload_message(entry: &SessionEntry) -> Option<ConversationMessage> {
 
     if entry.entry_type == "response_item" && payload.get("type")?.as_str()? == "message" {
         let role = payload.get("role")?.as_str()?;
-        if role != "user" && role != "assistant" {
+        if !is_conversation_role(role) {
             return None;
         }
         let text = content_value_to_text(payload.get("content"))?;
@@ -444,12 +470,7 @@ fn extract_conversation(
                 continue;
             }
 
-            if entry.is_snapshot_update.unwrap_or(false)
-                || entry.entry_type == "file-history-snapshot"
-                || entry.entry_type == "system"
-                || entry.entry_type == "queue-operation"
-                || entry.entry_type == "agent-name"
-            {
+            if should_skip_session_entry(&entry) {
                 continue;
             }
 
@@ -497,7 +518,7 @@ fn extract_conversation(
                     continue;
                 }
 
-                if (role == "user" || role == "assistant") && !text.trim().is_empty() {
+                if is_conversation_role(&role) && !text.trim().is_empty() {
                     messages.push(ConversationMessage {
                         role,
                         text,
@@ -813,6 +834,58 @@ mod tests {
                 std::env::remove_var("HOME");
             }
         }
+    }
+
+    #[test]
+    fn content_text_skips_internal_command_markers() {
+        assert_eq!(
+            content_value_to_text(Some(&serde_json::Value::String(
+                "<command-name>/save</command-name>".to_string()
+            ))),
+            None
+        );
+        assert_eq!(
+            content_value_to_text(Some(&serde_json::json!([
+                { "type": "tool_call", "text": "ignored" },
+                { "type": "input_text", "text": "kept" }
+            ]))),
+            Some("kept".to_string())
+        );
+    }
+
+    #[test]
+    fn skip_session_entry_identifies_non_conversation_entries() {
+        let system_entry = SessionEntry {
+            entry_type: "system".to_string(),
+            message: None,
+            timestamp: None,
+            custom_title: None,
+            is_meta: None,
+            is_snapshot_update: None,
+            payload: None,
+        };
+        let snapshot_entry = SessionEntry {
+            entry_type: "message".to_string(),
+            message: None,
+            timestamp: None,
+            custom_title: None,
+            is_meta: None,
+            is_snapshot_update: Some(true),
+            payload: None,
+        };
+        let message_entry = SessionEntry {
+            entry_type: "message".to_string(),
+            message: None,
+            timestamp: None,
+            custom_title: None,
+            is_meta: None,
+            is_snapshot_update: None,
+            payload: None,
+        };
+
+        assert!(should_skip_session_entry(&system_entry));
+        assert!(should_skip_session_entry(&snapshot_entry));
+        assert!(!should_skip_session_entry(&message_entry));
     }
 
     #[test]

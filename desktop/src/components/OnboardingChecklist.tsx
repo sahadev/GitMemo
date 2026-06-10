@@ -20,9 +20,29 @@ import {
   OnboardingProgress,
   OnboardingTitleRow,
 } from "./domain/onboarding/OnboardingChecklistComponents";
+import {
+  DEFAULT_ONBOARDING_STATE,
+  completeOnboardingItem,
+  dismissOnboarding,
+  getAutoCompletedOnboardingItems,
+  getFirstSaveActionLabelKey,
+  getFirstSaveDescriptionKey,
+  getOnboardingCountLabel,
+  getOnboardingProgressValue,
+  getOnboardingTitleKey,
+  hasOnboardingItemCompleted,
+  hasOnboardingRemoteConfigured,
+  isOnboardingDone,
+  mergeOnboardingCompletion,
+  shouldRenderOnboardingChecklist,
+  shouldRunOnboardingAutoDismissCountdown,
+  shouldShowOnboardingItemAction,
+  type OnboardingItemId,
+  type OnboardingState,
+} from "./domain/onboarding/onboardingLogic";
 
 interface ChecklistItem {
-  id: string;
+  id: OnboardingItemId;
   icon: typeof Check;
   iconTone: "success" | "accent" | "pink" | "yellow";
   labelKey: string;
@@ -33,17 +53,12 @@ interface ChecklistItem {
 
 const STORAGE_KEY = "gitmemo-onboarding-state";
 
-interface OnboardingState {
-  dismissed: boolean;
-  completed: string[];
-}
-
 function loadState(): OnboardingState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch { /* ignore */ }
-  return { dismissed: false, completed: ["install"] };
+  return DEFAULT_ONBOARDING_STATE;
 }
 
 function saveState(state: OnboardingState) {
@@ -69,50 +84,31 @@ export function OnboardingChecklist({
 
   // Auto-check conditions
   useEffect(() => {
-    const completed = new Set(state.completed);
-    let changed = false;
-
-    if (!completed.has("install")) {
-      completed.add("install");
-      changed = true;
-    }
-    if (hasConversations && !completed.has("save")) {
-      completed.add("save");
-      changed = true;
-    }
-    if (clipboardActive && !completed.has("clipboard")) {
-      completed.add("clipboard");
-      changed = true;
-    }
-    if (gitStatus?.git_remote && !completed.has("remote")) {
-      completed.add("remote");
-      changed = true;
-    }
-    if (editorConfigured && !completed.has("editor")) {
-      completed.add("editor");
-      changed = true;
-    }
-
+    const { changed, state: newState } = mergeOnboardingCompletion(
+      state,
+      getAutoCompletedOnboardingItems({
+        hasConversations,
+        clipboardActive,
+        remoteConfigured: hasOnboardingRemoteConfigured(gitStatus?.git_remote),
+        editorConfigured,
+      }),
+    );
     if (changed) {
-      const newState = { ...state, completed: Array.from(completed) };
       setState(newState);
       saveState(newState);
     }
-  }, [hasConversations, clipboardActive, gitStatus, editorConfigured]);
+  }, [hasConversations, clipboardActive, gitStatus?.git_remote, editorConfigured, state]);
 
-  const markCompleted = useCallback((id: string) => {
+  const markCompleted = useCallback((id: OnboardingItemId) => {
     setState(prev => {
-      const newState = {
-        ...prev,
-        completed: prev.completed.includes(id) ? prev.completed : [...prev.completed, id],
-      };
-      saveState(newState);
+      const newState = completeOnboardingItem(prev, id);
+      if (newState !== prev) saveState(newState);
       return newState;
     });
   }, []);
 
   const dismiss = useCallback(() => {
-    const newState = { ...state, dismissed: true };
+    const newState = dismissOnboarding(state);
     setState(newState);
     saveState(newState);
   }, [state]);
@@ -132,14 +128,12 @@ export function OnboardingChecklist({
     void doStartClipboard();
   }, [privacy.isConfirmed, doStartClipboard]);
 
-  const allItems = ["install", "save", "clipboard", "remote", "editor"];
-  const completedCount = allItems.filter(id => state.completed.includes(id)).length;
-  const allDone = completedCount === allItems.length;
+  const allDone = isOnboardingDone(state);
 
   // Auto-dismiss countdown when all done
   const [countdown, setCountdown] = useState<number | null>(null);
   useEffect(() => {
-    if (!allDone || state.dismissed) {
+    if (!shouldRunOnboardingAutoDismissCountdown(state)) {
       setCountdown(null);
       return;
     }
@@ -149,7 +143,7 @@ export function OnboardingChecklist({
         if (prev === null || prev <= 1) {
           clearInterval(timer);
           // Auto-dismiss
-          const newState = { ...state, dismissed: true };
+          const newState = dismissOnboarding(state);
           setState(newState);
           saveState(newState);
           return null;
@@ -158,9 +152,9 @@ export function OnboardingChecklist({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [allDone]);
+  }, [state]);
 
-  if (state.dismissed) return null;
+  if (!shouldRenderOnboardingChecklist(state)) return null;
 
   const items: ChecklistItem[] = [
     {
@@ -175,9 +169,9 @@ export function OnboardingChecklist({
       icon: MessageSquare,
       iconTone: "accent",
       labelKey: "onboarding.firstSave",
-      descKey: editorConfigured ? "onboarding.firstSaveDesc" : "onboarding.firstSaveNeedEditorDesc",
+      descKey: getFirstSaveDescriptionKey(editorConfigured),
       action: editorConfigured ? undefined : () => onNavigate("settings"),
-      actionLabelKey: editorConfigured ? undefined : "onboarding.goToSettings",
+      actionLabelKey: getFirstSaveActionLabelKey(editorConfigured),
     },
     {
       id: "clipboard",
@@ -214,8 +208,8 @@ export function OnboardingChecklist({
       <OnboardingHeader done={allDone}>
         <OnboardingTitleRow
           done={allDone}
-          title={allDone ? t("onboarding.allDone") : t("onboarding.title")}
-          count={`${completedCount}/${allItems.length}`}
+          title={t(getOnboardingTitleKey(state))}
+          count={getOnboardingCountLabel(state)}
         />
         <OnboardingDismissButton onClick={dismiss}>
           {allDone && countdown !== null ? `${countdown}s` : t("onboarding.dismiss")}
@@ -224,11 +218,11 @@ export function OnboardingChecklist({
 
       {!allDone && (
         <>
-        <OnboardingProgress value={(completedCount / allItems.length) * 100} />
+        <OnboardingProgress value={getOnboardingProgressValue(state)} />
 
         <OnboardingList>
           {items.map(item => {
-            const done = state.completed.includes(item.id);
+            const done = hasOnboardingItemCompleted(state, item.id);
             const Icon = item.icon;
             return (
               <OnboardingItemRow
@@ -243,7 +237,7 @@ export function OnboardingChecklist({
                   description={t(item.descKey)}
                 />
 
-                {!done && item.action && (
+                {shouldShowOnboardingItemAction(done, Boolean(item.action)) && item.action && (
                   <OnboardingActionButton onClick={item.action}>
                     {t(item.actionLabelKey!)}
                   </OnboardingActionButton>

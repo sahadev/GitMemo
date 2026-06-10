@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useI18n, Locale } from "../hooks/useI18n";
+import { useI18n, type Locale } from "../hooks/useI18n";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import {
   Globe, HardDrive, Cloud, GitBranch, Code2, ChevronRight,
@@ -54,52 +54,36 @@ import {
   SetupValueRow,
   SetupWizardFrame,
 } from "./domain/setup/SetupWizardComponents";
-
-interface InitStep {
-  name: string;
-  ok: boolean;
-  message: string;
-}
-
-interface InitResult {
-  success: boolean;
-  steps: InitStep[];
-  ssh_public_key: string | null;
-  deploy_keys_url?: string | null;
-  needs_remote_sync: boolean;
-}
-
-interface InitProgressEvent {
-  step: string;
-  status: "running" | "ok" | "error" | string;
-  message: string;
-}
-
-interface SshKeyCandidate {
-  path: string;
-  public_key: string;
-  source: string;
-  recommended: boolean;
-  encrypted: boolean;
-  reason?: string | null;
-}
-
-interface SshKeyScanResult {
-  candidates: SshKeyCandidate[];
-  recommended_key_path: string | null;
-  deploy_keys_url?: string | null;
-}
-
-type WizardStep = "language" | "storage" | "ssh_key" | "editors" | "running" | "done";
-type GitPlatform = "github" | "gitlab" | "gitee" | "bitbucket" | "other";
-
-function accessTokenHelpUrl(gitUrl: string, platform: GitPlatform | null): string {
-  const lower = gitUrl.toLowerCase();
-  if (platform === "gitee" || lower.includes("gitee.com")) return "https://gitee.com/profile/personal_access_tokens";
-  if (platform === "gitlab" || lower.includes("gitlab")) return "https://gitlab.com/-/user_settings/personal_access_tokens";
-  if (platform === "bitbucket" || lower.includes("bitbucket.org")) return "https://bitbucket.org/account/settings/app-passwords/";
-  return "https://github.com/settings/personal-access-tokens/new";
-}
+import {
+  getAccessTokenHelpUrl,
+  getDoneDeployKeysUrl,
+  getEditorBackStep,
+  getGitUrlPlaceholder,
+  getInitGitmemoRequest,
+  getLatestInitLog,
+  getRetrySetupStep,
+  getSelectedSshKeyPath,
+  getSetupNavSteps,
+  getSetupSidebarTipKey,
+  getSetupStepIndex,
+  getSetupSteps,
+  hasOnlyEncryptedSshKeys,
+  isHttpsRemoteUrl,
+  isMobileRemoteReady,
+  isRemoteSetupReady,
+  isRemoteStorageMode,
+  isSetupSucceeded,
+  isSshRemoteSetup,
+  shouldShowSetupError,
+  shouldShowSetupStepIndicator,
+  type GitPlatform,
+  type InitProgressEvent,
+  type InitResult,
+  type SshKeyCandidate,
+  type SshKeyScanResult,
+  type StorageMode,
+  type WizardStep,
+} from "./domain/setup/setupWizardLogic";
 
 const PLATFORM_META: Record<GitPlatform, {
   label: string;
@@ -156,7 +140,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   const { isMobile, isDesktop } = usePlatformFlags();
   const [step, setStep] = useState<WizardStep>("language");
   const [lang, setLang] = useState<Locale>(locale);
-  const [storageMode, setStorageMode] = useState<"local" | "remote">("local");
+  const [storageMode, setStorageMode] = useState<StorageMode>("local");
   const [platform, setPlatform] = useState<GitPlatform | null>(null);
   const [gitUrl, setGitUrl] = useState("");
   const [accessToken, setAccessToken] = useState("");
@@ -203,10 +187,10 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
   }, []);
 
   const trimmedGitUrl = gitUrl.trim();
-  const isSshRemote = isDesktop && storageMode === "remote" && trimmedGitUrl.startsWith("git@");
-  const isHttpsRemote = /^https:\/\//i.test(trimmedGitUrl);
-  const mobileRemoteReady = !isMobile || storageMode !== "remote" || (isHttpsRemote && accessToken.trim().length > 0);
-  const remoteReady = storageMode !== "remote" || (!!platform && !!trimmedGitUrl && mobileRemoteReady);
+  const isSshRemote = isSshRemoteSetup(isDesktop, storageMode, trimmedGitUrl);
+  const isHttpsRemote = isHttpsRemoteUrl(trimmedGitUrl);
+  const mobileRemoteReady = isMobileRemoteReady(isMobile, storageMode, isHttpsRemote, accessToken);
+  const remoteReady = isRemoteSetupReady({ storageMode, platform, trimmedGitUrl, mobileRemoteReady });
 
   const loadSshCandidates = useCallback(async () => {
     if (!isSshRemote) {
@@ -223,8 +207,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     try {
       const scan = await invoke<SshKeyScanResult>("scan_ssh_keys", { gitUrl });
       setSshCandidates(scan.candidates);
-      const firstUsable = scan.candidates.find(candidate => !candidate.encrypted)?.path ?? null;
-      setSelectedSshKeyPath(scan.recommended_key_path ?? firstUsable);
+      setSelectedSshKeyPath(getSelectedSshKeyPath(scan));
       setDeployKeysUrl(scan.deploy_keys_url ?? null);
       setStep("ssh_key");
     } catch (e) {
@@ -266,13 +249,17 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     await new Promise<void>((resolve) => setTimeout(resolve, 80));
     try {
       const res = await invoke<InitResult>("init_gitmemo", {
-        request: {
+        request: getInitGitmemoRequest({
           lang,
-          git_url: storageMode === "remote" ? gitUrl : "",
-          ssh_key_path: isDesktop && isSshRemote ? selectedSshKeyPath : null,
-          access_token: isMobile && storageMode === "remote" ? accessToken.trim() : null,
-          editors: isDesktop ? editors : [],
-        },
+          storageMode,
+          gitUrl,
+          isDesktop,
+          isSshRemote,
+          selectedSshKeyPath,
+          isMobile,
+          accessToken,
+          editors,
+        }),
       });
       setResult(res);
       setStep("done");
@@ -289,21 +276,17 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     setTimeout(() => setSshKeyCopied(false), 2000);
   }, []);
 
-  const steps: WizardStep[] = isDesktop
-    ? ["language", "storage", ...(isSshRemote ? ["ssh_key" as const] : []), "editors"]
-    : ["language", "storage"];
-  const stepIndex = steps.indexOf(step);
-  const showStepIndicator = stepIndex >= 0;
+  const steps = getSetupSteps(isDesktop, isSshRemote);
+  const stepIndex = getSetupStepIndex(steps, step);
+  const showStepIndicator = shouldShowSetupStepIndicator(stepIndex);
   const selectedPlatformMeta = platform ? PLATFORM_META[platform] : null;
-  const setupSucceeded = !!result?.success;
-  const showSetupError = !!error || (!!result && !result.success);
-  const retryStep: WizardStep = isDesktop && storageMode !== "remote" ? "editors" : "storage";
+  const setupSucceeded = isSetupSucceeded(result);
+  const showSetupError = shouldShowSetupError(error, result);
+  const retryStep = getRetrySetupStep(isDesktop, storageMode);
   const selectedSshCandidate = sshCandidates.find(candidate => candidate.path === selectedSshKeyPath) ?? null;
-  const doneDeployKeysUrl = result?.deploy_keys_url ?? deployKeysUrl;
-  const latestInitLog = initLogs[initLogs.length - 1] ?? null;
-  const gitUrlPlaceholder = isMobile
-    ? "https://github.com/user/gitmemo-data.git"
-    : selectedPlatformMeta?.placeholder ?? "";
+  const doneDeployKeysUrl = getDoneDeployKeysUrl(result, deployKeysUrl);
+  const latestInitLog = getLatestInitLog(initLogs);
+  const gitUrlPlaceholder = getGitUrlPlaceholder(isMobile, selectedPlatformMeta?.placeholder);
 
   const stepTitles: Partial<Record<WizardStep, string>> = {
     language: "Welcome to GitMemo",
@@ -321,7 +304,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
     editors: t("setup.editorsDesc"),
     running: isMobile ? t("setup.mobilePleaseWait") : t("setup.pleaseWait"),
     done: showSetupError
-      ? (storageMode === "remote"
+      ? (isRemoteStorageMode(storageMode)
           ? (isMobile
               ? t("setup.mobileRemoteErrorDesc")
               : "Setup did not complete. Check the failed steps and retry after confirming your remote access.")
@@ -329,27 +312,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
       : t("setup.completeDesc"),
   };
 
-  const navSteps = steps.map((item, index) => ({
-    key: item,
-    label: stepTitles[item] ?? item,
-    active: item === step,
-    complete: stepIndex > index,
-  }));
-
-  const sidebarTip =
-    step === "language"
-      ? t("setup.tipLanguage")
-      : step === "storage"
-        ? (storageMode === "remote"
-            ? (isMobile ? t("setup.tipMobileStorageRemote") : t("setup.tipStorageRemote"))
-            : t("setup.tipStorageLocal"))
-        : step === "ssh_key"
-          ? t("setup.sshWriteAccess")
-          : step === "editors"
-            ? t("setup.tipEditors")
-            : step === "done"
-              ? t("setup.tipSave")
-              : t("setup.tipSettingUp");
+  const navSteps = getSetupNavSteps(steps, step, stepTitles);
+  const sidebarTip = t(getSetupSidebarTipKey(step, storageMode, isMobile));
 
   const sidebar = (
     <SetupSidebar mobile={isMobile}>
@@ -360,11 +324,11 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             <SetupValueRow label={t("dashboard.storage")} value="~/.gitmemo" />
             <SetupValueRow
               label={t("settings.remoteRepo")}
-              value={storageMode === "remote" ? (selectedPlatformMeta?.label ?? "Git") : t("settings.noRemote")}
+              value={isRemoteStorageMode(storageMode) ? (selectedPlatformMeta?.label ?? "Git") : t("settings.noRemote")}
             />
             <SetupValueRow
               label={t("dashboard.syncStatus")}
-              value={storageMode === "remote" ? t("setup.remoteMode") : t("setup.localMode")}
+              value={isRemoteStorageMode(storageMode) ? t("setup.remoteMode") : t("setup.localMode")}
             />
           </SetupValueGrid>
         )}
@@ -420,8 +384,8 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
           <SetupBadgeRow>
             <SetupBadge tone="success">{t("setup.localMode")}</SetupBadge>
             <SetupBadge tone="accent">Git</SetupBadge>
-            <SetupBadge tone={storageMode === "remote" ? "warning" : "muted"}>
-              {storageMode === "remote" ? t("setup.remoteMode") : t("settings.noRemote")}
+            <SetupBadge tone={isRemoteStorageMode(storageMode) ? "warning" : "muted"}>
+              {isRemoteStorageMode(storageMode) ? t("setup.remoteMode") : t("settings.noRemote")}
             </SetupBadge>
           </SetupBadgeRow>
 
@@ -432,14 +396,14 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <SetupOptionCopy title={t("setup.localMode")} description={t("setup.localModeDesc")} />
                 <SetupCheck selected={storageMode === "local"} />
               </SetupOptionButton>
-              <SetupOptionButton selected={storageMode === "remote"} compact onClick={() => setStorageMode("remote")}>
+              <SetupOptionButton selected={isRemoteStorageMode(storageMode)} compact onClick={() => setStorageMode("remote")}>
                 <SetupOptionIcon icon={Cloud} tone="accent" />
                 <SetupOptionCopy title={t("setup.remoteMode")} description={t("setup.remoteModeDesc")} />
-                <SetupCheck selected={storageMode === "remote"} />
+                <SetupCheck selected={isRemoteStorageMode(storageMode)} />
               </SetupOptionButton>
             </SetupStack>
 
-            {storageMode === "remote" && (
+            {isRemoteStorageMode(storageMode) && (
               <SetupStack gap="sm">
                 <SetupSectionLabel>{t("setup.platformTitle")}</SetupSectionLabel>
                 <SetupPlatformGrid>
@@ -499,7 +463,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                               variant="secondary"
                               icon={ExternalLink}
                               iconPosition="end"
-                              onClick={() => void openUrl(accessTokenHelpUrl(trimmedGitUrl, platform))}
+                              onClick={() => void openUrl(getAccessTokenHelpUrl(trimmedGitUrl, platform))}
                             >
                               {t("setup.createAccessToken")}
                             </SetupButton>
@@ -621,7 +585,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             {sshCandidates.length === 0 && !scanningSsh && (
               <SetupText>{t("setup.noSshKeysFound")}</SetupText>
             )}
-            {sshCandidates.length > 0 && sshCandidates.every(candidate => candidate.encrypted) && (
+            {hasOnlyEncryptedSshKeys(sshCandidates) && (
               <SetupFieldHint tone="warning">{t("setup.onlyEncryptedSshKeysFound")}</SetupFieldHint>
             )}
 
@@ -663,7 +627,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
             </SetupStack>
 
             <SetupButtonRow>
-              <SetupButton variant="secondary" layout="nav-back" onClick={() => setStep(isSshRemote ? "ssh_key" : "storage")}>
+              <SetupButton variant="secondary" layout="nav-back" onClick={() => setStep(getEditorBackStep(isSshRemote))}>
                 {t("setup.back")}
               </SetupButton>
               <SetupButton layout="nav-primary" icon={Rocket} onClick={runInit}>
@@ -731,7 +695,7 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 </SetupTitle>
                 <SetupText align="center">
                   {showSetupError
-                    ? (storageMode === "remote"
+                    ? (isRemoteStorageMode(storageMode)
                         ? (isMobile
                             ? t("setup.mobileRemoteErrorDesc")
                             : "Setup did not complete. Check the failed steps below, make sure your SSH key is ready in the remote repository, then retry.")

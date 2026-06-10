@@ -31,6 +31,20 @@ import {
   subscribeNotificationNavigate,
   type NotificationNavigateTarget,
 } from "./utils/notificationNavigation";
+import {
+  getAppPageOrder,
+  getNextMobilePageStack,
+  isMobileBackSwipeGesture,
+  resolveExternalSyncRoute,
+  resolveMobileBackNavigation,
+  resolveQuickPasteOpenPage,
+  shouldInstallMobileHistoryGuard,
+  shouldPushMobilePageStack,
+  shouldResetUnsupportedMobilePage,
+  shouldStartMobileBackGesture,
+  shouldTriggerSearchEntryOnNavigate,
+  shouldUseMobileBackFeatures,
+} from "./utils/appNavigationLogic";
 
 declare global {
   interface Window {
@@ -60,9 +74,6 @@ interface ExternalFileOpenTarget {
   filePath: string;
   requestId: number;
 }
-
-const desktopPageOrder: Page[] = ["dashboard", "search", "ai-records", "notes", "clipboard", "favorites", "claude-config", "external-files", "settings"];
-const mobilePageOrder: Page[] = ["dashboard", "search", "ai-records", "notes", "clipboard", "favorites", "imports", "settings"];
 
 type MobileBackHandler = () => boolean;
 
@@ -97,7 +108,7 @@ function App() {
   const { gitStatus } = sync;
   const { theme, toggleTheme, setPendingOpenPath, setAiRecordsTab, settings, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
-  const pageOrder = isDesktop ? desktopPageOrder : mobilePageOrder;
+  const pageOrder = getAppPageOrder(isDesktop);
   const mobilePageStackRef = useRef<Page[]>([]);
   const mobileBackHandlersRef = useRef<Partial<Record<Page, MobileBackHandler>>>({});
   const mobileHistoryGuardActiveRef = useRef(false);
@@ -120,26 +131,25 @@ function App() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (isMobile && !mobilePageOrder.includes(currentPage)) {
+    if (shouldResetUnsupportedMobilePage(isMobile, currentPage)) {
       setCurrentPage("dashboard");
       mobilePageStackRef.current = [];
     }
   }, [currentPage, isMobile]);
 
   const ensureMobileHistoryGuard = useCallback(() => {
-    if (!isMobile || initialized === false || mobileHistoryGuardActiveRef.current) return;
+    if (!shouldInstallMobileHistoryGuard(isMobile, initialized, mobileHistoryGuardActiveRef.current)) return;
     window.history.pushState({ gitmemoMobileGuard: true }, "");
     mobileHistoryGuardActiveRef.current = true;
   }, [initialized, isMobile]);
 
   const navigatePage = useCallback((page: Page, stack = true) => {
-    if (isMobile && page === "search") {
+    if (shouldTriggerSearchEntryOnNavigate(isMobile, page)) {
       setSearchEntryTrigger((n) => n + 1);
     }
     if (page === currentPage) return;
-    if (isMobile && stack) {
-      const nextStack = [...mobilePageStackRef.current, currentPage].slice(-30);
-      mobilePageStackRef.current = nextStack;
+    if (shouldPushMobilePageStack(isMobile, stack, page, currentPage)) {
+      mobilePageStackRef.current = getNextMobilePageStack(mobilePageStackRef.current, currentPage);
       ensureMobileHistoryGuard();
     }
     setCurrentPage(page);
@@ -155,22 +165,12 @@ function App() {
     const pageHandler = mobileBackHandlersRef.current[currentPage];
     if (pageHandler?.()) return true;
 
-    const previous = mobilePageStackRef.current[mobilePageStackRef.current.length - 1];
-    if (previous) {
-      const nextStack = mobilePageStackRef.current.slice(0, -1);
-      mobilePageStackRef.current = nextStack;
-      setCurrentPage(previous);
-      setSidebarFocused(false);
-      return true;
-    }
-
-    if (currentPage !== "dashboard") {
-      setCurrentPage("dashboard");
-      setSidebarFocused(false);
-      return true;
-    }
-
-    return false;
+    const backNavigation = resolveMobileBackNavigation(currentPage, mobilePageStackRef.current);
+    if (!backNavigation.handled || !backNavigation.page) return false;
+    mobilePageStackRef.current = backNavigation.stack;
+    setCurrentPage(backNavigation.page);
+    setSidebarFocused(false);
+    return true;
   }, [currentPage]);
 
   useEffect(() => {
@@ -186,7 +186,7 @@ function App() {
   }, [isMobile]);
 
   useEffect(() => {
-    if (!isMobile || initialized === false) return;
+    if (!shouldUseMobileBackFeatures(isMobile, initialized)) return;
     window.history.replaceState({ gitmemoMobileRoot: true }, "");
     window.history.pushState({ gitmemoMobileGuard: true }, "");
     mobileHistoryGuardActiveRef.current = true;
@@ -204,7 +204,7 @@ function App() {
   }, [initialized, isMobile]);
 
   useEffect(() => {
-    if (!isMobile || initialized === false) return;
+    if (!shouldUseMobileBackFeatures(isMobile, initialized)) return;
 
     let cancelled = false;
     let listener: { unregister: () => Promise<void> } | null = null;
@@ -227,7 +227,7 @@ function App() {
   }, [ensureMobileHistoryGuard, initialized, isMobile]);
 
   const handleMobileTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isMobile || initialized === false || e.touches.length !== 1) return;
+    if (!shouldStartMobileBackGesture(isMobile, initialized, e.touches.length)) return;
     const touch = e.touches[0];
     mobileTouchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   }, [initialized, isMobile]);
@@ -235,14 +235,11 @@ function App() {
   const handleMobileTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const start = mobileTouchStartRef.current;
     mobileTouchStartRef.current = null;
-    if (!isMobile || initialized === false || !start || e.changedTouches.length !== 1) return;
-    if (start.x > 36) return;
+    if (!shouldStartMobileBackGesture(isMobile, initialized, e.changedTouches.length) || !start) return;
 
     const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    const elapsed = Date.now() - start.time;
-    if (deltaX < 72 || Math.abs(deltaY) > 60 || elapsed > 800) return;
+    const end = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    if (!isMobileBackSwipeGesture(start, end)) return;
 
     if (performMobileBack()) ensureMobileHistoryGuard();
   }, [ensureMobileHistoryGuard, initialized, isMobile, performMobileBack]);
@@ -282,15 +279,14 @@ function App() {
 
     try {
       const target = await invoke<ExternalOpenTarget>("classify_external_open_target", { filePath });
-      if (target.kind === "sync" && target.page && target.rel_path) {
-        const page = target.page === "conversations" || target.page === "plans" ? "ai-records" : target.page as Page;
-        if (target.page === "conversations") setAiRecordsTab("conversations");
-        if (target.page === "plans") setAiRecordsTab("plans");
+      const syncRoute = resolveExternalSyncRoute(target.page);
+      if (target.kind === "sync" && syncRoute && target.rel_path) {
+        if (syncRoute.aiRecordsTab) setAiRecordsTab(syncRoute.aiRecordsTab);
         setEditorOpenTarget(null);
         setExternalFileOpenTarget(null);
         setPendingOpenPath(target.rel_path);
         setOpenFilePath(target.rel_path);
-        setCurrentPage(page);
+        setCurrentPage(syncRoute.page);
         return true;
       }
       if (target.kind === "editor" && target.root && target.rel_path) {
@@ -393,8 +389,7 @@ function App() {
     if (!isDesktop) return;
 
     const handleOpenPage = ({ payload }: { payload: { page?: string } }) => {
-      if (!payload?.page) return;
-      const page = payload.page === "settings" ? "settings" : payload.page === "clipboard" ? "clipboard" : payload.page === "search" ? "search" : null;
+      const page = resolveQuickPasteOpenPage(payload?.page);
       if (!page) return;
       navigateAndFocus(page);
     };

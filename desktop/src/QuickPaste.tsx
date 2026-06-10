@@ -11,47 +11,28 @@ import {
   QuickPasteResultButton,
   QuickPasteSourceIcon,
 } from "./components/domain/quick-paste/QuickPasteComponents";
+import {
+  QUICK_PASTE_COMMANDS,
+  getFilteredQuickPasteCommands,
+  getNextQuickPasteSelectedIndex,
+  getPreviousQuickPasteSelectedIndex,
+  getQuickPasteCommandPage,
+  getQuickPasteEmptyState,
+  getQuickPasteFooterActionLabel,
+  getQuickPasteMode,
+  getQuickPasteQueryValue,
+  getQuickPasteVisibleItems,
+  getSelectedQuickPasteItem,
+  isQuickPasteCommandMode,
+  isQuickPasteFileMode,
+  isQuickPasteSearchMode,
+  isQuickPasteSyncCommand,
+  shouldClearQuickPasteResults,
+  stripQuickPasteFrontmatter,
+  type CommandItem,
+  type SearchResultItem,
+} from "./components/domain/quick-paste/quickPasteLogic";
 import { useToast } from "./hooks/useToast";
-
-interface SearchResultItem {
-  source_type: string;
-  title: string;
-  file_path: string;
-  snippet: string;
-  date: string;
-}
-
-type Mode = "search" | "command" | "file";
-
-type CommandId = "sync" | "search" | "clipboard" | "settings";
-
-interface CommandItem {
-  id: CommandId;
-  title: string;
-  subtitle: string;
-}
-
-const COMMANDS: CommandItem[] = [
-  { id: "sync", title: "sync", subtitle: "Sync GitMemo to Git" },
-  { id: "search", title: "search", subtitle: "Open main search page" },
-  { id: "clipboard", title: "clipboard", subtitle: "Open clipboard page" },
-  { id: "settings", title: "settings", subtitle: "Open settings page" },
-];
-
-function stripFrontmatter(content: string) {
-  return content.replace(/^---[\s\S]*?---\s*/, "").trim();
-}
-
-function getMode(query: string): Mode {
-  if (query.startsWith(">")) return "command";
-  if (query.startsWith("@")) return "file";
-  return "search";
-}
-
-function getQueryValue(query: string, mode: Mode) {
-  if (mode === "search") return query.trim();
-  return query.slice(1).trim();
-}
 
 export default function QuickPaste() {
   const { showToast } = useToast();
@@ -60,14 +41,14 @@ export default function QuickPaste() {
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [fileResults, setFileResults] = useState<SearchResultItem[]>([]);
-  const [commandResults, setCommandResults] = useState<CommandItem[]>(COMMANDS);
+  const [commandResults, setCommandResults] = useState<CommandItem[]>([...QUICK_PASTE_COMMANDS]);
   const inputRef = useRef<HTMLInputElement>(null);
   const windowRef = useRef(getCurrentWindow());
   const mainWindowRef = useRef<Window | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const mode = useMemo(() => getMode(query), [query]);
-  const modeQuery = useMemo(() => getQueryValue(query, mode), [query, mode]);
+  const mode = useMemo(() => getQuickPasteMode(query), [query]);
+  const modeQuery = useMemo(() => getQuickPasteQueryValue(query, mode), [query, mode]);
 
   const focusInput = useCallback(() => {
     window.setTimeout(() => inputRef.current?.focus(), 30);
@@ -78,7 +59,7 @@ export default function QuickPaste() {
     setSelectedIndex(0);
     setSearchResults([]);
     setFileResults([]);
-    setCommandResults(COMMANDS);
+    setCommandResults([...QUICK_PASTE_COMMANDS]);
     setLoading(false);
     focusInput();
   }, [focusInput]);
@@ -103,16 +84,15 @@ export default function QuickPaste() {
   }, [focusInput, resetState]);
 
   useEffect(() => {
-    if (mode === "command") {
-      const next = COMMANDS.filter((item) => item.title.includes(modeQuery.toLowerCase()));
-      setCommandResults(next);
+    if (isQuickPasteCommandMode(mode)) {
+      setCommandResults(getFilteredQuickPasteCommands(modeQuery));
       setSelectedIndex(0);
       return;
     }
 
-    if (!modeQuery) {
-      if (mode === "search") setSearchResults([]);
-      if (mode === "file") setFileResults([]);
+    if (shouldClearQuickPasteResults(modeQuery)) {
+      if (isQuickPasteSearchMode(mode)) setSearchResults([]);
+      if (isQuickPasteFileMode(mode)) setFileResults([]);
       setSelectedIndex(0);
       setLoading(false);
       return;
@@ -122,7 +102,7 @@ export default function QuickPaste() {
     setLoading(true);
     const timer = window.setTimeout(async () => {
       try {
-        if (mode === "search") {
+        if (isQuickPasteSearchMode(mode)) {
           const results = await invoke<SearchResultItem[]>("search_all", {
             query: modeQuery,
             typeFilter: null,
@@ -132,7 +112,7 @@ export default function QuickPaste() {
             setSearchResults(results);
             setSelectedIndex(0);
           }
-        } else if (mode === "file") {
+        } else if (isQuickPasteFileMode(mode)) {
           const results = await invoke<SearchResultItem[]>("fuzzy_search_files", {
             query: modeQuery,
             limit: 10,
@@ -144,8 +124,8 @@ export default function QuickPaste() {
         }
       } catch {
         if (!cancelled) {
-          if (mode === "search") setSearchResults([]);
-          if (mode === "file") setFileResults([]);
+          if (isQuickPasteSearchMode(mode)) setSearchResults([]);
+          if (isQuickPasteFileMode(mode)) setFileResults([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -159,14 +139,12 @@ export default function QuickPaste() {
   }, [mode, modeQuery]);
 
   const visibleItems = useMemo(() => {
-    if (mode === "command") return commandResults;
-    if (mode === "file") return fileResults;
-    return searchResults;
+    return getQuickPasteVisibleItems({ mode, commandResults, fileResults, searchResults });
   }, [mode, commandResults, fileResults, searchResults]);
 
   const executeCommand = useCallback(async (command: CommandItem) => {
     try {
-      if (command.id === "sync") {
+      if (isQuickPasteSyncCommand(command)) {
         setLoading(true);
         const result = await invoke<string>("sync_to_git");
         showToast(result);
@@ -175,10 +153,11 @@ export default function QuickPaste() {
       }
 
       const main = await ensureMainWindow();
+      const page = getQuickPasteCommandPage(command);
       if (main) {
         await main.show();
         await main.setFocus();
-        await main.emit("quick-paste-open-page", { page: command.id });
+        await main.emit("quick-paste-open-page", { page });
       }
       await hideWindow();
     } catch (e) {
@@ -191,7 +170,7 @@ export default function QuickPaste() {
   const executeSearchResult = useCallback(async (item: SearchResultItem) => {
     try {
       const content = await invoke<string>("read_file", { filePath: item.file_path });
-      await writeText(stripFrontmatter(content));
+      await writeText(stripQuickPasteFrontmatter(content));
       showToast("Copied to clipboard");
       await hideWindow();
     } catch (e) {
@@ -214,11 +193,11 @@ export default function QuickPaste() {
   }, [ensureMainWindow, hideWindow, showToast]);
 
   const executeSelected = useCallback(async () => {
-    const item = visibleItems[selectedIndex];
+    const item = getSelectedQuickPasteItem(visibleItems, selectedIndex);
     if (!item) return;
 
-    if (mode === "command") return executeCommand(item as CommandItem);
-    if (mode === "file") return executeFileResult(item as SearchResultItem);
+    if (isQuickPasteCommandMode(mode)) return executeCommand(item as CommandItem);
+    if (isQuickPasteFileMode(mode)) return executeFileResult(item as SearchResultItem);
     return executeSearchResult(item as SearchResultItem);
   }, [executeCommand, executeFileResult, executeSearchResult, mode, selectedIndex, visibleItems]);
 
@@ -239,13 +218,13 @@ export default function QuickPaste() {
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((n) => Math.min(n + 1, Math.max(visibleItems.length - 1, 0)));
+        setSelectedIndex((n) => getNextQuickPasteSelectedIndex(n, visibleItems.length));
         return;
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((n) => Math.max(n - 1, 0));
+        setSelectedIndex(getPreviousQuickPasteSelectedIndex);
         return;
       }
 
@@ -289,7 +268,7 @@ export default function QuickPaste() {
         <div ref={listRef} className="gm-quick-paste-list">
           {!loading && visibleItems.length === 0 ? (
             <div className="gm-quick-paste-empty">
-              {modeQuery ? "No results" : (
+              {getQuickPasteEmptyState(modeQuery) === "no-results" ? "No results" : (
                 <div className="gm-quick-paste-empty-stack">
                   <span>Type to search</span>
                   <div className="gm-quick-paste-muted gm-quick-paste-empty-shortcuts">
@@ -299,7 +278,7 @@ export default function QuickPaste() {
                 </div>
               )}
             </div>
-          ) : mode === "command" ? (
+          ) : isQuickPasteCommandMode(mode) ? (
             (visibleItems as CommandItem[]).map((item, index) => {
               const selected = index === selectedIndex;
               return (
@@ -326,9 +305,9 @@ export default function QuickPaste() {
                   tone={mode}
                   icon={<QuickPasteSourceIcon sourceType={item.source_type} />}
                   title={item.title}
-                  subtitle={mode === "file" ? item.file_path : item.snippet || item.file_path}
+                  subtitle={isQuickPasteFileMode(mode) ? item.file_path : item.snippet || item.file_path}
                   meta={item.date}
-                  onClick={() => (mode === "file" ? executeFileResult(item) : executeSearchResult(item))}
+                  onClick={() => (isQuickPasteFileMode(mode) ? executeFileResult(item) : executeSearchResult(item))}
                   onMouseEnter={() => setSelectedIndex(index)}
                 />
               );
@@ -339,7 +318,7 @@ export default function QuickPaste() {
         {/* Footer */}
         <div className="gm-quick-paste-footer">
           <span className="gm-quick-paste-footer-hint"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
-          <span className="gm-quick-paste-footer-hint"><Kbd>↵</Kbd> {mode === "search" ? "copy" : mode === "file" ? "open" : "run"}</span>
+          <span className="gm-quick-paste-footer-hint"><Kbd>↵</Kbd> {getQuickPasteFooterActionLabel(mode)}</span>
           <span className="gm-quick-paste-footer-hint gm-quick-paste-footer-hint-end"><Kbd>esc</Kbd> close</span>
         </div>
       </div>
