@@ -1,7 +1,7 @@
 {
   "name": "GitMemo",
   "description": "Local-first Git-native personal knowledge capture and reuse system.",
-  "version": "v1.0.112",
+  "version": "v1.0.114",
   "website": "https://gitmemo.kakacut.cn",
   "repository": "https://github.com/sahadev/GitMemo",
   "install": {
@@ -20,7 +20,7 @@
       "Windows x64"
     ],
     "windowsInstaller": {
-      "filename": "gitmemo-windows-v1.0.112-x64-setup.exe",
+      "filename": "gitmemo-windows-v1.0.114-x64-setup.exe",
       "stableUrl": "https://gitmemo.kakacut.cn/desktop/windows/gitmemo-windows-x64-setup.exe",
       "signed": false,
       "note": "Current Windows installers are unsigned and may show a SmartScreen warning."
@@ -28,8 +28,8 @@
   },
   "android": {
     "abi": "arm64-v8a",
-    "filename": "gitmemo-android-v1.0.112-arm64-v8a-release.apk",
-    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.112-arm64-v8a-release.apk",
+    "filename": "gitmemo-android-v1.0.114-arm64-v8a-release.apk",
+    "url": "https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.114-arm64-v8a-release.apk",
     "sync": "HTTPS remote URL plus access token"
   },
   "data": {
