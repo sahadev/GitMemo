@@ -112,7 +112,7 @@ fn is_private_key_content_encrypted(content: &str) -> Result<bool> {
         return Ok(false);
     }
 
-    let body = pem_body(&content).ok_or_else(|| anyhow::anyhow!("invalid OpenSSH private key"))?;
+    let body = pem_body(content).ok_or_else(|| anyhow::anyhow!("invalid OpenSSH private key"))?;
     let decoded = decode_base64(&body)?;
     const MAGIC: &[u8] = b"openssh-key-v1\0";
     if !decoded.starts_with(MAGIC) {
