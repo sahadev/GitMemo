@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Copy, Eye, EyeOff, KeyRound, Lock, RefreshCw, ShieldCheck, Trash2, Unlock } from "lucide-react";
+import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
@@ -184,21 +185,18 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
   return (
     <div className="gm-page gm-vault-page">
       <section className="gm-vault-list-pane">
-        <header className="gm-page-header">
-          <div className="gm-page-header-main">
-            <AppIcon icon={KeyRound} size="lg" tone="accent" className="gm-page-header-icon" />
-            <div>
-              <h1 className="gm-page-header-title">{t("vault.title")}</h1>
-              <p className="gm-page-header-subtitle">{t("vault.subtitle")}</p>
-            </div>
-          </div>
-          <div className="gm-page-header-actions">
-            <Button variant="toolbar" icon={RefreshCw} title={t("common.refresh")} onClick={() => void loadVault()} />
-            {unlocked ? (
-              <Button variant="toolbar" icon={Lock} title={t("vault.lock")} onClick={() => void lockVault()} />
-            ) : null}
-          </div>
-        </header>
+        <PaneHeader
+          icon={KeyRound}
+          title={t("vault.title")}
+          actions={(
+            <>
+              <Button variant="toolbar" icon={RefreshCw} title={t("common.refresh")} onClick={() => void loadVault()} />
+              {unlocked ? (
+                <Button variant="toolbar" icon={Lock} title={t("vault.lock")} onClick={() => void lockVault()} />
+              ) : null}
+            </>
+          )}
+        />
 
         {!vaultEnabled ? (
           <div className="gm-vault-empty-wrap">
