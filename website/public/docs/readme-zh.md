@@ -41,6 +41,12 @@ GitMemo 成立的原因，是这些临时来源需要一个长期、可迁移、
 - **Claude Code / Cursor / Codex**：**不是**安装 GitMemo 的前置门槛。只有当你希望接入对话捕获、Hook、MCP 或 Codex 日志导入时，再在 `gitmemo init` 里接入 **至少其一**；Codex 支持读取既有 `~/.codex` 日志，不修改 Codex 配置，也不会安装 Codex `/save` 技能。也可先只用 CLI 记笔记与手动同步，之后再补 `init`。
 - **远程 Git 托管**（GitHub / GitLab / Gitee / 自建）：**始终可选**。
 
+## 社群交流
+
+扫码加入 GitMemo 微信讨论群，获取产品更新、分享使用工作流，也可以交流问题。
+
+![GitMemo 微信讨论群二维码](docs/assets/gitmemo-group.png)
+
 ## 快速开始
 
 ### 安装
@@ -289,6 +295,29 @@ cargo test
 cargo run --help
 ```
 
+## 特别贡献：语义逻辑建模
+
+[Semantic Logic Modeling Skill](https://github.com/sahadev/semantic-logic-modeling-skill) 对 GitMemo 的项目改造提供了特别贡献。它给出了一套可落地的方法，把复杂分支中的业务规则、UI 状态、编辑器接入判断、捕获流程和同步决策，拆成有名字的语义谓词、复合场景函数和受控结果函数。
+
+这让 GitMemo 在几个方面明显受益：
+
+- **逻辑更接近业务语言** - 条件判断更多通过 `is...`、`has...`、`can...`、`should...`、`get...`、`resolve...` 等函数表达，而不是散落在组件里的长布尔表达式。
+- **React 表层更薄** - Desktop 页面和组件可以消费 `desktop/src/components/domain/**` 下的领域逻辑，让组件主要负责布局与交互。
+- **决策可以复用** - 剪贴板、Dashboard、文件工作区、AI 记录、初始化、设置和同步相关流程中的规则更容易沉淀为共享函数，减少重复判断。
+- **更适合 AI 继续协作** - 显式、纯粹、可组合的逻辑结构，让后续 agent 或贡献者在修改行为前，更容易看懂每个分支代表的真实含义。
+
+因此，GitMemo 的代码变得更语义化、更容易 review，也更容易扩展。复杂状态转换从分散的 UI 分支中被移到小而清晰的命名函数里，读代码时不再需要在脑中反复执行每一个条件，才能理解系统意图。
+
 ## 许可证
 
 MIT
+
+## Star 增长曲线
+
+<a href="https://star-history.com/#sahadev/GitMemo&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date" />
+  </picture>
+</a>

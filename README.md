@@ -41,6 +41,12 @@ That changes the role of the knowledge base: it is no longer only a place for hu
 - **Claude Code / Cursor / Codex**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want conversation capture, hooks, MCP, or Codex log import where supported. Codex support reads existing `~/.codex` logs; it does not modify Codex config or install a Codex `/save` skill.
 - **Hosted Git remote** (GitHub / GitLab / Gitee / self-hosted): **Always optional**.
 
+## Community
+
+Join the GitMemo WeChat discussion group for product updates, workflow sharing, and support.
+
+![GitMemo WeChat discussion group QR code](docs/assets/gitmemo-group.png)
+
 ## Quick Start
 
 ### Install

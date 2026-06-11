@@ -31,8 +31,8 @@ function App() {
       <Downloads />
       <QuickStart />
       <Footer />
-      <div className="wechat-float" aria-label="微信交流">
-        <img src="/wechat-qr.png" alt="Sahadev WeChat QR code" loading="eager" />
+      <div className="wechat-float" aria-label="GitMemo 微信群">
+        <img src="/gitmemo-group.png" alt="GitMemo discussion group QR code" loading="eager" />
       </div>
     </div>
   )

@@ -15,6 +15,14 @@ function resolveReadmeLink(href: string | undefined) {
   return `${repoBaseUrl}${href}`
 }
 
+function resolveReadmeImage(src: string | undefined) {
+  if (!src) return src
+  if (/^(https?:|data:|blob:)/.test(src)) return src
+  if (src.startsWith('/')) return src
+  if (src.startsWith('docs/assets/')) return `/${src}`
+  return `${repoBaseUrl}${src}`
+}
+
 export default function ReadmePage() {
   const { lang } = useI18n()
   const content = lang === 'zh' ? readmeZh : readmeEn
@@ -69,7 +77,11 @@ export default function ReadmePage() {
           </p>
         </header>
 
-        <ReadmeMarkdown content={content} resolveLink={resolveReadmeLink} />
+        <ReadmeMarkdown
+          content={content}
+          resolveImage={resolveReadmeImage}
+          resolveLink={resolveReadmeLink}
+        />
       </div>
     </main>
   )

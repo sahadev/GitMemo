@@ -41,6 +41,12 @@ GitMemo 成立的原因，是这些临时来源需要一个长期、可迁移、
 - **Claude Code / Cursor / Codex**：**不是**安装 GitMemo 的前置门槛。只有当你希望接入对话捕获、Hook、MCP 或 Codex 日志导入时，再在 `gitmemo init` 里接入 **至少其一**；Codex 支持读取既有 `~/.codex` 日志，不修改 Codex 配置，也不会安装 Codex `/save` 技能。也可先只用 CLI 记笔记与手动同步，之后再补 `init`。
 - **远程 Git 托管**（GitHub / GitLab / Gitee / 自建）：**始终可选**。
 
+## 社群交流
+
+扫码加入 GitMemo 微信讨论群，获取产品更新、分享使用工作流，也可以交流问题。
+
+![GitMemo 微信讨论群二维码](docs/assets/gitmemo-group.png)
+
 ## 快速开始
 
 ### 安装

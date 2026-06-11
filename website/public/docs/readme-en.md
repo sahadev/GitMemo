@@ -41,6 +41,12 @@ That changes the role of the knowledge base: it is no longer only a place for hu
 - **Claude Code / Cursor / Codex**: **Not** a prerequisite to install GitMemo. Add **at least one** during `gitmemo init` only when you want conversation capture, hooks, MCP, or Codex log import where supported. Codex support reads existing `~/.codex` logs; it does not modify Codex config or install a Codex `/save` skill.
 - **Hosted Git remote** (GitHub / GitLab / Gitee / self-hosted): **Always optional**.
 
+## Community
+
+Join the GitMemo WeChat discussion group for product updates, workflow sharing, and support.
+
+![GitMemo WeChat discussion group QR code](docs/assets/gitmemo-group.png)
+
 ## Quick Start
 
 ### Install
@@ -289,6 +295,29 @@ cargo test
 cargo run --help
 ```
 
+## Special Contribution: Semantic Logic Modeling
+
+[Semantic Logic Modeling Skill](https://github.com/sahadev/semantic-logic-modeling-skill) made a special contribution to GitMemo's refactoring work. It provided a practical method for turning branch-heavy business rules, UI states, editor integration checks, capture flows, and sync decisions into named semantic predicates, composite case functions, and controlled result functions.
+
+This helped GitMemo in several concrete ways:
+
+- **Business-readable logic** - Conditions now read more like product language through `is...`, `has...`, `can...`, `should...`, `get...`, and `resolve...` helpers instead of long inline boolean expressions.
+- **Thinner React surfaces** - Desktop pages and components can consume domain logic from `desktop/src/components/domain/**`, keeping rendering code focused on layout and interaction.
+- **Reusable decisions** - Shared predicates reduce repeated rules across clipboard, dashboard, file workspace, AI records, setup, settings, and sync-related flows.
+- **Safer AI-assisted iteration** - Explicit, pure, composable logic gives future agents and contributors a clearer map of what each branch means before changing behavior.
+
+As a result, GitMemo's code became more semantic, more reviewable, and easier to extend. Complex state transitions moved out of scattered UI branches and into small named functions, making the intent of the system easier to understand without mentally executing every condition.
+
 ## License
 
 MIT
+
+## Star History
+
+<a href="https://star-history.com/#sahadev/GitMemo&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=sahadev/GitMemo&type=Date" />
+  </picture>
+</a>

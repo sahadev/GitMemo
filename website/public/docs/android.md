@@ -4,10 +4,10 @@ GitMemo Android is the mobile client for the GitMemo knowledge repository.
 
 ## Current APK
 
-- URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.114-arm64-v8a-release.apk
-- Filename: gitmemo-android-v1.0.114-arm64-v8a-release.apk
+- URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.120-arm64-v8a-release.apk
+- Filename: gitmemo-android-v1.0.120-arm64-v8a-release.apk
 - ABI: arm64-v8a
-- Version: v1.0.114
+- Version: v1.0.120
 
 ## Mobile Capabilities
 
