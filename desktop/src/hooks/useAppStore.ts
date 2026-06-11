@@ -73,15 +73,18 @@ export interface AppMeta {
   version: string;
   release_time: string;
   requires_cli: boolean;
-  recommended_cli_version: string;
 }
 
 export interface CliStatus {
   installed: boolean;
   path: string;
   version: string;
-  recommended_version: string;
-  version_matches: boolean;
+  latest_version: string | null;
+  update_available: boolean;
+  update_url: string | null;
+  release_url: string | null;
+  notes: string[];
+  check_error: string | null;
 }
 
 // ---- Store ----
@@ -132,10 +135,15 @@ interface AppStore {
   // Update
   updateStatus: "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
   updateVersion: string | null;
+  updateDate: string | null;
+  updateBody: string | null;
   updateProgress: number;
   updateError: string | null;
+  pendingUpdateDetailsOpen: boolean;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
+  requestUpdateDetailsOpen: () => void;
+  consumeUpdateDetailsOpen: () => void;
 
   // Load all state at startup
   init: () => Promise<void>;
@@ -175,8 +183,11 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   cliStatus: null,
   updateStatus: "idle",
   updateVersion: null,
+  updateDate: null,
+  updateBody: null,
   updateProgress: 0,
   updateError: null,
+  pendingUpdateDetailsOpen: false,
 
   refreshClipboardStatus: async () => {
     try {
@@ -261,10 +272,15 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
       const ms = Math.round(performance.now() - t0);
       if (update) {
         await logUpdaterInfo(`check ok in ${ms}ms: available version=${update.version}`);
-        set({ updateStatus: "available", updateVersion: update.version });
+        set({
+          updateStatus: "available",
+          updateVersion: update.version,
+          updateDate: update.date ?? null,
+          updateBody: update.body ?? null,
+        });
       } else {
         await logUpdaterInfo(`check ok in ${ms}ms: already latest`);
-        set({ updateStatus: "upToDate", updateVersion: null });
+        set({ updateStatus: "upToDate", updateVersion: null, updateDate: null, updateBody: null });
       }
     } catch (e) {
       const ms = Math.round(performance.now() - t0);
@@ -311,6 +327,14 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
       await logUpdaterError(`install failed after ${ms}ms: ${errStr}`);
       set({ updateStatus: "error", updateError: errStr });
     }
+  },
+
+  requestUpdateDetailsOpen: () => {
+    set({ pendingUpdateDetailsOpen: true });
+  },
+
+  consumeUpdateDetailsOpen: () => {
+    set({ pendingUpdateDetailsOpen: false });
   },
 
   init: async () => {

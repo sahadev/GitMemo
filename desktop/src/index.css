@@ -2092,11 +2092,29 @@ a:focus-visible {
 }
 
 .gm-sidebar-version {
+  align-items: center;
+  background: transparent;
+  border: none;
   color: var(--gm-color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
   font-size: var(--gm-font-2xs);
+  gap: var(--gm-space-2);
+  justify-content: center;
   margin-top: var(--gm-space-3);
   opacity: 0.78;
+  padding: 0;
   text-align: center;
+  width: 100%;
+}
+
+.gm-sidebar-version:hover,
+.gm-sidebar-version:focus-visible,
+.gm-settings-about-meta-clickable:hover,
+.gm-settings-about-meta-clickable:focus-visible {
+  color: var(--accent);
+  opacity: 1;
+  outline: none;
 }
 
 .gm-sidebar-release-time {
@@ -4041,9 +4059,30 @@ a:focus-visible {
 }
 
 .gm-settings-about-meta {
+  align-items: center;
   color: var(--text-secondary);
+  display: inline-flex;
   font-size: var(--gm-font-xs);
+  gap: var(--gm-space-2);
+  justify-content: center;
   margin-top: var(--gm-space-2);
+}
+
+.gm-settings-about-meta-clickable {
+  cursor: pointer;
+}
+
+.gm-settings-version-text {
+  min-width: 0;
+}
+
+.gm-version-update-dot {
+  background: var(--red);
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--bg-card);
+  flex: 0 0 auto;
+  height: 8px;
+  width: 8px;
 }
 
 .gm-settings-update-status {

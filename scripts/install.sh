@@ -29,22 +29,54 @@ echo "  Platform: ${OS} ${ARCH}"
 echo "  Binary:   ${BINARY}"
 echo ""
 
-# Get latest version via redirect
-VERSION=$(curl -sI "https://github.com/sahadev/GitMemo/releases/latest" 2>/dev/null | grep -i "^location:" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9._-]*' || echo "")
-if [ -z "${VERSION}" ]; then
-    echo "  ✗ Failed to detect latest version."
+MANIFEST_URL="${GITMEMO_CLI_MANIFEST_URL:-https://github.com/sahadev/GitMemo/releases/latest/download/cli-latest.json}"
+MANIFEST=$(curl --connect-timeout 5 --max-time 20 -fsSL "${MANIFEST_URL}" 2>/dev/null || true)
+if [ -z "${MANIFEST}" ]; then
+    MANIFEST=$(curl --connect-timeout 5 --max-time 20 -fsSL "https://api.github.com/repos/sahadev/GitMemo/releases?per_page=50" 2>/dev/null | python3 -c '
+import json, sys
+asset_name = sys.argv[1]
+try:
+    releases = json.load(sys.stdin)
+except Exception:
+    releases = []
+for release in releases if isinstance(releases, list) else []:
+    tag = release.get("tag_name", "")
+    assets = release.get("assets") or []
+    match = next((asset for asset in assets if asset.get("name") == asset_name), None)
+    if match:
+        payload = {
+            "version": tag.removeprefix("v"),
+            "tag": tag,
+            "assets": {"current": {"name": asset_name, "url": match.get("browser_download_url", "")}},
+        }
+        print(json.dumps(payload))
+        break
+' "${BINARY}" || true)
+fi
+if [ -z "${MANIFEST}" ]; then
+    echo "  ✗ Failed to detect latest CLI version."
     echo "    Try: https://github.com/sahadev/GitMemo/releases"
     exit 1
 fi
-echo "  Version:  ${VERSION}"
+
+VERSION=$(printf '%s' "${MANIFEST}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+URL=$(printf '%s' "${MANIFEST}" | python3 -c 'import json,sys; data=json.load(sys.stdin); print((data.get("assets",{}).get(sys.argv[1],{}) or {}).get("url",""))' "${BINARY}" 2>/dev/null || echo "")
+if [ -z "${URL}" ]; then
+    URL=$(printf '%s' "${MANIFEST}" | python3 -c 'import json,sys; data=json.load(sys.stdin); assets=data.get("assets",{}); print(next((v.get("url","") for v in assets.values() if v.get("name")==sys.argv[1]), ""))' "${BINARY}" 2>/dev/null || echo "")
+fi
+if [ -z "${VERSION}" ] || [ -z "${URL}" ]; then
+    echo "  ✗ Failed to parse CLI release metadata."
+    echo "    Manifest: ${MANIFEST_URL}"
+    exit 1
+fi
+
+echo "  Version:  v${VERSION#v}"
 echo ""
 
-# Download specific version (avoid CDN cache issues with /latest/)
 TMPFILE=$(mktemp)
-URL="https://github.com/sahadev/GitMemo/releases/download/${VERSION}/${BINARY}"
 
 echo "  Downloading..."
-curl -fsSL "${URL}" -o "${TMPFILE}" 2>/dev/null || true
+curl --connect-timeout 5 --max-time 300 -fsSL "${URL}" -o "${TMPFILE}" 2>/dev/null || true
 
 # Verify download
 if [ ! -s "${TMPFILE}" ]; then
@@ -97,7 +129,7 @@ else
 fi
 
 echo ""
-echo "  ✓ GitMemo ${VERSION} installed successfully!"
+echo "  ✓ GitMemo v${VERSION#v} installed successfully!"
 echo ""
 echo "  Get started:"
 echo "    gitmemo init"

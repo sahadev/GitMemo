@@ -10,12 +10,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def read_root_version() -> str:
-    cargo_toml = (ROOT / "Cargo.toml").read_text(encoding="utf-8")
-    match = re.search(r'^version = "([^"]+)"', cargo_toml, re.MULTILINE)
-    if not match:
-        raise SystemExit("Failed to read version from Cargo.toml")
-    return match.group(1)
+def read_desktop_version() -> str:
+    package_json = json.loads((ROOT / "desktop" / "package.json").read_text(encoding="utf-8"))
+    version = str(package_json.get("version", "")).strip()
+    if not version:
+        raise SystemExit("Failed to read version from desktop/package.json")
+    return version
 
 
 def write_json(path: Path, update):
@@ -82,7 +82,7 @@ def update_tauri_config(data: dict, version: str):
 
 
 def main():
-    version = sys.argv[1] if len(sys.argv) > 1 else read_root_version()
+    version = sys.argv[1] if len(sys.argv) > 1 else read_desktop_version()
 
     write_json(ROOT / "desktop" / "package.json", lambda data: data.__setitem__("version", version))
     write_json(ROOT / "desktop" / "src-tauri" / "tauri.conf.json", lambda data: update_tauri_config(data, version))

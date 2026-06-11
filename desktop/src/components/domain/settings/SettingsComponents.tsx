@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Check, Copy, RefreshCw, X } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
@@ -425,8 +425,8 @@ export function SettingsAboutTitle({ children }: ChildrenProps) {
   return <p className="gm-settings-about-title">{children}</p>;
 }
 
-export function SettingsAboutMeta({ children }: ChildrenProps) {
-  return <p className="gm-settings-about-meta">{children}</p>;
+export function SettingsAboutMeta({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cx("gm-settings-about-meta", className)} {...props}>{children}</p>;
 }
 
 export function SettingsUpdateStatus({ children, className }: ChildrenProps) {

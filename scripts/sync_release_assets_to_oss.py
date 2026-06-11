@@ -22,6 +22,9 @@ It also writes mirror manifests:
   latest.json
   {prefix}/latest.json
   {prefix}/{VERSION_TAG}/latest.json
+  cli-latest.json (when present)
+  {prefix}/cli-latest.json (when present)
+  {prefix}/{VERSION_TAG}/cli-latest.json (when present)
   downloads.json
   {prefix}/downloads.json
   {prefix}/{VERSION_TAG}/downloads.json
@@ -124,6 +127,20 @@ def rewrite_latest_json(version_tag: str, prefix: str, base_url: str) -> dict[st
         name = url.rsplit("/", 1)[-1]
         if name:
             platform["url"] = object_url(base_url, f"{prefix}/{version_tag}/{name}")
+    return payload
+
+
+def rewrite_cli_latest_json(version_tag: str, prefix: str, base_url: str) -> dict[str, Any] | None:
+    cli_latest_path = ROOT / "cli-latest.json"
+    if not cli_latest_path.is_file():
+        return None
+
+    payload = json.loads(cli_latest_path.read_text(encoding="utf-8"))
+    local_asset_names = {path.name for path in iter_asset_files()}
+    for asset in payload.get("assets", {}).values():
+        name = asset.get("name", "")
+        if name in local_asset_names:
+            asset["url"] = object_url(base_url, f"{prefix}/{version_tag}/{name}")
     return payload
 
 
@@ -251,11 +268,16 @@ def main() -> None:
     upload_assets(bucket, version_tag, prefix)
 
     latest_json = rewrite_latest_json(version_tag, prefix, base_url)
+    cli_latest_json = rewrite_cli_latest_json(version_tag, prefix, base_url)
     downloads_json = build_downloads_manifest(version_tag, prefix, base_url)
 
     put_json(bucket, "latest.json", latest_json)
     put_json(bucket, f"{prefix}/latest.json", latest_json)
     put_json(bucket, f"{prefix}/{version_tag}/latest.json", latest_json)
+    if cli_latest_json is not None:
+        put_json(bucket, "cli-latest.json", cli_latest_json)
+        put_json(bucket, f"{prefix}/cli-latest.json", cli_latest_json)
+        put_json(bucket, f"{prefix}/{version_tag}/cli-latest.json", cli_latest_json)
     put_json(bucket, "downloads.json", downloads_json)
     put_json(bucket, f"{prefix}/downloads.json", downloads_json)
     put_json(bucket, f"{prefix}/{version_tag}/downloads.json", downloads_json)

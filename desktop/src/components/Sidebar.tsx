@@ -41,9 +41,19 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] =
 
 export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, onSync }: SidebarProps) {
   const { t } = useI18n();
-  const { appMeta } = useAppStore();
+  const { appMeta, updateStatus, checkForUpdates, requestUpdateDetailsOpen } = useAppStore();
   const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
+  const desktopUpdateAvailable = updateStatus === "available";
+
+  const openVersionDetails = () => {
+    if (desktopUpdateAvailable) {
+      requestUpdateDetailsOpen();
+    } else {
+      void checkForUpdates();
+    }
+    onNavigate("settings");
+  };
 
   return (
     <div className="gm-sidebar">
@@ -89,9 +99,15 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           <AppIcon icon={RefreshCw} size="xs" spin={syncing} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
-        <p className="gm-sidebar-version">
-          GitMemo Desktop v{appMeta?.version ?? "—"}
-        </p>
+        <button
+          className="gm-sidebar-version"
+          type="button"
+          onClick={openVersionDetails}
+          title={desktopUpdateAvailable ? t("settings.updateAvailable", "") : t("settings.checkUpdate")}
+        >
+          <span>GitMemo Desktop v{appMeta?.version ?? "—"}</span>
+          {desktopUpdateAvailable && <span className="gm-version-update-dot" aria-label={t("settings.updateAvailableDot")} />}
+        </button>
         <p className="gm-sidebar-release-time">
           {appMeta?.release_time || t("settings.releaseTimeUnknown")}
         </p>

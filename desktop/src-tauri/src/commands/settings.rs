@@ -4,6 +4,7 @@ use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
 use gitmemo_core::utils::sanitize::git_error_for_user;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 #[cfg(desktop)]
 use std::str::FromStr;
 #[cfg(desktop)]
@@ -14,6 +15,9 @@ use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 const SETTINGS_FILE: &str = "desktop_settings.toml";
+const CLI_MANIFEST_URL: &str =
+    "https://github.com/sahadev/GitMemo/releases/latest/download/cli-latest.json";
+const CLI_RELEASES_URL: &str = "https://api.github.com/repos/sahadev/GitMemo/releases?per_page=50";
 pub const IMPORT_FILE_SIZE_LIMIT_MIN_KB: u64 = 500;
 pub const IMPORT_FILE_SIZE_LIMIT_MAX_KB: u64 = 20 * 1024;
 pub const IMPORT_FILE_SIZE_LIMIT_DEFAULT_KB: u64 = 2 * 1024;
@@ -121,7 +125,6 @@ pub struct AppMeta {
     pub version: String,
     pub release_time: String,
     pub requires_cli: bool,
-    pub recommended_cli_version: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -129,8 +132,49 @@ pub struct CliStatus {
     pub installed: bool,
     pub path: String,
     pub version: String,
-    pub recommended_version: String,
-    pub version_matches: bool,
+    pub latest_version: Option<String>,
+    pub update_available: bool,
+    pub update_url: Option<String>,
+    pub release_url: Option<String>,
+    pub notes: Vec<String>,
+    pub check_error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CliManifest {
+    version: String,
+    tag: Option<String>,
+    #[serde(default)]
+    notes: Vec<String>,
+    release_url: Option<String>,
+    assets: HashMap<String, CliManifestAsset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CliManifestAsset {
+    name: String,
+    url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    html_url: Option<String>,
+    assets: Vec<GithubReleaseAsset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubReleaseAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(Debug, Clone)]
+struct CliUpdateInfo {
+    version: String,
+    update_url: Option<String>,
+    release_url: Option<String>,
+    notes: Vec<String>,
 }
 
 #[cfg(desktop)]
@@ -267,7 +311,6 @@ pub fn get_app_meta() -> Result<AppMeta, String> {
             .unwrap_or("")
             .to_string(),
         requires_cli: false,
-        recommended_cli_version: env!("CARGO_PKG_VERSION").to_string(),
     })
 }
 
@@ -305,55 +348,175 @@ fn parse_version_core(version: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
-fn cli_version_is_compatible(installed: &str, recommended: &str) -> bool {
-    if installed.is_empty() {
+fn version_is_newer(latest: &str, installed: &str) -> bool {
+    if latest.is_empty() || installed.is_empty() {
         return false;
     }
 
-    match (
-        parse_version_core(installed),
-        parse_version_core(recommended),
-    ) {
-        (Some(installed), Some(recommended)) => installed >= recommended,
-        _ => installed == recommended,
+    match (parse_version_core(latest), parse_version_core(installed)) {
+        (Some(latest), Some(installed)) => latest > installed,
+        _ => latest != installed,
     }
+}
+
+#[cfg(not(target_os = "android"))]
+fn cli_manifest_asset_key() -> Option<&'static str> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("macos", "aarch64") => Some("darwin-aarch64"),
+        ("macos", "x86_64") => Some("darwin-x86_64"),
+        ("linux", "x86_64") => Some("linux-x86_64"),
+        ("linux", "aarch64") => Some("linux-aarch64"),
+        ("windows", "x86_64") => Some("windows-x86_64"),
+        _ => None,
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn cli_release_asset_name() -> Option<&'static str> {
+    gitmemo_core::platform::cli_release_asset_name()
+}
+
+#[cfg(not(target_os = "android"))]
+fn fetch_json(url: &str) -> Result<Vec<u8>, String> {
+    let output = gitmemo_core::platform::background_command("curl")
+        .args([
+            "-sL",
+            "--connect-timeout",
+            "3",
+            "--max-time",
+            "8",
+            "-H",
+            "Accept: application/vnd.github+json",
+            url,
+        ])
+        .output()
+        .map_err(|e| format!("Failed to fetch {url}: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!("Request failed: {url}"));
+    }
+
+    Ok(output.stdout)
+}
+
+#[cfg(not(target_os = "android"))]
+fn cli_update_from_manifest() -> Result<CliUpdateInfo, String> {
+    let body = fetch_json(CLI_MANIFEST_URL)?;
+    let manifest: CliManifest = serde_json::from_slice(&body)
+        .map_err(|e| format!("Failed to parse CLI update manifest: {e}"))?;
+    let asset_key = cli_manifest_asset_key().ok_or_else(|| "Unsupported CLI platform".to_string())?;
+    let platform_asset_name = cli_release_asset_name().unwrap_or_default();
+    let asset = manifest
+        .assets
+        .get(asset_key)
+        .or_else(|| {
+            manifest
+                .assets
+                .values()
+                .find(|asset| asset.name == platform_asset_name)
+        });
+
+    Ok(CliUpdateInfo {
+        version: manifest.version.trim_start_matches('v').to_string(),
+        update_url: asset.map(|asset| asset.url.clone()),
+        release_url: manifest.release_url.or_else(|| {
+            manifest
+                .tag
+                .map(|tag| format!("https://github.com/sahadev/GitMemo/releases/tag/{tag}"))
+        }),
+        notes: manifest.notes,
+    })
+}
+
+#[cfg(not(target_os = "android"))]
+fn cli_update_from_recent_releases() -> Result<CliUpdateInfo, String> {
+    let asset_name = cli_release_asset_name().ok_or_else(|| "Unsupported CLI platform".to_string())?;
+    let body = fetch_json(CLI_RELEASES_URL)?;
+    let releases: Vec<GithubRelease> = serde_json::from_slice(&body)
+        .map_err(|e| format!("Failed to parse GitHub releases response: {e}"))?;
+
+    for release in releases {
+        if let Some(asset) = release.assets.iter().find(|asset| asset.name == asset_name) {
+            let version = release.tag_name.trim_start_matches('v').to_string();
+            return Ok(CliUpdateInfo {
+                version,
+                update_url: Some(asset.browser_download_url.clone()),
+                release_url: release.html_url,
+                notes: Vec::new(),
+            });
+        }
+    }
+
+    Err("No CLI release found for this platform".to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+fn latest_cli_update_info() -> Result<CliUpdateInfo, String> {
+    cli_update_from_manifest().or_else(|_| cli_update_from_recent_releases())
 }
 
 #[tauri::command]
 pub fn get_cli_status() -> Result<CliStatus, String> {
-    let recommended_version = env!("CARGO_PKG_VERSION").to_string();
-
     #[cfg(target_os = "android")]
     {
         Ok(CliStatus {
             installed: false,
             path: String::new(),
             version: String::new(),
-            recommended_version,
-            version_matches: false,
+            latest_version: None,
+            update_available: false,
+            update_url: None,
+            release_url: None,
+            notes: Vec::new(),
+            check_error: None,
         })
     }
 
     #[cfg(not(target_os = "android"))]
     {
+        let update_info = latest_cli_update_info();
+
         let Some(path) = crate::platform::find_gitmemo_cli() else {
+            let latest = update_info.ok();
             return Ok(CliStatus {
                 installed: false,
                 path: String::new(),
                 version: String::new(),
-                recommended_version,
-                version_matches: false,
+                latest_version: latest.as_ref().map(|info| info.version.clone()),
+                update_available: false,
+                update_url: latest.as_ref().and_then(|info| info.update_url.clone()),
+                release_url: latest.as_ref().and_then(|info| info.release_url.clone()),
+                notes: latest.map(|info| info.notes).unwrap_or_default(),
+                check_error: None,
             });
         };
         let version = cli_version(&path);
-        let version_matches = cli_version_is_compatible(&version, &recommended_version);
+        let (latest_version, update_available, update_url, release_url, notes, check_error) =
+            match update_info {
+                Ok(info) => {
+                    let update_available = version_is_newer(&info.version, &version);
+                    (
+                        Some(info.version),
+                        update_available,
+                        info.update_url,
+                        info.release_url,
+                        info.notes,
+                        None,
+                    )
+                }
+                Err(e) => (None, false, None, None, Vec::new(), Some(e)),
+            };
 
         Ok(CliStatus {
             installed: true,
             path,
             version,
-            recommended_version,
-            version_matches,
+            latest_version,
+            update_available,
+            update_url,
+            release_url,
+            notes,
+            check_error,
         })
     }
 }
@@ -875,7 +1038,7 @@ pub fn remove_cursor_integration() -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{cli_version_is_compatible, parse_version_core};
+    use super::{parse_version_core, version_is_newer};
 
     #[test]
     fn parses_version_core_with_prefix_and_suffix() {
@@ -884,10 +1047,10 @@ mod tests {
     }
 
     #[test]
-    fn cli_version_compatibility_accepts_equal_or_newer_versions() {
-        assert!(cli_version_is_compatible("1.0.108", "1.0.108"));
-        assert!(cli_version_is_compatible("1.0.109", "1.0.107"));
-        assert!(cli_version_is_compatible("1.1.0", "1.0.109"));
-        assert!(!cli_version_is_compatible("1.0.106", "1.0.107"));
+    fn version_newer_only_flags_real_cli_updates() {
+        assert!(!version_is_newer("1.0.108", "1.0.108"));
+        assert!(!version_is_newer("1.0.107", "1.0.109"));
+        assert!(version_is_newer("1.0.109", "1.0.107"));
+        assert!(version_is_newer("1.1.0", "1.0.109"));
     }
 }

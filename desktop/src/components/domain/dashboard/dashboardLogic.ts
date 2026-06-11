@@ -2,6 +2,13 @@ import type { Page } from "../../../App";
 import type { AiRecordsTab, CliStatus, NotesTab } from "../../../hooks/useAppStore";
 import type { GitStatus } from "../../../hooks/useSync";
 import type { AppIconTone } from "../../base/AppIcon";
+import {
+  getCliStatusTone,
+  hasCliUpdateAvailable,
+  isCliInstalled,
+  isCliStatusKnown,
+  needsCliAttention,
+} from "../../../domain/cli/cliStatus";
 
 export interface AppStats {
   conversations: number;
@@ -137,26 +144,6 @@ export function isDashboardEditorConfigured(isDesktop: boolean, claudeEnabled: b
   return isDashboardDesktopPlatform(isDesktop) && isAnyEditorIntegrationEnabled(claudeEnabled, cursorEnabled);
 }
 
-export function isCliStatusKnown(cliStatus: CliStatus | null) {
-  return cliStatus !== null;
-}
-
-export function isCliInstalled(cliStatus: CliStatus | null) {
-  return cliStatus?.installed === true;
-}
-
-export function isCliVersionMatched(cliStatus: CliStatus | null) {
-  return isCliInstalled(cliStatus) && cliStatus?.version_matches === true;
-}
-
-export function isCliVersionOutdated(cliStatus: CliStatus | null) {
-  return isCliInstalled(cliStatus) && !isCliVersionMatched(cliStatus);
-}
-
-export function needsCliAttention(cliStatus: CliStatus | null) {
-  return !isCliInstalled(cliStatus) || isCliVersionOutdated(cliStatus);
-}
-
 export function shouldShowCliCapabilityCard(isDesktop: boolean, cliCardDismissed: boolean, cliStatus: CliStatus | null) {
   return isDashboardDesktopPlatform(isDesktop) && !cliCardDismissed && needsCliAttention(cliStatus);
 }
@@ -164,22 +151,22 @@ export function shouldShowCliCapabilityCard(isDesktop: boolean, cliCardDismissed
 export function getCliStatusText(cliStatus: CliStatus | null): DashboardText {
   if (!isCliStatusKnown(cliStatus)) return { kind: "translation", key: "dashboard.cliCardChecking" };
   if (!isCliInstalled(cliStatus)) return { kind: "translation", key: "dashboard.cliCardNotInstalled" };
-  if (isCliVersionMatched(cliStatus)) {
+  if (hasCliUpdateAvailable(cliStatus)) {
     return {
       kind: "translation",
-      key: "dashboard.cliCardInstalled",
-      args: [cliStatus.version || cliStatus.recommended_version],
+      key: "dashboard.cliCardUpgrade",
+      args: [cliStatus.version || "?", cliStatus.latest_version ?? "?"],
     };
   }
   return {
     kind: "translation",
-    key: "dashboard.cliCardUpgrade",
-    args: [cliStatus.version || "?", cliStatus.recommended_version],
+    key: "dashboard.cliCardInstalled",
+    args: [cliStatus.version || "?"],
   };
 }
 
-export function getCliStatusBadgeTone(cliStatus: CliStatus | null): Extract<AppIconTone, "success" | "warning"> {
-  return isCliVersionMatched(cliStatus) ? "success" : "warning";
+export function getCliStatusBadgeTone(cliStatus: CliStatus | null): Extract<AppIconTone, "success" | "warning" | "muted"> {
+  return getCliStatusTone(cliStatus);
 }
 
 export function hasGitStatus(gitStatus: GitStatus | null): gitStatus is GitStatus {

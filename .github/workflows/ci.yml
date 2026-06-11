@@ -46,36 +46,53 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     outputs:
       version: ${{ steps.check.outputs.version || steps.version.outputs.version }}
+      cli_version: ${{ steps.check.outputs.cli_version || steps.version.outputs.cli_version }}
+      cli_changed: ${{ steps.check.outputs.cli_changed }}
       should_release: ${{ steps.check.outputs.should_release }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get version from Cargo.toml
+      - name: Get release versions
         id: version
         run: |
-          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+          DESKTOP_VERSION=$(python3 -c 'import json; print(json.load(open("desktop/package.json"))["version"])')
+          CLI_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=v${DESKTOP_VERSION}" >> $GITHUB_OUTPUT
+          echo "cli_version=v${CLI_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Check if tag exists and auto-bump if needed
         id: check
         run: |
           TAG="${{ steps.version.outputs.version }}"
+          CLI_CHANGED=false
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             # Tag exists — check if there are new commits since the tag
             COMMITS_SINCE=$(git rev-list "$TAG"..HEAD --count)
             if [ "$COMMITS_SINCE" -gt 0 ]; then
+              if git diff --name-only "$TAG"..HEAD | grep -Eq '^(Cargo\.toml|Cargo\.lock|src/|scripts/install\.sh)$'; then
+                CLI_CHANGED=true
+              fi
               echo "Tag $TAG exists but $COMMITS_SINCE new commits found. Auto-bumping version..."
-              # Bump patch version in Cargo.toml
-              CURRENT=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+              CURRENT=$(python3 -c 'import json; print(json.load(open("desktop/package.json"))["version"])')
               MAJOR=$(echo "$CURRENT" | cut -d. -f1)
               MINOR=$(echo "$CURRENT" | cut -d. -f2)
               PATCH=$(echo "$CURRENT" | cut -d. -f3)
               NEW_PATCH=$((PATCH + 1))
               NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-              sed -i "s/^version = \"${CURRENT}\"/version = \"${NEW_VERSION}\"/" Cargo.toml
               python3 scripts/sync_desktop_version.py "${NEW_VERSION}"
+              NEW_CLI_VERSION="${{ steps.version.outputs.cli_version }}"
+              if [ "$CLI_CHANGED" = "true" ]; then
+                CLI_CURRENT=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+                CLI_MAJOR=$(echo "$CLI_CURRENT" | cut -d. -f1)
+                CLI_MINOR=$(echo "$CLI_CURRENT" | cut -d. -f2)
+                CLI_PATCH=$(echo "$CLI_CURRENT" | cut -d. -f3)
+                CLI_NEW_PATCH=$((CLI_PATCH + 1))
+                CLI_NEW_VERSION="${CLI_MAJOR}.${CLI_MINOR}.${CLI_NEW_PATCH}"
+                sed -i "s/^version = \"${CLI_CURRENT}\"/version = \"${CLI_NEW_VERSION}\"/" Cargo.toml
+                NEW_CLI_VERSION="v${CLI_NEW_VERSION}"
+              fi
               # Commit and push the version bump
               git config user.name "github-actions[bot]"
               git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -84,12 +101,24 @@ jobs:
               git push origin HEAD:main
               # Update output with new version
               echo "version=v${NEW_VERSION}" >> $GITHUB_OUTPUT
+              echo "cli_version=${NEW_CLI_VERSION}" >> $GITHUB_OUTPUT
+              echo "cli_changed=${CLI_CHANGED}" >> $GITHUB_OUTPUT
               echo "should_release=true" >> $GITHUB_OUTPUT
             else
               echo "Tag $TAG exists and no new commits. Skipping release."
+              echo "cli_changed=false" >> $GITHUB_OUTPUT
               echo "should_release=false" >> $GITHUB_OUTPUT
             fi
           else
+            if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+              PREV_TAG=$(git describe --tags --abbrev=0)
+              if git diff --name-only "$PREV_TAG"..HEAD | grep -Eq '^(Cargo\.toml|Cargo\.lock|src/|scripts/install\.sh)$'; then
+                CLI_CHANGED=true
+              fi
+            else
+              CLI_CHANGED=true
+            fi
+            echo "cli_changed=${CLI_CHANGED}" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
 
@@ -108,32 +137,43 @@ jobs:
             artifact: gitmemo-macos-x86_64
     steps:
       - uses: actions/checkout@v4
+        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           ref: main
           fetch-depth: 0
 
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
+        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           key: ${{ matrix.target }}
 
       - name: Sync desktop version files
+        if: needs.check-version.outputs.cli_changed == 'true'
         run: python3 scripts/sync_desktop_version.py
 
       - name: Build
+        if: needs.check-version.outputs.cli_changed == 'true'
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package
+        if: needs.check-version.outputs.cli_changed == 'true'
         run: cp target/${{ matrix.target }}/release/gitmemo ${{ matrix.artifact }}
 
       - name: Upload artifact
+        if: needs.check-version.outputs.cli_changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
+
+      - name: Skip CLI build
+        if: needs.check-version.outputs.cli_changed != 'true'
+        run: echo "No CLI-related changes detected; keeping latest published CLI manifest unchanged."
 
   build-desktop:
     needs: check-version
@@ -238,6 +278,7 @@ jobs:
               "event_type": "sign-and-release",
               "client_payload": {
                 "version": "${{ needs.check-version.outputs.version }}",
+                "cli_changed": "${{ needs.check-version.outputs.cli_changed }}",
                 "run_id": "${{ github.run_id }}",
                 "repository": "${{ github.repository }}"
               }
@@ -290,6 +331,14 @@ jobs:
           ls -lh release-assets
           test -n "$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
           test -n "$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
+
+      - name: Download CLI artifacts
+        if: needs.check-version.outputs.cli_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gitmemo-macos-*
+          path: release-assets
+          merge-multiple: true
 
       - uses: pnpm/action-setup@v4
         with:
@@ -351,17 +400,35 @@ jobs:
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/write_latest_json.py
 
+      - name: Generate CLI update manifest
+        env:
+          CLI_VERSION_TAG: ${{ needs.check-version.outputs.version }}
+          CLI_VERSION: ${{ needs.check-version.outputs.cli_version }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/write_cli_latest_json.py
+
       - name: Upload updater assets to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION_TAG: ${{ needs.check-version.outputs.version }}
         run: |
-          gh release upload "$VERSION_TAG" \
+          assets=(
             release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz \
             release-assets/GitMemo-desktop-macos-aarch64.app.tar.gz.sig \
             release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz \
             release-assets/GitMemo-desktop-macos-x86_64.app.tar.gz.sig \
-            release-assets/latest.json \
+            release-assets/latest.json
+          )
+          if [ "${{ needs.check-version.outputs.cli_changed }}" = "true" ]; then
+            assets+=(
+              release-assets/gitmemo-macos-aarch64
+              release-assets/gitmemo-macos-x86_64
+            )
+          fi
+          assets+=(release-assets/cli-latest.json)
+          gh release upload "$VERSION_TAG" \
+            "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
 

@@ -126,7 +126,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     cliStatus, refreshCliStatus,
     theme, toggleTheme,
     appMeta,
-    updateStatus, updateVersion, updateProgress, updateError,
+    updateStatus, updateVersion, updateDate, updateBody, updateProgress, updateError,
+    pendingUpdateDetailsOpen, consumeUpdateDetailsOpen,
     checkForUpdates, installUpdate,
   } = useAppStore();
   const [branch, setBranch] = useState("");
@@ -140,6 +141,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const [remoteTokenInput, setRemoteTokenInput] = useState("");
   const [savingRemote, setSavingRemote] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
   const [showSyncLogs, setShowSyncLogs] = useState(false);
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
@@ -183,7 +185,17 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     setImportFileSizeLimitDraftKb(settings?.import_file_size_limit_kb ?? IMPORT_SIZE_LIMIT_DEFAULT_KB);
   }, [settings?.import_file_size_limit_kb]);
 
+  useEffect(() => {
+    if (!pendingUpdateDetailsOpen) return;
+    if (updateStatus === "available") {
+      setShowUpdateDetails(true);
+      setShowChangelog(true);
+      consumeUpdateDetailsOpen();
+    }
+  }, [consumeUpdateDetailsOpen, pendingUpdateDetailsOpen, updateStatus]);
+
   const openChangelog = async () => {
+    setShowUpdateDetails(false);
     try {
       const res = await fetch("/changelog.json");
       if (res.ok) setChangelog(await res.json());
@@ -552,6 +564,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   });
   const displayedImportFileSizeLimitKb = importFileSizeLimitDraftKb;
   const cliStatusView = getSettingsCliStatusView(cliStatus, t);
+  const updateNotes = updateBody
+    ? updateBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    : [];
+  const showDesktopUpdateDetails = updateStatus === "available";
+  const openDesktopVersionDetails = () => {
+    if (showDesktopUpdateDetails) {
+      setShowUpdateDetails(true);
+      setShowChangelog(true);
+      return;
+    }
+    void checkForUpdates();
+  };
   const languages: { id: Locale; label: string }[] = [
     { id: "en", label: "English" },
     { id: "zh", label: "中文" },
@@ -1032,8 +1056,22 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       <SettingsAbout>
         <SettingsLogoImage src="/logo.png" alt="GitMemo" {...logoSaveProps} />
         <SettingsAboutTitle>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</SettingsAboutTitle>
-        <SettingsAboutMeta>
-          v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
+        <SettingsAboutMeta
+          className="gm-settings-about-meta-clickable"
+          role="button"
+          tabIndex={0}
+          onClick={openDesktopVersionDetails}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openDesktopVersionDetails();
+            }
+          }}
+        >
+          <span className="gm-settings-version-text">
+            v{appMeta?.version ?? "—"} · {appMeta?.release_time || t("settings.releaseTimeUnknown")}
+          </span>
+          {showDesktopUpdateDetails && <span className="gm-version-update-dot" aria-label={t("settings.updateAvailableDot")} />}
         </SettingsAboutMeta>
 
         {isDesktop && (
@@ -1047,6 +1085,9 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             {updateStatus === "available" && (
               <>
                 <SettingsStatus tone="success">{t("settings.updateAvailable", updateVersion ?? "")}</SettingsStatus>
+                <SettingsActionButton variant="secondary" tone="muted" onClick={() => { setShowUpdateDetails(true); setShowChangelog(true); }}>
+                  {t("settings.viewUpdateDetails")}
+                </SettingsActionButton>
                 <SettingsActionButton variant="primary" onClick={() => void installUpdate()}>
                   {t("settings.installUpdate")}
                 </SettingsActionButton>
@@ -1131,14 +1172,27 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       )}
 
       {showChangelog && (
-        <SettingsModal onBackdropClick={() => setShowChangelog(false)}>
+        <SettingsModal onBackdropClick={() => { setShowChangelog(false); setShowUpdateDetails(false); }}>
           <SettingsModalHeader
             icon={ScrollText}
-            title={t("settings.changelog") || "Changelog"}
-            onClose={() => setShowChangelog(false)}
-          />
+            title={showUpdateDetails && showDesktopUpdateDetails ? t("settings.updateDetails") : (t("settings.changelog") || "Changelog")}
+            onClose={() => { setShowChangelog(false); setShowUpdateDetails(false); }}
+          >
+            {showUpdateDetails && showDesktopUpdateDetails && (
+              <SettingsActionButton variant="primary" onClick={() => void installUpdate()}>
+                {t("settings.installUpdate")}
+              </SettingsActionButton>
+            )}
+          </SettingsModalHeader>
           <SettingsModalBody>
-            {changelog.length === 0 ? (
+            {showUpdateDetails && showDesktopUpdateDetails ? (
+              <SettingsChangelogRelease
+                version={`v${updateVersion ?? ""}`}
+                date={updateDate ?? t("settings.releaseTimeUnknown")}
+                latest
+                changes={updateNotes.length > 0 ? updateNotes : [t("settings.updateNotesFallback")]}
+              />
+            ) : changelog.length === 0 ? (
               <SettingsEmptyModalText>{t("settings.noChangelog") || "No changelog available"}</SettingsEmptyModalText>
             ) : (
               changelog.map((release, index) => (

@@ -1,10 +1,11 @@
 import type { CliStatus } from "../../../hooks/useAppStore";
 import type { GitStatus } from "../../../hooks/useSync";
 import {
+  getCliStatusTone,
+  hasCliUpdateAvailable,
   isCliInstalled,
   isCliStatusKnown,
-  isCliVersionMatched,
-} from "../dashboard/dashboardLogic";
+} from "../../../domain/cli/cliStatus";
 
 export const IMPORT_SIZE_LIMIT_MIN_KB = 500;
 export const IMPORT_SIZE_LIMIT_MAX_KB = 20 * 1024;
@@ -216,14 +217,14 @@ export function getSettingsCliStatusView(cliStatus: CliStatus | null, t: Transla
   if (!isCliInstalled(cliStatus)) {
     return { label: t("settings.cliMissing"), tone: "warning" as const };
   }
-  if (isCliVersionMatched(cliStatus)) {
+  if (hasCliUpdateAvailable(cliStatus)) {
     return {
-      label: t("settings.cliInstalled", cliStatus.version || cliStatus.recommended_version),
-      tone: "success" as const,
+      label: t("settings.cliUpdateAvailable", cliStatus.version || "?", cliStatus.latest_version ?? "?"),
+      tone: getCliStatusTone(cliStatus),
     };
   }
   return {
-    label: t("settings.cliVersionMismatch", cliStatus.version || "?", cliStatus.recommended_version),
-    tone: "warning" as const,
+    label: t("settings.cliInstalled", cliStatus.version || "?"),
+    tone: getCliStatusTone(cliStatus),
   };
 }
