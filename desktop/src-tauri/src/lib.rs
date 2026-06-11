@@ -3,7 +3,7 @@ mod platform;
 
 use commands::{
     clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes,
-    notifications, search, settings, stats, sync_log, watcher,
+    notifications, search, settings, stats, sync_log, vault, watcher,
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
@@ -308,6 +308,8 @@ pub fn run() {
             settings::set_autostart,
             settings::set_clipboard_autostart,
             settings::set_control_copy_paste,
+            settings::set_sensitive_clipboard_action,
+            settings::set_vault_enabled,
             settings::set_import_file_size_limit_kb,
             settings::set_shortcuts,
             settings::set_proxy,
@@ -360,6 +362,13 @@ pub fn run() {
             // Sync logs
             sync_log::get_sync_logs,
             sync_log::clear_sync_logs,
+            vault::get_vault_status,
+            vault::init_vault,
+            vault::unlock_vault,
+            vault::lock_vault,
+            vault::list_vault_entries,
+            vault::reveal_vault_entry,
+            vault::delete_vault_entry,
             get_runtime_platform,
             get_runtime_info,
             print_current_window,

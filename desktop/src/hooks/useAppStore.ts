@@ -63,6 +63,8 @@ export interface DesktopSettings {
   autostart: boolean;
   clipboard_autostart: boolean;
   control_copy_paste: boolean;
+  sensitive_clipboard_action: "redact" | "plaintext";
+  vault_enabled: boolean;
   proxy_mode: "system" | "none" | "custom";
   proxy_url: string;
   shortcuts: KeyboardShortcuts;

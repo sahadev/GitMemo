@@ -13,4 +13,5 @@ pub mod settings;
 pub mod skills;
 pub mod stats;
 pub mod sync_log;
+pub mod vault;
 pub mod watcher;

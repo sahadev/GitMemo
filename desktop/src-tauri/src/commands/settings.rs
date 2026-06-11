@@ -31,6 +31,14 @@ pub enum ProxyMode {
     Custom,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum SensitiveClipboardAction {
+    #[default]
+    Redact,
+    Plaintext,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesktopSettings {
     pub autostart: bool,
@@ -38,6 +46,10 @@ pub struct DesktopSettings {
     pub clipboard_autostart: bool,
     #[serde(default)]
     pub control_copy_paste: bool,
+    #[serde(default)]
+    pub sensitive_clipboard_action: SensitiveClipboardAction,
+    #[serde(default)]
+    pub vault_enabled: bool,
     #[serde(default)]
     pub proxy_mode: ProxyMode,
     #[serde(default)]
@@ -112,6 +124,8 @@ impl Default for DesktopSettings {
             autostart: false,
             clipboard_autostart: true,
             control_copy_paste: false,
+            sensitive_clipboard_action: SensitiveClipboardAction::Redact,
+            vault_enabled: false,
             proxy_mode: ProxyMode::default(),
             proxy_url: String::new(),
             shortcuts: KeyboardShortcuts::default(),
@@ -204,6 +218,10 @@ fn load_settings() -> DesktopSettings {
         }
     }
     DesktopSettings::default()
+}
+
+pub fn current_settings() -> DesktopSettings {
+    load_settings()
 }
 
 pub fn import_file_size_limit_bytes() -> u64 {
@@ -588,6 +606,22 @@ pub fn set_control_copy_paste(enabled: bool) -> Result<String, String> {
     } else {
         "Control copy/paste disabled".into()
     })
+}
+
+#[tauri::command]
+pub fn set_sensitive_clipboard_action(action: SensitiveClipboardAction) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.sensitive_clipboard_action = action;
+    save_settings(&settings)?;
+    Ok("ok".into())
+}
+
+#[tauri::command]
+pub fn set_vault_enabled(enabled: bool) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.vault_enabled = enabled;
+    save_settings(&settings)?;
+    Ok("ok".into())
 }
 
 #[tauri::command]

@@ -84,6 +84,9 @@ interface ClipboardEvent {
   path: string;
   preview: string;
   timestamp: string;
+  sensitive?: boolean;
+  redacted?: boolean;
+  vault_saved?: boolean;
 }
 
 const CLIP_WATCH_FOLDERS = ["clips"];

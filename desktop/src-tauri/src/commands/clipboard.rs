@@ -3,6 +3,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(desktop)]
 use tauri::Emitter;
 
+use super::settings::{self, SensitiveClipboardAction};
+use super::vault;
+use gitmemo_core::services::secrets;
+
 static WATCHING: AtomicBool = AtomicBool::new(false);
 
 #[cfg(desktop)]
@@ -16,6 +20,9 @@ pub struct ClipboardEvent {
     pub path: String,
     pub preview: String,
     pub timestamp: String,
+    pub sensitive: bool,
+    pub redacted: bool,
+    pub vault_saved: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -181,6 +188,21 @@ fn extract_clip_content(file_content: &str) -> String {
     file_content.to_string()
 }
 
+fn should_redact_sensitive_clipboard(
+    sensitive: bool,
+    action: &SensitiveClipboardAction,
+) -> bool {
+    sensitive && action != &SensitiveClipboardAction::Plaintext
+}
+
+fn should_save_sensitive_clipboard_to_vault(
+    sensitive: bool,
+    vault_enabled: bool,
+    vault_unlocked: bool,
+) -> bool {
+    sensitive && vault_enabled && vault_unlocked
+}
+
 pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String> {
     use gitmemo_core::storage::{files, git};
 
@@ -189,8 +211,36 @@ pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String>
         return Err("GitMemo not initialized".into());
     }
 
+    let scan = secrets::scan_text(content);
+    let sensitive = scan.has_secret;
+    let desktop_settings = settings::current_settings();
+    let should_redact = should_redact_sensitive_clipboard(
+        sensitive,
+        &desktop_settings.sensitive_clipboard_action,
+    );
+    let clip_content = if should_redact {
+        secrets::redact_text(content)
+    } else {
+        content.to_string()
+    };
+    let vault_saved = if should_save_sensitive_clipboard_to_vault(
+        sensitive,
+        desktop_settings.vault_enabled,
+        vault::is_unlocked(),
+    ) {
+        match vault::save_clipboard_secret(content, secrets::dominant_kind(&scan)) {
+            Ok(_) => true,
+            Err(e) => {
+                log::warn!("Sensitive clipboard vault save skipped: {}", e);
+                false
+            }
+        }
+    } else {
+        false
+    };
+
     // Check for duplicates in recent 100 clips and remove if found
-    if let Err(e) = remove_duplicate_clips(&sync_dir, content) {
+    if let Err(e) = remove_duplicate_clips(&sync_dir, &clip_content) {
         log::warn!("Failed to check/remove duplicates: {}", e);
     }
 
@@ -201,7 +251,7 @@ pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String>
     let clips_dir = sync_dir.join("clips").join(&date_str);
     std::fs::create_dir_all(&clips_dir).map_err(|e| e.to_string())?;
 
-    let title: String = content
+    let title: String = clip_content
         .lines()
         .next()
         .unwrap_or("clip")
@@ -229,8 +279,8 @@ pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String>
     let md = format!(
         "---\ndate: {}\nsource: clipboard\nchars: {}\n---\n\n{}\n",
         local_timestamp(&now),
-        content.len(),
-        content
+        clip_content.len(),
+        clip_content
     );
     std::fs::write(&full_path, &md).map_err(|e| e.to_string())?;
 
@@ -240,14 +290,46 @@ pub(crate) fn save_clip_content(content: &str) -> Result<ClipboardEvent, String>
         let _ = git::commit_and_push(&dir, &msg);
     });
 
-    let preview: String = content.chars().take(80).collect();
+    let preview: String = clip_content.chars().take(80).collect();
 
     Ok(ClipboardEvent {
         saved: true,
         path: rel_path,
         preview,
         timestamp: now.format("%H:%M:%S").to_string(),
+        sensitive,
+        redacted: should_redact,
+        vault_saved,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sensitive_clipboard_redacts_by_default() {
+        assert!(should_redact_sensitive_clipboard(
+            true,
+            &SensitiveClipboardAction::Redact
+        ));
+        assert!(!should_redact_sensitive_clipboard(
+            true,
+            &SensitiveClipboardAction::Plaintext
+        ));
+        assert!(!should_redact_sensitive_clipboard(
+            false,
+            &SensitiveClipboardAction::Redact
+        ));
+    }
+
+    #[test]
+    fn vault_save_requires_sensitive_enabled_and_unlocked() {
+        assert!(should_save_sensitive_clipboard_to_vault(true, true, true));
+        assert!(!should_save_sensitive_clipboard_to_vault(false, true, true));
+        assert!(!should_save_sensitive_clipboard_to_vault(true, false, true));
+        assert!(!should_save_sensitive_clipboard_to_vault(true, true, false));
+    }
 }
 
 // ── Desktop polling internals (arboard, image, dispatch2) ──
@@ -547,6 +629,9 @@ pub(crate) mod desktop_poll {
             path: rel_path,
             preview: format!("Screenshot {}x{}", width, height),
             timestamp: now.format("%H:%M:%S").to_string(),
+            sensitive: false,
+            redacted: false,
+            vault_saved: false,
         })
     }
 }

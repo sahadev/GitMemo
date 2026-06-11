@@ -11,6 +11,7 @@ import BottomNav from "./components/BottomNav";
 import DropZone from "./components/DropZone";
 import NotesPage from "./pages/NotesPage";
 import ClipboardPage from "./pages/ClipboardPage";
+import VaultPage from "./pages/VaultPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import SearchPage from "./pages/SearchPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -52,7 +53,7 @@ declare global {
   }
 }
 
-export type Page = "dashboard" | "search" | "ai-records" | "notes" | "clipboard" | "favorites" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
+export type Page = "dashboard" | "search" | "ai-records" | "notes" | "clipboard" | "vault" | "favorites" | "imports" | "claude-config" | "editor-home" | "external-files" | "settings";
 export type { Theme } from "./hooks/useAppStore";
 
 type EditorRoot = "claude" | "cursor" | "anonymous";
@@ -500,6 +501,7 @@ function App() {
       {visitedPages.has("ai-records") && <div className="gm-app-page-mount" data-active={currentPage === "ai-records" ? "true" : "false"}><AiRecordsPage active={currentPage === "ai-records"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("ai-records", handler)} /></div>}
       {visitedPages.has("notes") && <div className="gm-app-page-mount" data-active={currentPage === "notes" ? "true" : "false"}><NotesPage active={currentPage === "notes"} focusTrigger={focusTrigger} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("notes", handler)} /></div>}
       {visitedPages.has("clipboard") && <div className="gm-app-page-mount" data-active={currentPage === "clipboard" ? "true" : "false"}><ClipboardPage active={currentPage === "clipboard"} onNavigate={navigatePage} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} registerMobileBackHandler={(handler) => registerMobileBackHandler("clipboard", handler)} /></div>}
+      {isDesktop && visitedPages.has("vault") && <div className="gm-app-page-mount" data-active={currentPage === "vault" ? "true" : "false"}><VaultPage active={currentPage === "vault"} /></div>}
       {visitedPages.has("favorites") && <div className="gm-app-page-mount" data-active={currentPage === "favorites" ? "true" : "false"}><FavoritesPage active={currentPage === "favorites"} registerMobileBackHandler={(handler) => registerMobileBackHandler("favorites", handler)} /></div>}
       {isDesktop && visitedPages.has("claude-config") && <div className="gm-app-page-mount" data-active={currentPage === "claude-config" ? "true" : "false"}><ClaudeConfigPage active={currentPage === "claude-config"} onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} /></div>}
       {visitedPages.has("imports") && <div className="gm-app-page-mount" data-active={currentPage === "imports" ? "true" : "false"}><ImportsPage onFocusSidebar={focusSidebar} enterTrigger={enterContentTrigger} active={currentPage === "imports"} registerMobileBackHandler={(handler) => registerMobileBackHandler("imports", handler)} /></div>}

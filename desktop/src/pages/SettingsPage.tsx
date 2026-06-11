@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -253,6 +253,26 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     try {
       await invoke<string>("set_control_copy_paste", { enabled: !settings.control_copy_paste });
       refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const setSensitiveClipboardAction = async (action: "redact" | "plaintext") => {
+    if (!settings || settings.sensitive_clipboard_action === action) return;
+    try {
+      await invoke<string>("set_sensitive_clipboard_action", { action });
+      await refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const toggleVaultEnabled = async () => {
+    if (!settings) return;
+    try {
+      await invoke<string>("set_vault_enabled", { enabled: !settings.vault_enabled });
+      await refreshSettings();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -626,6 +646,39 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               <SettingsDivider />
               <SettingsRow icon={Clipboard} title={t("settings.clipboardAutostart")} description={t("settings.clipboardAutostartDesc")}>
                 <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow
+                icon={ShieldCheck}
+                title={t("settings.sensitiveClipboard")}
+                description={t("settings.sensitiveClipboardDesc")}
+              >
+                <SettingsSegmentedGroup>
+                  {(["redact", "plaintext"] as const).map((action) => (
+                    <SettingsSegmentedButton
+                      key={action}
+                      active={(settings?.sensitive_clipboard_action ?? "redact") === action}
+                      onClick={() => void setSensitiveClipboardAction(action)}
+                    >
+                      {t(action === "redact" ? "settings.sensitiveClipboardRedact" : "settings.sensitiveClipboardPlaintext")}
+                    </SettingsSegmentedButton>
+                  ))}
+                </SettingsSegmentedGroup>
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow
+                icon={KeyRound}
+                title={t("settings.vaultMode")}
+                description={t("settings.vaultModeDesc")}
+              >
+                <SettingsControlGroup>
+                  <SettingsActionButton variant="secondary" onClick={() => onNavigate?.("vault")}>
+                    {t("settings.openVault")}
+                  </SettingsActionButton>
+                  <Switch enabled={settings?.vault_enabled ?? false} onToggle={toggleVaultEnabled} />
+                </SettingsControlGroup>
               </SettingsRow>
 
               <SettingsDivider />
