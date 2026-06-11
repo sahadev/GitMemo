@@ -23,6 +23,8 @@ Follow existing local style. Rust uses standard `rustfmt` conventions, `snake_ca
 
 All new code should be decomposed into small, atomic units and assembled through composition. For visual work, use the existing base design tokens as the source of truth; derive higher-level tokens or component styles from those base tokens instead of hard-coding near-duplicates. For React/TypeScript work, extract similar behavior into shared components, hooks, or utilities before copying patterns across pages. When touching existing code, if you encounter obvious similar or redundant logic in the same area, refactor it into shared code as part of the change rather than leaving another copy behind.
 
+For desktop UI changes, search `desktop/src/components` and nearby pages before creating local markup that looks like an existing control. Reuse standard components such as `AppHeaders` (`PageHeader`, `PaneHeader`, `PaneTabHeader`), base buttons, icons, empty states, cards, and domain components instead of hand-assembling equivalent structures with shared CSS classes. If a custom structure is truly needed, note the reason in the implementation or final summary and keep it visually aligned with adjacent pages.
+
 ## Interactive State & Persistence
 
 For continuous interactions such as dragging sliders, resizing panes, sorting, scrubbing, or pointer-driven adjustments, separate transient draft state from durable application state. Update local component state during the gesture so the UI stays responsive, and commit persistence, Tauri commands, global store refreshes, expensive recomputation, or storage writes only when the user releases, blurs, confirms, or otherwise completes the interaction. Avoid putting network/native calls, `refreshSettings()`, large `sessionStorage` writes, or repeated `localStorage` writes directly in high-frequency handlers like `onChange`, `mousemove`, `pointermove`, or drag callbacks.
@@ -34,6 +36,8 @@ Rust tests are mostly inline `#[cfg(test)]` modules next to the code they valida
 ## Commit & Pull Request Guidelines
 
 Recent commits use Conventional Commit prefixes such as `feat:`, `fix:`, and `chore:`; release automation may use `[skip ci]`. Keep commits scoped and imperative, for example `fix: preserve clipboard scroll position`. Pull requests should include a concise summary, validation commands run, linked issues when applicable, and screenshots or screen recordings for UI changes.
+
+For agent-made changes, commit completed work locally, but do not push unless the user explicitly asks for a push.
 
 ## Security & Configuration Tips
 
