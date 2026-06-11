@@ -47,7 +47,12 @@ jobs:
     outputs:
       version: ${{ steps.check.outputs.version || steps.version.outputs.version }}
       cli_version: ${{ steps.check.outputs.cli_version || steps.version.outputs.cli_version }}
+      core_changed: ${{ steps.check.outputs.core_changed }}
       cli_changed: ${{ steps.check.outputs.cli_changed }}
+      desktop_changed: ${{ steps.check.outputs.desktop_changed }}
+      website_changed: ${{ steps.check.outputs.website_changed }}
+      release_infra_changed: ${{ steps.check.outputs.release_infra_changed }}
+      release_changed: ${{ steps.check.outputs.release_changed }}
       should_release: ${{ steps.check.outputs.should_release }}
     steps:
       - uses: actions/checkout@v4
@@ -66,14 +71,36 @@ jobs:
         id: check
         run: |
           TAG="${{ steps.version.outputs.version }}"
-          CLI_CHANGED=false
+          CHANGE_OUTPUTS=release-changes.env
+
+          detect_changes() {
+            local base="${1:-}"
+            if [ -n "$base" ]; then
+              python3 scripts/detect_release_changes.py --base "$base" --head HEAD --summary > "$CHANGE_OUTPUTS"
+            else
+              python3 scripts/detect_release_changes.py --bootstrap --summary > "$CHANGE_OUTPUTS"
+            fi
+            cat "$CHANGE_OUTPUTS"
+            # shellcheck disable=SC1090
+            . "$CHANGE_OUTPUTS"
+          }
+
+          write_change_outputs() {
+            cat "$CHANGE_OUTPUTS" >> "$GITHUB_OUTPUT"
+          }
+
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             # Tag exists — check if there are new commits since the tag
             COMMITS_SINCE=$(git rev-list "$TAG"..HEAD --count)
             if [ "$COMMITS_SINCE" -gt 0 ]; then
-              if git diff --name-only "$TAG"..HEAD | grep -Eq '^(Cargo\.toml|Cargo\.lock|src/|scripts/install\.sh)$'; then
-                CLI_CHANGED=true
+              detect_changes "$TAG"
+              write_change_outputs
+              if [ "$release_changed" != "true" ]; then
+                echo "Tag $TAG exists but no release-impacting changes were detected. Skipping release."
+                echo "should_release=false" >> $GITHUB_OUTPUT
+                exit 0
               fi
+
               echo "Tag $TAG exists but $COMMITS_SINCE new commits found. Auto-bumping version..."
               CURRENT=$(python3 -c 'import json; print(json.load(open("desktop/package.json"))["version"])')
               MAJOR=$(echo "$CURRENT" | cut -d. -f1)
@@ -83,7 +110,7 @@ jobs:
               NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
               python3 scripts/sync_desktop_version.py "${NEW_VERSION}"
               NEW_CLI_VERSION="${{ steps.version.outputs.cli_version }}"
-              if [ "$CLI_CHANGED" = "true" ]; then
+              if [ "$cli_changed" = "true" ]; then
                 CLI_CURRENT=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
                 CLI_MAJOR=$(echo "$CLI_CURRENT" | cut -d. -f1)
                 CLI_MINOR=$(echo "$CLI_CURRENT" | cut -d. -f2)
@@ -102,24 +129,27 @@ jobs:
               # Update output with new version
               echo "version=v${NEW_VERSION}" >> $GITHUB_OUTPUT
               echo "cli_version=${NEW_CLI_VERSION}" >> $GITHUB_OUTPUT
-              echo "cli_changed=${CLI_CHANGED}" >> $GITHUB_OUTPUT
               echo "should_release=true" >> $GITHUB_OUTPUT
             else
               echo "Tag $TAG exists and no new commits. Skipping release."
-              echo "cli_changed=false" >> $GITHUB_OUTPUT
+              python3 scripts/detect_release_changes.py --changed-file "" > "$CHANGE_OUTPUTS"
+              write_change_outputs
               echo "should_release=false" >> $GITHUB_OUTPUT
             fi
           else
             if git describe --tags --abbrev=0 >/dev/null 2>&1; then
               PREV_TAG=$(git describe --tags --abbrev=0)
-              if git diff --name-only "$PREV_TAG"..HEAD | grep -Eq '^(Cargo\.toml|Cargo\.lock|src/|scripts/install\.sh)$'; then
-                CLI_CHANGED=true
-              fi
+              detect_changes "$PREV_TAG"
             else
-              CLI_CHANGED=true
+              detect_changes
             fi
-            echo "cli_changed=${CLI_CHANGED}" >> $GITHUB_OUTPUT
-            echo "should_release=true" >> $GITHUB_OUTPUT
+            write_change_outputs
+            if [ "$release_changed" = "true" ]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+            else
+              echo "No release-impacting changes detected. Skipping release."
+              echo "should_release=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
   build:
