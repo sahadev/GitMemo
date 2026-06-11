@@ -289,6 +289,19 @@ cargo test
 cargo run --help
 ```
 
+## Special Contribution: Semantic Logic Modeling
+
+[Semantic Logic Modeling Skill](https://github.com/sahadev/semantic-logic-modeling-skill) made a special contribution to GitMemo's refactoring work. It provided a practical method for turning branch-heavy business rules, UI states, editor integration checks, capture flows, and sync decisions into named semantic predicates, composite case functions, and controlled result functions.
+
+This helped GitMemo in several concrete ways:
+
+- **Business-readable logic** - Conditions now read more like product language through `is...`, `has...`, `can...`, `should...`, `get...`, and `resolve...` helpers instead of long inline boolean expressions.
+- **Thinner React surfaces** - Desktop pages and components can consume domain logic from `desktop/src/components/domain/**`, keeping rendering code focused on layout and interaction.
+- **Reusable decisions** - Shared predicates reduce repeated rules across clipboard, dashboard, file workspace, AI records, setup, settings, and sync-related flows.
+- **Safer AI-assisted iteration** - Explicit, pure, composable logic gives future agents and contributors a clearer map of what each branch means before changing behavior.
+
+As a result, GitMemo's code became more semantic, more reviewable, and easier to extend. Complex state transitions moved out of scattered UI branches and into small named functions, making the intent of the system easier to understand without mentally executing every condition.
+
 ## License
 
 MIT
