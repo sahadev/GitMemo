@@ -300,9 +300,18 @@ jobs:
 
       - name: Trigger sign-and-release
         run: |
-          curl -X POST \
+          set -euo pipefail
+
+          curl --fail-with-body \
+            --retry 3 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            -X POST \
             -H "Authorization: Bearer ${{ secrets.RELEASE_DISPATCH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
             https://api.github.com/repos/${{ secrets.RELEASE_REPO }}/dispatches \
             -d '{
               "event_type": "sign-and-release",
@@ -314,8 +323,110 @@ jobs:
               }
             }'
 
-  sync-oss:
+  wait-signed-dmgs:
     needs: [check-version, dispatch-release]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Download signed DMGs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ needs.check-version.outputs.version }}
+          SIGNED_DMG_WAIT_TIMEOUT_SECONDS: "3600"
+          SIGNED_DMG_POLL_SECONDS: "30"
+        run: |
+          set -euo pipefail
+
+          rm -rf release-assets
+          mkdir -p release-assets
+
+          list_release_assets() {
+            gh release view "$VERSION_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json assets \
+              --jq '.assets[].name' 2>/dev/null || true
+          }
+
+          has_required_signed_dmgs() {
+            grep -Eq '^GitMemo_v?.+_aarch64\.dmg$' release-asset-names.txt &&
+            grep -Eq '^GitMemo_v?.+_(x86_64|x64)\.dmg$' release-asset-names.txt
+          }
+
+          download_signed_dmgs() {
+            while IFS= read -r name; do
+              case "$name" in
+                GitMemo_v*.dmg|GitMemo_*.dmg)
+                  for attempt in 1 2 3; do
+                    if gh release download "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir release-assets --clobber; then
+                      break
+                    fi
+
+                    if [ "$attempt" -eq 3 ]; then
+                      echo "Failed to download signed DMG after 3 attempts: $name" >&2
+                      exit 1
+                    fi
+
+                    echo "Download failed for $name; retrying in 10s..."
+                    sleep 10
+                  done
+                  ;;
+              esac
+            done < release-asset-names.txt
+          }
+
+          deadline=$((SECONDS + SIGNED_DMG_WAIT_TIMEOUT_SECONDS))
+          previous_names="__uninitialized__"
+
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            list_release_assets > release-asset-names.txt
+            current_names="$(cat release-asset-names.txt)"
+
+            if [ "$current_names" != "$previous_names" ]; then
+              echo "Current release assets:"
+              if [ -s release-asset-names.txt ]; then
+                cat release-asset-names.txt
+              else
+                echo "(none yet)"
+              fi
+              previous_names="$current_names"
+            fi
+
+            if has_required_signed_dmgs; then
+              download_signed_dmgs
+              break
+            fi
+
+            remaining=$((deadline - SECONDS))
+            if [ "$remaining" -le 0 ]; then
+              break
+            fi
+
+            echo "Signed release DMGs not ready yet; retrying in ${SIGNED_DMG_POLL_SECONDS}s (${remaining}s remaining)..."
+            sleep "$SIGNED_DMG_POLL_SECONDS"
+          done
+
+          if ! find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit | grep -q . ||
+             ! find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit | grep -q .; then
+            echo "Timed out waiting for signed GitHub release DMGs for $VERSION_TAG" >&2
+            echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$VERSION_TAG" >&2
+            echo "Last observed assets:" >&2
+            cat release-asset-names.txt >&2 || true
+            exit 1
+          fi
+
+          ls -lh release-assets
+
+      - name: Upload signed DMGs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-dmgs
+          path: release-assets/*.dmg
+          if-no-files-found: error
+          retention-days: 1
+
+  sync-oss:
+    needs: [check-version, wait-signed-dmgs]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: macos-latest
     steps:
@@ -325,39 +436,13 @@ jobs:
           fetch-depth: 0
 
       - name: Download signed DMGs
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION_TAG: ${{ needs.check-version.outputs.version }}
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release-dmgs
+          path: release-assets
+
+      - name: Verify signed DMGs
         run: |
-          rm -rf release-assets
-          mkdir -p release-assets
-
-          for attempt in $(seq 1 60); do
-            names="$(gh release view "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
-            echo "$names"
-
-            if echo "$names" | grep -Eq '^GitMemo_v?.+_aarch64\.dmg$' &&
-               echo "$names" | grep -Eq '^GitMemo_v?.+_(x86_64|x64)\.dmg$'; then
-              break
-            fi
-
-            if [ "$attempt" -eq 60 ]; then
-              echo "Timed out waiting for signed GitHub release DMGs" >&2
-              exit 1
-            fi
-
-            echo "Signed release DMGs not ready yet; retrying in 20s..."
-            sleep 20
-          done
-
-          while IFS= read -r name; do
-            case "$name" in
-              GitMemo_v*.dmg|GitMemo_*.dmg)
-                gh release download "$VERSION_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir release-assets --clobber
-                ;;
-            esac
-          done <<< "$names"
-
           ls -lh release-assets
           test -n "$(find release-assets -maxdepth 1 -type f -name 'GitMemo_*_aarch64.dmg' -print -quit)"
           test -n "$(find release-assets -maxdepth 1 -type f \( -name 'GitMemo_*_x86_64.dmg' -o -name 'GitMemo_*_x64.dmg' \) -print -quit)"
