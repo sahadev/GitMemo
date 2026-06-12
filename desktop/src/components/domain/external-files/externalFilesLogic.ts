@@ -80,14 +80,6 @@ export function shouldConsumeExternalOpenTarget(
   return Boolean(openTarget?.filePath) && lastConsumedRequestId !== openTarget?.requestId;
 }
 
-export function isExternalOpenTargetAlreadyLoaded(
-  openTarget: ExternalFileOpenTarget,
-  selectedFilePath: string | null,
-  fileContent: string,
-) {
-  return selectedFilePath === openTarget.filePath && Boolean(fileContent);
-}
-
 export function hasImportedExternalFiles(result: ImportResult) {
   return result.imported.length > 0;
 }

@@ -117,6 +117,7 @@ function App() {
   const routeNotificationTargetRef = useRef<(target: NotificationNavigateTarget) => void>(() => {});
   const initializedRef = useRef<boolean | null>(initialized);
   const routeExternalFileRef = useRef<(filePath: string) => Promise<boolean>>(async () => false);
+  const externalFileOpenRequestIdRef = useRef(0);
   const mobileTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   useEffect(() => {
@@ -301,7 +302,11 @@ function App() {
         setOpenFilePath(null);
         setEditorOpenTarget(null);
         setPendingOpenPath(null);
-        setExternalFileOpenTarget({ filePath: target.file_path, requestId: Date.now() });
+        externalFileOpenRequestIdRef.current += 1;
+        setExternalFileOpenTarget({
+          filePath: target.file_path,
+          requestId: externalFileOpenRequestIdRef.current,
+        });
         setCurrentPage("external-files");
         return true;
       }

@@ -24,7 +24,6 @@ import {
   getSelectedExternalEntry,
   hasExternalEntry,
   hasImportedExternalFiles,
-  isExternalOpenTargetAlreadyLoaded,
   isProbablyMarkdownFileName,
   shouldClearExternalSelection,
   shouldConsumeExternalOpenTarget,
@@ -140,11 +139,8 @@ export default function ExternalFilesPage({
     if (!shouldConsumeExternalOpenTarget(openTarget, lastConsumedOpenTargetRef.current)) return;
     lastConsumedOpenTargetRef.current = openTarget.requestId;
     onOpenTargetConsumed?.();
-    if (isExternalOpenTargetAlreadyLoaded(openTarget, selectedFilePathRef.current, fileContent)) {
-      return;
-    }
     void openExternalFile(openTarget.filePath);
-  }, [openTarget, openExternalFile, onOpenTargetConsumed, fileContent]);
+  }, [openTarget, openExternalFile, onOpenTargetConsumed]);
 
   const selectedEntry = useMemo(
     () => getSelectedExternalEntry(entries, selectedFilePath),
