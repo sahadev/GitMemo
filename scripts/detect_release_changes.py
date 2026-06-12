@@ -140,15 +140,8 @@ def detect_release_changes(paths: Iterable[str], bootstrap: bool = False) -> Rel
     desktop_changed = core_changed or any(is_desktop_path(path) for path in changed_paths)
     website_changed = any(is_website_path(path) for path in changed_paths)
     release_infra_changed = any(is_release_infra_path(path) for path in changed_paths)
-    release_changed = any(
-        (
-            core_changed,
-            cli_changed,
-            desktop_changed,
-            website_changed,
-            release_infra_changed,
-        )
-    )
+    # Product releases require app or CLI artifacts; website and CI changes are handled separately.
+    release_changed = any((core_changed, cli_changed, desktop_changed))
 
     return ReleaseChanges(
         core_changed=core_changed,
@@ -203,7 +196,7 @@ def self_test() -> None:
         (
             "website only",
             ["website/src/app/page.tsx"],
-            {"cli_changed": False, "website_changed": True, "release_changed": True},
+            {"cli_changed": False, "website_changed": True, "release_changed": False},
         ),
         (
             "cli command",
@@ -223,7 +216,7 @@ def self_test() -> None:
         (
             "release infra",
             [".github/workflows/ci.yml", "scripts/write_cli_latest_json.py"],
-            {"cli_changed": False, "release_infra_changed": True, "release_changed": True},
+            {"cli_changed": False, "release_infra_changed": True, "release_changed": False},
         ),
         (
             "docs ignored for release surfaces",
