@@ -2546,6 +2546,20 @@ a:focus-visible {
   width: 100%;
 }
 
+.gm-external-file-change-banner {
+  align-items: center;
+  background: var(--gm-warning-soft);
+  border-bottom: 1px solid var(--gm-warning-border);
+  color: var(--text-primary);
+  display: flex;
+  flex-shrink: 0;
+  font-size: var(--gm-font-sm);
+  gap: var(--gm-space-3);
+  justify-content: space-between;
+  line-height: var(--gm-leading-normal);
+  padding: var(--gm-space-2) var(--gm-space-5);
+}
+
 .gm-file-detail-toolbar {
   align-items: center;
   background: var(--gm-color-bg-surface);

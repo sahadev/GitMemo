@@ -35,6 +35,17 @@ export interface ExternalFileOpenTarget {
   requestId: number;
 }
 
+export interface ExternalFileChangedEvent {
+  file_path: string;
+  exists: boolean;
+  last_modified_at: string | null;
+}
+
+export interface RecentlySavedExternalFile {
+  filePath: string;
+  savedAtMs: number;
+}
+
 export function isProbablyMarkdownFileName(name: string) {
   const lower = name.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
@@ -78,6 +89,41 @@ export function shouldConsumeExternalOpenTarget(
   lastConsumedRequestId: number | null,
 ): openTarget is ExternalFileOpenTarget {
   return Boolean(openTarget?.filePath) && lastConsumedRequestId !== openTarget?.requestId;
+}
+
+export function isSelectedExternalFileChange(
+  event: ExternalFileChangedEvent,
+  selectedFilePath: string | null,
+) {
+  return selectedFilePath === event.file_path;
+}
+
+export function isRecentExternalSelfSave(
+  event: ExternalFileChangedEvent,
+  recentSave: RecentlySavedExternalFile | null,
+  nowMs: number,
+  windowMs = 1500,
+) {
+  return Boolean(
+    recentSave
+      && recentSave.filePath === event.file_path
+      && nowMs - recentSave.savedAtMs >= 0
+      && nowMs - recentSave.savedAtMs <= windowMs,
+  );
+}
+
+export function shouldPromptForExternalDiskChange(
+  event: ExternalFileChangedEvent,
+  editing: boolean,
+) {
+  return editing || !event.exists;
+}
+
+export function shouldReloadExternalDiskChange(
+  event: ExternalFileChangedEvent,
+  editing: boolean,
+) {
+  return event.exists && !editing;
 }
 
 export function hasImportedExternalFiles(result: ImportResult) {

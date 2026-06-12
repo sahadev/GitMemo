@@ -354,6 +354,8 @@ pub fn run() {
             mobile_git_spike::mobile_git_diagnose_saved_remote,
             // Watcher
             watcher::restart_file_watcher,
+            watcher::watch_external_file,
+            watcher::stop_external_file_watcher,
             // Capture
             init::capture_conversations,
             // Crash logs

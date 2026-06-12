@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser, FileX } from "lucide-react";
+import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser, FileX, RotateCcw } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
@@ -24,14 +25,20 @@ import {
   getSelectedExternalEntry,
   hasExternalEntry,
   hasImportedExternalFiles,
+  isRecentExternalSelfSave,
+  isSelectedExternalFileChange,
   isProbablyMarkdownFileName,
   shouldClearExternalSelection,
   shouldConsumeExternalOpenTarget,
+  shouldPromptForExternalDiskChange,
+  shouldReloadExternalDiskChange,
   upsertExternalFileEntry,
   type ExternalFileEntry,
+  type ExternalFileChangedEvent,
   type ExternalFileOpenResult,
   type ExternalFileOpenTarget,
   type ExternalFileWriteResult,
+  type RecentlySavedExternalFile,
   type ImportResult,
 } from "../components/domain/external-files/externalFilesLogic";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
@@ -76,23 +83,38 @@ export default function ExternalFilesPage({
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [clearingMissing, setClearingMissing] = useState(false);
+  const [diskChangePending, setDiskChangePending] = useState<ExternalFileChangedEvent | null>(null);
   const selectedFilePathRef = useRef<string | null>(null);
   const lastConsumedOpenTargetRef = useRef<number | null>(null);
+  const recentSelfSaveRef = useRef<RecentlySavedExternalFile | null>(null);
+  const editingRef = useRef(false);
+  const loadEntriesRef = useRef<() => Promise<void>>(async () => {});
+  const openExternalFileRef = useRef<(filePath: string) => Promise<void>>(async () => {});
+  const upsertEntryRef = useRef<(entry: ExternalFileEntry) => void>(() => {});
 
   useEffect(() => {
     selectedFilePathRef.current = selectedFilePath;
   }, [selectedFilePath]);
+
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
 
   const clearSelection = useCallback(() => {
     setSelectedFilePath(null);
     setFileContent("");
     resetEditor();
     setFileError("");
+    setDiskChangePending(null);
   }, [resetEditor]);
 
   const upsertEntry = useCallback((entry: ExternalFileEntry) => {
     setEntries((prev) => upsertExternalFileEntry(prev, entry));
   }, []);
+
+  useEffect(() => {
+    upsertEntryRef.current = upsertEntry;
+  }, [upsertEntry]);
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -114,6 +136,7 @@ export default function ExternalFilesPage({
     setSelectedFilePath(filePath);
     setFileLoading(true);
     setFileError("");
+    setDiskChangePending(null);
     resetEditor();
     try {
       const result = await invoke<ExternalFileOpenResult>("open_external_file", { filePath });
@@ -132,8 +155,63 @@ export default function ExternalFilesPage({
   }, [loadEntries, resetEditor, upsertEntry]);
 
   useEffect(() => {
+    loadEntriesRef.current = loadEntries;
+  }, [loadEntries]);
+
+  useEffect(() => {
+    openExternalFileRef.current = openExternalFile;
+  }, [openExternalFile]);
+
+  useEffect(() => {
     void loadEntries();
   }, [loadEntries]);
+
+  useEffect(() => {
+    if (!selectedFilePath) {
+      void invoke("stop_external_file_watcher").catch(() => {});
+      return;
+    }
+
+    let cancelled = false;
+    void invoke("watch_external_file", { filePath: selectedFilePath }).catch(() => {});
+    const unlisten = listen<ExternalFileChangedEvent>("external-file-changed", ({ payload }) => {
+      if (cancelled || !isSelectedExternalFileChange(payload, selectedFilePathRef.current)) return;
+
+      upsertEntryRef.current({
+        file_path: payload.file_path,
+        file_name: payload.file_path.split(/[\\/]/).pop() || "file",
+        parent_dir: payload.file_path.replace(/[\\/][^\\/]*$/, ""),
+        exists: payload.exists,
+        last_opened_at: new Date().toISOString(),
+        last_modified_at: payload.last_modified_at,
+      });
+      void loadEntriesRef.current();
+
+      if (isRecentExternalSelfSave(payload, recentSelfSaveRef.current, Date.now())) {
+        return;
+      }
+
+      if (shouldPromptForExternalDiskChange(payload, editingRef.current)) {
+        setDiskChangePending(payload);
+        if (!editingRef.current) {
+          setFileContent("");
+          resetEditor();
+          setFileError(t("externalFiles.fileMissing"));
+        }
+        return;
+      }
+
+      if (shouldReloadExternalDiskChange(payload, editingRef.current)) {
+        void openExternalFileRef.current(payload.file_path);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten.then((fn) => fn());
+      void invoke("stop_external_file_watcher").catch(() => {});
+    };
+  }, [resetEditor, selectedFilePath, t]);
 
   useEffect(() => {
     if (!shouldConsumeExternalOpenTarget(openTarget, lastConsumedOpenTargetRef.current)) return;
@@ -153,15 +231,21 @@ export default function ExternalFilesPage({
     if (!selectedFilePath) return;
     setSaving(true);
     try {
+      recentSelfSaveRef.current = {
+        filePath: selectedFilePath,
+        savedAtMs: Date.now(),
+      };
       const result = await invoke<ExternalFileWriteResult>("save_external_file", {
         filePath: selectedFilePath,
         content: editContent,
       });
       setFileContent(editContent);
+      setDiskChangePending(null);
       upsertEntry(result.entry);
       void loadEntries();
       showToast(result.message || t("externalFiles.saved"));
     } catch (e) {
+      recentSelfSaveRef.current = null;
       showToast(`Error: ${e}`, true);
     } finally {
       setSaving(false);
@@ -239,6 +323,12 @@ export default function ExternalFilesPage({
       setImporting(false);
     }
   }, [selectedFilePath, showToast, t, onImportResult]);
+
+  const handleReloadFromDisk = useCallback(() => {
+    const filePath = diskChangePending?.file_path ?? selectedFilePath;
+    if (!filePath) return;
+    void openExternalFile(filePath);
+  }, [diskChangePending?.file_path, openExternalFile, selectedFilePath]);
 
   return (
     <FileWorkspace
@@ -369,6 +459,23 @@ export default function ExternalFilesPage({
                   />
                 ) : null}
               />
+
+              {diskChangePending ? (
+                <div className="gm-external-file-change-banner">
+                  <span>{diskChangePending.exists ? t("externalFiles.diskChanged") : t("externalFiles.diskMissing")}</span>
+                  {diskChangePending.exists ? (
+                    <Button
+                      variant="ghost"
+                      tone="warning"
+                      icon={RotateCcw}
+                      onClick={handleReloadFromDisk}
+                      disabled={fileLoading}
+                    >
+                      {t("externalFiles.reloadFromDisk")}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
 
               {fileLoading || fileError ? (
                 <DetailScroll>
