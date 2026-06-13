@@ -13,6 +13,7 @@ export const IMPORT_SIZE_LIMIT_DEFAULT_KB = 2 * 1024;
 
 export type CopyField = "syncDir" | "gitRemote" | "cliCommand" | "syncLogs";
 export type ProxyMode = "system" | "none" | "custom";
+export type DesktopUpdateStatus = "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
 
 export interface MobileGitSpikeResult {
   success: boolean;
@@ -181,6 +182,14 @@ export function canStartRemoteDiagnostic(diagnosingRemote: boolean) {
 
 export function canRunMobileGitSpike(running: boolean) {
   return !running;
+}
+
+export function canRequestDesktopUpdateCheck(status: DesktopUpdateStatus) {
+  return status !== "checking" && status !== "downloading";
+}
+
+export function shouldShowDesktopUpdateCheckAction(status: DesktopUpdateStatus) {
+  return status === "idle" || status === "error" || status === "upToDate";
 }
 
 export function hasMobileGitSpikeInputs(remoteUrl: string, token: string) {

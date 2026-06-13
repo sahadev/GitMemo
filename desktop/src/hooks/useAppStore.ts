@@ -8,6 +8,7 @@ import type { KeyboardShortcuts } from "../utils/shortcuts";
 import { initNotificationListeners, notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 import { getRuntimePlatform, getRuntimePlatformSync } from "./usePlatform";
+import { canRequestDesktopUpdateCheck, type DesktopUpdateStatus } from "../components/domain/settings/settingsLogic";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
 const UPDATE_CHECK_TIMEOUT_MS = 15_000;
@@ -135,7 +136,7 @@ interface AppStore {
   refreshCliStatus: () => Promise<void>;
 
   // Update
-  updateStatus: "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
+  updateStatus: DesktopUpdateStatus;
   updateVersion: string | null;
   updateDate: string | null;
   updateBody: string | null;
@@ -261,6 +262,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   },
 
   checkForUpdates: async () => {
+    if (!canRequestDesktopUpdateCheck(get().updateStatus)) return;
     set({ updateStatus: "checking", updateProgress: 0, updateError: null });
     const t0 = performance.now();
     await logUpdaterInfo(

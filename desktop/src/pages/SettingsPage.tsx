@@ -75,6 +75,7 @@ import {
   accessTokenHelpUrl,
   accessTokenProvider,
   canRunMobileGitSpike,
+  canRequestDesktopUpdateCheck,
   canStartRemoteDiagnostic,
   canStartRemoteTest,
   clampImportSizeLimitKb,
@@ -88,6 +89,7 @@ import {
   getSettingsCliStatusView,
   hasMobileGitSpikeInputs,
   shouldSaveImportSizeLimitKb,
+  shouldShowDesktopUpdateCheckAction,
   shouldShowCustomProxyInput,
   shouldShowMobileRemoteStatus,
   summarizeMobileDiagnostic,
@@ -588,6 +590,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     ? updateBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
     : [];
   const showDesktopUpdateDetails = updateStatus === "available";
+  const canCheckDesktopUpdates = canRequestDesktopUpdateCheck(updateStatus);
+  const showDesktopUpdateCheckAction = shouldShowDesktopUpdateCheckAction(updateStatus);
   const openDesktopVersionDetails = () => {
     if (showDesktopUpdateDetails) {
       setShowUpdateDetails(true);
@@ -1129,8 +1133,19 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
 
         {isDesktop && (
           <SettingsUpdateStatus>
-            {updateStatus === "idle" && (
-              <SettingsActionButton icon={Download} variant="secondary" tone="muted" onClick={() => void checkForUpdates()}>
+            {showDesktopUpdateCheckAction && updateStatus !== "idle" && (
+              <SettingsStatus tone={updateStatus === "error" ? "danger" : "success"}>
+                {updateStatus === "error" ? (updateError || t("settings.updateError")) : t("settings.upToDate")}
+              </SettingsStatus>
+            )}
+            {showDesktopUpdateCheckAction && (
+              <SettingsActionButton
+                icon={updateStatus === "upToDate" ? RefreshCw : Download}
+                variant="secondary"
+                tone="muted"
+                onClick={() => void checkForUpdates()}
+                disabled={!canCheckDesktopUpdates}
+              >
                 {t("settings.checkUpdate")}
               </SettingsActionButton>
             )}
@@ -1149,15 +1164,6 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
             {updateStatus === "downloading" && (
               <SettingsUpdateProgress label={t("settings.downloading")} value={updateProgress} />
             )}
-            {updateStatus === "error" && (
-              <>
-                <SettingsStatus tone="danger">{updateError || t("settings.updateError")}</SettingsStatus>
-                <SettingsActionButton variant="secondary" tone="muted" onClick={() => void checkForUpdates()}>
-                  {t("settings.checkUpdate")}
-                </SettingsActionButton>
-              </>
-            )}
-            {updateStatus === "upToDate" && <SettingsStatus tone="success">{t("settings.upToDate")}</SettingsStatus>}
           </SettingsUpdateStatus>
         )}
 
