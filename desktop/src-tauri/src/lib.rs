@@ -1,5 +1,7 @@
 mod commands;
 mod platform;
+#[cfg(desktop)]
+mod startup_skeleton;
 
 use commands::{
     clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes,
@@ -13,14 +15,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+#[cfg(target_os = "macos")]
+use tauri::RunEvent;
 #[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Listener, WebviewWindow,
 };
-#[cfg(target_os = "macos")]
-use tauri::RunEvent;
 #[cfg(desktop)]
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -140,6 +142,7 @@ pub(crate) fn show_main_window(window: &WebviewWindow) {
 
 #[cfg(desktop)]
 pub(crate) fn show_main_window_from_app(app: &AppHandle) {
+    startup_skeleton::close(app);
     if let Some(window) = app.get_webview_window("main") {
         show_main_window(&window);
     }
@@ -156,6 +159,11 @@ fn should_show_main_window_on_frontend_ready(
     has_pending_external_open: bool,
 ) -> bool {
     !hidden_launch || has_pending_external_open
+}
+
+#[cfg(desktop)]
+fn should_show_startup_skeleton(hidden_launch: bool) -> bool {
+    !hidden_launch
 }
 
 #[cfg(target_os = "macos")]
@@ -576,7 +584,7 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     if w.is_visible().unwrap_or(false) {
                         let _ = w.hide();
                     } else {
-                        show_main_window(&w);
+                        show_main_window_from_app(&app);
                     }
                 }
             }
@@ -608,19 +616,17 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    if !is_hidden_launch() {
+    if should_show_startup_skeleton(is_hidden_launch()) {
+        startup_skeleton::show(app.handle());
+
         let app_handle = app.handle().clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(3));
+            std::thread::sleep(std::time::Duration::from_secs(8));
             let pending = app_handle.state::<PendingExternalOpen>();
             if has_frontend_loaded(&pending) {
                 return;
             }
-            if let Some(w) = app_handle.get_webview_window("main") {
-                if !w.is_visible().unwrap_or(false) {
-                    show_main_window(&w);
-                }
-            }
+            show_main_window_from_app(&app_handle);
         });
     }
 
@@ -677,5 +683,11 @@ mod tests {
         assert!(should_show_main_window_on_frontend_ready(false, true));
         assert!(!should_show_main_window_on_frontend_ready(true, false));
         assert!(should_show_main_window_on_frontend_ready(true, true));
+    }
+
+    #[test]
+    fn startup_skeleton_policy_respects_hidden_launch() {
+        assert!(should_show_startup_skeleton(false));
+        assert!(!should_show_startup_skeleton(true));
     }
 }

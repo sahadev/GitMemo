@@ -1,5 +1,7 @@
 use super::sync_log;
 use super::skills::install_save_skill;
+#[cfg(desktop)]
+use crate::show_main_window_from_app;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::config::Config;
 use gitmemo_core::utils::sanitize::git_error_for_user;
@@ -8,7 +10,7 @@ use std::collections::HashMap;
 #[cfg(desktop)]
 use std::str::FromStr;
 #[cfg(desktop)]
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 #[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
 #[cfg(desktop)]
@@ -273,13 +275,6 @@ fn validate_shortcuts(shortcuts: &KeyboardShortcuts) -> Result<(), String> {
 }
 
 #[cfg(desktop)]
-fn show_main_window(window: &tauri::WebviewWindow) {
-    let _ = window.show();
-    let _ = window.unminimize();
-    let _ = window.set_focus();
-}
-
-#[cfg(desktop)]
 fn register_global_shortcuts_for(
     app: &tauri::AppHandle,
     shortcuts: &KeyboardShortcuts,
@@ -296,10 +291,8 @@ fn register_global_shortcuts_for(
             if event.state != ShortcutState::Pressed {
                 return;
             }
-            if let Some(w) = app_handle.get_webview_window("main") {
-                show_main_window(&w);
-                let _ = app_handle.emit("global-shortcut-search", ());
-            }
+            show_main_window_from_app(&app_handle);
+            let _ = app_handle.emit("global-shortcut-search", ());
         })
         .map_err(|e| format!("{e:?}"))?;
     Ok(())
