@@ -29,6 +29,7 @@ struct PendingExternalOpen(Mutex<PendingExternalOpenState>);
 
 #[derive(Default)]
 struct PendingExternalOpenState {
+    frontend_loaded: bool,
     frontend_ready: bool,
     paths: Vec<String>,
 }
@@ -144,6 +145,19 @@ pub(crate) fn show_main_window_from_app(app: &AppHandle) {
     }
 }
 
+#[cfg(desktop)]
+fn is_hidden_launch() -> bool {
+    std::env::args().any(|arg| arg == "--hidden")
+}
+
+#[cfg(desktop)]
+fn should_show_main_window_on_frontend_ready(
+    hidden_launch: bool,
+    has_pending_external_open: bool,
+) -> bool {
+    !hidden_launch || has_pending_external_open
+}
+
 #[cfg(target_os = "macos")]
 fn emit_external_open(app: &AppHandle, file_path: String) {
     let _ = app.emit("system-open-file", file_path);
@@ -151,8 +165,17 @@ fn emit_external_open(app: &AppHandle, file_path: String) {
 
 fn take_pending_external_open(pending: &State<PendingExternalOpen>) -> Vec<String> {
     let mut state = pending.0.lock().unwrap();
+    state.frontend_loaded = true;
     state.frontend_ready = true;
     std::mem::take(&mut state.paths)
+}
+
+fn mark_frontend_loaded(pending: &State<PendingExternalOpen>) {
+    pending.0.lock().unwrap().frontend_loaded = true;
+}
+
+fn has_frontend_loaded(pending: &State<PendingExternalOpen>) -> bool {
+    pending.0.lock().unwrap().frontend_loaded
 }
 
 #[cfg(target_os = "macos")]
@@ -160,7 +183,7 @@ fn emit_or_queue_external_open(
     app: &AppHandle,
     pending: &State<PendingExternalOpen>,
     file_path: String,
-) {
+) -> bool {
     let path_to_emit = {
         let mut state = pending.0.lock().unwrap();
         if state.frontend_ready {
@@ -173,12 +196,33 @@ fn emit_or_queue_external_open(
 
     if let Some(path) = path_to_emit {
         emit_external_open(app, path);
+        true
+    } else {
+        false
     }
 }
 
 #[tauri::command]
-fn app_ready(pending: State<PendingExternalOpen>) -> Vec<String> {
-    take_pending_external_open(&pending)
+fn app_ready(app: AppHandle, pending: State<PendingExternalOpen>) -> Vec<String> {
+    let paths = take_pending_external_open(&pending);
+    #[cfg(desktop)]
+    if should_show_main_window_on_frontend_ready(is_hidden_launch(), !paths.is_empty()) {
+        show_main_window_from_app(&app);
+    }
+    paths
+}
+
+#[tauri::command]
+fn frontend_loaded(app: AppHandle, pending: State<PendingExternalOpen>) {
+    mark_frontend_loaded(&pending);
+
+    #[cfg(desktop)]
+    if should_show_main_window_on_frontend_ready(is_hidden_launch(), false) {
+        show_main_window_from_app(&app);
+    }
+
+    #[cfg(not(desktop))]
+    let _ = app;
 }
 
 #[tauri::command]
@@ -375,6 +419,7 @@ pub fn run() {
             get_runtime_info,
             print_current_window,
             app_ready,
+            frontend_loaded,
             notifications::send_desktop_notification,
         ])
         .setup(|app| {
@@ -429,13 +474,16 @@ pub fn run() {
 
         #[cfg(target_os = "macos")]
         if let RunEvent::Opened { urls } = _event {
-            show_main_window_from_app(_app_handle);
             let pending = _app_handle.state::<PendingExternalOpen>();
+            let mut emitted = false;
             for url in urls {
                 if let Ok(path) = url.to_file_path() {
                     let path = path.to_string_lossy().into_owned();
-                    emit_or_queue_external_open(_app_handle, &pending, path);
+                    emitted |= emit_or_queue_external_open(_app_handle, &pending, path);
                 }
+            }
+            if emitted {
+                show_main_window_from_app(_app_handle);
             }
         }
     });
@@ -560,6 +608,22 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    if !is_hidden_launch() {
+        let app_handle = app.handle().clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            let pending = app_handle.state::<PendingExternalOpen>();
+            if has_frontend_loaded(&pending) {
+                return;
+            }
+            if let Some(w) = app_handle.get_webview_window("main") {
+                if !w.is_visible().unwrap_or(false) {
+                    show_main_window(&w);
+                }
+            }
+        });
+    }
+
     // --- Global Shortcut: configurable show + search ---
     if let Err(e) = settings::register_global_shortcuts(app.handle()) {
         eprintln!("Failed to register global shortcuts: {e}");
@@ -605,5 +669,13 @@ mod tests {
             config.app.windows[1].url.to_string(),
             format!("/quick-paste.html?v={}", env!("CARGO_PKG_VERSION"))
         );
+    }
+
+    #[test]
+    fn main_window_show_policy_respects_hidden_launch() {
+        assert!(should_show_main_window_on_frontend_ready(false, false));
+        assert!(should_show_main_window_on_frontend_ready(false, true));
+        assert!(!should_show_main_window_on_frontend_ready(true, false));
+        assert!(should_show_main_window_on_frontend_ready(true, true));
     }
 }

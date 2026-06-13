@@ -6,13 +6,59 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        background: #171a15;
+        color: #e7eadf;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      html,
+      body,
+      #root {
+        min-height: 100%;
+      }
+
+      body {
+        background: #171a15;
+        margin: 0;
+      }
+
+      .gm-boot-shell {
+        align-items: center;
+        background: #171a15;
+        color: #e7eadf;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100vh;
+        justify-content: center;
+      }
+
+      .gm-boot-mark {
+        border: 1px solid rgba(142, 179, 117, 0.36);
+        border-radius: 8px;
+        color: #b9d8a1;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0;
+        padding: 8px 12px;
+      }
+
+      .gm-boot-text {
+        color: #a8af9f;
+        font-size: 12px;
+      }
+    </style>
     <title>GitMemo</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="gm-boot-shell" aria-label="GitMemo 正在启动">
+        <div class="gm-boot-mark">GitMemo</div>
+        <div class="gm-boot-text">正在启动...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
