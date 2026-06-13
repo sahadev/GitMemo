@@ -7,6 +7,23 @@ export interface RuntimeInfo {
   os: RuntimeOs;
 }
 
+export interface PlatformFlags {
+  platform: Platform;
+  os: RuntimeOs;
+  isDesktop: boolean;
+  isMobile: boolean;
+  isMac: boolean;
+  isWindows: boolean;
+  isLinux: boolean;
+  isAndroid: boolean;
+  isIos: boolean;
+}
+
+export interface PlatformCapabilities {
+  supportsControlCopyPasteBridge: boolean;
+  supportsSystemProxyDetection: boolean;
+}
+
 export function platformFromNavigator(): Platform {
   if (typeof navigator === "undefined") return "desktop";
   return /android|iphone|ipad|ipod/i.test(navigator.userAgent) ? "mobile" : "desktop";
@@ -50,12 +67,61 @@ export function normalizeRuntimeInfo(value: unknown): RuntimeInfo {
   };
 }
 
+export function isDesktopRuntime(info: RuntimeInfo) {
+  return info.family === "desktop";
+}
+
+export function isMobileRuntime(info: RuntimeInfo) {
+  return info.family === "mobile";
+}
+
 export function isMacOs(os: RuntimeOs) {
   return os === "macos";
 }
 
 export function isWindowsOs(os: RuntimeOs) {
   return os === "windows";
+}
+
+export function isLinuxOs(os: RuntimeOs) {
+  return os === "linux";
+}
+
+export function isAndroidOs(os: RuntimeOs) {
+  return os === "android";
+}
+
+export function isIosOs(os: RuntimeOs) {
+  return os === "ios";
+}
+
+export function getPlatformFlags(info: RuntimeInfo): PlatformFlags {
+  return {
+    platform: info.family,
+    os: info.os,
+    isDesktop: isDesktopRuntime(info),
+    isMobile: isMobileRuntime(info),
+    isMac: isMacOs(info.os),
+    isWindows: isWindowsOs(info.os),
+    isLinux: isLinuxOs(info.os),
+    isAndroid: isAndroidOs(info.os),
+    isIos: isIosOs(info.os),
+  };
+}
+
+export function supportsControlCopyPasteBridge(flags: PlatformFlags) {
+  return flags.isDesktop && flags.isMac;
+}
+
+export function supportsSystemProxyDetection(flags: PlatformFlags) {
+  return flags.isDesktop && flags.isMac;
+}
+
+export function getPlatformCapabilities(flags: PlatformFlags): PlatformCapabilities {
+  return {
+    supportsControlCopyPasteBridge: supportsControlCopyPasteBridge(flags),
+    supportsSystemProxyDetection: supportsSystemProxyDetection(flags),
+  };
 }
 
 export function getRevealInFileManagerLabelKey(os: RuntimeOs, namespace: RevealLabelNamespace = "common") {

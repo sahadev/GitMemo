@@ -14,6 +14,7 @@ export const IMPORT_SIZE_LIMIT_DEFAULT_KB = 2 * 1024;
 export type CopyField = "syncDir" | "gitRemote" | "cliCommand" | "syncLogs";
 export type ProxyMode = "system" | "none" | "custom";
 export type DesktopUpdateStatus = "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
+export type ProxyModeLabelKey = "settings.proxySystem" | "settings.proxyNone" | "settings.proxyCustom";
 
 export interface MobileGitSpikeResult {
   success: boolean;
@@ -137,8 +138,27 @@ export function getProxyUrlForMode(mode: ProxyMode, proxyUrlInput: string, curre
   return mode === "custom" ? (proxyUrlInput || currentProxyUrl || "") : "";
 }
 
+export function getAvailableProxyModes(supportsSystemProxyDetection: boolean): ProxyMode[] {
+  return supportsSystemProxyDetection ? ["system", "none", "custom"] : ["none", "custom"];
+}
+
+export function getEffectiveProxyMode(mode: ProxyMode | null | undefined, supportsSystemProxyDetection: boolean): ProxyMode {
+  const next = mode ?? "system";
+  return next === "system" && !supportsSystemProxyDetection ? "none" : next;
+}
+
+export function getProxyModeLabelKey(mode: ProxyMode): ProxyModeLabelKey {
+  if (mode === "system") return "settings.proxySystem";
+  if (mode === "custom") return "settings.proxyCustom";
+  return "settings.proxyNone";
+}
+
 export function shouldShowCustomProxyInput(proxyMode: ProxyMode | null | undefined, editingProxy: boolean) {
   return proxyMode === "custom" || editingProxy;
+}
+
+export function shouldShowControlCopyPasteSetting(supportsControlCopyPasteBridge: boolean) {
+  return supportsControlCopyPasteBridge;
 }
 
 export function getCopySuccessToastKey(field: CopyField) {

@@ -2,14 +2,18 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   fallbackRuntimeInfo,
+  getPlatformCapabilities,
+  getPlatformFlags,
   normalizePlatform,
   normalizeRuntimeInfo,
   platformFromNavigator,
+  type PlatformCapabilities,
+  type PlatformFlags,
   type Platform,
   type RuntimeInfo,
 } from "../utils/platformLogic";
 
-export type { Platform, RuntimeInfo, RuntimeOs } from "../utils/platformLogic";
+export type { Platform, PlatformCapabilities, PlatformFlags, RuntimeInfo, RuntimeOs } from "../utils/platformLogic";
 
 let cachedRuntimeInfo: RuntimeInfo = fallbackRuntimeInfo();
 let cachedPlatform: Platform = cachedRuntimeInfo.family;
@@ -82,12 +86,10 @@ export function useRuntimeInfo(): RuntimeInfo {
 
 export function usePlatformFlags() {
   const runtimeInfo = useRuntimeInfo();
-  const platform = runtimeInfo.family;
+  const flags = getPlatformFlags(runtimeInfo);
   return {
-    platform,
-    os: runtimeInfo.os,
     runtimeInfo,
-    isMobile: platform === "mobile",
-    isDesktop: platform === "desktop",
+    ...flags,
+    capabilities: getPlatformCapabilities(flags),
   };
 }

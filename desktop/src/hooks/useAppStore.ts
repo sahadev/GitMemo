@@ -7,7 +7,8 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import type { KeyboardShortcuts } from "../utils/shortcuts";
 import { initNotificationListeners, notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
-import { getRuntimePlatform, getRuntimePlatformSync } from "./usePlatform";
+import { getPlatformCapabilities, getPlatformFlags, type RuntimeInfo } from "../utils/platformLogic";
+import { getRuntimeInfo, getRuntimeInfoSync, getRuntimePlatform } from "./usePlatform";
 import { canRequestDesktopUpdateCheck, type DesktopUpdateStatus } from "../components/domain/settings/settingsLogic";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
@@ -18,6 +19,10 @@ const UPDATE_DOWNLOAD_TIMEOUT_MS = 600_000;
 function formatUnknownErr(e: unknown): string {
   if (e instanceof Error) return `${e.name}: ${e.message}`;
   return String(e);
+}
+
+function supportsControlCopyPasteBridge(runtimeInfo: RuntimeInfo) {
+  return getPlatformCapabilities(getPlatformFlags(runtimeInfo)).supportsControlCopyPasteBridge;
 }
 
 /** 写入应用日志目录下的 `gitmemo.log`（与 Rust `tauri-plugin-log` 一致）；非 Tauri 环境回退到 console。 */
@@ -386,8 +391,8 @@ export function initAppListeners() {
 
   // Load all state on startup
   void useAppStoreInternal.getState().init();
-  void getRuntimePlatform().then((platform) => {
-    if (platform === "desktop") {
+  void getRuntimeInfo().then((runtimeInfo) => {
+    if (supportsControlCopyPasteBridge(runtimeInfo)) {
       configureControlCopyPasteBridge(
         useAppStoreInternal.getState().settings?.control_copy_paste ?? false,
       );
@@ -415,7 +420,7 @@ export function initAppListeners() {
   useAppStoreInternal.subscribe((s, prev) => {
     if (s.theme !== prev.theme) applyTheme(s.theme);
     if (
-      getRuntimePlatformSync() === "desktop" &&
+      supportsControlCopyPasteBridge(getRuntimeInfoSync()) &&
       s.settings?.control_copy_paste !== prev.settings?.control_copy_paste
     ) {
       configureControlCopyPasteBridge(s.settings?.control_copy_paste ?? false);

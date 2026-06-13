@@ -11,7 +11,6 @@ import { usePlatformFlags } from "../hooks/usePlatform";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
-import { isMacOs } from "../utils/platformLogic";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -82,14 +81,18 @@ import {
   clampImportSizeLimitKb,
   formatImportSizeLimit,
   formatSyncLogsForClipboard,
+  getAvailableProxyModes,
   getCopySuccessToastKey,
   getCurrentImportSizeLimitKb,
+  getEffectiveProxyMode,
   getMobileRemoteStatusView,
+  getProxyModeLabelKey,
   getProxyUrlForMode,
   getRemoteSaveDecision,
   getSettingsCliStatusView,
   hasMobileGitSpikeInputs,
   shouldSaveImportSizeLimitKb,
+  shouldShowControlCopyPasteSetting,
   shouldShowDesktopUpdateCheckAction,
   shouldShowCustomProxyInput,
   shouldShowMobileRemoteStatus,
@@ -120,8 +123,9 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
 export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
-  const { isMobile, isDesktop, os } = usePlatformFlags();
-  const showControlCopyPasteSetting = isDesktop && isMacOs(os);
+  const { isMobile, isDesktop, capabilities } = usePlatformFlags();
+  const showControlCopyPasteSetting = shouldShowControlCopyPasteSetting(capabilities.supportsControlCopyPasteBridge);
+  const availableProxyModes = getAvailableProxyModes(capabilities.supportsSystemProxyDetection);
   const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const { gitStatus, refreshGitStatus } = useSync();
   const {
@@ -301,11 +305,12 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   };
 
   const setProxyMode = async (mode: ProxyMode) => {
-    const url = getProxyUrlForMode(mode, proxyUrlInput, settings?.proxy_url);
+    const nextMode = getEffectiveProxyMode(mode, capabilities.supportsSystemProxyDetection);
+    const url = getProxyUrlForMode(nextMode, proxyUrlInput, settings?.proxy_url);
     try {
-      await invoke<string>("set_proxy", { mode, url });
+      await invoke<string>("set_proxy", { mode: nextMode, url });
       refreshSettings();
-      setEditingProxy(mode === "custom");
+      setEditingProxy(nextMode === "custom");
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -587,6 +592,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
     defaultDetail: t("settings.mobileDiagnosticDefaultDetail"),
   });
   const displayedImportFileSizeLimitKb = importFileSizeLimitDraftKb;
+  const effectiveProxyMode = getEffectiveProxyMode(settings?.proxy_mode, capabilities.supportsSystemProxyDetection);
   const cliStatusView = getSettingsCliStatusView(cliStatus, t);
   const updateNotes = updateBody
     ? updateBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
@@ -731,18 +737,18 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
           <SettingsSubStack>
             <SettingsRow icon={Wifi} title={t("settings.proxy")} description={t("settings.proxyDesc")}>
               <SettingsSegmentedGroup>
-                {(["system", "none", "custom"] as const).map((mode) => (
+                {availableProxyModes.map((mode) => (
                   <SettingsSegmentedButton
                     key={mode}
-                    active={(settings?.proxy_mode ?? "system") === mode}
+                    active={effectiveProxyMode === mode}
                     onClick={() => void setProxyMode(mode)}
                   >
-                    {t(`settings.proxy${mode.charAt(0).toUpperCase() + mode.slice(1)}` as "settings.proxySystem" | "settings.proxyDirect" | "settings.proxyCustom")}
+                    {t(getProxyModeLabelKey(mode))}
                   </SettingsSegmentedButton>
                 ))}
               </SettingsSegmentedGroup>
             </SettingsRow>
-            {shouldShowCustomProxyInput(settings?.proxy_mode, editingProxy) && (
+            {shouldShowCustomProxyInput(effectiveProxyMode, editingProxy) && (
               <SettingsIndentedFieldGroup>
                 <SettingsInput
                   autoFocus
