@@ -167,43 +167,32 @@ jobs:
             artifact: gitmemo-macos-x86_64
     steps:
       - uses: actions/checkout@v4
-        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           ref: main
           fetch-depth: 0
 
       - uses: dtolnay/rust-toolchain@stable
-        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
-        if: needs.check-version.outputs.cli_changed == 'true'
         with:
           key: ${{ matrix.target }}
 
       - name: Sync desktop version files
-        if: needs.check-version.outputs.cli_changed == 'true'
         run: python3 scripts/sync_desktop_version.py
 
       - name: Build
-        if: needs.check-version.outputs.cli_changed == 'true'
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package
-        if: needs.check-version.outputs.cli_changed == 'true'
         run: cp target/${{ matrix.target }}/release/gitmemo ${{ matrix.artifact }}
 
       - name: Upload artifact
-        if: needs.check-version.outputs.cli_changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
-
-      - name: Skip CLI build
-        if: needs.check-version.outputs.cli_changed != 'true'
-        run: echo "No CLI-related changes detected; keeping latest published CLI manifest unchanged."
 
   build-desktop:
     needs: check-version
@@ -302,6 +291,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          # The private signing workflow still uses client_payload.cli_changed as
+          # its legacy "create the signed desktop release" gate. Keep the real
+          # CLI change decision in actual_cli_changed for source-repo jobs.
           curl --fail-with-body \
             --retry 3 \
             --retry-delay 5 \
@@ -317,7 +309,10 @@ jobs:
               "event_type": "sign-and-release",
               "client_payload": {
                 "version": "${{ needs.check-version.outputs.version }}",
-                "cli_changed": "${{ needs.check-version.outputs.cli_changed }}",
+                "cli_changed": "${{ needs.check-version.outputs.release_changed }}",
+                "actual_cli_changed": "${{ needs.check-version.outputs.cli_changed }}",
+                "desktop_changed": "${{ needs.check-version.outputs.desktop_changed }}",
+                "release_changed": "${{ needs.check-version.outputs.release_changed }}",
                 "run_id": "${{ github.run_id }}",
                 "repository": "${{ github.repository }}"
               }
