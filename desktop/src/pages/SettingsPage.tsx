@@ -11,6 +11,7 @@ import { usePlatformFlags } from "../hooks/usePlatform";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
+import { isMacOs } from "../utils/platformLogic";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -119,7 +120,8 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
 export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
-  const { isMobile, isDesktop } = usePlatformFlags();
+  const { isMobile, isDesktop, os } = usePlatformFlags();
+  const showControlCopyPasteSetting = isDesktop && isMacOs(os);
   const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const { gitStatus, refreshGitStatus } = useSync();
   const {
@@ -714,10 +716,14 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                 />
               </SettingsRow>
 
-              <SettingsDivider />
-              <SettingsRow icon={Clipboard} title={t("settings.controlCopyPaste")} description={t("settings.controlCopyPasteDesc")}>
-                <Switch enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
-              </SettingsRow>
+              {showControlCopyPasteSetting && (
+                <>
+                  <SettingsDivider />
+                  <SettingsRow icon={Clipboard} title={t("settings.controlCopyPaste")} description={t("settings.controlCopyPasteDesc")}>
+                    <Switch enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
+                  </SettingsRow>
+                </>
+              )}
             </>
           )}
 
