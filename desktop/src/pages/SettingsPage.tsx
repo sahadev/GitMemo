@@ -11,6 +11,7 @@ import { usePlatformFlags } from "../hooks/usePlatform";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
+import { ImageContextMenu } from "../components/domain/files/ImageContextMenu";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -126,7 +127,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const { isMobile, isDesktop, capabilities } = usePlatformFlags();
   const showControlCopyPasteSetting = shouldShowControlCopyPasteSetting(capabilities.supportsControlCopyPasteBridge);
   const availableProxyModes = getAvailableProxyModes(capabilities.supportsSystemProxyDetection);
-  const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
+  const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const { gitStatus, refreshGitStatus } = useSync();
   const {
     settings, refreshSettings,
@@ -1123,7 +1124,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       )}
 
       <SettingsAbout>
-        <SettingsLogoImage src="/logo.png" alt="GitMemo" {...logoSaveProps} />
+        <SettingsLogoImage src="/logo.png" alt="GitMemo" {...logoActions.imgProps} />
+        <ImageContextMenu menu={logoActions.menu} />
         <SettingsAboutTitle>{isMobile ? "GitMemo Mobile" : "GitMemo Desktop"}</SettingsAboutTitle>
         <SettingsAboutMeta
           className="gm-settings-about-meta-clickable"

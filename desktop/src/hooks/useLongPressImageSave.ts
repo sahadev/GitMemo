@@ -1,7 +1,9 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
+  useState,
   type ImgHTMLAttributes,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -10,9 +12,20 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { useI18n } from "./useI18n";
-import { usePlatform } from "./usePlatform";
+import { usePlatformFlags } from "./usePlatform";
 import { useToast } from "./useToast";
+import {
+  getImageActionAvailability,
+  getImageContextMenuPoint,
+  shouldOpenImageContextMenu,
+  shouldUseLongPressImageSave,
+  type ImageActionAvailability,
+  type ImageContextMenuPoint,
+} from "../components/domain/files/imageActionsLogic";
+import { useAppStore } from "./useAppStore";
+import { withClipboardWatchPaused } from "../utils/clipboard";
 
 interface SavedLocalImage {
   path: string;
@@ -47,9 +60,29 @@ type LongPressImageSaveProps = Pick<
   ref: RefCallback<HTMLImageElement>;
 };
 
+export interface ImageContextMenuState {
+  point: ImageContextMenuPoint;
+  availability: ImageActionAvailability;
+  copyImage: () => Promise<void>;
+  saveImage: () => Promise<void>;
+  revealImage: () => Promise<void>;
+  close: () => void;
+}
+
 type ImageSaveStyle = CSSProperties & {
   WebkitUserDrag?: "none";
 };
+
+function dataUrlToBytes(dataUrl: string) {
+  const [, b64] = dataUrl.split(",", 2);
+  if (!b64) throw new Error("Invalid image data");
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 function blobToDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
@@ -61,9 +94,11 @@ function blobToDataUrl(blob: Blob) {
 }
 
 export function useLongPressImageSave({ src, filePath, fileName }: LongPressImageSaveOptions) {
-  const isMobile = usePlatform() === "mobile";
+  const platformFlags = usePlatformFlags();
   const { t } = useI18n();
   const { showToast } = useToast();
+  const clipboardWatching = useAppStore((s) => s.clipboardStatus?.watching ?? false);
+  const [contextMenuPoint, setContextMenuPoint] = useState<ImageContextMenuPoint | null>(null);
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const triggeredRef = useRef(false);
@@ -71,6 +106,17 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
   const savingRef = useRef(false);
   const lastSaveStartedAtRef = useRef(0);
   const nativeCleanupRef = useRef<(() => void) | null>(null);
+  const imageContext = useMemo(() => ({
+    src,
+    filePath,
+    capabilities: platformFlags.capabilities,
+    isDesktop: platformFlags.isDesktop,
+  }), [filePath, platformFlags.capabilities, platformFlags.isDesktop, src]);
+  const availability = useMemo<ImageActionAvailability>(
+    () => getImageActionAvailability(imageContext),
+    [imageContext],
+  );
+  const useLongPressSave = shouldUseLongPressImageSave(platformFlags, imageContext);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -105,6 +151,48 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
     }
   }, [fileName, filePath, showToast, src, t]);
 
+  const copyImage = useCallback(async () => {
+    if (!availability.canCopyImage || (!src && !filePath)) return;
+    try {
+      let imageSource = src ?? "";
+      if (filePath) {
+        const base64 = await invoke<string>("read_file_base64", { filePath });
+        imageSource = `data:image/png;base64,${base64}`;
+      }
+      if (imageSource.startsWith("data:image/")) {
+        const bytes = dataUrlToBytes(imageSource);
+        await withClipboardWatchPaused(clipboardWatching, () => writeImage(bytes));
+      } else if (/^https?:\/\//i.test(imageSource)) {
+        const response = await fetch(imageSource);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bytes = await response.arrayBuffer();
+        await withClipboardWatchPaused(clipboardWatching, () => writeImage(bytes));
+      } else {
+        throw new Error("Unsupported image source");
+      }
+      showToast(t("common.imageCopied"));
+      setContextMenuPoint(null);
+    } catch (e) {
+      showToast(`${t("common.imageCopyFailed")}: ${e}`, true);
+    }
+  }, [availability.canCopyImage, clipboardWatching, filePath, showToast, src, t]);
+
+  const revealImage = useCallback(async () => {
+    if (!availability.canRevealImage || !filePath) return;
+    try {
+      const absPath = await invoke<string>("resolve_sync_path", { relPath: filePath });
+      await invoke("reveal_external_file_in_finder", { filePath: absPath });
+      setContextMenuPoint(null);
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  }, [availability.canRevealImage, filePath, showToast]);
+
+  const saveImageFromMenu = useCallback(async () => {
+    await saveImage();
+    setContextMenuPoint(null);
+  }, [saveImage]);
+
   useEffect(() => {
     return () => {
       clearTimer();
@@ -114,7 +202,7 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
   }, [clearTimer]);
 
   const beginLongPress = useCallback((x: number, y: number) => {
-    if (!isMobile || (!src && !filePath) || startRef.current) return;
+    if (!useLongPressSave || startRef.current) return;
     clearTimer();
     triggeredRef.current = false;
     startRef.current = { x, y };
@@ -124,7 +212,7 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
       if (navigator.vibrate) navigator.vibrate(12);
       void saveImage();
     }, LONG_PRESS_MS);
-  }, [clearTimer, filePath, isMobile, saveImage, src]);
+  }, [clearTimer, saveImage, useLongPressSave]);
 
   const moveLongPress = useCallback((x: number, y: number) => {
     const startPoint = startRef.current;
@@ -183,14 +271,20 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
     };
     const handleTouchEnd = (event: TouchEvent) => finishLongPress(event);
     const handleContextMenu = (event: MouseEvent) => {
-      if (!isMobile || (!src && !filePath)) return;
+      if (shouldOpenImageContextMenu(imageContext)) {
+        event.preventDefault();
+        event.stopPropagation();
+        setContextMenuPoint(getImageContextMenuPoint(event.clientX, event.clientY));
+        return;
+      }
+      if (!useLongPressSave) return;
       event.preventDefault();
       event.stopPropagation();
       suppressClickUntilRef.current = Date.now() + 900;
       void saveImage();
     };
     const handleClickCapture = (event: MouseEvent) => {
-      if (!isMobile || Date.now() > suppressClickUntilRef.current) return;
+      if (!useLongPressSave || Date.now() > suppressClickUntilRef.current) return;
       event.preventDefault();
       event.stopPropagation();
     };
@@ -210,21 +304,45 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
       node.removeEventListener("contextmenu", handleContextMenu);
       node.removeEventListener("click", handleClickCapture, true);
     };
-  }, [beginLongPress, filePath, finishLongPress, isMobile, moveLongPress, saveImage, src]);
+  }, [beginLongPress, finishLongPress, imageContext, moveLongPress, saveImage, useLongPressSave]);
+
+  useEffect(() => {
+    if (!contextMenuPoint) return;
+    const close = () => setContextMenuPoint(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenuPoint]);
 
   const contextMenu = useCallback((e: ReactMouseEvent<HTMLImageElement>) => {
-    if (!isMobile || (!src && !filePath)) return;
+    if (shouldOpenImageContextMenu(imageContext)) {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenuPoint(getImageContextMenuPoint(e.clientX, e.clientY));
+      return;
+    }
+    if (!useLongPressSave) return;
     e.preventDefault();
     e.stopPropagation();
     suppressClickUntilRef.current = Date.now() + 900;
     void saveImage();
-  }, [filePath, isMobile, saveImage, src]);
+  }, [imageContext, saveImage, useLongPressSave]);
 
   const clickCapture = useCallback((e: ReactMouseEvent<HTMLImageElement>) => {
-    if (!isMobile || Date.now() > suppressClickUntilRef.current) return;
+    if (!useLongPressSave || Date.now() > suppressClickUntilRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-  }, [isMobile]);
+  }, [useLongPressSave]);
 
   const imageStyle: ImageSaveStyle = {
     WebkitTouchCallout: "none",
@@ -233,7 +351,7 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
     userSelect: "none",
   };
 
-  return {
+  const imgProps: LongPressImageSaveProps = {
     ref: imageRef,
     draggable: false,
     onPointerDown: pointerStart,
@@ -248,5 +366,18 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
     onContextMenu: contextMenu,
     onClickCapture: clickCapture,
     style: imageStyle,
-  } satisfies LongPressImageSaveProps;
+  };
+
+  const menu: ImageContextMenuState | null = contextMenuPoint
+    ? {
+        point: contextMenuPoint,
+        availability,
+        copyImage,
+        saveImage: saveImageFromMenu,
+        revealImage,
+        close: () => setContextMenuPoint(null),
+      }
+    : null;
+
+  return { imgProps, menu };
 }

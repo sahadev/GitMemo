@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useLongPressImageSave } from "../../../hooks/useLongPressImageSave";
 import { cacheLocalImageDataUrl, getCachedLocalImageDataUrl } from "../../../utils/localImages";
 import { cx } from "../../base/classNames";
+import { ImageContextMenu } from "./ImageContextMenu";
 
 interface LocalImagePreviewProps {
   relPath: string;
@@ -24,7 +25,7 @@ export function LocalImagePreview({
   selected = false,
 }: LocalImagePreviewProps) {
   const [src, setSrc] = useState<string | null>(() => getCachedLocalImageDataUrl(relPath));
-  const imageSaveProps = useLongPressImageSave({
+  const imageActions = useLongPressImageSave({
     src,
     filePath: relPath,
     fileName: relPath.split("/").pop() ?? null,
@@ -47,13 +48,16 @@ export function LocalImagePreview({
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      {...imageSaveProps}
-      className={cx(className)}
-      data-selected={selected ? "true" : "false"}
-      style={{ ...style, ...imageSaveProps.style }}
-    />
+    <>
+      <img
+        src={src}
+        alt={alt}
+        {...imageActions.imgProps}
+        className={cx(className)}
+        data-selected={selected ? "true" : "false"}
+        style={{ ...style, ...imageActions.imgProps.style }}
+      />
+      <ImageContextMenu menu={imageActions.menu} />
+    </>
   );
 }

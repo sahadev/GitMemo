@@ -21,6 +21,7 @@ export interface PlatformFlags {
 
 export interface PlatformCapabilities {
   supportsControlCopyPasteBridge: boolean;
+  supportsImageClipboardWrite: boolean;
   supportsSystemProxyDetection: boolean;
 }
 
@@ -117,9 +118,14 @@ export function supportsSystemProxyDetection(flags: PlatformFlags) {
   return flags.isDesktop && flags.isMac;
 }
 
+export function supportsImageClipboardWrite(flags: PlatformFlags) {
+  return flags.isDesktop;
+}
+
 export function getPlatformCapabilities(flags: PlatformFlags): PlatformCapabilities {
   return {
     supportsControlCopyPasteBridge: supportsControlCopyPasteBridge(flags),
+    supportsImageClipboardWrite: supportsImageClipboardWrite(flags),
     supportsSystemProxyDetection: supportsSystemProxyDetection(flags),
   };
 }

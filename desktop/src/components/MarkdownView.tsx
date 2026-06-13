@@ -9,6 +9,7 @@ import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 import { cacheLocalImageDataUrl, getCachedLocalImageDataUrl } from "../utils/localImages";
 import { AppIcon } from "./base/AppIcon";
+import { ImageContextMenu } from "./domain/files/ImageContextMenu";
 
 export interface MarkdownViewProps {
   content: string;
@@ -224,7 +225,7 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
   const imgRelPath = useMemo(() => resolveMarkdownImagePath(src, filePath), [src, filePath]);
   const [dataUrl, setDataUrl] = useState<string | null>(() => imgRelPath ? getCachedLocalImageDataUrl(imgRelPath) : null);
   const [localImageState, setLocalImageState] = useState<"ready" | "loading" | "error">("ready");
-  const imageSaveProps = useLongPressImageSave({
+  const imageActions = useLongPressImageSave({
     src: dataUrl ?? src ?? null,
     filePath: imgRelPath,
     fileName: src?.split("/").pop() ?? null,
@@ -261,12 +262,27 @@ function LocalImage({ src, alt, filePath, ...rest }: ComponentProps<"img"> & { f
     : {};
 
   if (dataUrl) {
-    return <img src={dataUrl} alt={alt ?? ""} {...localImageProps} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
+    return (
+      <>
+        <img src={dataUrl} alt={alt ?? ""} {...localImageProps} {...rest} {...imageActions.imgProps} style={{ ...rest.style, ...imageActions.imgProps.style }} />
+        <ImageContextMenu menu={imageActions.menu} />
+      </>
+    );
   }
   if (src?.startsWith("http") || src?.startsWith("data:")) {
-    return <img src={src} alt={alt ?? ""} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
+    return (
+      <>
+        <img src={src} alt={alt ?? ""} {...rest} {...imageActions.imgProps} style={{ ...rest.style, ...imageActions.imgProps.style }} />
+        <ImageContextMenu menu={imageActions.menu} />
+      </>
+    );
   }
-  return <img src={src} alt={alt ?? ""} {...localImageProps} {...rest} {...imageSaveProps} style={{ ...rest.style, ...imageSaveProps.style }} />;
+  return (
+    <>
+      <img src={src} alt={alt ?? ""} {...localImageProps} {...rest} {...imageActions.imgProps} style={{ ...rest.style, ...imageActions.imgProps.style }} />
+      <ImageContextMenu menu={imageActions.menu} />
+    </>
+  );
 }
 
 export function MarkdownContent({ content, filePath }: MarkdownViewProps) {

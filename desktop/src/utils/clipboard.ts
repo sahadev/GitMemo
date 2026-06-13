@@ -3,21 +3,20 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 const CLIPBOARD_WATCH_RESTART_DELAY_MS = 200;
 
-export async function writeTextWithClipboardWatchPaused(
-  text: string,
+export async function withClipboardWatchPaused<T>(
   wasWatching: boolean | undefined,
+  action: () => Promise<T>,
   onRestart?: () => void,
 ) {
   if (!wasWatching) {
-    await writeText(text);
-    return;
+    return action();
   }
 
   let stopped = false;
   try {
     await invoke<string>("stop_clipboard_watch");
     stopped = true;
-    await writeText(text);
+    return await action();
   } finally {
     if (stopped) {
       await new Promise((resolve) => window.setTimeout(resolve, CLIPBOARD_WATCH_RESTART_DELAY_MS));
@@ -25,4 +24,12 @@ export async function writeTextWithClipboardWatchPaused(
       onRestart?.();
     }
   }
+}
+
+export async function writeTextWithClipboardWatchPaused(
+  text: string,
+  wasWatching: boolean | undefined,
+  onRestart?: () => void,
+) {
+  await withClipboardWatchPaused(wasWatching, () => writeText(text), onRestart);
 }

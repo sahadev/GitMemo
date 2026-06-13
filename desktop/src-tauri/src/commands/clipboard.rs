@@ -465,7 +465,7 @@ pub(crate) mod desktop_poll {
             let state = Arc::new(Mutex::new((String::new(), String::new())));
             dispatch2::run_on_main(|_mtm| {
                 let mut guard = state.lock().unwrap_or_else(|e| e.into_inner());
-                let (ref mut last_text_hash, _) = *guard;
+                let (ref mut last_text_hash, ref mut last_image_hash) = *guard;
                 let mut clipboard = match arboard::Clipboard::new() {
                     Ok(cb) => cb,
                     Err(e) => {
@@ -477,6 +477,11 @@ pub(crate) mod desktop_poll {
                 if let Ok(t) = clipboard.get_text() {
                     if !t.is_empty() {
                         *last_text_hash = content_hash(&t);
+                    }
+                }
+                if let Ok(img) = clipboard.get_image() {
+                    if img.width > 0 && img.height > 0 {
+                        *last_image_hash = image_hash(&img);
                     }
                 }
             });
@@ -519,7 +524,12 @@ pub(crate) mod desktop_poll {
                 .filter(|t| !t.is_empty())
                 .map(|t| content_hash(&t))
                 .unwrap_or_default();
-            let mut last_image_hash = String::new();
+            let mut last_image_hash = clipboard
+                .get_image()
+                .ok()
+                .filter(|img| img.width > 0 && img.height > 0)
+                .map(|img| image_hash(&img))
+                .unwrap_or_default();
             while WATCHING.load(Ordering::SeqCst) {
                 let pending = collect_pending_clips(
                     &mut clipboard,

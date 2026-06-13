@@ -5120,6 +5120,12 @@ a:focus-visible {
   z-index: var(--gm-z-overlay);
 }
 
+.gm-image-context-menu {
+  min-width: var(--gm-size-menu-popover-min-width);
+  position: fixed;
+  z-index: var(--gm-z-overlay);
+}
+
 .gm-menu-item {
   align-items: center;
   background: transparent;

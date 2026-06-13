@@ -16,6 +16,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { AppIcon } from "./base/AppIcon";
+import { ImageContextMenu } from "./domain/files/ImageContextMenu";
 
 interface SidebarProps {
   currentPage: Page;
@@ -44,7 +45,7 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] =
 export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, onSync }: SidebarProps) {
   const { t } = useI18n();
   const { appMeta, updateStatus, checkForUpdates, requestUpdateDetailsOpen } = useAppStore();
-  const logoSaveProps = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
+  const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
   const desktopUpdateAvailable = updateStatus === "available";
 
@@ -62,7 +63,8 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
       {/* Logo */}
       <div className="gm-sidebar-brand">
         <div className="gm-sidebar-brand-main">
-          <img src="/logo.png" alt="GitMemo" {...logoSaveProps} className="gm-sidebar-logo" style={logoSaveProps.style} />
+          <img src="/logo.png" alt="GitMemo" {...logoActions.imgProps} className="gm-sidebar-logo" style={logoActions.imgProps.style} />
+          <ImageContextMenu menu={logoActions.menu} />
           <div className="gm-sidebar-brand-copy">
             <span className="gm-sidebar-brand-title">GitMemo</span>
             <span className="gm-sidebar-brand-subtitle">Local-First Knowledge Base</span>
