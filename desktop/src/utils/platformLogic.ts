@@ -1,5 +1,6 @@
 export type Platform = "desktop" | "mobile";
 export type RuntimeOs = "macos" | "windows" | "linux" | "android" | "ios" | "unknown";
+export type RevealLabelNamespace = "common" | "externalFiles";
 
 export interface RuntimeInfo {
   family: Platform;
@@ -47,4 +48,18 @@ export function normalizeRuntimeInfo(value: unknown): RuntimeInfo {
     family: normalizePlatform(raw.family),
     os: normalizeRuntimeOs(raw.os),
   };
+}
+
+export function isMacOs(os: RuntimeOs) {
+  return os === "macos";
+}
+
+export function isWindowsOs(os: RuntimeOs) {
+  return os === "windows";
+}
+
+export function getRevealInFileManagerLabelKey(os: RuntimeOs, namespace: RevealLabelNamespace = "common") {
+  if (isMacOs(os)) return `${namespace}.revealInFinder`;
+  if (isWindowsOs(os)) return `${namespace}.revealInExplorer`;
+  return `${namespace}.revealInFileManager`;
 }

@@ -5,10 +5,12 @@ import { DetailIconButton } from "./DetailIconButton";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { AppIcon } from "./base/AppIcon";
 import { useI18n } from "../hooks/useI18n";
+import { usePlatformFlags } from "../hooks/usePlatform";
 import { useToast } from "../hooks/useToast";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { useAppStore } from "../hooks/useAppStore";
 import { formatTitleWithShortcut, isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { getRevealInFileManagerLabelKey } from "../utils/platformLogic";
 import {
   getFileMoreActionVisibility,
   hasVisibleFileMoreActions,
@@ -43,9 +45,11 @@ export function FileMoreActionsMenu({
   onOpenChange,
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
+  const { os } = usePlatformFlags();
   const { showToast } = useToast();
   const { settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
+  const revealLabel = t(getRevealInFileManagerLabelKey(os));
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = useCallback((next: boolean | ((value: boolean) => boolean)) => {
@@ -139,7 +143,7 @@ export function FileMoreActionsMenu({
           {showReveal ? (
             <button type="button" onClick={() => void handleReveal()} className="gm-menu-item">
               <AppIcon icon={FolderOpen} size="xs" />
-              {t("common.reveal")}
+              {revealLabel}
             </button>
           ) : null}
           {showCopyPath ? (
