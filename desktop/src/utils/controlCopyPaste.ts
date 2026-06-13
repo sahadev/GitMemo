@@ -3,10 +3,6 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 let initialized = false;
 let enabled = false;
 
-function isMacLike() {
-  return /mac|iphone|ipad|ipod/i.test(navigator.platform);
-}
-
 function isEditableElement(el: Element | null): el is HTMLInputElement | HTMLTextAreaElement {
   if (el instanceof HTMLTextAreaElement) return !el.disabled && !el.readOnly;
   if (!(el instanceof HTMLInputElement)) return false;
@@ -43,9 +39,9 @@ function insertText(el: HTMLInputElement | HTMLTextAreaElement, text: string) {
   }));
 }
 
-export function configureControlCopyPasteBridge(nextEnabled: boolean) {
-  enabled = nextEnabled;
-  if (initialized || !isMacLike()) return;
+export function configureControlCopyPasteBridge(nextEnabled: boolean, supportsBridge: boolean) {
+  enabled = supportsBridge && nextEnabled;
+  if (initialized || !supportsBridge) return;
   initialized = true;
 
   window.addEventListener("keydown", (e) => {

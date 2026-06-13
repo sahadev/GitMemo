@@ -392,9 +392,11 @@ export function initAppListeners() {
   // Load all state on startup
   void useAppStoreInternal.getState().init();
   void getRuntimeInfo().then((runtimeInfo) => {
-    if (supportsControlCopyPasteBridge(runtimeInfo)) {
+    const canUseControlCopyPasteBridge = supportsControlCopyPasteBridge(runtimeInfo);
+    if (canUseControlCopyPasteBridge) {
       configureControlCopyPasteBridge(
         useAppStoreInternal.getState().settings?.control_copy_paste ?? false,
+        canUseControlCopyPasteBridge,
       );
     }
   });
@@ -419,11 +421,12 @@ export function initAppListeners() {
   applyTheme(useAppStoreInternal.getState().theme);
   useAppStoreInternal.subscribe((s, prev) => {
     if (s.theme !== prev.theme) applyTheme(s.theme);
+    const canUseControlCopyPasteBridge = supportsControlCopyPasteBridge(getRuntimeInfoSync());
     if (
-      supportsControlCopyPasteBridge(getRuntimeInfoSync()) &&
+      canUseControlCopyPasteBridge &&
       s.settings?.control_copy_paste !== prev.settings?.control_copy_paste
     ) {
-      configureControlCopyPasteBridge(s.settings?.control_copy_paste ?? false);
+      configureControlCopyPasteBridge(s.settings?.control_copy_paste ?? false, canUseControlCopyPasteBridge);
     }
   });
 }
