@@ -20,7 +20,7 @@ desktop = ["tauri/tray-icon"]
 
 [dependencies]
 # Tauri (base — no tray-icon; desktop feature adds it)
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = "2"

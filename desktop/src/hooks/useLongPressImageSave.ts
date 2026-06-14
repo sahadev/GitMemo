@@ -12,6 +12,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Image as TauriImage } from "@tauri-apps/api/image";
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { useI18n } from "./useI18n";
 import { usePlatformFlags } from "./usePlatform";
@@ -26,6 +27,7 @@ import {
 } from "../components/domain/files/imageActionsLogic";
 import { useAppStore } from "./useAppStore";
 import { withClipboardWatchPaused } from "../utils/clipboard";
+import { localImageDataUrl } from "../utils/localImages";
 
 interface SavedLocalImage {
   path: string;
@@ -157,16 +159,18 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
       let imageSource = src ?? "";
       if (filePath) {
         const base64 = await invoke<string>("read_file_base64", { filePath });
-        imageSource = `data:image/png;base64,${base64}`;
+        imageSource = localImageDataUrl(filePath, base64);
       }
       if (imageSource.startsWith("data:image/")) {
         const bytes = dataUrlToBytes(imageSource);
-        await withClipboardWatchPaused(clipboardWatching, () => writeImage(bytes));
+        const image = await TauriImage.fromBytes(bytes);
+        await withClipboardWatchPaused(clipboardWatching, () => writeImage(image));
       } else if (/^https?:\/\//i.test(imageSource)) {
         const response = await fetch(imageSource);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const bytes = await response.arrayBuffer();
-        await withClipboardWatchPaused(clipboardWatching, () => writeImage(bytes));
+        const image = await TauriImage.fromBytes(bytes);
+        await withClipboardWatchPaused(clipboardWatching, () => writeImage(image));
       } else {
         throw new Error("Unsupported image source");
       }
