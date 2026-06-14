@@ -142,6 +142,11 @@ pub(crate) fn show_main_window(window: &WebviewWindow) {
 
 #[cfg(desktop)]
 pub(crate) fn show_main_window_from_app(app: &AppHandle) {
+    if is_startup_skeleton_only_debug() {
+        startup_skeleton::show(app);
+        return;
+    }
+
     startup_skeleton::close(app);
     if let Some(window) = app.get_webview_window("main") {
         show_main_window(&window);
@@ -157,13 +162,29 @@ fn is_hidden_launch() -> bool {
 fn should_show_main_window_on_frontend_ready(
     hidden_launch: bool,
     has_pending_external_open: bool,
+    startup_skeleton_only: bool,
 ) -> bool {
-    !hidden_launch || has_pending_external_open
+    !startup_skeleton_only && (!hidden_launch || has_pending_external_open)
 }
 
 #[cfg(desktop)]
-fn should_show_startup_skeleton(hidden_launch: bool) -> bool {
-    !hidden_launch
+fn should_show_startup_skeleton(hidden_launch: bool, startup_skeleton_only: bool) -> bool {
+    startup_skeleton_only || !hidden_launch
+}
+
+#[cfg(desktop)]
+fn is_enabled_env_value(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+#[cfg(desktop)]
+fn is_startup_skeleton_only_debug() -> bool {
+    std::env::var("GITMEMO_STARTUP_SKELETON_ONLY")
+        .map(|value| is_enabled_env_value(&value))
+        .unwrap_or(false)
 }
 
 #[cfg(target_os = "macos")]
@@ -214,7 +235,11 @@ fn emit_or_queue_external_open(
 fn app_ready(app: AppHandle, pending: State<PendingExternalOpen>) -> Vec<String> {
     let paths = take_pending_external_open(&pending);
     #[cfg(desktop)]
-    if should_show_main_window_on_frontend_ready(is_hidden_launch(), !paths.is_empty()) {
+    if should_show_main_window_on_frontend_ready(
+        is_hidden_launch(),
+        !paths.is_empty(),
+        is_startup_skeleton_only_debug(),
+    ) {
         show_main_window_from_app(&app);
     }
     paths
@@ -225,7 +250,11 @@ fn frontend_loaded(app: AppHandle, pending: State<PendingExternalOpen>) {
     mark_frontend_loaded(&pending);
 
     #[cfg(desktop)]
-    if should_show_main_window_on_frontend_ready(is_hidden_launch(), false) {
+    if should_show_main_window_on_frontend_ready(
+        is_hidden_launch(),
+        false,
+        is_startup_skeleton_only_debug(),
+    ) {
         show_main_window_from_app(&app);
     }
 
@@ -616,12 +645,15 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    if should_show_startup_skeleton(is_hidden_launch()) {
+    if should_show_startup_skeleton(is_hidden_launch(), is_startup_skeleton_only_debug()) {
         startup_skeleton::show(app.handle());
 
         let app_handle = app.handle().clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_secs(8));
+            if is_startup_skeleton_only_debug() {
+                return;
+            }
             let pending = app_handle.state::<PendingExternalOpen>();
             if has_frontend_loaded(&pending) {
                 return;
@@ -679,15 +711,40 @@ mod tests {
 
     #[test]
     fn main_window_show_policy_respects_hidden_launch() {
-        assert!(should_show_main_window_on_frontend_ready(false, false));
-        assert!(should_show_main_window_on_frontend_ready(false, true));
-        assert!(!should_show_main_window_on_frontend_ready(true, false));
-        assert!(should_show_main_window_on_frontend_ready(true, true));
+        assert!(should_show_main_window_on_frontend_ready(
+            false, false, false
+        ));
+        assert!(should_show_main_window_on_frontend_ready(
+            false, true, false
+        ));
+        assert!(!should_show_main_window_on_frontend_ready(
+            true, false, false
+        ));
+        assert!(should_show_main_window_on_frontend_ready(true, true, false));
+        assert!(!should_show_main_window_on_frontend_ready(
+            false, false, true
+        ));
+        assert!(!should_show_main_window_on_frontend_ready(
+            false, true, true
+        ));
     }
 
     #[test]
     fn startup_skeleton_policy_respects_hidden_launch() {
-        assert!(should_show_startup_skeleton(false));
-        assert!(!should_show_startup_skeleton(true));
+        assert!(should_show_startup_skeleton(false, false));
+        assert!(!should_show_startup_skeleton(true, false));
+        assert!(should_show_startup_skeleton(false, true));
+        assert!(should_show_startup_skeleton(true, true));
+    }
+
+    #[test]
+    fn enabled_env_value_accepts_debug_truthy_values() {
+        assert!(is_enabled_env_value("1"));
+        assert!(is_enabled_env_value("true"));
+        assert!(is_enabled_env_value(" yes "));
+        assert!(is_enabled_env_value("ON"));
+        assert!(!is_enabled_env_value("0"));
+        assert!(!is_enabled_env_value("false"));
+        assert!(!is_enabled_env_value(""));
     }
 }
