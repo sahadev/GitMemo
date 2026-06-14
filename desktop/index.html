@@ -30,24 +30,82 @@
         color: #e7eadf;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 30px;
         height: 100vh;
         justify-content: center;
       }
 
-      .gm-boot-mark {
-        border: 1px solid rgba(142, 179, 117, 0.36);
-        border-radius: 8px;
-        color: #b9d8a1;
-        font-size: 15px;
+      .gm-boot-title {
+        color: #ecf4e8;
+        font-size: 24px;
         font-weight: 700;
         letter-spacing: 0;
-        padding: 8px 12px;
       }
 
-      .gm-boot-text {
-        color: #a8af9f;
-        font-size: 12px;
+      .gm-boot-loader {
+        align-items: center;
+        display: flex;
+        gap: 14px;
+        height: 36px;
+        justify-content: center;
+      }
+
+      .gm-boot-dot {
+        animation: gm-boot-dot-pulse 1.44s ease-in-out infinite;
+        background: #a7c779;
+        border-radius: 999px;
+        height: 8px;
+        opacity: 0.35;
+        width: 8px;
+      }
+
+      .gm-boot-dot:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+
+      .gm-boot-dot:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+
+      .gm-boot-progress {
+        background: #2d352d;
+        border-radius: 999px;
+        height: 6px;
+        overflow: hidden;
+        position: relative;
+        width: 240px;
+      }
+
+      .gm-boot-progress::before {
+        animation: gm-boot-progress-slide 1.45s ease-in-out infinite alternate;
+        background: #a7c779;
+        border-radius: inherit;
+        content: "";
+        height: 100%;
+        left: 0;
+        position: absolute;
+        top: 0;
+        width: 72px;
+      }
+
+      @keyframes gm-boot-dot-pulse {
+        from {
+          opacity: 0.35;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes gm-boot-progress-slide {
+        from {
+          transform: translateX(0);
+        }
+
+        to {
+          transform: translateX(168px);
+        }
       }
     </style>
     <title>GitMemo</title>
@@ -55,8 +113,13 @@
   <body>
     <div id="root">
       <div class="gm-boot-shell" aria-label="GitMemo 正在启动">
-        <div class="gm-boot-mark">GitMemo</div>
-        <div class="gm-boot-text">正在启动...</div>
+        <div class="gm-boot-title">GitMemo 正在启动中</div>
+        <div class="gm-boot-loader" aria-hidden="true">
+          <span class="gm-boot-dot"></span>
+          <span class="gm-boot-dot"></span>
+          <span class="gm-boot-dot"></span>
+        </div>
+        <div class="gm-boot-progress" aria-hidden="true"></div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
