@@ -173,6 +173,26 @@ fn should_show_startup_skeleton(hidden_launch: bool, startup_skeleton_only: bool
 }
 
 #[cfg(desktop)]
+fn should_keep_main_window_hidden_for_startup_skeleton_debug(startup_skeleton_only: bool) -> bool {
+    startup_skeleton_only
+}
+
+#[cfg(desktop)]
+fn should_skip_main_window_creation_for_startup_skeleton_debug(
+    startup_skeleton_only: bool,
+) -> bool {
+    startup_skeleton_only
+}
+
+#[cfg(desktop)]
+fn remove_main_window_from_config(config: &mut tauri::Config) {
+    config
+        .app
+        .windows
+        .retain(|window| window.label != "main");
+}
+
+#[cfg(desktop)]
 fn is_enabled_env_value(value: &str) -> bool {
     matches!(
         value.trim().to_ascii_lowercase().as_str(),
@@ -339,6 +359,11 @@ pub fn run() {
     let mut context = tauri::generate_context!();
     #[cfg(desktop)]
     version_desktop_window_entry_urls(context.config_mut());
+    #[cfg(desktop)]
+    if should_skip_main_window_creation_for_startup_skeleton_debug(is_startup_skeleton_only_debug())
+    {
+        remove_main_window_from_config(context.config_mut());
+    }
 
     let app = builder
         .invoke_handler(tauri::generate_handler![
@@ -643,6 +668,12 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         });
+
+        if should_keep_main_window_hidden_for_startup_skeleton_debug(
+            is_startup_skeleton_only_debug(),
+        ) {
+            let _ = w.hide();
+        }
     }
 
     if should_show_startup_skeleton(is_hidden_launch(), is_startup_skeleton_only_debug()) {
@@ -735,6 +766,46 @@ mod tests {
         assert!(!should_show_startup_skeleton(true, false));
         assert!(should_show_startup_skeleton(false, true));
         assert!(should_show_startup_skeleton(true, true));
+    }
+
+    #[test]
+    fn startup_skeleton_debug_keeps_main_window_hidden() {
+        assert!(should_keep_main_window_hidden_for_startup_skeleton_debug(
+            true
+        ));
+        assert!(!should_keep_main_window_hidden_for_startup_skeleton_debug(
+            false
+        ));
+    }
+
+    #[test]
+    fn startup_skeleton_debug_skips_main_window_creation() {
+        assert!(should_skip_main_window_creation_for_startup_skeleton_debug(
+            true
+        ));
+        assert!(!should_skip_main_window_creation_for_startup_skeleton_debug(
+            false
+        ));
+    }
+
+    #[test]
+    fn remove_main_window_from_config_keeps_other_windows() {
+        let mut config = tauri::Config::default();
+        config.app.windows = vec![
+            tauri::utils::config::WindowConfig {
+                label: "main".into(),
+                ..Default::default()
+            },
+            tauri::utils::config::WindowConfig {
+                label: "quick-paste".into(),
+                ..Default::default()
+            },
+        ];
+
+        remove_main_window_from_config(&mut config);
+
+        assert_eq!(config.app.windows.len(), 1);
+        assert_eq!(config.app.windows[0].label, "quick-paste");
     }
 
     #[test]
