@@ -86,5 +86,6 @@ notify = "7"
 dispatch2 = "0.3"
 mac-notification-sys = "0.6"
 objc2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSBox", "NSCell", "NSColor", "NSControl", "NSFont", "NSGraphics", "NSProgressIndicator", "NSResponder", "NSTextField", "NSView", "NSWindow"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "objc2-core-graphics", "objc2-quartz-core", "NSBox", "NSCell", "NSColor", "NSControl", "NSFont", "NSGraphics", "NSProgressIndicator", "NSResponder", "NSTextField", "NSView", "NSWindow"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSObject", "NSString", "NSUserNotification", "NSObjCRuntime", "NSGeometry", "objc2-core-foundation"] }
+objc2-quartz-core = { version = "0.3", default-features = false, features = ["CALayer", "objc2-core-foundation", "objc2-core-graphics"] }

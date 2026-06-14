@@ -12,10 +12,11 @@ mod macos {
     use objc2::rc::Retained;
     use objc2::{ClassType, MainThreadMarker, MainThreadOnly};
     use objc2_app_kit::{
-        NSBackingStoreType, NSBox, NSBoxType, NSColor, NSControlSize, NSFont, NSProgressIndicator,
+        NSBackingStoreType, NSColor, NSControlSize, NSFont, NSProgressIndicator,
         NSProgressIndicatorStyle, NSTextField, NSView, NSWindow, NSWindowStyleMask,
     };
     use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
+    use objc2_quartz_core::CALayer;
     use std::cell::RefCell;
     use tauri::AppHandle;
 
@@ -28,7 +29,7 @@ mod macos {
     const SPACE_3: f64 = 24.0;
     const SPACE_4: f64 = 32.0;
     const SPACE_5: f64 = 40.0;
-    const WINDOW_PADDING: f64 = SPACE_4;
+    const WINDOW_PADDING: f64 = SPACE_5;
     const PANEL_GAP: f64 = SPACE_3;
     const PANEL_PADDING: f64 = SPACE_5;
     const SIDEBAR_WIDTH: f64 = 256.0;
@@ -175,24 +176,27 @@ mod macos {
         window.setMovableByWindowBackground(true);
         window.setBackgroundColor(Some(&NSColor::clearColor()));
         let content_view = create_content_view(mtm, size);
-        window.setContentView(Some(content_view.as_super()));
+        window.setContentView(Some(&content_view));
         window.invalidateShadow();
         window.center();
         window
     }
 
-    fn create_content_view(mtm: MainThreadMarker, size: SkeletonWindowSize) -> Retained<NSBox> {
+    fn create_content_view(mtm: MainThreadMarker, size: SkeletonWindowSize) -> Retained<NSView> {
         let layout = skeleton_layout(size);
-        let view = NSBox::initWithFrame(
-            NSBox::alloc(mtm),
+        let view = NSView::initWithFrame(
+            NSView::alloc(mtm),
             rect(0.0, 0.0, layout.size.width, layout.size.height),
         );
-        view.setBoxType(NSBoxType::Custom);
-        view.setFillColor(&color(0x17, 0x1a, 0x15, 1.0));
-        view.setBorderColor(&color(0x17, 0x1a, 0x15, 1.0));
-        view.setBorderWidth(0.0);
-        view.setCornerRadius(WINDOW_CORNER_RADIUS);
-        let root = view.as_super();
+        style_layer(
+            &view,
+            &color(0x17, 0x1a, 0x15, 1.0),
+            None,
+            0.0,
+            WINDOW_CORNER_RADIUS,
+            true,
+        );
+        let root = &view;
 
         add_panel(
             root,
@@ -416,13 +420,16 @@ mod macos {
         fill: Retained<NSColor>,
         radius: f64,
     ) {
-        let panel = NSBox::initWithFrame(NSBox::alloc(mtm), rect(x, y, width, height));
-        panel.setBoxType(NSBoxType::Custom);
-        panel.setFillColor(&fill);
-        panel.setBorderColor(&color(0x2d, 0x35, 0x2c, 1.0));
-        panel.setBorderWidth(1.0);
-        panel.setCornerRadius(radius);
-        parent.addSubview(panel.as_super());
+        let panel = NSView::initWithFrame(NSView::alloc(mtm), rect(x, y, width, height));
+        style_layer(
+            &panel,
+            &fill,
+            Some(&color(0x2d, 0x35, 0x2c, 1.0)),
+            1.0,
+            radius,
+            true,
+        );
+        parent.addSubview(&panel);
     }
 
     fn add_placeholder(
@@ -435,13 +442,30 @@ mod macos {
         fill: Retained<NSColor>,
         radius: f64,
     ) {
-        let placeholder = NSBox::initWithFrame(NSBox::alloc(mtm), rect(x, y, width, height));
-        placeholder.setBoxType(NSBoxType::Custom);
-        placeholder.setFillColor(&fill);
-        placeholder.setBorderColor(&fill);
-        placeholder.setBorderWidth(0.0);
-        placeholder.setCornerRadius(radius);
-        parent.addSubview(placeholder.as_super());
+        let placeholder = NSView::initWithFrame(NSView::alloc(mtm), rect(x, y, width, height));
+        style_layer(&placeholder, &fill, None, 0.0, radius, true);
+        parent.addSubview(&placeholder);
+    }
+
+    fn style_layer(
+        view: &NSView,
+        fill: &NSColor,
+        border: Option<&NSColor>,
+        border_width: f64,
+        radius: f64,
+        masks_to_bounds: bool,
+    ) {
+        view.setWantsLayer(true);
+        let layer = view.layer().unwrap_or_else(|| {
+            let layer = CALayer::layer();
+            view.setLayer(Some(&layer));
+            layer
+        });
+        layer.setBackgroundColor(Some(&fill.CGColor()));
+        layer.setBorderWidth(border_width);
+        layer.setBorderColor(border.map(|color| color.CGColor()).as_deref());
+        layer.setCornerRadius(radius);
+        layer.setMasksToBounds(masks_to_bounds);
     }
 
     fn add_progress_bar(
