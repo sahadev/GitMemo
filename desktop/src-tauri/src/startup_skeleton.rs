@@ -25,6 +25,7 @@ mod macos {
     const WINDOW_MARGIN: f64 = 24.0;
     const PANEL_GAP: f64 = 24.0;
     const SIDEBAR_WIDTH: f64 = 260.0;
+    const WINDOW_CORNER_RADIUS: f64 = 18.0;
 
     #[derive(Clone, Copy)]
     struct SkeletonWindowSize {
@@ -151,24 +152,32 @@ mod macos {
         unsafe {
             window.setReleasedWhenClosed(false);
         }
-        window.setOpaque(true);
+        window.setOpaque(false);
+        window.setHasShadow(true);
         window.setMovableByWindowBackground(true);
-        window.setBackgroundColor(Some(&color(0x17, 0x1a, 0x15, 1.0)));
+        window.setBackgroundColor(Some(&NSColor::clearColor()));
         let content_view = create_content_view(mtm, size);
-        window.setContentView(Some(&content_view));
+        window.setContentView(Some(content_view.as_super()));
+        window.invalidateShadow();
         window.center();
         window
     }
 
-    fn create_content_view(mtm: MainThreadMarker, size: SkeletonWindowSize) -> Retained<NSView> {
+    fn create_content_view(mtm: MainThreadMarker, size: SkeletonWindowSize) -> Retained<NSBox> {
         let layout = skeleton_layout(size);
-        let view = NSView::initWithFrame(
-            NSView::alloc(mtm),
+        let view = NSBox::initWithFrame(
+            NSBox::alloc(mtm),
             rect(0.0, 0.0, layout.size.width, layout.size.height),
         );
+        view.setBoxType(NSBoxType::Custom);
+        view.setFillColor(&color(0x17, 0x1a, 0x15, 1.0));
+        view.setBorderColor(&color(0x17, 0x1a, 0x15, 1.0));
+        view.setBorderWidth(0.0);
+        view.setCornerRadius(WINDOW_CORNER_RADIUS);
+        let root = view.as_super();
 
         add_panel(
-            &view,
+            root,
             mtm,
             layout.sidebar_x,
             layout.sidebar_y,
@@ -178,7 +187,7 @@ mod macos {
             14.0,
         );
         add_panel(
-            &view,
+            root,
             mtm,
             layout.content_x,
             layout.top_y,
@@ -189,7 +198,7 @@ mod macos {
         );
         let middle_card_width = (layout.content_width - PANEL_GAP) / 2.0;
         add_panel(
-            &view,
+            root,
             mtm,
             layout.content_x,
             layout.middle_y,
@@ -199,7 +208,7 @@ mod macos {
             14.0,
         );
         add_panel(
-            &view,
+            root,
             mtm,
             layout.content_x + middle_card_width + PANEL_GAP,
             layout.middle_y,
@@ -209,7 +218,7 @@ mod macos {
             14.0,
         );
         add_panel(
-            &view,
+            root,
             mtm,
             layout.content_x,
             layout.bottom_y,
@@ -220,7 +229,7 @@ mod macos {
         );
 
         add_label(
-            &view,
+            root,
             mtm,
             "GitMemo",
             layout.sidebar_x + 34.0,
@@ -232,7 +241,7 @@ mod macos {
             color(0xec, 0xf4, 0xe8, 1.0),
         );
         add_label(
-            &view,
+            root,
             mtm,
             "Starting workspace",
             layout.sidebar_x + 34.0,
@@ -253,7 +262,7 @@ mod macos {
                 color(0x34, 0x3c, 0x33, 1.0)
             };
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 layout.sidebar_x + 34.0,
                 y,
@@ -263,7 +272,7 @@ mod macos {
                 6.0,
             );
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 layout.sidebar_x + 34.0,
                 y - 20.0,
@@ -275,7 +284,7 @@ mod macos {
         }
 
         add_label(
-            &view,
+            root,
             mtm,
             "Loading GitMemo",
             layout.content_x + 40.0,
@@ -287,7 +296,7 @@ mod macos {
             color(0xe7, 0xef, 0xe0, 1.0),
         );
         add_label(
-            &view,
+            root,
             mtm,
             "Preparing notes, clips, and sync state",
             layout.content_x + 40.0,
@@ -299,7 +308,7 @@ mod macos {
             color(0x9e, 0xab, 0x99, 1.0),
         );
         add_spinner(
-            &view,
+            root,
             mtm,
             layout.content_x + layout.content_width - 64.0,
             layout.top_y + layout.top_height - 84.0,
@@ -307,7 +316,7 @@ mod macos {
 
         for offset in [135.0, 165.0, 195.0] {
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 layout.content_x + 40.0,
                 layout.top_y + layout.top_height - offset,
@@ -323,7 +332,7 @@ mod macos {
             layout.content_x + middle_card_width + PANEL_GAP + 40.0,
         ] {
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 card_x,
                 layout.middle_y + layout.middle_height - 70.0,
@@ -333,7 +342,7 @@ mod macos {
                 6.0,
             );
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 card_x,
                 layout.middle_y + 52.0,
@@ -346,7 +355,7 @@ mod macos {
 
         for (offset, width) in [(62.0_f64, 520.0_f64), (94.0, 400.0), (126.0, 120.0)] {
             add_placeholder(
-                &view,
+                root,
                 mtm,
                 layout.content_x + 40.0,
                 layout.bottom_y + layout.bottom_height - offset,
