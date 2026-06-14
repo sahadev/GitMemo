@@ -169,7 +169,13 @@ fn should_show_main_window_on_frontend_ready(
 
 #[cfg(desktop)]
 fn should_show_startup_skeleton(hidden_launch: bool, startup_skeleton_only: bool) -> bool {
-    startup_skeleton_only || !hidden_launch
+    let _ = hidden_launch;
+    startup_skeleton_only
+}
+
+#[cfg(desktop)]
+fn should_show_main_window_on_setup(hidden_launch: bool, startup_skeleton_only: bool) -> bool {
+    !hidden_launch && !startup_skeleton_only
 }
 
 #[cfg(desktop)]
@@ -693,6 +699,10 @@ fn setup_desktop(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    if should_show_main_window_on_setup(is_hidden_launch(), is_startup_skeleton_only_debug()) {
+        show_main_window_from_app(app.handle());
+    }
+
     // --- Global Shortcut: configurable show + search ---
     if let Err(e) = settings::register_global_shortcuts(app.handle()) {
         eprintln!("Failed to register global shortcuts: {e}");
@@ -762,10 +772,18 @@ mod tests {
 
     #[test]
     fn startup_skeleton_policy_respects_hidden_launch() {
-        assert!(should_show_startup_skeleton(false, false));
+        assert!(!should_show_startup_skeleton(false, false));
         assert!(!should_show_startup_skeleton(true, false));
         assert!(should_show_startup_skeleton(false, true));
         assert!(should_show_startup_skeleton(true, true));
+    }
+
+    #[test]
+    fn main_window_setup_policy_respects_hidden_launch_and_skeleton_debug() {
+        assert!(should_show_main_window_on_setup(false, false));
+        assert!(!should_show_main_window_on_setup(true, false));
+        assert!(!should_show_main_window_on_setup(false, true));
+        assert!(!should_show_main_window_on_setup(true, true));
     }
 
     #[test]
