@@ -20,6 +20,7 @@ import { useToast } from "./useToast";
 import {
   getImageActionAvailability,
   getImageContextMenuPoint,
+  canRevealSavedImage,
   shouldOpenImageContextMenu,
   shouldUseLongPressImageSave,
   type ImageActionAvailability,
@@ -28,6 +29,7 @@ import {
 import { useAppStore } from "./useAppStore";
 import { withClipboardWatchPaused } from "../utils/clipboard";
 import { localImageDataUrl } from "../utils/localImages";
+import { getRevealInFileManagerLabelKey } from "../utils/platformLogic";
 
 interface SavedLocalImage {
   path: string;
@@ -145,13 +147,29 @@ export function useLongPressImageSave({ src, filePath, fileName }: LongPressImag
         filePath: filePath ?? null,
         fileName: fileName ?? null,
       });
-      showToast(t("common.imageSaved", result.path));
+      const canRevealSaved = canRevealSavedImage({
+        path: result.path,
+        isDesktop: platformFlags.isDesktop,
+      });
+      showToast(t("common.imageSaved", result.path), false, canRevealSaved ? {
+        action: {
+          label: t(getRevealInFileManagerLabelKey(platformFlags.os)),
+          onClick: async () => {
+            try {
+              await invoke("reveal_external_file_in_finder", { filePath: result.path });
+            } catch (e) {
+              showToast(`Error: ${e}`, true);
+            }
+          },
+        },
+        autoClose: 8000,
+      } : undefined);
     } catch (e) {
       showToast(`${t("common.imageSaveFailed")}: ${e}`, true);
     } finally {
       savingRef.current = false;
     }
-  }, [fileName, filePath, showToast, src, t]);
+  }, [fileName, filePath, platformFlags.isDesktop, platformFlags.os, showToast, src, t]);
 
   const copyImage = useCallback(async () => {
     if (!availability.canCopyImage || (!src && !filePath)) return;

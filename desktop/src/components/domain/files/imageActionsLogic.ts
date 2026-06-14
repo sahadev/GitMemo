@@ -7,6 +7,11 @@ export interface ImageActionContext {
   isDesktop: boolean;
 }
 
+export interface SavedImageActionContext {
+  path?: string | null;
+  isDesktop: boolean;
+}
+
 export interface ImageContextMenuPoint {
   x: number;
   y: number;
@@ -27,6 +32,15 @@ export function hasLocalImageFile(ctx: ImageActionContext) {
   return Boolean(ctx.filePath);
 }
 
+export function hasSavedImagePath(ctx: SavedImageActionContext) {
+  return Boolean(ctx.path?.trim());
+}
+
+export function isNativeFileSystemPath(path?: string | null) {
+  const value = path?.trim() ?? "";
+  return value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value) || value.startsWith("\\\\");
+}
+
 export function canCopyRenderedImage(ctx: ImageActionContext) {
   return ctx.capabilities.supportsImageClipboardWrite && hasImageSource(ctx);
 }
@@ -37,6 +51,10 @@ export function canSaveRenderedImage(ctx: ImageActionContext) {
 
 export function canRevealRenderedImage(ctx: ImageActionContext) {
   return ctx.isDesktop && hasLocalImageFile(ctx);
+}
+
+export function canRevealSavedImage(ctx: SavedImageActionContext) {
+  return ctx.isDesktop && hasSavedImagePath(ctx) && isNativeFileSystemPath(ctx.path);
 }
 
 export function getImageActionAvailability(ctx: ImageActionContext): ImageActionAvailability {

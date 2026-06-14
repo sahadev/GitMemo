@@ -5626,6 +5626,39 @@ a:focus-visible {
   margin-top: var(--gm-space-1);
 }
 
+.gm-notification-content {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-3);
+  min-width: 0;
+}
+
+.gm-notification-message {
+  line-height: var(--gm-leading-normal);
+  overflow-wrap: anywhere;
+}
+
+.gm-notification-action {
+  align-items: center;
+  align-self: flex-start;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--gm-radius-md);
+  color: var(--gm-color-on-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--gm-font-xs);
+  font-weight: 650;
+  min-height: var(--gm-control-height-xs);
+  padding: var(--gm-control-pad-y) var(--gm-control-pad-x-lg);
+}
+
+.gm-notification-action:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 .gm-quick-paste-panel {
   background: var(--gm-color-bg-surface);
   border: 1px solid var(--border);
