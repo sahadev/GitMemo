@@ -54,11 +54,11 @@ import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
 
 const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
-  conversation: { icon: MessageSquare, tone: "accent" },
-  manual: { icon: BookOpen, tone: "warning" },
-  scratch: { icon: FileText, tone: "purple" },
-  clip: { icon: Clipboard, tone: "pink" },
-  plan: { icon: Lightbulb, tone: "warning" },
+  conversation: { icon: MessageSquare, tone: "olympic-blue" },
+  manual: { icon: BookOpen, tone: "olympic-yellow" },
+  scratch: { icon: FileText, tone: "olympic-black" },
+  clip: { icon: Clipboard, tone: "olympic-green" },
+  plan: { icon: Lightbulb, tone: "olympic-red" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";

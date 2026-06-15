@@ -192,6 +192,11 @@
   --gm-color-danger: #ee6b60;
   --gm-color-purple: #a982f4;
   --gm-color-pink: #e57da3;
+  --gm-olympic-blue: #0085c7;
+  --gm-olympic-yellow: #f4c300;
+  --gm-olympic-black: #d8ded4;
+  --gm-olympic-green: #009f3d;
+  --gm-olympic-red: #df0024;
   --gm-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.20);
   --gm-shadow-popover: 0 18px 42px rgba(0, 0, 0, 0.34);
   --gm-shadow-modal: 0 26px 80px rgba(0, 0, 0, 0.45);
@@ -269,6 +274,11 @@
   --gm-color-danger: #c83f3a;
   --gm-color-purple: #7f58d4;
   --gm-color-pink: #bd4673;
+  --gm-olympic-blue: #0085c7;
+  --gm-olympic-yellow: #f4c300;
+  --gm-olympic-black: #1d241f;
+  --gm-olympic-green: #009f3d;
+  --gm-olympic-red: #df0024;
   --gm-shadow-card: 0 1px 2px rgba(35, 46, 34, 0.06);
   --gm-shadow-popover: 0 18px 42px rgba(35, 46, 34, 0.14);
   --gm-shadow-modal: 0 26px 80px rgba(35, 46, 34, 0.22);
@@ -795,6 +805,11 @@ a:focus-visible {
 .gm-icon-tone-blue { color: var(--gm-category-blue); }
 .gm-icon-tone-gray { color: var(--gm-category-gray); }
 .gm-icon-tone-teal { color: var(--gm-category-teal); }
+.gm-icon-tone-olympic-blue { color: var(--gm-olympic-blue); }
+.gm-icon-tone-olympic-yellow { color: var(--gm-olympic-yellow); }
+.gm-icon-tone-olympic-black { color: var(--gm-olympic-black); }
+.gm-icon-tone-olympic-green { color: var(--gm-olympic-green); }
+.gm-icon-tone-olympic-red { color: var(--gm-olympic-red); }
 
 .gm-icon-spin {
   animation: spin 1s linear infinite;
@@ -4819,6 +4834,11 @@ a:focus-visible {
 .gm-dashboard-stat-card[data-tone="purple"] { --gm-item-color: var(--purple); }
 .gm-dashboard-stat-card[data-tone="pink"] { --gm-item-color: var(--pink); }
 .gm-dashboard-stat-card[data-tone="teal"] { --gm-item-color: var(--gm-category-teal); }
+.gm-dashboard-stat-card[data-tone="olympic-blue"] { --gm-item-color: var(--gm-olympic-blue); }
+.gm-dashboard-stat-card[data-tone="olympic-yellow"] { --gm-item-color: var(--gm-olympic-yellow); }
+.gm-dashboard-stat-card[data-tone="olympic-black"] { --gm-item-color: var(--gm-olympic-black); }
+.gm-dashboard-stat-card[data-tone="olympic-green"] { --gm-item-color: var(--gm-olympic-green); }
+.gm-dashboard-stat-card[data-tone="olympic-red"] { --gm-item-color: var(--gm-olympic-red); }
 .gm-dashboard-stat-card[data-tone="secondary"],
 .gm-dashboard-stat-card[data-tone="muted"] { --gm-item-color: var(--text-secondary); }
 
