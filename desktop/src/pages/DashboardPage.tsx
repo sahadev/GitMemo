@@ -42,7 +42,6 @@ import {
   isDashboardEditorConfigured,
   shouldShowCliCapabilityCard,
   shouldShowDashboardEmptyGuide,
-  shouldShowDashboardReviewItem,
   type AppStats,
   type DashboardCategoryRoute,
   type DashboardContentCategory,
@@ -119,10 +118,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [recent, setRecent] = useState<RecentItem[]>(cached?.recent ?? []);
   const [statsLoading, setStatsLoading] = useState(!cached?.stats);
   const [recentLoading, setRecentLoading] = useState(!cached?.recent);
-  const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState("");
-  const [reviewItem, setReviewItem] = useState<RecentItem | null>(null);
-  const [reviewPreview, setReviewPreview] = useState("");
   const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
   const dashboardCacheRef = useRef<DashboardCache>({
     stats: cached?.stats ?? null,
@@ -149,26 +145,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const dismissCliCard = useCallback(() => {
     setCliCardDismissed(true);
     try { localStorage.setItem(CLI_CARD_DISMISSED_KEY, "true"); } catch {}
-  }, []);
-
-  const loadReview = useCallback(async () => {
-    setReviewLoading(true);
-    try {
-      const item = await invoke<RecentItem | null>("get_review_item");
-      setReviewItem(item);
-      if (!item) {
-        setReviewPreview("");
-        return;
-      }
-      const content = await invoke<string>("read_file", { filePath: item.path }).catch(() => "");
-      const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
-      setReviewPreview(body.slice(0, 200));
-    } catch {
-      setReviewItem(null);
-      setReviewPreview("");
-    } finally {
-      setReviewLoading(false);
-    }
   }, []);
 
   const loadStats = useCallback(async () => {
@@ -202,8 +178,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const loadData = useCallback(() => {
     void loadStats();
     void loadRecent();
-    void loadReview();
-  }, [loadRecent, loadReview, loadStats]);
+  }, [loadRecent, loadStats]);
 
   useEffect(() => {
     loadData();
@@ -245,7 +220,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const displayedFileCount = stats ? getDashboardDisplayedFileCount(stats) : 0;
   const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : 0;
   const displayedRecent = getDashboardVisibleRecentItems(isDesktop, recent);
-  const showReviewItem = shouldShowDashboardReviewItem(isDesktop, reviewItem);
   const showEmptyGuide = stats ? shouldShowDashboardEmptyGuide(stats, displayedRecent) : false;
   const isDashboardOverviewLoading = statsLoading && !stats;
   const isRecentActivityLoading = recentLoading && displayedRecent.length === 0;
@@ -500,47 +474,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             </div>
           )}
       </div>
-
-      {/* Today's Review */}
-      {reviewLoading && !reviewItem && (
-        <div className="gm-dashboard-card gm-dashboard-card-section">
-          <div className="gm-card-head">
-            <AppIcon icon={RefreshCw} size="xs" tone="warning" />
-            <span className="gm-section-title">{t("dashboard.todayReview")}</span>
-          </div>
-          <Loading compact text={t("dashboard.startupLoadingReview")} />
-        </div>
-      )}
-
-      {showReviewItem && reviewItem && (
-        <div className="gm-dashboard-card gm-dashboard-card-section gm-dashboard-card-button"
-          onClick={() => openRecord(reviewItem)}
-        >
-          <div className="gm-card-head">
-            <AppIcon icon={RefreshCw} size="xs" tone="warning" />
-            <span className="gm-section-title">{t("dashboard.todayReview")}</span>
-            <Button
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                void loadReview();
-              }}
-              className="gm-dashboard-card-shuffle"
-            >
-              {t("dashboard.shuffle")}
-            </Button>
-          </div>
-          <p className="gm-card-title gm-dashboard-review-title">{reviewItem.name}</p>
-          {reviewPreview && (
-            <p className="gm-dashboard-review-preview">
-              {reviewPreview}
-            </p>
-          )}
-          <p className="gm-dashboard-review-time">
-            {relativeTime(reviewItem.modified, t)}
-          </p>
-        </div>
-      )}
 
       {/* Quick Info */}
       <div className="gm-dashboard-quick-info">

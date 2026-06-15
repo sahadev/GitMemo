@@ -5022,9 +5022,7 @@ a:focus-visible {
 }
 
 .gm-dashboard-empty-copy,
-.gm-dashboard-card-empty,
-.gm-dashboard-review-preview,
-.gm-dashboard-review-time {
+.gm-dashboard-card-empty {
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
   line-height: var(--gm-leading-normal);
@@ -5037,37 +5035,6 @@ a:focus-visible {
 
 .gm-dashboard-card-section {
   margin-bottom: var(--gm-section-gap);
-}
-
-.gm-dashboard-review-title {
-  margin: 0;
-  margin-bottom: var(--gm-row-pad-y);
-}
-
-.gm-dashboard-review-preview {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.gm-dashboard-review-time {
-  font-size: var(--gm-font-2xs);
-  margin: 0;
-  margin-top: var(--gm-row-pad-y);
-}
-
-.gm-dashboard-card-shuffle {
-  border: none;
-  margin-left: auto;
-  min-height: 0;
-  padding: 0;
-}
-
-.gm-dashboard-card-shuffle.gm-button-ghost:hover:not(:disabled) {
-  background: transparent;
-  color: var(--accent);
 }
 
 .gm-dashboard-quick-info {

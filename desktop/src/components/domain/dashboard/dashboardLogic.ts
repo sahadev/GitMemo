@@ -128,10 +128,6 @@ export function hasDashboardContentFiles(stats: AppStats) {
   return getDashboardContentFileCount(stats) > 0;
 }
 
-export function shouldShowDashboardReviewItem(isDesktop: boolean, reviewItem: RecentItem | null) {
-  return reviewItem !== null && canOpenDashboardRecentItem(isDesktop, reviewItem);
-}
-
 export function shouldShowDashboardEmptyGuide(stats: AppStats, visibleRecent: RecentItem[]) {
   return !hasDashboardContentFiles(stats) && visibleRecent.length === 0;
 }
