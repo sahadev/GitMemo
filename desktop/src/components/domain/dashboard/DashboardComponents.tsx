@@ -8,15 +8,17 @@ interface StatCardProps {
   label: ReactNode;
   value: ReactNode;
   tone: AppIconTone;
+  loading?: boolean;
   onClick?: () => void;
 }
 
-export function DashboardStatCard({ icon, label, value, tone, onClick }: StatCardProps) {
+export function DashboardStatCard({ icon, label, value, tone, loading = false, onClick }: StatCardProps) {
   return (
     <button
       type="button"
       className="gm-dashboard-card gm-dashboard-stat-card"
       data-clickable={onClick ? "true" : "false"}
+      data-loading={loading ? "true" : "false"}
       data-tone={tone}
       onClick={onClick}
     >

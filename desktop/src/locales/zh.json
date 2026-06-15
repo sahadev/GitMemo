@@ -126,6 +126,8 @@
     "loading": "加载中...",
     "startupReadingRepository": "正在读取仓库状态...",
     "startupLoadingOverview": "正在加载首页概览...",
+    "startupLoadingActivity": "正在加载最近动态...",
+    "startupLoadingReview": "正在加载知识回顾...",
     "noRemote": "无远程仓库",
     "initHint": "运行 `gitmemo init` 开始使用",
     "recentActivity": "最近动态",

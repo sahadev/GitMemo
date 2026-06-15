@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n } from "../hooks/useI18n";
@@ -48,7 +48,6 @@ import {
   type DashboardContentCategory,
   type RecentItem,
 } from "../components/domain/dashboard/dashboardLogic";
-import { getDashboardStartupMessageKey } from "../utils/startupLogic";
 
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
@@ -118,20 +117,23 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const cached = loadCache();
   const [stats, setStats] = useState<AppStats | null>(cached?.stats ?? null);
   const [recent, setRecent] = useState<RecentItem[]>(cached?.recent ?? []);
+  const [statsLoading, setStatsLoading] = useState(!cached?.stats);
+  const [recentLoading, setRecentLoading] = useState(!cached?.recent);
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState("");
   const [reviewItem, setReviewItem] = useState<RecentItem | null>(null);
   const [reviewPreview, setReviewPreview] = useState("");
   const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
+  const dashboardCacheRef = useRef<DashboardCache>({
+    stats: cached?.stats ?? null,
+    recent: cached?.recent ?? [],
+  });
 
   // Derived state
   const editorConfigured = isDashboardEditorConfigured(isDesktop, claudeEnabled, cursorEnabled);
   const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatus);
   const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
   const cliStatusBadgeTone = getCliStatusBadgeTone(cliStatus);
-  const startupMessageKey = getDashboardStartupMessageKey({
-    hasGitStatus: Boolean(gitStatus),
-    hasStats: Boolean(stats),
-  });
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
   const lastCommitBrowseUrl = useMemo(
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
@@ -149,32 +151,59 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     try { localStorage.setItem(CLI_CARD_DISMISSED_KEY, "true"); } catch {}
   }, []);
 
-  // Load content stats only (no git status — that comes from global useSync)
-  const loadData = useCallback(async () => {
+  const loadReview = useCallback(async () => {
+    setReviewLoading(true);
     try {
-      const [s, r] = await Promise.all([
-        invoke<AppStats>("get_stats"),
-        invoke<RecentItem[]>("get_recent_activity").catch(() => []),
-      ]);
-      setStats(s);
-      setRecent(r);
-      saveCache({ stats: s, recent: r });
-      // Load review item
-      invoke<RecentItem | null>("get_review_item").then(item => {
-        setReviewItem(item);
-        if (item) {
-          invoke<string>("read_file", { filePath: item.path })
-            .then(content => {
-              const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
-              setReviewPreview(body.slice(0, 200));
-            })
-            .catch(() => {});
-        }
-      }).catch(() => {});
-    } catch (e) {
-      setError(`${e}`);
+      const item = await invoke<RecentItem | null>("get_review_item");
+      setReviewItem(item);
+      if (!item) {
+        setReviewPreview("");
+        return;
+      }
+      const content = await invoke<string>("read_file", { filePath: item.path }).catch(() => "");
+      const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
+      setReviewPreview(body.slice(0, 200));
+    } catch {
+      setReviewItem(null);
+      setReviewPreview("");
+    } finally {
+      setReviewLoading(false);
     }
   }, []);
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const s = await invoke<AppStats>("get_stats");
+      setStats(s);
+      dashboardCacheRef.current = { ...dashboardCacheRef.current, stats: s };
+      saveCache(dashboardCacheRef.current);
+    } catch (e) {
+      setError(`${e}`);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  const loadRecent = useCallback(async () => {
+    setRecentLoading(true);
+    try {
+      const r = await invoke<RecentItem[]>("get_recent_activity");
+      setRecent(r);
+      dashboardCacheRef.current = { ...dashboardCacheRef.current, recent: r };
+      saveCache(dashboardCacheRef.current);
+    } catch {
+      setRecent([]);
+    } finally {
+      setRecentLoading(false);
+    }
+  }, []);
+
+  const loadData = useCallback(() => {
+    void loadStats();
+    void loadRecent();
+    void loadReview();
+  }, [loadRecent, loadReview, loadStats]);
 
   useEffect(() => {
     loadData();
@@ -213,22 +242,21 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     );
   }
 
-  if (!stats) {
-    return <Loading text={t(startupMessageKey ?? "dashboard.loading")} />;
-  }
-
-  const displayedFileCount = getDashboardDisplayedFileCount(stats);
-  const displayedRepoSizeKb = getDashboardDisplayedRepoSizeKb(stats);
+  const displayedFileCount = stats ? getDashboardDisplayedFileCount(stats) : 0;
+  const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : 0;
   const displayedRecent = getDashboardVisibleRecentItems(isDesktop, recent);
   const showReviewItem = shouldShowDashboardReviewItem(isDesktop, reviewItem);
-  const showEmptyGuide = shouldShowDashboardEmptyGuide(stats, displayedRecent);
+  const showEmptyGuide = stats ? shouldShowDashboardEmptyGuide(stats, displayedRecent) : false;
+  const isDashboardOverviewLoading = statsLoading && !stats;
+  const isRecentActivityLoading = recentLoading && displayedRecent.length === 0;
+  const isGitStatusLoading = !gitStatus;
 
   const statCards = [
-    { category: "conversation" as const, label: t("dashboard.conversations"), value: stats.conversations },
-    { category: "manual" as const, label: t("dashboard.manuals"), value: stats.manuals },
-    { category: "scratch" as const, label: t("dashboard.scratchNotes"), value: stats.scratch_notes },
-    { category: "clip" as const, label: t("dashboard.clips"), value: stats.clips },
-    { category: "plan" as const, label: t("dashboard.plans"), value: stats.plans },
+    { category: "conversation" as const, label: t("dashboard.conversations"), value: stats?.conversations },
+    { category: "manual" as const, label: t("dashboard.manuals"), value: stats?.manuals },
+    { category: "scratch" as const, label: t("dashboard.scratchNotes"), value: stats?.scratch_notes },
+    { category: "clip" as const, label: t("dashboard.clips"), value: stats?.clips },
+    { category: "plan" as const, label: t("dashboard.plans"), value: stats?.plans },
   ].map((card) => ({
     ...card,
     ...categoryVisuals[card.category],
@@ -315,7 +343,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {isDesktop && (
         <OnboardingChecklist
           onNavigate={(page) => onNavigate?.(page)}
-          hasConversations={hasDashboardConversations(stats)}
+          hasConversations={stats ? hasDashboardConversations(stats) : false}
           clipboardActive={clipStatus?.watching ?? false}
           editorConfigured={editorConfigured}
         />
@@ -369,9 +397,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               key={card.label}
               icon={card.icon}
               label={card.label}
-              value={card.value}
+              value={card.value ?? <Loading compact text={t("common.loading")} />}
               tone={card.tone}
-              onClick={() => navigateTo(card)}
+              loading={isDashboardOverviewLoading}
+              onClick={card.value === undefined ? undefined : () => navigateTo(card)}
             />
         ))}
       </div>
@@ -387,7 +416,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Git Info — only when remote is configured */}
-      {hasGitRemote(gitStatus) && (
       <div className="gm-dashboard-git-grid">
         {/* Sync Status */}
         <div className="gm-dashboard-card">
@@ -395,12 +423,20 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <AppIcon icon={RefreshCw} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.syncStatus")}</span>
           </div>
-          <p className="gm-dashboard-value">
-            <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatusText}</span>
-          </p>
-          <p className="gm-dashboard-meta">
-            {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
-          </p>
+          {isGitStatusLoading ? (
+            <Loading compact text={t("dashboard.startupReadingRepository")} />
+          ) : hasGitRemote(gitStatus) ? (
+            <>
+              <p className="gm-dashboard-value">
+                <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatusText}</span>
+              </p>
+              <p className="gm-dashboard-meta">
+                {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
+              </p>
+            </>
+          ) : (
+            <p className="gm-dashboard-card-empty">{t("dashboard.noRemote")}</p>
+          )}
         </div>
 
         {/* Last Commit */}
@@ -409,7 +445,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <AppIcon icon={GitCommit} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.lastCommit")}</span>
           </div>
-          {lastCommitBrowseUrl && gitStatus?.last_commit_id ? (
+          {isGitStatusLoading ? (
+            <Loading compact text={t("dashboard.startupReadingRepository")} />
+          ) : lastCommitBrowseUrl && gitStatus?.last_commit_id ? (
             <button
               type="button"
               title={t("dashboard.openCommitPage")}
@@ -423,14 +461,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               {gitStatus?.last_commit_id || "—"}
             </p>
           )}
-          {gitStatus?.last_commit_time && (
+          {gitStatus?.last_commit_time ? (
             <p className="gm-dashboard-meta">
               {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
-      )}
 
       {/* Recent Activity — full width */}
       <div className="gm-dashboard-card gm-dashboard-card-section">
@@ -438,7 +475,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <AppIcon icon={Activity} size="xs" tone="secondary" />
             <span className="gm-section-title">{t("dashboard.recentActivity")}</span>
           </div>
-          {displayedRecent.length === 0 ? (
+          {isRecentActivityLoading ? (
+            <Loading compact text={t("dashboard.startupLoadingActivity")} />
+          ) : displayedRecent.length === 0 ? (
             <p className="gm-dashboard-card-empty">
               {t("dashboard.noActivity")}
             </p>
@@ -463,6 +502,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       </div>
 
       {/* Today's Review */}
+      {reviewLoading && !reviewItem && (
+        <div className="gm-dashboard-card gm-dashboard-card-section">
+          <div className="gm-card-head">
+            <AppIcon icon={RefreshCw} size="xs" tone="warning" />
+            <span className="gm-section-title">{t("dashboard.todayReview")}</span>
+          </div>
+          <Loading compact text={t("dashboard.startupLoadingReview")} />
+        </div>
+      )}
+
       {showReviewItem && reviewItem && (
         <div className="gm-dashboard-card gm-dashboard-card-section gm-dashboard-card-button"
           onClick={() => openRecord(reviewItem)}
@@ -474,17 +523,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               variant="ghost"
               onClick={(e) => {
                 e.stopPropagation();
-                invoke<RecentItem | null>("get_review_item").then(item => {
-                  setReviewItem(item);
-                  if (item) {
-                    invoke<string>("read_file", { filePath: item.path })
-                      .then(content => {
-                        const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
-                        setReviewPreview(body.slice(0, 200));
-                      })
-                      .catch(() => {});
-                  }
-                }).catch(() => {});
+                void loadReview();
               }}
               className="gm-dashboard-card-shuffle"
             >
@@ -518,9 +557,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <DashboardQuickInfoRow icon={Terminal}>CLI: gitmemo --help</DashboardQuickInfoRow>
           )}
           <DashboardQuickInfoRow icon={MessageSquare}>
-            {t("dashboard.totalFiles", String(displayedFileCount))}
+            {stats ? t("dashboard.totalFiles", String(displayedFileCount)) : t("common.loading")}
           </DashboardQuickInfoRow>
-          <DashboardQuickInfoRow icon={HardDrive}>{formatSize(displayedRepoSizeKb)}</DashboardQuickInfoRow>
+          <DashboardQuickInfoRow icon={HardDrive}>{stats ? formatSize(displayedRepoSizeKb) : t("common.loading")}</DashboardQuickInfoRow>
         </div>
       </div>
       {isMobile && <div aria-hidden="true" className="gm-dashboard-mobile-spacer" />}

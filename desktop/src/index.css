@@ -4825,6 +4825,10 @@ a:focus-visible {
   cursor: default;
 }
 
+.gm-dashboard-card .gm-loading-compact {
+  padding: 0;
+}
+
 .gm-dashboard-stat-card[data-tone="accent"] { --gm-item-color: var(--accent); }
 .gm-dashboard-stat-card[data-tone="success"],
 .gm-dashboard-stat-card[data-tone="green"] { --gm-item-color: var(--green); }
@@ -4875,6 +4879,12 @@ a:focus-visible {
   font-weight: 780;
   letter-spacing: 0;
   line-height: var(--gm-leading-title);
+}
+
+.gm-dashboard-stat-card[data-loading="true"] .gm-dashboard-stat-value {
+  color: var(--text-secondary);
+  font-size: var(--gm-font-xs);
+  font-weight: 560;
 }
 
 .gm-dashboard-activity-list {
