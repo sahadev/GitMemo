@@ -8,9 +8,8 @@ import type { KeyboardShortcuts } from "../utils/shortcuts";
 import { initNotificationListeners, notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 import { getPlatformCapabilities, getPlatformFlags, type RuntimeInfo } from "../utils/platformLogic";
-import { getRuntimeInfo, getRuntimeInfoSync, getRuntimePlatform } from "./usePlatform";
+import { getRuntimeInfo, getRuntimeInfoSync } from "./usePlatform";
 import { canRequestDesktopUpdateCheck, type DesktopUpdateStatus } from "../components/domain/settings/settingsLogic";
-import { shouldLoadDesktopStatusLazily } from "../utils/startupLogic";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
 const UPDATE_CHECK_TIMEOUT_MS = 15_000;
@@ -110,6 +109,8 @@ interface AppStore {
   // Editor integration flags
   claudeEnabled: boolean;
   cursorEnabled: boolean;
+  integrationStatusChecked: boolean;
+  integrationStatusLoading: boolean;
   refreshIntegrationStatus: () => Promise<void>;
 
   // Theme
@@ -139,6 +140,8 @@ interface AppStore {
   // App meta (version, release)
   appMeta: AppMeta | null;
   cliStatus: CliStatus | null;
+  cliStatusChecked: boolean;
+  cliStatusLoading: boolean;
   refreshCliStatus: () => Promise<void>;
 
   // Update
@@ -156,12 +159,7 @@ interface AppStore {
 
   // Load all state at startup
   init: () => Promise<void>;
-  initDeferredDesktopStatus: () => Promise<void>;
 }
-
-type WindowWithIdleCallback = Window & {
-  requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-};
 
 function loadTheme(): Theme {
   const saved = localStorage.getItem("gitmemo-theme") as Theme | null;
@@ -187,6 +185,8 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   settings: null,
   claudeEnabled: false,
   cursorEnabled: false,
+  integrationStatusChecked: false,
+  integrationStatusLoading: false,
   theme: loadTheme(),
   sidebarCollapsed: loadBoolean("gitmemo-layout-sidebar-collapsed"),
   collapsedPanels: loadCollapsedPanels(["notes", "conversations", "plans", "clipboard"]),
@@ -195,6 +195,8 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   pendingOpenPath: null,
   appMeta: null,
   cliStatus: null,
+  cliStatusChecked: false,
+  cliStatusLoading: false,
   updateStatus: "idle",
   updateVersion: null,
   updateDate: null,
@@ -218,20 +220,32 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   },
 
   refreshIntegrationStatus: async () => {
+    if (get().integrationStatusLoading) return;
+    set({ integrationStatusLoading: true });
     try {
       const [claude, cursor] = await Promise.all([
         invoke<boolean>("get_claude_integration_status").catch(() => false),
         invoke<boolean>("get_cursor_integration_status").catch(() => false),
       ]);
-      set({ claudeEnabled: claude, cursorEnabled: cursor });
-    } catch { /* ignore */ }
+      set({ claudeEnabled: claude, cursorEnabled: cursor, integrationStatusChecked: true });
+    } catch {
+      set({ claudeEnabled: false, cursorEnabled: false, integrationStatusChecked: true });
+    } finally {
+      set({ integrationStatusLoading: false });
+    }
   },
 
   refreshCliStatus: async () => {
+    if (get().cliStatusLoading) return;
+    set({ cliStatusLoading: true });
     try {
       const status = await invoke<CliStatus>("get_cli_status");
-      set({ cliStatus: status });
-    } catch { /* ignore */ }
+      set({ cliStatus: status, cliStatusChecked: true });
+    } catch {
+      set({ cliStatus: null, cliStatusChecked: true });
+    } finally {
+      set({ cliStatusLoading: false });
+    }
   },
 
   toggleTheme: () => {
@@ -363,20 +377,6 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
     await Promise.all(tasks);
   },
-
-  initDeferredDesktopStatus: async () => {
-    const platform = await getRuntimePlatform();
-    if (!shouldLoadDesktopStatusLazily(platform)) {
-      set({ claudeEnabled: false, cursorEnabled: false, cliStatus: null });
-      return;
-    }
-
-    const { refreshIntegrationStatus, refreshCliStatus } = get();
-    await Promise.all([
-      refreshIntegrationStatus(),
-      refreshCliStatus(),
-    ]);
-  },
 }));
 
 // ---- Public hook ----
@@ -394,16 +394,6 @@ useAppStore.getState = useAppStoreInternal.getState;
 // ---- Side-effect listeners (call once from main.tsx) ----
 
 let _initialized = false;
-let _deferredDesktopStatusInitialized = false;
-
-function runAfterStartupSettles(task: () => void) {
-  const win = window as WindowWithIdleCallback;
-  if (win.requestIdleCallback) {
-    win.requestIdleCallback(task, { timeout: 1500 });
-    return;
-  }
-  window.setTimeout(task, 600);
-}
 
 export function initAppListeners() {
   if (_initialized) return;
@@ -413,11 +403,6 @@ export function initAppListeners() {
 
   // Load all state on startup
   void useAppStoreInternal.getState().init();
-  runAfterStartupSettles(() => {
-    if (_deferredDesktopStatusInitialized) return;
-    _deferredDesktopStatusInitialized = true;
-    void useAppStoreInternal.getState().initDeferredDesktopStatus();
-  });
   void getRuntimeInfo().then((runtimeInfo) => {
     const canUseControlCopyPasteBridge = supportsControlCopyPasteBridge(runtimeInfo);
     if (canUseControlCopyPasteBridge) {

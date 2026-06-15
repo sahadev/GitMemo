@@ -136,12 +136,22 @@ export function isAnyEditorIntegrationEnabled(claudeEnabled: boolean, cursorEnab
   return claudeEnabled || cursorEnabled;
 }
 
-export function isDashboardEditorConfigured(isDesktop: boolean, claudeEnabled: boolean, cursorEnabled: boolean) {
-  return isDashboardDesktopPlatform(isDesktop) && isAnyEditorIntegrationEnabled(claudeEnabled, cursorEnabled);
+export function isDashboardEditorConfigured(
+  isDesktop: boolean,
+  integrationStatusChecked: boolean,
+  claudeEnabled: boolean,
+  cursorEnabled: boolean,
+) {
+  return isDashboardDesktopPlatform(isDesktop) && integrationStatusChecked && isAnyEditorIntegrationEnabled(claudeEnabled, cursorEnabled);
 }
 
-export function shouldShowCliCapabilityCard(isDesktop: boolean, cliCardDismissed: boolean, cliStatus: CliStatus | null) {
-  return isDashboardDesktopPlatform(isDesktop) && !cliCardDismissed && needsCliAttention(cliStatus);
+export function shouldShowCliCapabilityCard(
+  isDesktop: boolean,
+  cliCardDismissed: boolean,
+  cliStatusChecked: boolean,
+  cliStatus: CliStatus | null,
+) {
+  return isDashboardDesktopPlatform(isDesktop) && !cliCardDismissed && cliStatusChecked && needsCliAttention(cliStatus);
 }
 
 export function getCliStatusText(cliStatus: CliStatus | null): DashboardText {

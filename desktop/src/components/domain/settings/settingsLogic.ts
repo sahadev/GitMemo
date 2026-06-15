@@ -15,6 +15,7 @@ export type CopyField = "syncDir" | "gitRemote" | "cliCommand" | "syncLogs";
 export type ProxyMode = "system" | "none" | "custom";
 export type DesktopUpdateStatus = "idle" | "checking" | "available" | "downloading" | "error" | "upToDate";
 export type ProxyModeLabelKey = "settings.proxySystem" | "settings.proxyNone" | "settings.proxyCustom";
+export type SettingsStatusTone = "default" | "muted" | "accent" | "success" | "warning" | "danger";
 
 export interface MobileGitSpikeResult {
   success: boolean;
@@ -239,21 +240,45 @@ export function shouldShowMobileRemoteStatus(isMobile: boolean, gitRemote: strin
   return isMobile && Boolean(gitRemote);
 }
 
-export function getSettingsCliStatusView(cliStatus: CliStatus | null, t: Translate) {
-  if (!isCliStatusKnown(cliStatus)) {
+export function getEditorIntegrationStatusView(input: {
+  enabled: boolean;
+  checked: boolean;
+  loading: boolean;
+}, t: Translate): { label: string; tone: SettingsStatusTone } {
+  if (input.loading) {
+    return { label: t("settings.integrationChecking"), tone: "muted" };
+  }
+  if (!input.checked) {
+    return { label: t("settings.integrationNotChecked"), tone: "muted" };
+  }
+  if (input.enabled) {
+    return { label: t("settings.integrationEnabled"), tone: "success" };
+  }
+  return { label: t("settings.integrationDisabled"), tone: "muted" };
+}
+
+export function getSettingsCliStatusView(input: {
+  cliStatus: CliStatus | null;
+  checked: boolean;
+  loading: boolean;
+}, t: Translate): { label: string; tone: SettingsStatusTone } {
+  if (input.loading) {
     return { label: t("settings.cliChecking"), tone: "muted" as const };
   }
-  if (!isCliInstalled(cliStatus)) {
+  if (!input.checked || !isCliStatusKnown(input.cliStatus)) {
+    return { label: t("settings.cliNotChecked"), tone: "muted" as const };
+  }
+  if (!isCliInstalled(input.cliStatus)) {
     return { label: t("settings.cliMissing"), tone: "warning" as const };
   }
-  if (hasCliUpdateAvailable(cliStatus)) {
+  if (hasCliUpdateAvailable(input.cliStatus)) {
     return {
-      label: t("settings.cliUpdateAvailable", cliStatus.version || "?", cliStatus.latest_version ?? "?"),
-      tone: getCliStatusTone(cliStatus),
+      label: t("settings.cliUpdateAvailable", input.cliStatus.version || "?", input.cliStatus.latest_version ?? "?"),
+      tone: getCliStatusTone(input.cliStatus),
     };
   }
   return {
-    label: t("settings.cliInstalled", cliStatus.version || "?"),
-    tone: getCliStatusTone(cliStatus),
+    label: t("settings.cliInstalled", input.cliStatus.version || "?"),
+    tone: getCliStatusTone(input.cliStatus),
   };
 }

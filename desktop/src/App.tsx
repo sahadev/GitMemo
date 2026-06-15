@@ -513,7 +513,7 @@ function App() {
       {isDesktop && visitedPages.has("editor-home") && <div className="gm-app-page-mount" data-active={currentPage === "editor-home" ? "true" : "false"}><EditorHomePage active={currentPage === "editor-home"} openTarget={editorOpenTarget} onOpenTargetConsumed={() => setEditorOpenTarget(null)} /></div>}
       {isDesktop && visitedPages.has("external-files") && <div className="gm-app-page-mount" data-active={currentPage === "external-files" ? "true" : "false"}><ExternalFilesPage active={currentPage === "external-files"} openTarget={externalFileOpenTarget} onOpenTargetConsumed={handleExternalFileTargetConsumed} onImportResult={handleExternalImportResult} /></div>}
       {visitedPages.has("search") && <div className="gm-app-page-mount" data-active={currentPage === "search" ? "true" : "false"}><SearchPage active={currentPage === "search"} focusTrigger={focusTrigger} entryTrigger={searchEntryTrigger} openFilePath={openFilePath} onFileOpened={() => setOpenFilePath(null)} registerMobileBackHandler={(handler) => registerMobileBackHandler("search", handler)} /></div>}
-      {visitedPages.has("settings") && <div className="gm-app-page-mount" data-active={currentPage === "settings" ? "true" : "false"}><SettingsPage onNavigate={navigatePage} /></div>}
+      {visitedPages.has("settings") && <div className="gm-app-page-mount" data-active={currentPage === "settings" ? "true" : "false"}><SettingsPage onNavigate={navigatePage} active={currentPage === "settings"} /></div>}
     </>
   );
 

@@ -2927,6 +2927,11 @@ a:focus-visible {
   background: var(--accent);
 }
 
+.gm-switch:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .gm-switch-thumb {
   background: var(--gm-color-on-accent);
   border-radius: var(--gm-radius-pill);

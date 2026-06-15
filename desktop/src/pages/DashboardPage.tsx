@@ -115,7 +115,17 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const { t } = useI18n();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
-  const { clipboardStatus: clipStatus, claudeEnabled, cursorEnabled, cliStatus, setNotesTab, setAiRecordsTab, setPendingOpenPath } = useAppStore();
+  const {
+    clipboardStatus: clipStatus,
+    claudeEnabled,
+    cursorEnabled,
+    integrationStatusChecked,
+    cliStatus,
+    cliStatusChecked,
+    setNotesTab,
+    setAiRecordsTab,
+    setPendingOpenPath,
+  } = useAppStore();
   useRelativeTimeTick();
   const navigateTo = useCallback(({ page, notesTab, aiRecordsTab }: DashboardCategoryRoute) => {
     if (page === "notes" && notesTab) setNotesTab(notesTab);
@@ -146,8 +156,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   });
 
   // Derived state
-  const editorConfigured = isDashboardEditorConfigured(isDesktop, claudeEnabled, cursorEnabled);
-  const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatus);
+  const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
+  const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatusChecked, cliStatus);
   const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
   const cliStatusBadgeTone = getCliStatusBadgeTone(cliStatus);
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);

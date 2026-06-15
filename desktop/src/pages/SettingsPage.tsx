@@ -86,6 +86,7 @@ import {
   getCopySuccessToastKey,
   getCurrentImportSizeLimitKb,
   getEffectiveProxyMode,
+  getEditorIntegrationStatusView,
   getMobileRemoteStatusView,
   getProxyModeLabelKey,
   getProxyUrlForMode,
@@ -121,7 +122,7 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
 ];
 
 
-export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page) => void } = {}) {
+export default function SettingsPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean } = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
   const { isMobile, isDesktop, capabilities } = usePlatformFlags();
@@ -131,8 +132,8 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   const { gitStatus, refreshGitStatus } = useSync();
   const {
     settings, refreshSettings,
-    claudeEnabled, cursorEnabled, refreshIntegrationStatus,
-    cliStatus, refreshCliStatus,
+    claudeEnabled, cursorEnabled, integrationStatusChecked, integrationStatusLoading, refreshIntegrationStatus,
+    cliStatus, cliStatusChecked, cliStatusLoading, refreshCliStatus,
     theme, toggleTheme,
     appMeta,
     updateStatus, updateVersion, updateDate, updateBody, updateProgress, updateError,
@@ -202,6 +203,11 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
       consumeUpdateDetailsOpen();
     }
   }, [consumeUpdateDetailsOpen, pendingUpdateDetailsOpen, updateStatus]);
+
+  useEffect(() => {
+    if (!active || !isDesktop) return;
+    void refreshIntegrationStatus();
+  }, [active, isDesktop, refreshIntegrationStatus]);
 
   const openChangelog = async () => {
     setShowUpdateDetails(false);
@@ -347,7 +353,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         await invoke<string>("setup_claude_integration", { lang: locale });
         showToast("Claude integration enabled");
       }
-      refreshIntegrationStatus();
+      await refreshIntegrationStatus();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -362,7 +368,7 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
         await invoke<string>("setup_cursor_integration", { lang: locale });
         showToast("Cursor integration enabled");
       }
-      refreshIntegrationStatus();
+      await refreshIntegrationStatus();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
@@ -594,7 +600,21 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
   });
   const displayedImportFileSizeLimitKb = importFileSizeLimitDraftKb;
   const effectiveProxyMode = getEffectiveProxyMode(settings?.proxy_mode, capabilities.supportsSystemProxyDetection);
-  const cliStatusView = getSettingsCliStatusView(cliStatus, t);
+  const cliStatusView = getSettingsCliStatusView({
+    cliStatus,
+    checked: cliStatusChecked,
+    loading: cliStatusLoading,
+  }, t);
+  const claudeStatusView = getEditorIntegrationStatusView({
+    enabled: claudeEnabled,
+    checked: integrationStatusChecked,
+    loading: integrationStatusLoading,
+  }, t);
+  const cursorStatusView = getEditorIntegrationStatusView({
+    enabled: cursorEnabled,
+    checked: integrationStatusChecked,
+    loading: integrationStatusLoading,
+  }, t);
   const updateNotes = updateBody
     ? updateBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
     : [];
@@ -789,7 +809,13 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
                     >
                       {copiedField === "cliCommand" ? t("common.copied") : t("settings.copyInstallCommand")}
                     </SettingsActionButton>
-                    <SettingsIconButton icon={RefreshCw} onClick={() => void refreshCliStatus()} title={t("settings.detectCli")} />
+                    <SettingsIconButton
+                      icon={RefreshCw}
+                      spin={cliStatusLoading}
+                      disabled={cliStatusLoading}
+                      onClick={() => void refreshCliStatus()}
+                      title={t("settings.detectCli")}
+                    />
                   </SettingsControlGroup>
                 </SettingsRow>
                 {cliStatus?.path ? (
@@ -800,34 +826,68 @@ export default function SettingsPage({ onNavigate }: { onNavigate?: (page: Page)
               </SettingsSubStack>
 
               <SettingsDivider />
-              <SettingsRow icon={Terminal} title={t("settings.claudeIntegration")} description={t("settings.claudeIntegrationDesc")}>
+              <SettingsRow
+                icon={Terminal}
+                title={t("settings.claudeIntegration")}
+                description={t("settings.claudeIntegrationDesc")}
+                status={claudeStatusView.label}
+                statusTone={claudeStatusView.tone}
+              >
                 <SettingsControlGroup>
                   {claudeEnabled && (
                     <SettingsActionButton
                       variant="secondary"
-                      disabled={updatingClaudeSkills}
+                      disabled={updatingClaudeSkills || integrationStatusLoading}
                       onClick={() => void updateClaudeSkills()}
                     >
                       {updatingClaudeSkills ? t("settings.checking") : t("settings.updateSkills")}
                     </SettingsActionButton>
                   )}
-                  <Switch enabled={claudeEnabled} onToggle={toggleClaudeIntegration} />
+                  <SettingsIconButton
+                    icon={RefreshCw}
+                    spin={integrationStatusLoading}
+                    disabled={integrationStatusLoading}
+                    onClick={() => void refreshIntegrationStatus()}
+                    title={t("settings.detectIntegration")}
+                  />
+                  <Switch
+                    enabled={claudeEnabled}
+                    disabled={integrationStatusLoading}
+                    onToggle={() => void toggleClaudeIntegration()}
+                  />
                 </SettingsControlGroup>
               </SettingsRow>
 
               <SettingsDivider />
-              <SettingsRow icon={Code} title={t("settings.cursorIntegration")} description={t("settings.cursorIntegrationDesc")}>
+              <SettingsRow
+                icon={Code}
+                title={t("settings.cursorIntegration")}
+                description={t("settings.cursorIntegrationDesc")}
+                status={cursorStatusView.label}
+                statusTone={cursorStatusView.tone}
+              >
                 <SettingsControlGroup>
                   {cursorEnabled && (
                     <SettingsActionButton
                       variant="secondary"
-                      disabled={updatingCursorSkills}
+                      disabled={updatingCursorSkills || integrationStatusLoading}
                       onClick={() => void updateCursorSkills()}
                     >
                       {updatingCursorSkills ? t("settings.checking") : t("settings.updateSkills")}
                     </SettingsActionButton>
                   )}
-                  <Switch enabled={cursorEnabled} onToggle={toggleCursorIntegration} />
+                  <SettingsIconButton
+                    icon={RefreshCw}
+                    spin={integrationStatusLoading}
+                    disabled={integrationStatusLoading}
+                    onClick={() => void refreshIntegrationStatus()}
+                    title={t("settings.detectIntegration")}
+                  />
+                  <Switch
+                    enabled={cursorEnabled}
+                    disabled={integrationStatusLoading}
+                    onToggle={() => void toggleCursorIntegration()}
+                  />
                 </SettingsControlGroup>
               </SettingsRow>
 
