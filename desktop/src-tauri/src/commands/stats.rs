@@ -1,9 +1,19 @@
-use gitmemo_core::storage::{files, git};
+use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use serde::Serialize;
 use std::io::Read;
 use std::path::Path;
+
 use super::markdown::{frontmatter_value, markdown_body};
+
+const DASHBOARD_RECENT_LIMIT: usize = 8;
+const DASHBOARD_RECENT_FOLDERS: [&str; 5] = [
+    "conversations",
+    "notes/scratch",
+    "notes/manual",
+    "clips",
+    "plans",
+];
 
 fn local_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
     now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
@@ -227,16 +237,61 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
         return Ok(vec![]);
     }
 
-    let folders = [
-        "conversations",
-        "notes/scratch",
-        "notes/manual",
-        "clips",
-        "plans",
-    ];
+    get_recent_activity_from_index(&sync_dir)
+        .or_else(|_| get_recent_activity_from_filesystem(&sync_dir))
+}
+
+fn is_dashboard_recent_path(rel_path: &str) -> bool {
+    DASHBOARD_RECENT_FOLDERS
+        .iter()
+        .any(|folder| rel_path.starts_with(&format!("{folder}/")))
+}
+
+fn recent_category_for_path(rel_path: &str) -> &'static str {
+    if rel_path.starts_with("conversations/") {
+        "conversation"
+    } else if rel_path.starts_with("clips/") {
+        "clip"
+    } else if rel_path.starts_with("plans/") {
+        "plan"
+    } else if rel_path.starts_with("notes/manual/") {
+        "manual"
+    } else {
+        "scratch"
+    }
+}
+
+fn recent_item_from_index(row: database::RecentDocumentItem) -> RecentItem {
+    let category = recent_category_for_path(&row.file_path).to_string();
+    RecentItem {
+        name: row.title,
+        path: row.file_path,
+        category,
+        modified: row.activity_at,
+        modified_ts: row.activity_ts,
+    }
+}
+
+fn get_recent_activity_from_index(sync_dir: &Path) -> Result<Vec<RecentItem>, String> {
+    let db_path = sync_dir.join(".metadata").join("index.db");
+    if !db_path.exists() {
+        return Err("Search index is not initialized".into());
+    }
+
+    let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
+    if !database::index_is_ready(&conn).map_err(|e| e.to_string())? {
+        return Err("Search index is not ready".into());
+    }
+
+    database::list_recent_documents(&conn, DASHBOARD_RECENT_LIMIT)
+        .map_err(|e| e.to_string())
+        .map(|items| items.into_iter().map(recent_item_from_index).collect())
+}
+
+fn get_recent_activity_from_filesystem(sync_dir: &Path) -> Result<Vec<RecentItem>, String> {
     let mut items: Vec<RecentItem> = Vec::new();
 
-    for folder in &folders {
+    for folder in &DASHBOARD_RECENT_FOLDERS {
         let target = sync_dir.join(folder);
         if !target.exists() {
             continue;
@@ -252,6 +307,9 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
                 .unwrap_or(path)
                 .to_string_lossy()
                 .to_string();
+            if !is_dashboard_recent_path(&rel_path) {
+                continue;
+            }
             let head = read_md_head(path);
             let meta = path.metadata().ok();
             let modified_time = meta
@@ -261,23 +319,12 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
             let (modified, modified_ts) = record_timestamp_for_markdown(&head, modified_time);
 
             let name = display_name_for_markdown(path, &rel_path, &head);
-
-            let category = if rel_path.starts_with("conversations") {
-                "conversation"
-            } else if rel_path.starts_with("clips") {
-                "clip"
-            } else if rel_path.starts_with("plans") {
-                "plan"
-            } else if rel_path.starts_with("notes/manual") {
-                "manual"
-            } else {
-                "scratch"
-            };
+            let category = recent_category_for_path(&rel_path).to_string();
 
             items.push(RecentItem {
                 name,
                 path: rel_path,
-                category: category.to_string(),
+                category,
                 modified,
                 modified_ts,
             });
@@ -285,7 +332,7 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
     }
 
     items.sort_by(|a, b| b.modified_ts.cmp(&a.modified_ts));
-    items.truncate(8);
+    items.truncate(DASHBOARD_RECENT_LIMIT);
     Ok(items)
 }
 

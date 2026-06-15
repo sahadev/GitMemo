@@ -28,6 +28,14 @@ pub struct DocumentListPage {
     pub total: usize,
 }
 
+#[allow(dead_code)]
+pub struct RecentDocumentItem {
+    pub title: String,
+    pub file_path: String,
+    pub activity_at: String,
+    pub activity_ts: i64,
+}
+
 struct DocumentIndexRecord<'a> {
     file_path: &'a str,
     source_type: &'a str,
@@ -736,6 +744,32 @@ pub fn list_documents_page(
     Ok(DocumentListPage { items, total })
 }
 
+#[allow(dead_code)]
+pub fn list_recent_documents(conn: &Connection, limit: usize) -> Result<Vec<RecentDocumentItem>> {
+    let mut stmt = conn.prepare(
+        "SELECT title, file_path, activity_at, activity_ts
+         FROM documents
+         WHERE file_path LIKE 'conversations/%'
+            OR file_path LIKE 'notes/scratch/%'
+            OR file_path LIKE 'notes/manual/%'
+            OR file_path LIKE 'clips/%'
+            OR file_path LIKE 'plans/%'
+         ORDER BY activity_ts DESC, file_path ASC
+         LIMIT ?1",
+    )?;
+
+    let rows = stmt.query_map(params![limit], |row| {
+        Ok(RecentDocumentItem {
+            title: row.get(0)?,
+            file_path: row.get(1)?,
+            activity_at: row.get(2)?,
+            activity_ts: row.get(3)?,
+        })
+    })?;
+
+    Ok(rows.filter_map(|row| row.ok()).collect())
+}
+
 /// Full-text search
 pub fn search(
     conn: &Connection,
@@ -1346,6 +1380,71 @@ mod tests {
         assert!(page.items[0].file_path.ends_with("03-02-updated.md"));
         assert_eq!(page.items[0].activity_ts, expected_activity_ts);
         assert!(page.items[1].file_path.ends_with("03-01-old.md"));
+    }
+
+    #[test]
+    fn test_list_recent_documents_orders_across_dashboard_folders() {
+        let conn = in_memory_db();
+        let old_ts = chrono::DateTime::parse_from_rfc3339("2026-04-01T09:00:00+08:00")
+            .unwrap()
+            .timestamp_millis();
+        let new_ts = chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+            .unwrap()
+            .timestamp_millis();
+
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "conversations/old.md",
+                source_type: "conversation",
+                title: "Old",
+                content: "old",
+                date: "2026-04-01T09:00:00+08:00",
+                activity_at: "2026-04-01T09:00:00+08:00",
+                activity_ts: old_ts,
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "clips/new.md",
+                source_type: "clip",
+                title: "New",
+                content: "new",
+                date: "2026-05-20T09:00:00+08:00",
+                activity_at: "2026-05-20T09:00:00+08:00",
+                activity_ts: new_ts,
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+        index_file_with_activity(
+            &conn,
+            DocumentIndexRecord {
+                file_path: "imports/ignored.md",
+                source_type: "import",
+                title: "Ignored",
+                content: "ignored",
+                date: "2026-06-01T09:00:00+08:00",
+                activity_at: "2026-06-01T09:00:00+08:00",
+                activity_ts: new_ts + 1,
+                file_mtime_ms: 0,
+                file_size: 0,
+            },
+        )
+        .unwrap();
+
+        let items = list_recent_documents(&conn, 2).unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].file_path, "clips/new.md");
+        assert_eq!(items[0].title, "New");
+        assert_eq!(items[0].activity_at, "2026-05-20T09:00:00+08:00");
+        assert_eq!(items[1].file_path, "conversations/old.md");
     }
 
     #[test]

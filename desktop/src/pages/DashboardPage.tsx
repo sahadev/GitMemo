@@ -181,10 +181,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, [loadRecent, loadStats]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
     if (!active) return;
     loadData();
     void refreshGitStatus();
