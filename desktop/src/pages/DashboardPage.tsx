@@ -61,6 +61,8 @@ const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSq
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
 const CLI_CARD_DISMISSED_KEY = "gitmemo-dashboard-cli-card-dismissed";
+let dashboardStatsRequest: Promise<AppStats> | null = null;
+let dashboardRecentRequest: Promise<RecentItem[]> | null = null;
 
 function getCategoryVisual(category: string) {
   return categoryVisuals[getDashboardContentCategory(category)];
@@ -89,6 +91,24 @@ function saveCache(c: DashboardCache) {
 
 function loadCliCardDismissed() {
   try { return localStorage.getItem(CLI_CARD_DISMISSED_KEY) === "true"; } catch { return false; }
+}
+
+function loadDashboardStatsOnce() {
+  if (!dashboardStatsRequest) {
+    dashboardStatsRequest = invoke<AppStats>("get_stats").finally(() => {
+      dashboardStatsRequest = null;
+    });
+  }
+  return dashboardStatsRequest;
+}
+
+function loadDashboardRecentOnce() {
+  if (!dashboardRecentRequest) {
+    dashboardRecentRequest = invoke<RecentItem[]>("get_recent_activity").finally(() => {
+      dashboardRecentRequest = null;
+    });
+  }
+  return dashboardRecentRequest;
 }
 
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
@@ -148,9 +168,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, []);
 
   const loadStats = useCallback(async () => {
-    setStatsLoading(true);
+    if (!dashboardCacheRef.current.stats) setStatsLoading(true);
     try {
-      const s = await invoke<AppStats>("get_stats");
+      const s = await loadDashboardStatsOnce();
       setStats(s);
       dashboardCacheRef.current = { ...dashboardCacheRef.current, stats: s };
       saveCache(dashboardCacheRef.current);
@@ -162,9 +182,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, []);
 
   const loadRecent = useCallback(async () => {
-    setRecentLoading(true);
+    if (dashboardCacheRef.current.recent.length === 0) setRecentLoading(true);
     try {
-      const r = await invoke<RecentItem[]>("get_recent_activity");
+      const r = await loadDashboardRecentOnce();
       setRecent(r);
       dashboardCacheRef.current = { ...dashboardCacheRef.current, recent: r };
       saveCache(dashboardCacheRef.current);

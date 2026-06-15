@@ -36,6 +36,17 @@ pub struct RecentDocumentItem {
     pub activity_ts: i64,
 }
 
+#[allow(dead_code)]
+pub struct DashboardStats {
+    pub conversation_count: usize,
+    pub note_manual_count: usize,
+    pub note_scratch_count: usize,
+    pub clip_count: usize,
+    pub plan_count: usize,
+    pub indexed_file_count: usize,
+    pub total_size_bytes: u64,
+}
+
 struct DocumentIndexRecord<'a> {
     file_path: &'a str,
     source_type: &'a str,
@@ -770,6 +781,48 @@ pub fn list_recent_documents(conn: &Connection, limit: usize) -> Result<Vec<Rece
     Ok(rows.filter_map(|row| row.ok()).collect())
 }
 
+#[allow(dead_code)]
+pub fn get_dashboard_stats(conn: &Connection) -> Result<DashboardStats> {
+    conn.query_row(
+        "SELECT
+             SUM(CASE WHEN file_path LIKE 'conversations/%' THEN 1 ELSE 0 END),
+             SUM(CASE WHEN file_path LIKE 'notes/manual/%' THEN 1 ELSE 0 END),
+             SUM(CASE WHEN file_path LIKE 'notes/scratch/%' THEN 1 ELSE 0 END),
+             SUM(CASE WHEN file_path LIKE 'clips/%' THEN 1 ELSE 0 END),
+             SUM(CASE WHEN file_path LIKE 'plans/%' THEN 1 ELSE 0 END),
+             SUM(CASE
+                 WHEN file_path LIKE 'conversations/%'
+                   OR file_path LIKE 'notes/manual/%'
+                   OR file_path LIKE 'notes/scratch/%'
+                   OR file_path LIKE 'clips/%'
+                   OR file_path LIKE 'plans/%'
+                 THEN 1 ELSE 0
+             END),
+             SUM(CASE
+                 WHEN file_path LIKE 'conversations/%'
+                   OR file_path LIKE 'notes/manual/%'
+                   OR file_path LIKE 'notes/scratch/%'
+                   OR file_path LIKE 'clips/%'
+                   OR file_path LIKE 'plans/%'
+                 THEN file_size ELSE 0
+             END)
+         FROM documents",
+        [],
+        |row| {
+            Ok(DashboardStats {
+                conversation_count: row.get::<_, Option<usize>>(0)?.unwrap_or(0),
+                note_manual_count: row.get::<_, Option<usize>>(1)?.unwrap_or(0),
+                note_scratch_count: row.get::<_, Option<usize>>(2)?.unwrap_or(0),
+                clip_count: row.get::<_, Option<usize>>(3)?.unwrap_or(0),
+                plan_count: row.get::<_, Option<usize>>(4)?.unwrap_or(0),
+                indexed_file_count: row.get::<_, Option<usize>>(5)?.unwrap_or(0),
+                total_size_bytes: row.get::<_, Option<u64>>(6)?.unwrap_or(0),
+            })
+        },
+    )
+    .map_err(Into::into)
+}
+
 /// Full-text search
 pub fn search(
     conn: &Connection,
@@ -1445,6 +1498,50 @@ mod tests {
         assert_eq!(items[0].title, "New");
         assert_eq!(items[0].activity_at, "2026-05-20T09:00:00+08:00");
         assert_eq!(items[1].file_path, "conversations/old.md");
+    }
+
+    #[test]
+    fn test_get_dashboard_stats_counts_known_dashboard_folders() {
+        let conn = in_memory_db();
+        let activity_ts =
+            chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+                .unwrap()
+                .timestamp_millis();
+
+        for (file_path, source_type, file_size) in [
+            ("conversations/a.md", "conversation", 10),
+            ("notes/manual/b.md", "note", 20),
+            ("notes/scratch/c.md", "note", 30),
+            ("clips/d.md", "clip", 40),
+            ("plans/e.md", "plan", 50),
+            ("imports/ignored.md", "import", 60),
+        ] {
+            index_file_with_activity(
+                &conn,
+                DocumentIndexRecord {
+                    file_path,
+                    source_type,
+                    title: file_path,
+                    content: file_path,
+                    date: "2026-05-20T09:00:00+08:00",
+                    activity_at: "2026-05-20T09:00:00+08:00",
+                    activity_ts,
+                    file_mtime_ms: 0,
+                    file_size,
+                },
+            )
+            .unwrap();
+        }
+
+        let stats = get_dashboard_stats(&conn).unwrap();
+
+        assert_eq!(stats.conversation_count, 1);
+        assert_eq!(stats.note_manual_count, 1);
+        assert_eq!(stats.note_scratch_count, 1);
+        assert_eq!(stats.clip_count, 1);
+        assert_eq!(stats.plan_count, 1);
+        assert_eq!(stats.indexed_file_count, 5);
+        assert_eq!(stats.total_size_bytes, 150);
     }
 
     #[test]

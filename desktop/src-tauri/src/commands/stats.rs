@@ -143,6 +143,36 @@ fn get_stats_sync() -> Result<AppStats, String> {
         return Err("GitMemo not initialized".into());
     }
 
+    get_stats_from_index(&sync_dir).or_else(|_| get_stats_from_filesystem(&sync_dir))
+}
+
+fn get_stats_from_index(sync_dir: &Path) -> Result<AppStats, String> {
+    let db_path = sync_dir.join(".metadata").join("index.db");
+    if !db_path.exists() {
+        return Err("Search index is not initialized".into());
+    }
+
+    let conn = database::open_or_create(&db_path).map_err(|e| e.to_string())?;
+    if !database::index_is_ready(&conn).map_err(|e| e.to_string())? {
+        return Err("Search index is not ready".into());
+    }
+
+    let stats = database::get_dashboard_stats(&conn).map_err(|e| e.to_string())?;
+    let repository_size = git::repository_storage_size(sync_dir);
+
+    Ok(AppStats {
+        conversations: stats.conversation_count,
+        manuals: stats.note_manual_count,
+        scratch_notes: stats.note_scratch_count,
+        clips: stats.clip_count,
+        plans: stats.plan_count,
+        tracked_files: stats.indexed_file_count,
+        total_size_kb: stats.total_size_bytes as f64 / 1024.0,
+        repository_size_kb: repository_size as f64 / 1024.0,
+    })
+}
+
+fn get_stats_from_filesystem(sync_dir: &Path) -> Result<AppStats, String> {
     let total_size = git::worktree_content_size(&sync_dir);
     let tracked_files = git::tracked_file_count(&sync_dir);
     let repository_size = git::repository_storage_size(&sync_dir);

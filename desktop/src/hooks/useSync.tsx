@@ -38,6 +38,16 @@ interface SyncStore {
 }
 
 let resetTimer: number | null = null;
+let gitStatusRequest: Promise<GitStatus> | null = null;
+
+async function loadGitStatusOnce() {
+  if (!gitStatusRequest) {
+    gitStatusRequest = invoke<GitStatus>("get_status").finally(() => {
+      gitStatusRequest = null;
+    });
+  }
+  return gitStatusRequest;
+}
 
 const useSyncStore = create<SyncStore>((set, get) => ({
   state: "idle",
@@ -52,7 +62,7 @@ const useSyncStore = create<SyncStore>((set, get) => ({
 
   refreshGitStatus: async () => {
     try {
-      const status = await invoke<GitStatus>("get_status");
+      const status = await loadGitStatusOnce();
       set({ gitStatus: status });
     } catch {
       // ignore — may not be initialized yet
