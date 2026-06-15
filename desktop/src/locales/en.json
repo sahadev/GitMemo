@@ -124,6 +124,8 @@
     "quickInfo": "Quick Info",
     "totalFiles": "Total: {0} files",
     "loading": "Loading...",
+    "startupReadingRepository": "Reading repository status...",
+    "startupLoadingOverview": "Loading dashboard overview...",
     "noRemote": "No remote",
     "initHint": "Run `gitmemo init` to get started",
     "recentActivity": "Recent Activity",

@@ -124,6 +124,8 @@
     "quickInfo": "基本信息",
     "totalFiles": "共 {0} 个文件",
     "loading": "加载中...",
+    "startupReadingRepository": "正在读取仓库状态...",
+    "startupLoadingOverview": "正在加载首页概览...",
     "noRemote": "无远程仓库",
     "initHint": "运行 `gitmemo init` 开始使用",
     "recentActivity": "最近动态",

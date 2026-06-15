@@ -10,6 +10,7 @@ import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 import { getPlatformCapabilities, getPlatformFlags, type RuntimeInfo } from "../utils/platformLogic";
 import { getRuntimeInfo, getRuntimeInfoSync, getRuntimePlatform } from "./usePlatform";
 import { canRequestDesktopUpdateCheck, type DesktopUpdateStatus } from "../components/domain/settings/settingsLogic";
+import { shouldLoadDesktopStatusLazily } from "../utils/startupLogic";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
 const UPDATE_CHECK_TIMEOUT_MS = 15_000;
@@ -155,7 +156,12 @@ interface AppStore {
 
   // Load all state at startup
   init: () => Promise<void>;
+  initDeferredDesktopStatus: () => Promise<void>;
 }
+
+type WindowWithIdleCallback = Window & {
+  requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+};
 
 function loadTheme(): Theme {
   const saved = localStorage.getItem("gitmemo-theme") as Theme | null;
@@ -347,8 +353,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   },
 
   init: async () => {
-    const { refreshClipboardStatus, refreshSettings, refreshIntegrationStatus, refreshCliStatus } = get();
-    const platform = await getRuntimePlatform();
+    const { refreshClipboardStatus, refreshSettings } = get();
     const metaPromise = invoke<AppMeta>("get_app_meta").catch(() => null);
     const tasks: Promise<unknown>[] = [
       refreshClipboardStatus(),
@@ -356,15 +361,21 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
       metaPromise.then((m) => { if (m) set({ appMeta: m }); }),
     ];
 
-    if (platform === "desktop") {
-      tasks.push(refreshIntegrationStatus());
-      tasks.push(refreshCliStatus());
-    } else {
-      set({ claudeEnabled: false, cursorEnabled: false });
-      set({ cliStatus: null });
+    await Promise.all(tasks);
+  },
+
+  initDeferredDesktopStatus: async () => {
+    const platform = await getRuntimePlatform();
+    if (!shouldLoadDesktopStatusLazily(platform)) {
+      set({ claudeEnabled: false, cursorEnabled: false, cliStatus: null });
+      return;
     }
 
-    await Promise.all(tasks);
+    const { refreshIntegrationStatus, refreshCliStatus } = get();
+    await Promise.all([
+      refreshIntegrationStatus(),
+      refreshCliStatus(),
+    ]);
   },
 }));
 
@@ -383,6 +394,17 @@ useAppStore.getState = useAppStoreInternal.getState;
 // ---- Side-effect listeners (call once from main.tsx) ----
 
 let _initialized = false;
+let _deferredDesktopStatusInitialized = false;
+
+function runAfterStartupSettles(task: () => void) {
+  const win = window as WindowWithIdleCallback;
+  if (win.requestIdleCallback) {
+    win.requestIdleCallback(task, { timeout: 1500 });
+    return;
+  }
+  window.setTimeout(task, 600);
+}
+
 export function initAppListeners() {
   if (_initialized) return;
   _initialized = true;
@@ -391,6 +413,11 @@ export function initAppListeners() {
 
   // Load all state on startup
   void useAppStoreInternal.getState().init();
+  runAfterStartupSettles(() => {
+    if (_deferredDesktopStatusInitialized) return;
+    _deferredDesktopStatusInitialized = true;
+    void useAppStoreInternal.getState().initDeferredDesktopStatus();
+  });
   void getRuntimeInfo().then((runtimeInfo) => {
     const canUseControlCopyPasteBridge = supportsControlCopyPasteBridge(runtimeInfo);
     if (canUseControlCopyPasteBridge) {

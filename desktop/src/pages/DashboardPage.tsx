@@ -48,6 +48,7 @@ import {
   type DashboardContentCategory,
   type RecentItem,
 } from "../components/domain/dashboard/dashboardLogic";
+import { getDashboardStartupMessageKey } from "../utils/startupLogic";
 
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
@@ -127,6 +128,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatus);
   const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
   const cliStatusBadgeTone = getCliStatusBadgeTone(cliStatus);
+  const startupMessageKey = getDashboardStartupMessageKey({
+    hasGitStatus: Boolean(gitStatus),
+    hasStats: Boolean(stats),
+  });
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
   const lastCommitBrowseUrl = useMemo(
     () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
@@ -209,7 +214,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }
 
   if (!stats) {
-    return <Loading text={t("dashboard.loading")} />;
+    return <Loading text={t(startupMessageKey ?? "dashboard.loading")} />;
   }
 
   const displayedFileCount = getDashboardDisplayedFileCount(stats);
