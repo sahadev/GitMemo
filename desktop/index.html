@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-mobile="false">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <script>
+      (() => {
+        const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+        document.documentElement.setAttribute("data-mobile", isMobile ? "true" : "false");
+      })();
+    </script>
     <style>
       :root {
         background: #171a15;
@@ -114,6 +120,16 @@
         to {
           transform: translateX(168px);
         }
+      }
+
+      html[data-mobile="true"] .gm-boot-shell {
+        gap: 0;
+      }
+
+      html[data-mobile="true"] .gm-boot-title,
+      html[data-mobile="true"] .gm-boot-loader,
+      html[data-mobile="true"] .gm-boot-progress {
+        display: none;
       }
     </style>
     <title>GitMemo</title>
