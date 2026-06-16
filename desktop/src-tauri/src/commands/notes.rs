@@ -68,7 +68,7 @@ fn bg_refresh_index_file(dir: PathBuf, rel_path: String) {
 fn remove_index_file(dir: &Path, rel_path: &str) {
     let db_path = dir.join(".metadata").join("index.db");
     if let Ok(conn) = database::open_or_create(&db_path) {
-        let _ = database::remove_relative_file(&conn, rel_path);
+        let _ = database::remove_relative_file(&conn, dir, rel_path);
     }
 }
 
@@ -80,7 +80,7 @@ fn remove_index_files(dir: &Path, rel_paths: &[String]) {
     let db_path = dir.join(".metadata").join("index.db");
     if let Ok(conn) = database::open_or_create(&db_path) {
         for rel_path in rel_paths {
-            let _ = database::remove_relative_file(&conn, rel_path);
+            let _ = database::remove_relative_file(&conn, dir, rel_path);
         }
     }
 }

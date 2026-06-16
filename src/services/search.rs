@@ -6,7 +6,7 @@ use rusqlite::Connection;
 use crate::storage::database::{self, SearchResult, Stats};
 
 pub fn open_index(sync_dir: &Path) -> Result<Connection> {
-    let db_path = sync_dir.join(".metadata").join("index.db");
+    let db_path = database::index_db_path(sync_dir);
     database::open_or_create(&db_path)
 }
 
@@ -17,12 +17,7 @@ pub fn ensure_indexed(sync_dir: &Path) -> Result<Connection> {
 }
 
 pub fn rebuild_index(sync_dir: &Path) -> Result<u32> {
-    let db_path = sync_dir.join(".metadata").join("index.db");
-    if db_path.exists() {
-        std::fs::remove_file(&db_path)?;
-    }
-    let conn = database::open_or_create(&db_path)?;
-    database::build_index(&conn, sync_dir)
+    database::rebuild_index(sync_dir)
 }
 
 pub fn search(

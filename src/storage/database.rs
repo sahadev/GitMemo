@@ -1,12 +1,15 @@
 use crate::utils::datetime::{frontmatter_record_datetime_raw, record_timestamp_for_markdown};
 use anyhow::Result;
+use fs4::fs_std::FileExt;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
+use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 const INDEX_SCHEMA_VERSION: &str = "2";
+const INDEX_BUSY_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct SearchResult {
     pub source_type: String, // "conversation" or "note"
@@ -66,13 +69,102 @@ pub struct Stats {
 }
 
 pub fn open_or_create(db_path: &Path) -> Result<Connection> {
+    let _guard = db_path
+        .parent()
+        .and_then(|parent| parent.parent())
+        .map(acquire_index_write_lock)
+        .transpose()?;
+    open_or_create_unlocked(db_path)
+}
+
+fn open_or_create_unlocked(db_path: &Path) -> Result<Connection> {
     if let Some(parent) = db_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let conn = Connection::open(db_path)?;
-    conn.busy_timeout(std::time::Duration::from_secs(5))?;
+    conn.busy_timeout(INDEX_BUSY_TIMEOUT)?;
+    configure_connection(&conn)?;
     init_schema(&conn)?;
     Ok(conn)
+}
+
+fn configure_connection(conn: &Connection) -> Result<()> {
+    let _: String = conn.query_row("PRAGMA journal_mode = WAL", [], |row| row.get(0))?;
+    conn.execute_batch(
+        "
+        PRAGMA synchronous = NORMAL;
+        PRAGMA temp_store = MEMORY;
+        ",
+    )?;
+    Ok(())
+}
+
+struct IndexWriteLockGuard {
+    file: std::fs::File,
+}
+
+impl Drop for IndexWriteLockGuard {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
+pub fn index_db_path(sync_dir: &Path) -> PathBuf {
+    sync_dir.join(".metadata").join("index.db")
+}
+
+fn index_lock_path(sync_dir: &Path) -> PathBuf {
+    sync_dir.join(".metadata").join("index.lock")
+}
+
+fn acquire_index_file_lock(lock_path: PathBuf) -> Result<IndexWriteLockGuard> {
+    if let Some(dir) = lock_path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock_path)?;
+    file.lock_exclusive()?;
+    Ok(IndexWriteLockGuard { file })
+}
+
+fn acquire_index_write_lock(sync_dir: &Path) -> Result<IndexWriteLockGuard> {
+    acquire_index_file_lock(index_lock_path(sync_dir))
+}
+
+fn with_index_write_lock<T>(sync_dir: &Path, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    let _guard = acquire_index_write_lock(sync_dir)?;
+    f()
+}
+
+pub fn rebuild_index(sync_dir: &Path) -> Result<u32> {
+    with_index_write_lock(sync_dir, || {
+        let db_path = index_db_path(sync_dir);
+        if db_path.exists() {
+            std::fs::remove_file(&db_path)?;
+        }
+        let _ = std::fs::remove_file(db_path.with_extension("db-wal"));
+        let _ = std::fs::remove_file(db_path.with_extension("db-shm"));
+        let conn = open_or_create_unlocked(&db_path)?;
+        with_immediate_transaction(&conn, || build_index_unlocked(&conn, sync_dir))
+    })
+}
+
+fn with_immediate_transaction<T>(conn: &Connection, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    conn.execute_batch("BEGIN IMMEDIATE")?;
+    match f() {
+        Ok(value) => {
+            conn.execute_batch("COMMIT")?;
+            Ok(value)
+        }
+        Err(err) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(err)
+        }
+    }
 }
 
 fn init_schema(conn: &Connection) -> Result<()> {
@@ -319,8 +411,7 @@ const INDEX_ROOTS: &[(&str, &str)] = &[
     ("imports", "import"),
 ];
 
-/// Build index from markdown files under known GitMemo subtrees (full-text search + MCP).
-pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
+fn build_index_unlocked(conn: &Connection, sync_dir: &Path) -> Result<u32> {
     let mut count = 0u32;
     let mut seen_paths = HashSet::new();
 
@@ -384,6 +475,13 @@ pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
 
     set_last_index_time(conn)?;
     Ok(count)
+}
+
+/// Build index from markdown files under known GitMemo subtrees (full-text search + MCP).
+pub fn build_index(conn: &Connection, sync_dir: &Path) -> Result<u32> {
+    with_index_write_lock(sync_dir, || {
+        with_immediate_transaction(conn, || build_index_unlocked(conn, sync_dir))
+    })
 }
 
 fn get_last_index_time(conn: &Connection) -> Option<std::time::SystemTime> {
@@ -553,8 +651,7 @@ fn collect_markdown_snapshots(
     Ok(files)
 }
 
-#[allow(dead_code)]
-pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Result<()> {
+fn sync_index_folder_unlocked(conn: &Connection, sync_dir: &Path, folder: &str) -> Result<()> {
     let index_was_ready = get_last_index_time(conn).is_some();
     let mut changed = false;
     let files = collect_markdown_snapshots(sync_dir, folder)?;
@@ -631,7 +728,7 @@ pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Re
     }
 
     for rel_path in existing.keys() {
-        if !seen.contains(rel_path) && remove_relative_file(conn, rel_path)? {
+        if !seen.contains(rel_path) && remove_relative_file_unlocked(conn, rel_path)? {
             changed = true;
         }
     }
@@ -644,7 +741,17 @@ pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Re
 }
 
 #[allow(dead_code)]
-pub fn index_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -> Result<bool> {
+pub fn sync_index_folder(conn: &Connection, sync_dir: &Path, folder: &str) -> Result<()> {
+    with_index_write_lock(sync_dir, || {
+        with_immediate_transaction(conn, || sync_index_folder_unlocked(conn, sync_dir, folder))
+    })
+}
+
+fn index_relative_file_unlocked(
+    conn: &Connection,
+    sync_dir: &Path,
+    rel_path: &str,
+) -> Result<bool> {
     let index_was_ready = get_last_index_time(conn).is_some();
     let Some(source_type) = source_type_for_rel_path(rel_path) else {
         return Ok(false);
@@ -684,7 +791,15 @@ pub fn index_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -
 }
 
 #[allow(dead_code)]
-pub fn remove_relative_file(conn: &Connection, rel_path: &str) -> Result<bool> {
+pub fn index_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -> Result<bool> {
+    with_index_write_lock(sync_dir, || {
+        with_immediate_transaction(conn, || {
+            index_relative_file_unlocked(conn, sync_dir, rel_path)
+        })
+    })
+}
+
+fn remove_relative_file_unlocked(conn: &Connection, rel_path: &str) -> Result<bool> {
     let index_was_ready = get_last_index_time(conn).is_some();
     let id = content_hash(rel_path);
     let changed = conn.execute("DELETE FROM documents WHERE id = ?1", params![id.clone()])? > 0;
@@ -693,6 +808,13 @@ pub fn remove_relative_file(conn: &Connection, rel_path: &str) -> Result<bool> {
         set_last_index_time(conn)?;
     }
     Ok(changed)
+}
+
+#[allow(dead_code)]
+pub fn remove_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) -> Result<bool> {
+    with_index_write_lock(sync_dir, || {
+        with_immediate_transaction(conn, || remove_relative_file_unlocked(conn, rel_path))
+    })
 }
 
 #[allow(dead_code)]
@@ -1503,10 +1625,9 @@ mod tests {
     #[test]
     fn test_get_dashboard_stats_counts_known_dashboard_folders() {
         let conn = in_memory_db();
-        let activity_ts =
-            chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
-                .unwrap()
-                .timestamp_millis();
+        let activity_ts = chrono::DateTime::parse_from_rfc3339("2026-05-20T09:00:00+08:00")
+            .unwrap()
+            .timestamp_millis();
 
         for (file_path, source_type, file_size) in [
             ("conversations/a.md", "conversation", 10),
@@ -1575,6 +1696,48 @@ mod tests {
 
         assert_eq!(page.total, 1);
         assert_eq!(page.items[0].activity_ts, expected_activity_ts);
+    }
+
+    #[test]
+    fn test_concurrent_index_writes_are_serialized() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path().to_path_buf();
+        let conv_dir = base.join("conversations/2026-06");
+        std::fs::create_dir_all(&conv_dir).unwrap();
+        for i in 0..12 {
+            std::fs::write(
+                conv_dir.join(format!("06-{:02}-item.md", i + 1)),
+                format!(
+                    "---\ndate: 2026-06-{:02}T09:00:00+08:00\n---\n\n# Item {}\n\nBody {}",
+                    i + 1,
+                    i + 1,
+                    i + 1
+                ),
+            )
+            .unwrap();
+        }
+
+        let mut handles = Vec::new();
+        for i in 0..8 {
+            let sync_dir = base.clone();
+            handles.push(std::thread::spawn(move || {
+                let conn = open_or_create(&index_db_path(&sync_dir)).unwrap();
+                if i % 2 == 0 {
+                    build_index(&conn, &sync_dir).unwrap();
+                } else {
+                    let rel_path = format!("conversations/2026-06/06-{:02}-item.md", i + 1);
+                    index_relative_file(&conn, &sync_dir, &rel_path).unwrap();
+                }
+            }));
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        let conn = open_or_create(&index_db_path(&base)).unwrap();
+        let page = list_documents_page(&conn, "conversations", 0, 20).unwrap();
+        assert_eq!(page.total, 12);
     }
 
     #[test]

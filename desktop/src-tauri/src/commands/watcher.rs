@@ -74,7 +74,7 @@ fn update_index_for_path(path: &Path, sync_dir: &Path, removed: bool) {
         return;
     };
     if removed || !path.is_file() {
-        let _ = database::remove_relative_file(&conn, &rel);
+        let _ = database::remove_relative_file(&conn, sync_dir, &rel);
     } else {
         let _ = database::index_relative_file(&conn, sync_dir, &rel);
     }
