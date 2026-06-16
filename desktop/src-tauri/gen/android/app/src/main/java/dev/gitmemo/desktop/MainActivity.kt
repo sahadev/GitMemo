@@ -1,5 +1,6 @@
 package dev.gitmemo.desktop
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
@@ -78,18 +79,23 @@ class MainActivity : TauriActivity() {
     val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
     val displayCutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
     val rawInsets = ViewPadding(
-      left = maxOf(systemBars.left, displayCutout.left),
+      left = displayCutout.left,
       top = maxOf(systemBars.top, displayCutout.top),
-      right = maxOf(systemBars.right, displayCutout.right),
+      right = displayCutout.right,
       bottom = maxOf(systemBars.bottom, displayCutout.bottom)
     )
 
     return ViewPadding(
-      left = rawInsets.left,
+      left = resolveHorizontalSafeInset(rawInsets.left),
       top = resolveTopSafeInset(rawInsets, insets),
-      right = rawInsets.right,
+      right = resolveHorizontalSafeInset(rawInsets.right),
       bottom = resolveBottomSafeInset(rawInsets, insets)
     )
+  }
+
+  private fun resolveHorizontalSafeInset(rawInset: Int): Int {
+    if (rawInset <= 0) return 0
+    return if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) rawInset else 0
   }
 
   private fun resolveTopSafeInset(rawInsets: ViewPadding, insets: WindowInsetsCompat): Int {
