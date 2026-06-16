@@ -12,8 +12,8 @@ function read(path) {
 }
 
 function rootVersion() {
-  const match = read('Cargo.toml').match(/^version = "([^"]+)"/m)
-  if (!match) throw new Error('Failed to read root Cargo.toml version')
+  const match = read('desktop/src-tauri/Cargo.toml').match(/^version = "([^"]+)"/m)
+  if (!match) throw new Error('Failed to read desktop/src-tauri/Cargo.toml version')
   return match[1]
 }
 

@@ -24,7 +24,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEBSITE_DIR="$PROJECT_DIR/website"
-PROJECT_VERSION="$(awk -F'"' '/^version = / { print $2; exit }' "$PROJECT_DIR/Cargo.toml")"
+PROJECT_VERSION="$(awk -F'"' '/^version = / { print $2; exit }' "$PROJECT_DIR/desktop/src-tauri/Cargo.toml")"
 
 # 加载本地配置
 if [ -f "$SCRIPT_DIR/.env.local" ]; then
