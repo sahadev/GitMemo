@@ -27,6 +27,7 @@ import { usePlatformFlags } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
 import { useI18n } from "./hooks/useI18n";
 import { shortcutMatches, withDefaultShortcuts } from "./utils/shortcuts";
+import { applyMobileExtraTopSafeArea, loadMobileExtraTopSafeArea } from "./utils/mobileLayout";
 import {
   consumeNotificationNavigateTarget,
   subscribeNotificationNavigate,
@@ -119,6 +120,10 @@ function App() {
   const routeExternalFileRef = useRef<(filePath: string) => Promise<boolean>>(async () => false);
   const externalFileOpenRequestIdRef = useRef(0);
   const mobileTouchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  useEffect(() => {
+    applyMobileExtraTopSafeArea({ isMobile, enabled: loadMobileExtraTopSafeArea() });
+  }, [isMobile]);
 
   useEffect(() => {
     initializedRef.current = initialized;

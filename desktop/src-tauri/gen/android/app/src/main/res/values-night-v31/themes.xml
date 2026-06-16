@@ -1,9 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Theme.gitmemo_desktop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowDisablePreview">true</item>
-        <item name="android:windowBackground">#f7f8f5</item>
+        <item name="android:windowBackground">#171a15</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/gitmemo_splash_empty</item>
+        <item name="android:windowSplashScreenBackground">#171a15</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
     </style>
 </resources>

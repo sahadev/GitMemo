@@ -246,6 +246,8 @@
     "appearanceDesc": "当前使用{0}模式",
     "language": "语言",
     "languageDesc": "界面语言",
+    "mobileExtraTopSafeArea": "顶部安全区补偿",
+    "mobileExtraTopSafeAreaDesc": "部分手机顶部留白异常时开启；默认关闭。",
     "launchAtLogin": "开机启动",
     "launchAtLoginDesc": "登录时自动启动 GitMemo",
     "clipboardAutostart": "自动启动剪贴板监控",

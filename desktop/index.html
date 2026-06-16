@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-mobile="false">
+<html lang="zh-CN" data-mobile="false" data-mobile-extra-top-safe-area="false">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -10,6 +10,14 @@
       (() => {
         const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
         document.documentElement.setAttribute("data-mobile", isMobile ? "true" : "false");
+        let extraTopSafeArea = false;
+        try {
+          extraTopSafeArea = localStorage.getItem("gitmemo-mobile-extra-top-safe-area") === "true";
+        } catch (_) {}
+        document.documentElement.setAttribute(
+          "data-mobile-extra-top-safe-area",
+          isMobile && extraTopSafeArea ? "true" : "false"
+        );
       })();
     </script>
     <style>

@@ -246,6 +246,8 @@
     "appearanceDesc": "Currently using {0} mode",
     "language": "Language",
     "languageDesc": "Interface language",
+    "mobileExtraTopSafeArea": "Top safe-area compensation",
+    "mobileExtraTopSafeAreaDesc": "Enable only on phones with unusual top spacing. Off by default.",
     "launchAtLogin": "Launch at login",
     "launchAtLoginDesc": "Start GitMemo when you log in",
     "clipboardAutostart": "Auto-start clipboard monitor",

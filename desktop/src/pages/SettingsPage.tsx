@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound, Smartphone } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -23,6 +23,12 @@ import {
   type ShortcutId,
 } from "../utils/shortcuts";
 import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
+import {
+  applyMobileExtraTopSafeArea,
+  loadMobileExtraTopSafeArea,
+  saveMobileExtraTopSafeArea,
+  shouldShowMobileExtraTopSafeAreaSetting,
+} from "../utils/mobileLayout";
 import { Switch } from "../components/base/Switch";
 import {
   SettingsAbout,
@@ -178,10 +184,15 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
   const [importFileSizeLimitDraftKb, setImportFileSizeLimitDraftKb] = useState(IMPORT_SIZE_LIMIT_DEFAULT_KB);
   const savingImportLimitValueRef = useRef<number | null>(null);
   const [shortcutsExpanded, setShortcutsExpanded] = useState(false);
+  const [mobileExtraTopSafeArea, setMobileExtraTopSafeArea] = useState(loadMobileExtraTopSafeArea);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    applyMobileExtraTopSafeArea({ isMobile, enabled: mobileExtraTopSafeArea });
+  }, [isMobile, mobileExtraTopSafeArea]);
 
   useEffect(() => {
     if (!editingRemote) setRemoteInput(gitRemote);
@@ -342,6 +353,13 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
+  };
+
+  const toggleMobileExtraTopSafeArea = () => {
+    const enabled = !mobileExtraTopSafeArea;
+    setMobileExtraTopSafeArea(enabled);
+    saveMobileExtraTopSafeArea(enabled);
+    applyMobileExtraTopSafeArea({ isMobile, enabled });
   };
 
   const toggleClaudeIntegration = async () => {
@@ -633,6 +651,7 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
     { id: "en", label: "English" },
     { id: "zh", label: "中文" },
   ];
+  const showMobileExtraTopSafeAreaSetting = shouldShowMobileExtraTopSafeAreaSetting(isMobile);
 
   return (
     <SettingsPageShell mobile={isMobile}>
@@ -668,6 +687,19 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
               ))}
             </SettingsSegmentedGroup>
           </SettingsRow>
+
+          {showMobileExtraTopSafeAreaSetting && (
+            <>
+              <SettingsDivider />
+              <SettingsRow
+                icon={Smartphone}
+                title={t("settings.mobileExtraTopSafeArea")}
+                description={t("settings.mobileExtraTopSafeAreaDesc")}
+              >
+                <Switch enabled={mobileExtraTopSafeArea} onToggle={toggleMobileExtraTopSafeArea} />
+              </SettingsRow>
+            </>
+          )}
 
           {isDesktop && (
             <>
