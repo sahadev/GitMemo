@@ -2418,8 +2418,8 @@ a:focus-visible {
 }
 
 .gm-bottom-nav-item[data-active="true"] {
-  background: var(--gm-color-bg-selected);
-  border-color: var(--gm-accent-border);
+  background: color-mix(in srgb, var(--gm-color-bg-selected) 72%, transparent);
+  border-color: transparent;
   color: var(--text);
 }
 
