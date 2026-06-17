@@ -37,6 +37,7 @@ interface DownloadItem {
   fallbackHref: string
   assetPattern?: RegExp
   ext: string
+  detailKeys: string[]
   fixedVersion?: string
   useManifest?: boolean
   comingSoon?: boolean
@@ -49,6 +50,7 @@ const downloads: DownloadItem[] = [
     fallbackHref: 'https://github.com/sahadev/GitMemo/releases/download/v1.0.65/GitMemo_v1.0.65_aarch64.dmg',
     assetPattern: /^GitMemo_v?.+_aarch64\.dmg$/,
     ext: '.dmg',
+    detailKeys: ['download.macosAppleSilicon.detail'],
   },
   {
     key: 'macosIntel',
@@ -56,12 +58,14 @@ const downloads: DownloadItem[] = [
     fallbackHref: 'https://github.com/sahadev/GitMemo/releases/download/v1.0.65/GitMemo_v1.0.65_x86_64.dmg',
     assetPattern: /^GitMemo_v?.+_(?:x86_64|x64)\.dmg$/,
     ext: '.dmg',
+    detailKeys: ['download.macosIntel.detail'],
   },
   {
     key: 'windowsDesktop',
     icon: Laptop,
     fallbackHref: STABLE_WINDOWS_EXE_URL,
     ext: '.exe · x64',
+    detailKeys: ['download.windowsDesktop.detail', 'download.windowsDesktop.arch'],
     fixedVersion: FIXED_WINDOWS_VERSION || undefined,
   },
   {
@@ -69,6 +73,7 @@ const downloads: DownloadItem[] = [
     icon: Smartphone,
     fallbackHref: STABLE_ANDROID_APK_URL,
     ext: '.apk',
+    detailKeys: ['download.androidApk.detail', 'download.androidApk.arch'],
     fixedVersion: FIXED_ANDROID_VERSION || undefined,
   },
 ]
@@ -141,6 +146,7 @@ export default function DownloadClients({ showHeader = true, showVersion = false
         {downloads.map((item) => {
           const Icon = item.icon
           const title = t(`download.${item.key}.title`)
+          const details = item.detailKeys.map((key) => t(key))
           const manifestAsset = !item.comingSoon && item.useManifest !== false ? manifest?.assets[item.key] : undefined
           const asset = !item.comingSoon && item.assetPattern
             ? release?.assets.find((candidate) => item.assetPattern?.test(candidate.name))
@@ -149,12 +155,12 @@ export default function DownloadClients({ showHeader = true, showVersion = false
           const cardContent = (
             <>
               <div>
-                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-1 shrink-0 text-text">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 text-text">
                       <Icon size={24} strokeWidth={2.2} />
                     </span>
-                    <h3 className="min-w-0 text-xl sm:text-2xl font-bold text-text">
+                    <h3 className="min-w-0 truncate text-2xl font-bold leading-none text-text">
                       {title}
                     </h3>
                   </div>
@@ -163,6 +169,16 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                       {item.comingSoon ? t('download.comingSoon') : version}
                     </span>
                   )}
+                </div>
+                <div className="mt-4 flex min-h-7 flex-wrap items-center gap-2">
+                  {details.map((detail) => (
+                    <span
+                      key={detail}
+                      className="rounded-md border border-border bg-surface-2/70 px-2 py-1 text-xs font-medium leading-none text-text-secondary"
+                    >
+                      {detail}
+                    </span>
+                  ))}
                 </div>
                 <p className="mt-6 text-sm sm:text-base text-text-secondary">
                   {t(`download.${item.key}.desc`)}
@@ -195,7 +211,7 @@ export default function DownloadClients({ showHeader = true, showVersion = false
               key={item.key}
               href={manifestAsset?.url ?? asset?.browser_download_url ?? item.fallbackHref}
               className="group flex min-h-34 min-w-0 flex-col justify-between rounded-lg border border-border bg-surface/80 p-5 text-left shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-colors hover:border-[rgba(0,122,255,0.45)] hover:bg-surface-2/80"
-              aria-label={`${t('download.action')} ${title}`}
+              aria-label={`${t('download.action')} ${title} ${details.join(' ')}`}
             >
               {cardContent}
             </a>
