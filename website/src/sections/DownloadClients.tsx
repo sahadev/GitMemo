@@ -155,20 +155,13 @@ export default function DownloadClients({ showHeader = true, showVersion = false
           const cardContent = (
             <>
               <div>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="shrink-0 text-text">
-                      <Icon size={24} strokeWidth={2.2} />
-                    </span>
-                    <h3 className="min-w-0 truncate text-2xl font-bold leading-none text-text">
-                      {title}
-                    </h3>
-                  </div>
-                  {showVersion && (
-                    <span className="shrink-0 rounded-full border border-green/30 px-2 py-0.5 text-xs font-medium text-green">
-                      {item.comingSoon ? t('download.comingSoon') : version}
-                    </span>
-                  )}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="shrink-0 text-text">
+                    <Icon size={24} strokeWidth={2.2} />
+                  </span>
+                  <h3 className="min-w-0 text-2xl font-bold leading-none text-text">
+                    {title}
+                  </h3>
                 </div>
                 <div className="mt-4 flex min-h-7 flex-wrap items-center gap-2">
                   {details.map((detail) => (
@@ -185,13 +178,20 @@ export default function DownloadClients({ showHeader = true, showVersion = false
                 </p>
               </div>
 
-              <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm sm:text-base text-text-secondary">
-                  {item.ext}
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-2 text-sm sm:text-base font-semibold text-accent transition-colors group-hover:text-accent-light">
+              <div className="mt-10 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
+                <div className="flex min-w-0 items-center gap-2 text-xs text-text-secondary">
+                  <span>
+                    {item.ext}
+                  </span>
+                  {showVersion && (
+                    <span className="shrink-0 rounded-full border border-green/30 bg-green/5 px-2 py-0.5 text-[11px] font-medium leading-none text-green">
+                      {item.comingSoon ? t('download.comingSoon') : version}
+                    </span>
+                  )}
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-accent transition-colors group-hover:text-accent-light">
                   {item.comingSoon ? t('download.comingSoon') : t('download.action')}
-                  {!item.comingSoon && <Download size={18} />}
+                  {!item.comingSoon && <Download size={16} />}
                 </span>
               </div>
             </>
