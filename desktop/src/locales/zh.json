@@ -47,6 +47,11 @@
     "title": "导入文件",
     "empty": "拖拽文件到窗口即可导入",
     "selectOrDrop": "选择一个文件或将文件拖入窗口",
+    "importMarkdown": "导入 Markdown 文件",
+    "imported": "已导入 {0} 个文件",
+    "importSkipped": "已跳过 {0} 个文件：文件过大或不支持。",
+    "importRejected": "{0} 未导入：当前大小 {1}，上限 {2}。",
+    "noImportableFiles": "没有可导入的 Markdown 文件。",
     "deleted": "已删除导入文件",
     "deleteConfirm": "删除这个导入文件？"
   },

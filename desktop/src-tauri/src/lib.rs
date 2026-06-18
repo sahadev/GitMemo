@@ -410,6 +410,7 @@ pub fn run() {
             clipboard::stop_clipboard_watch,
             clipboard::save_clipboard_now,
             // Import (drag-drop)
+            import::check_import_files,
             import::import_files,
             // Git sync
             notes::sync_to_git,

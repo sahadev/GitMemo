@@ -47,6 +47,11 @@
     "title": "Imports",
     "empty": "Drag files to the window to import",
     "selectOrDrop": "Select a file or drag one into the window",
+    "importMarkdown": "Import Markdown files",
+    "imported": "Imported {0} file(s)",
+    "importSkipped": "Skipped {0} file(s): too large or unsupported.",
+    "importRejected": "{0} was not imported: size {1}, limit {2}.",
+    "noImportableFiles": "No importable Markdown files.",
     "deleted": "Import deleted",
     "deleteConfirm": "Delete this imported file?"
   },

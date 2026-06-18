@@ -49,6 +49,21 @@ pub struct ImportedFile {
     pub size: u64,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ImportFileCheckResult {
+    pub accepted: Vec<String>,
+    pub rejected: Vec<ImportFileRejection>,
+    pub max_size: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ImportFileRejection {
+    pub path: String,
+    pub file_name: String,
+    pub size: Option<u64>,
+    pub reason: String,
+}
+
 /// Route a file to the correct gitmemo directory based on its type.
 /// All imports land under `imports/` — file type only affects processing, not destination.
 fn route_file(_filename: &str, ext: &str) -> (&'static str, FileCategory) {
@@ -151,6 +166,16 @@ fn is_supported_directory_import_file(path: &Path) -> bool {
             | "ini"
             | "env"
     )
+}
+
+fn is_markdown_import_file(path: &Path) -> bool {
+    let ext = path
+        .extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    matches!(ext.as_str(), "md" | "markdown" | "mdx")
 }
 
 fn read_text_lossy(path: &Path) -> Result<String, String> {
@@ -395,6 +420,84 @@ pub fn import_paths(paths: Vec<String>) -> Result<ImportResult, String> {
         imported,
         errors,
     })
+}
+
+fn file_name_for_rejection(path: &Path, fallback: &str) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(fallback)
+        .to_string()
+}
+
+fn check_import_files_sync(paths: Vec<String>) -> ImportFileCheckResult {
+    let max_size = settings::import_file_size_limit_bytes();
+    let mut accepted = Vec::new();
+    let mut rejected = Vec::new();
+
+    for path_str in paths {
+        let path = Path::new(&path_str);
+        let file_name = file_name_for_rejection(path, &path_str);
+
+        if !path.exists() {
+            rejected.push(ImportFileRejection {
+                path: path_str,
+                file_name,
+                size: None,
+                reason: "missing".into(),
+            });
+            continue;
+        }
+
+        if !path.is_file() {
+            rejected.push(ImportFileRejection {
+                path: path_str,
+                file_name,
+                size: None,
+                reason: "not_file".into(),
+            });
+            continue;
+        }
+
+        if !is_markdown_import_file(path) {
+            let size = path.metadata().ok().map(|meta| meta.len());
+            rejected.push(ImportFileRejection {
+                path: path_str,
+                file_name,
+                size,
+                reason: "unsupported_type".into(),
+            });
+            continue;
+        }
+
+        match path.metadata() {
+            Ok(meta) if meta.len() > max_size => rejected.push(ImportFileRejection {
+                path: path_str,
+                file_name,
+                size: Some(meta.len()),
+                reason: "too_large".into(),
+            }),
+            Ok(_) => accepted.push(path_str),
+            Err(e) => rejected.push(ImportFileRejection {
+                path: path_str,
+                file_name,
+                size: None,
+                reason: format!("metadata_error: {e}"),
+            }),
+        }
+    }
+
+    ImportFileCheckResult {
+        accepted,
+        rejected,
+        max_size,
+    }
+}
+
+#[tauri::command]
+pub async fn check_import_files(paths: Vec<String>) -> Result<ImportFileCheckResult, String> {
+    tokio::task::spawn_blocking(move || check_import_files_sync(paths))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))
 }
 
 #[tauri::command]

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Download, Trash2, RefreshCw, Eye } from "lucide-react";
+import { Download, Trash2, RefreshCw, Eye, FileUp } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
@@ -38,6 +38,17 @@ import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { LocalImagePreview } from "../components/domain/files/LocalImagePreview";
+import {
+  formatFileSize,
+  formatImportCheckLimit,
+  getAcceptedImportPaths,
+  getFirstRejectedImportFile,
+  getImportDialogPaths,
+  hasRejectedImportFiles,
+  type ImportDialogSelection,
+  type ImportFileCheckResult,
+  type ImportResult,
+} from "../components/domain/imports/importsLogic";
 
 export default function ImportsPage({
   onFocusSidebar: _onFocusSidebar,
@@ -87,6 +98,7 @@ export default function ImportsPage({
     mobile: isMobile,
   });
   const [saving, setSaving] = useState(false);
+  const [importingFiles, setImportingFiles] = useState(false);
   const watchedFolders = useMemo(() => ["imports"], []);
 
   const loadImportsPage = useCallback((offset: number, limit: number) => {
@@ -159,6 +171,66 @@ export default function ImportsPage({
     }
   }, [selectedFile, editContent, showToast, t]);
 
+  const handleChooseMarkdownFiles = useCallback(async () => {
+    if (importingFiles) return;
+    setImportingFiles(true);
+    try {
+      const selection = await open({
+        multiple: true,
+        directory: false,
+        filters: [
+          {
+            name: "Markdown",
+            extensions: ["md", "markdown", "mdx"],
+          },
+        ],
+      }) as ImportDialogSelection;
+      const paths = getImportDialogPaths(selection);
+      if (paths.length === 0) return;
+
+      const check = await invoke<ImportFileCheckResult>("check_import_files", { paths });
+      const acceptedPaths = getAcceptedImportPaths(check);
+      if (acceptedPaths.length === 0) {
+        const firstRejected = getFirstRejectedImportFile(check);
+        const size = firstRejected?.size === null || firstRejected?.size === undefined
+          ? null
+          : formatFileSize(firstRejected.size);
+        showToast(
+          firstRejected
+            ? t(
+              "imports.importRejected",
+              firstRejected.file_name,
+              size ?? "-",
+              formatImportCheckLimit(check.max_size),
+            )
+            : t("imports.noImportableFiles"),
+          true,
+          { autoClose: 6000 },
+        );
+        return;
+      }
+
+      const result = await invoke<ImportResult>("import_files", { paths: acceptedPaths });
+      if (result.imported.length > 0) {
+        showToast(t("imports.imported", result.imported.length));
+        await loadFiles();
+        const firstPath = result.imported[0]?.dest_path;
+        if (firstPath) void openFile(firstPath);
+      }
+      if (hasRejectedImportFiles(check)) {
+        showToast(t("imports.importSkipped", check.rejected.length), true, { autoClose: 6000 });
+      }
+      const firstError = result.errors[0];
+      if (firstError) {
+        showToast(`Error: ${firstError}`, true, { autoClose: 6000 });
+      }
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setImportingFiles(false);
+    }
+  }, [importingFiles, loadFiles, openFile, showToast, t]);
+
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -188,12 +260,21 @@ export default function ImportsPage({
               icon={Download}
               title={t("imports.title")}
               actions={(
-                <Button
-                  variant="toolbar"
-                  onClick={handleRefresh}
-                  title={t("common.refresh")}
-                  icon={RefreshCw}
-                />
+                <>
+                  <Button
+                    variant="toolbar"
+                    onClick={() => void handleChooseMarkdownFiles()}
+                    disabled={importingFiles}
+                    title={t("imports.importMarkdown")}
+                    icon={FileUp}
+                  />
+                  <Button
+                    variant="toolbar"
+                    onClick={handleRefresh}
+                    title={t("common.refresh")}
+                    icon={RefreshCw}
+                  />
+                </>
               )}
             />
 

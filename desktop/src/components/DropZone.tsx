@@ -27,19 +27,7 @@ import {
   dropImportIcon,
   dropOpenIcon,
 } from "./domain/dropzone/DropZoneComponents";
-
-interface ImportedFile {
-  original_name: string;
-  dest_path: string;
-  category: string;
-  size: number;
-}
-
-interface ImportResult {
-  success: boolean;
-  imported: ImportedFile[];
-  errors: string[];
-}
+import { formatFileSize, formatSizeLimitFromKb, type ImportResult } from "./domain/imports/importsLogic";
 
 interface DragDropPayload {
   paths: string[];
@@ -53,18 +41,6 @@ interface DropZoneProps {
 
 interface PendingDrop {
   paths: string[];
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatSizeLimitFromKb(kb: number): string {
-  if (kb < 1024) return `${kb} KB`;
-  const mb = kb / 1024;
-  return Number.isInteger(mb) ? `${mb} MB` : `${mb.toFixed(1)} MB`;
 }
 
 function isOpenableByGitMemo(name: string) {
@@ -254,7 +230,7 @@ export default function DropZone({ onOpenDroppedFiles, onNavigateAfterImport }: 
               category={f.category}
               name={f.original_name}
               path={f.dest_path}
-              size={formatSize(f.size)}
+              size={formatFileSize(f.size)}
             />
           ))}
           {result.errors.map((err, i) => (
