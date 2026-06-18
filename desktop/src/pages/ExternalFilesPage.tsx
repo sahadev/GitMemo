@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { ask } from "@tauri-apps/plugin-dialog";
-import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser, FileX, RotateCcw } from "lucide-react";
+import { ask, open } from "@tauri-apps/plugin-dialog";
+import { FileSymlink, Eye, RefreshCw, Trash2, Download, Eraser, FileX, RotateCcw, FilePlus } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { Loading } from "../components/Loading";
@@ -21,6 +21,7 @@ import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
   canClearMissingExternalFiles,
   getFirstExternalImportError,
+  getFirstExternalFileDialogPath,
   getMissingExternalFileCount,
   getSelectedExternalEntry,
   hasExternalEntry,
@@ -40,6 +41,7 @@ import {
   type ExternalFileWriteResult,
   type RecentlySavedExternalFile,
   type ImportResult,
+  type ExternalFileDialogSelection,
 } from "../components/domain/external-files/externalFilesLogic";
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { usePlatform } from "../hooks/usePlatform";
@@ -81,6 +83,7 @@ export default function ExternalFilesPage({
     mobile: isMobile,
   });
   const [saving, setSaving] = useState(false);
+  const [choosingFile, setChoosingFile] = useState(false);
   const [importing, setImporting] = useState(false);
   const [clearingMissing, setClearingMissing] = useState(false);
   const [diskChangePending, setDiskChangePending] = useState<ExternalFileChangedEvent | null>(null);
@@ -252,6 +255,31 @@ export default function ExternalFilesPage({
     }
   }, [selectedFilePath, editContent, upsertEntry, showToast, t]);
 
+  const handleChooseFile = useCallback(async () => {
+    if (choosingFile) return;
+    setChoosingFile(true);
+    try {
+      const selection = await open({
+        multiple: false,
+        directory: false,
+        filters: [
+          {
+            name: "Markdown",
+            extensions: ["md", "markdown", "mdx", "mdc"],
+          },
+        ],
+      }) as ExternalFileDialogSelection;
+      const filePath = getFirstExternalFileDialogPath(selection);
+      if (filePath) {
+        await openExternalFile(filePath);
+      }
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setChoosingFile(false);
+    }
+  }, [choosingFile, openExternalFile, showToast]);
+
   const handleRemove = useCallback(async (filePath: string) => {
     const confirmed = await ask(t("externalFiles.removeConfirm"), {
       title: t("common.confirm"),
@@ -342,6 +370,13 @@ export default function ExternalFilesPage({
               title={t("externalFiles.title")}
               actions={(
                 <>
+                  <Button
+                    variant="toolbar"
+                    onClick={() => void handleChooseFile()}
+                    disabled={choosingFile}
+                    title={t("externalFiles.openMarkdown")}
+                    icon={FilePlus}
+                  />
                   <Button
                     variant="toolbar"
                     onClick={() => void handleClearMissing()}

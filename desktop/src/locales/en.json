@@ -55,6 +55,7 @@
     "subtitle": "Keep a local-only working set of files you opened from your device.",
     "empty": "No external files yet",
     "selectFile": "Open a file with GitMemo to start tracking it here",
+    "openMarkdown": "Open Markdown file",
     "localOnlyHint": "This list stays on this device and is not synced to Git.",
     "lastSaved": "Last saved {0}",
     "missing": "Missing",

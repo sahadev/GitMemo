@@ -46,9 +46,16 @@ export interface RecentlySavedExternalFile {
   savedAtMs: number;
 }
 
+export type ExternalFileDialogSelection = string | string[] | null;
+
 export function isProbablyMarkdownFileName(name: string) {
   const lower = name.toLowerCase();
   return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
+}
+
+export function getFirstExternalFileDialogPath(selection: ExternalFileDialogSelection) {
+  if (Array.isArray(selection)) return selection[0] ?? null;
+  return selection;
 }
 
 export function upsertExternalFileEntry(entries: ExternalFileEntry[], entry: ExternalFileEntry) {

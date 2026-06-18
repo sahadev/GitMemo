@@ -55,6 +55,7 @@
     "subtitle": "记录你从设备中打开过的文件，仅保存在本机索引中。",
     "empty": "暂无外部文件",
     "selectFile": "通过 GitMemo 打开一个文件后，它会出现在这里",
+    "openMarkdown": "打开 Markdown 文件",
     "localOnlyHint": "这个列表仅保存在当前设备，不会同步到 Git。",
     "lastSaved": "最近保存：{0}",
     "missing": "已丢失",
