@@ -45,7 +45,7 @@ export function FileMoreActionsMenu({
   onOpenChange,
 }: FileMoreActionsMenuProps) {
   const { t } = useI18n();
-  const { os } = usePlatformFlags();
+  const { os, capabilities } = usePlatformFlags();
   const { showToast } = useToast();
   const { settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
@@ -106,6 +106,7 @@ export function FileMoreActionsMenu({
     canReveal,
     canCopyPath,
     canExportPdf,
+    supportsPdfExport: capabilities.supportsPdfExport,
     exportContent,
   });
   const { showReveal, showCopyPath, showExportPdf } = actionVisibility;

@@ -44,13 +44,14 @@ export function getFileMoreActionVisibility(input: {
   canReveal: boolean;
   canCopyPath: boolean;
   canExportPdf: boolean;
+  supportsPdfExport: boolean;
   exportContent: string;
 }): FileMoreActionVisibility {
   const hasFilePath = hasActionFilePath(input.relPath, input.absolutePath);
   return {
     showReveal: input.canReveal && hasFilePath,
     showCopyPath: input.canCopyPath && hasFilePath,
-    showExportPdf: input.canExportPdf && Boolean(input.exportContent.trim()),
+    showExportPdf: input.canExportPdf && input.supportsPdfExport && Boolean(input.exportContent.trim()),
   };
 }
 

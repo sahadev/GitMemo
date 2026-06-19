@@ -5502,6 +5502,8 @@ a:focus-visible {
 
 .gm-markdown-link {
   cursor: pointer;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .gm-quick-paste-shell {
@@ -5865,6 +5867,7 @@ textarea:focus, input:focus {
   font-size: var(--gm-font-sm);
   line-height: var(--gm-leading-reading);
   color: var(--text);
+  overflow-wrap: anywhere;
   word-wrap: break-word;
 }
 
@@ -5917,6 +5920,12 @@ textarea:focus, input:focus {
 
 .markdown-body li {
   margin-bottom: 0.3em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.markdown-body li > p {
+  margin: 0.2em 0;
 }
 
 .markdown-body code {
@@ -5927,6 +5936,10 @@ textarea:focus, input:focus {
   font-size: 0.88em;
   font-weight: 700;
   font-family: var(--gm-font-mono);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .markdown-body pre {
@@ -5940,9 +5953,12 @@ textarea:focus, input:focus {
 
 .markdown-body pre code {
   background: none;
+  overflow-wrap: normal;
   padding: 0;
   font-size: var(--gm-font-xs);
   line-height: var(--gm-leading-relaxed);
+  white-space: pre;
+  word-break: normal;
 }
 
 .markdown-body blockquote {
@@ -6182,5 +6198,16 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .markdown-body pre,
   .markdown-body code {
     font-size: var(--gm-font-sm);
+  }
+  .markdown-body code {
+    background: color-mix(in srgb, var(--purple) 7%, transparent);
+    color: var(--text);
+    font-weight: 600;
+    padding: 0.02em 0.2em;
+  }
+  .markdown-body pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
   }
 }

@@ -22,6 +22,7 @@ export interface PlatformFlags {
 export interface PlatformCapabilities {
   supportsControlCopyPasteBridge: boolean;
   supportsImageClipboardWrite: boolean;
+  supportsPdfExport: boolean;
   supportsSystemProxyDetection: boolean;
 }
 
@@ -122,10 +123,15 @@ export function supportsImageClipboardWrite(flags: PlatformFlags) {
   return flags.isDesktop;
 }
 
+export function supportsPdfExport(flags: PlatformFlags) {
+  return flags.isDesktop;
+}
+
 export function getPlatformCapabilities(flags: PlatformFlags): PlatformCapabilities {
   return {
     supportsControlCopyPasteBridge: supportsControlCopyPasteBridge(flags),
     supportsImageClipboardWrite: supportsImageClipboardWrite(flags),
+    supportsPdfExport: supportsPdfExport(flags),
     supportsSystemProxyDetection: supportsSystemProxyDetection(flags),
   };
 }
