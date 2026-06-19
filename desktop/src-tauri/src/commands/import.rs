@@ -1,3 +1,4 @@
+use super::markdown::{frontmatter_value, markdown_body};
 use super::settings;
 use gitmemo_core::storage::{files, git};
 use serde::{Deserialize, Serialize};
@@ -223,12 +224,69 @@ fn file_stem_from_name(file_name: &str) -> String {
         .to_string()
 }
 
-fn unique_import_destination(sync_dir: &Path, base_dir: &str, stem: &str, ext: &str) -> String {
-    let clean_stem = if stem.trim().is_empty() {
-        "untitled"
+fn first_markdown_heading(content: &str) -> Option<String> {
+    markdown_body(content)
+        .lines()
+        .find_map(|line| line.trim_start().strip_prefix("# ").map(str::trim))
+        .filter(|heading| !heading.is_empty())
+        .map(|heading| heading.trim_end_matches('#').trim().to_string())
+        .filter(|heading| !heading.is_empty())
+}
+
+fn import_title_from_markdown(content: &str) -> Option<String> {
+    frontmatter_value(content, "title")
+        .map(ToString::to_string)
+        .or_else(|| first_markdown_heading(content))
+}
+
+fn sanitize_import_stem(stem: &str) -> String {
+    let mut sanitized = String::new();
+    let mut previous_was_space = false;
+    for c in stem.chars() {
+        let next = if c.is_control()
+            || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|')
+        {
+            ' '
+        } else if c.is_whitespace() {
+            ' '
+        } else {
+            c
+        };
+
+        if next == ' ' {
+            if !previous_was_space {
+                sanitized.push(' ');
+                previous_was_space = true;
+            }
+        } else {
+            sanitized.push(next);
+            previous_was_space = false;
+        }
+    }
+    let sanitized = sanitized
+        .trim_matches(|c| c == ' ' || c == '_' || c == '-' || c == '.')
+        .to_string();
+    if sanitized.is_empty() {
+        "untitled".to_string()
     } else {
-        stem.trim()
-    };
+        sanitized
+            .chars()
+            .take(80)
+            .collect::<String>()
+            .trim_matches(|c| c == ' ' || c == '_' || c == '-' || c == '.')
+            .to_string()
+    }
+}
+
+fn import_stem_for_markdown(file_name: &str, content: &str) -> String {
+    import_title_from_markdown(content)
+        .map(|title| sanitize_import_stem(&title))
+        .filter(|stem| !stem.is_empty())
+        .unwrap_or_else(|| sanitize_import_stem(&file_stem_from_name(file_name)))
+}
+
+fn unique_import_destination(sync_dir: &Path, base_dir: &str, stem: &str, ext: &str) -> String {
+    let clean_stem = sanitize_import_stem(stem);
     let clean_ext = ext.trim_start_matches('.').trim();
     let mut counter = 0usize;
 
@@ -246,8 +304,8 @@ fn unique_import_destination(sync_dir: &Path, base_dir: &str, stem: &str, ext: &
     }
 }
 
-fn markdown_destination(sync_dir: &Path, base_dir: &str, file_name: &str) -> String {
-    let stem = file_stem_from_name(file_name);
+fn markdown_destination(sync_dir: &Path, base_dir: &str, file_name: &str, content: &str) -> String {
+    let stem = import_stem_for_markdown(file_name, content);
     unique_import_destination(sync_dir, base_dir, &stem, "md")
 }
 
@@ -297,12 +355,12 @@ mod tests {
     #[test]
     fn markdown_destination_uses_available_name_for_duplicates() {
         let sync_dir = temp_sync_dir();
-        std::fs::write(sync_dir.join("imports/note.md"), "first").unwrap();
-        std::fs::write(sync_dir.join("imports/note-1.md"), "second").unwrap();
+        std::fs::write(sync_dir.join("imports/My Note.md"), "first").unwrap();
+        std::fs::write(sync_dir.join("imports/My Note-1.md"), "second").unwrap();
 
-        let dest = markdown_destination(&sync_dir, "imports", "note.md");
+        let dest = markdown_destination(&sync_dir, "imports", "note.md", "# My Note\n\nbody");
 
-        assert_eq!(dest, "imports/note-2.md");
+        assert_eq!(dest, "imports/My Note-2.md");
         let _ = std::fs::remove_dir_all(sync_dir);
     }
 
@@ -310,9 +368,39 @@ mod tests {
     fn markdown_destination_keeps_original_name_when_available() {
         let sync_dir = temp_sync_dir();
 
-        let dest = markdown_destination(&sync_dir, "imports", "note.md");
+        let dest = markdown_destination(&sync_dir, "imports", "note.md", "body");
 
         assert_eq!(dest, "imports/note.md");
+        let _ = std::fs::remove_dir_all(sync_dir);
+    }
+
+    #[test]
+    fn markdown_destination_prefers_frontmatter_title() {
+        let sync_dir = temp_sync_dir();
+
+        let dest = markdown_destination(
+            &sync_dir,
+            "imports",
+            "note.md",
+            "---\ntitle: \"Frontmatter Title\"\n---\n\n# Heading Title\n",
+        );
+
+        assert_eq!(dest, "imports/Frontmatter Title.md");
+        let _ = std::fs::remove_dir_all(sync_dir);
+    }
+
+    #[test]
+    fn markdown_destination_uses_first_heading_when_title_missing() {
+        let sync_dir = temp_sync_dir();
+
+        let dest = markdown_destination(
+            &sync_dir,
+            "imports",
+            "note.md",
+            "intro\n\n# Heading / With: Symbols?\n\nbody",
+        );
+
+        assert_eq!(dest, "imports/Heading With Symbols.md");
         let _ = std::fs::remove_dir_all(sync_dir);
     }
 }
@@ -370,7 +458,7 @@ fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile
             // Read text content and wrap with frontmatter
             let content = read_text_lossy(source)?;
             let md = markdown_import_content(&filename, &content, &now);
-            let md_rel = markdown_destination(sync_dir, base_dir, &filename);
+            let md_rel = markdown_destination(sync_dir, base_dir, &filename, &content);
             let md_full = sync_dir.join(&md_rel);
             if let Some(parent) = md_full.parent() {
                 std::fs::create_dir_all(parent)
@@ -543,7 +631,7 @@ fn import_markdown_document(
 
     let (base_dir, category) = route_file(&filename, &ext);
     let now = chrono::Local::now();
-    let dest_rel = markdown_destination(sync_dir, base_dir, &filename);
+    let dest_rel = markdown_destination(sync_dir, base_dir, &filename, &document.content);
     let dest_full = sync_dir.join(&dest_rel);
 
     if let Some(parent) = dest_full.parent() {
