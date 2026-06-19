@@ -223,9 +223,32 @@ fn file_stem_from_name(file_name: &str) -> String {
         .to_string()
 }
 
-fn markdown_destination(base_dir: &str, file_name: &str) -> String {
+fn unique_import_destination(sync_dir: &Path, base_dir: &str, stem: &str, ext: &str) -> String {
+    let clean_stem = if stem.trim().is_empty() {
+        "untitled"
+    } else {
+        stem.trim()
+    };
+    let clean_ext = ext.trim_start_matches('.').trim();
+    let mut counter = 0usize;
+
+    loop {
+        let suffix = if counter == 0 {
+            String::new()
+        } else {
+            format!("-{}", counter)
+        };
+        let rel = format!("{}/{}{}.{}", base_dir, clean_stem, suffix, clean_ext);
+        if !sync_dir.join(&rel).exists() {
+            return rel;
+        }
+        counter += 1;
+    }
+}
+
+fn markdown_destination(sync_dir: &Path, base_dir: &str, file_name: &str) -> String {
     let stem = file_stem_from_name(file_name);
-    format!("{}/{}.md", base_dir, stem)
+    unique_import_destination(sync_dir, base_dir, &stem, "md")
 }
 
 fn markdown_import_content(
@@ -250,6 +273,48 @@ fn markdown_import_content(
 fn read_text_lossy(path: &Path) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("Failed to read file: {}", e))?;
     Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_sync_dir() -> std::path::PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "gitmemo-import-test-{}-{}",
+            std::process::id(),
+            nonce
+        ));
+        std::fs::create_dir_all(dir.join("imports")).unwrap();
+        dir
+    }
+
+    #[test]
+    fn markdown_destination_uses_available_name_for_duplicates() {
+        let sync_dir = temp_sync_dir();
+        std::fs::write(sync_dir.join("imports/note.md"), "first").unwrap();
+        std::fs::write(sync_dir.join("imports/note-1.md"), "second").unwrap();
+
+        let dest = markdown_destination(&sync_dir, "imports", "note.md");
+
+        assert_eq!(dest, "imports/note-2.md");
+        let _ = std::fs::remove_dir_all(sync_dir);
+    }
+
+    #[test]
+    fn markdown_destination_keeps_original_name_when_available() {
+        let sync_dir = temp_sync_dir();
+
+        let dest = markdown_destination(&sync_dir, "imports", "note.md");
+
+        assert_eq!(dest, "imports/note.md");
+        let _ = std::fs::remove_dir_all(sync_dir);
+    }
 }
 
 /// Process a single dropped file: copy to correct location, optionally wrap in markdown
@@ -305,7 +370,7 @@ fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile
             // Read text content and wrap with frontmatter
             let content = read_text_lossy(source)?;
             let md = markdown_import_content(&filename, &content, &now);
-            let md_rel = markdown_destination(base_dir, &filename);
+            let md_rel = markdown_destination(sync_dir, base_dir, &filename);
             let md_full = sync_dir.join(&md_rel);
             if let Some(parent) = md_full.parent() {
                 std::fs::create_dir_all(parent)
@@ -478,7 +543,7 @@ fn import_markdown_document(
 
     let (base_dir, category) = route_file(&filename, &ext);
     let now = chrono::Local::now();
-    let dest_rel = markdown_destination(base_dir, &filename);
+    let dest_rel = markdown_destination(sync_dir, base_dir, &filename);
     let dest_full = sync_dir.join(&dest_rel);
 
     if let Some(parent) = dest_full.parent() {
