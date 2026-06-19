@@ -42,12 +42,18 @@ import {
   formatFileSize,
   formatImportCheckLimit,
   getAcceptedImportPaths,
+  getImportableBrowserFiles,
   getFirstRejectedImportFile,
   getImportDialogPaths,
+  getImportFilesFromFileList,
+  getImportSizeLimitBytes,
+  getOversizedBrowserFiles,
+  hasBrowserImportSkippedFiles,
   hasRejectedImportFiles,
   type ImportDialogSelection,
   type ImportFileCheckResult,
   type ImportResult,
+  type MarkdownImportDocument,
 } from "../components/domain/imports/importsLogic";
 
 export default function ImportsPage({
@@ -63,10 +69,11 @@ export default function ImportsPage({
 } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
+  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
   const detailOpenedFromCrossPageRef = useRef(false);
+  const markdownFileInputRef = useRef<HTMLInputElement | null>(null);
   const {
     selectedFile,
     fileContent,
@@ -171,8 +178,71 @@ export default function ImportsPage({
     }
   }, [selectedFile, editContent, showToast, t]);
 
+  const handleBrowserMarkdownFiles = useCallback(async (fileList: FileList | null) => {
+    if (importingFiles) return;
+    const files = getImportFilesFromFileList(fileList);
+    if (files.length === 0) return;
+
+    setImportingFiles(true);
+    try {
+      const maxBytes = getImportSizeLimitBytes(settings?.import_file_size_limit_kb);
+      const importableFiles = getImportableBrowserFiles(files, maxBytes);
+      const oversizedFiles = getOversizedBrowserFiles(files, maxBytes);
+
+      if (importableFiles.length === 0) {
+        const firstOversized = oversizedFiles[0];
+        showToast(
+          firstOversized
+            ? t(
+              "imports.importRejected",
+              firstOversized.name,
+              formatFileSize(firstOversized.size),
+              formatImportCheckLimit(maxBytes),
+            )
+            : t("imports.noImportableFiles"),
+          true,
+          { autoClose: 6000 },
+        );
+        return;
+      }
+
+      const documents: MarkdownImportDocument[] = await Promise.all(importableFiles.map(async (file) => ({
+        fileName: file.name,
+        content: await file.text(),
+        size: file.size,
+      })));
+
+      const result = await invoke<ImportResult>("import_markdown_documents", { documents });
+      if (result.imported.length > 0) {
+        showToast(t("imports.imported", result.imported.length));
+        await loadFiles();
+        const firstPath = result.imported[0]?.dest_path;
+        if (firstPath) void openFile(firstPath);
+      }
+      if (hasBrowserImportSkippedFiles(files, importableFiles)) {
+        showToast(t("imports.importSkipped", files.length - importableFiles.length), true, { autoClose: 6000 });
+      }
+      const firstError = result.errors[0];
+      if (firstError) {
+        showToast(`Error: ${firstError}`, true, { autoClose: 6000 });
+      }
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      if (markdownFileInputRef.current) {
+        markdownFileInputRef.current.value = "";
+      }
+      setImportingFiles(false);
+    }
+  }, [importingFiles, loadFiles, openFile, settings?.import_file_size_limit_kb, showToast, t]);
+
   const handleChooseMarkdownFiles = useCallback(async () => {
     if (importingFiles) return;
+    if (isMobile) {
+      markdownFileInputRef.current?.click();
+      return;
+    }
+
     setImportingFiles(true);
     try {
       const selection = await open({
@@ -229,7 +299,7 @@ export default function ImportsPage({
     } finally {
       setImportingFiles(false);
     }
-  }, [importingFiles, loadFiles, openFile, showToast, t]);
+  }, [importingFiles, isMobile, loadFiles, openFile, showToast, t]);
 
   const closeDetail = useCallback(() => {
     clearDetail();
@@ -256,6 +326,14 @@ export default function ImportsPage({
         panelKey="imports"
         left={showList && (
           <ListPane>
+            <input
+              ref={markdownFileInputRef}
+              type="file"
+              multiple
+              accept=".md,.markdown,.mdx,text/markdown,text/plain"
+              style={{ display: "none" }}
+              onChange={(event) => void handleBrowserMarkdownFiles(event.currentTarget.files)}
+            />
             <PaneHeader
               icon={Download}
               title={t("imports.title")}

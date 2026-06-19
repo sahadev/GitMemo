@@ -11,6 +11,12 @@ export interface ImportResult {
   errors: string[];
 }
 
+export interface MarkdownImportDocument {
+  fileName: string;
+  content: string;
+  size: number;
+}
+
 export interface ImportFileRejection {
   path: string;
   file_name: string;
@@ -26,9 +32,50 @@ export interface ImportFileCheckResult {
 
 export type ImportDialogSelection = string | string[] | null;
 
+const MARKDOWN_IMPORT_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
+
 export function getImportDialogPaths(selection: ImportDialogSelection) {
   if (!selection) return [];
   return Array.isArray(selection) ? selection : [selection];
+}
+
+export function getFileNameExtension(fileName: string) {
+  const lastSegment = fileName.replace(/\\/g, "/").split("/").pop() ?? "";
+  const dotIndex = lastSegment.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex === lastSegment.length - 1) return "";
+  return lastSegment.slice(dotIndex + 1).toLowerCase();
+}
+
+export function isMarkdownImportFileName(fileName: string) {
+  return MARKDOWN_IMPORT_EXTENSIONS.has(getFileNameExtension(fileName));
+}
+
+export function getImportFilesFromFileList(fileList: FileList | null) {
+  return Array.from(fileList ?? []);
+}
+
+export function getImportSizeLimitBytes(limitKb: number | null | undefined, fallbackKb = 2048) {
+  return (limitKb ?? fallbackKb) * 1024;
+}
+
+export function isFileWithinImportSizeLimit(file: Pick<File, "size">, maxBytes: number) {
+  return file.size <= maxBytes;
+}
+
+export function getImportableBrowserFiles(files: File[], maxBytes: number) {
+  return files.filter((file) => (
+    isMarkdownImportFileName(file.name) && isFileWithinImportSizeLimit(file, maxBytes)
+  ));
+}
+
+export function getOversizedBrowserFiles(files: File[], maxBytes: number) {
+  return files.filter((file) => (
+    isMarkdownImportFileName(file.name) && !isFileWithinImportSizeLimit(file, maxBytes)
+  ));
+}
+
+export function hasBrowserImportSkippedFiles(files: File[], acceptedFiles: File[]) {
+  return acceptedFiles.length < files.length;
 }
 
 export function formatFileSize(bytes: number): string {

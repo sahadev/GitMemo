@@ -412,6 +412,7 @@ pub fn run() {
             // Import (drag-drop)
             import::check_import_files,
             import::import_files,
+            import::import_markdown_documents,
             // Git sync
             notes::sync_to_git,
             // Settings

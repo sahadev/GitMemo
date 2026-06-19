@@ -1,6 +1,6 @@
 use super::settings;
 use gitmemo_core::storage::{files, git};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 const SKIP_DIRECTORY_NAMES: &[&str] = &[
@@ -62,6 +62,14 @@ pub struct ImportFileRejection {
     pub file_name: String,
     pub size: Option<u64>,
     pub reason: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkdownImportDocument {
+    pub file_name: String,
+    pub content: String,
+    pub size: u64,
 }
 
 /// Route a file to the correct gitmemo directory based on its type.
@@ -175,7 +183,68 @@ fn is_markdown_import_file(path: &Path) -> bool {
         .unwrap_or("")
         .to_lowercase();
 
-    matches!(ext.as_str(), "md" | "markdown" | "mdx")
+    is_markdown_import_extension(&ext)
+}
+
+fn is_markdown_import_extension(ext: &str) -> bool {
+    matches!(ext.to_lowercase().as_str(), "md" | "markdown" | "mdx")
+}
+
+fn safe_file_name(file_name: &str) -> String {
+    let normalized = file_name.replace('\\', "/");
+    let candidate = normalized
+        .split('/')
+        .next_back()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+
+    if candidate.is_empty() {
+        "untitled.md".to_string()
+    } else {
+        candidate
+    }
+}
+
+fn file_extension_from_name(file_name: &str) -> String {
+    Path::new(file_name)
+        .extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_lowercase()
+}
+
+fn file_stem_from_name(file_name: &str) -> String {
+    Path::new(file_name)
+        .file_stem()
+        .and_then(|x| x.to_str())
+        .filter(|stem| !stem.trim().is_empty())
+        .unwrap_or("untitled")
+        .to_string()
+}
+
+fn markdown_destination(base_dir: &str, file_name: &str) -> String {
+    let stem = file_stem_from_name(file_name);
+    format!("{}/{}.md", base_dir, stem)
+}
+
+fn markdown_import_content(
+    file_name: &str,
+    content: &str,
+    now: &chrono::DateTime<chrono::Local>,
+) -> String {
+    if content.starts_with("---") {
+        return content.to_string();
+    }
+
+    let title = file_stem_from_name(file_name);
+    format!(
+        "---\ntitle: {}\ndate: {}\nsource: import\noriginal: {}\n---\n\n{}\n",
+        title,
+        local_timestamp(now),
+        file_name,
+        content
+    )
 }
 
 fn read_text_lossy(path: &Path) -> Result<String, String> {
@@ -235,48 +304,25 @@ fn import_single_file(sync_dir: &Path, source_path: &str) -> Result<ImportedFile
         FileCategory::Markdown => {
             // Read text content and wrap with frontmatter
             let content = read_text_lossy(source)?;
-
-            let title = source
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-
-            // If already has frontmatter, keep as-is
-            if content.starts_with("---") {
-                std::fs::write(&dest_full, &content)
-                    .map_err(|e| format!("Failed to write: {}", e))?;
-            } else {
-                let md = format!(
-                    "---\ntitle: {}\ndate: {}\nsource: import\noriginal: {}\n---\n\n{}\n",
-                    title,
-                    local_timestamp(&now),
-                    filename,
-                    content
-                );
-                // Ensure .md extension
-                if !dest_rel.ends_with(".md") {
-                    let new_rel = format!("{}.md", dest_rel.trim_end_matches(&format!(".{}", ext)));
-                    let new_full = sync_dir.join(&new_rel);
-                    std::fs::write(&new_full, &md)
-                        .map_err(|e| format!("Failed to write: {}", e))?;
-                    return Ok(ImportedFile {
-                        original_name: filename,
-                        dest_path: new_rel,
-                        category: format!("{:?}", category),
-                        size: file_size,
-                    });
-                } else {
-                    std::fs::write(&dest_full, &md)
-                        .map_err(|e| format!("Failed to write: {}", e))?;
-                    dest_rel.clone()
-                };
+            let md = markdown_import_content(&filename, &content, &now);
+            let md_rel = markdown_destination(base_dir, &filename);
+            let md_full = sync_dir.join(&md_rel);
+            if let Some(parent) = md_full.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create directory: {}", e))?;
             }
+            std::fs::write(&md_full, &md).map_err(|e| format!("Failed to write: {}", e))?;
+            return Ok(ImportedFile {
+                original_name: filename,
+                dest_path: md_rel,
+                category: format!("{:?}", category),
+                size: file_size,
+            });
         }
         FileCategory::Code => {
             // Code files → wrap in markdown with code fence
-            let content = read_text_lossy(source)
-                .unwrap_or_else(|_| "[binary or unreadable]".to_string());
+            let content =
+                read_text_lossy(source).unwrap_or_else(|_| "[binary or unreadable]".to_string());
 
             let lang = &ext;
             let title = source
@@ -402,24 +448,96 @@ pub fn import_paths(paths: Vec<String>) -> Result<ImportResult, String> {
         }
     }
 
-    // Git sync
-    if !imported.is_empty() {
-        let msg = if imported.len() == 1 {
-            format!("import: {}", imported[0].original_name)
-        } else {
-            format!("import: {} files", imported.len())
-        };
-        let dir = sync_dir.clone();
-        std::thread::spawn(move || {
-            let _ = git::commit_and_push(&dir, &msg);
-        });
-    }
+    commit_imports_in_background(&sync_dir, &imported);
 
     Ok(ImportResult {
         success: errors.is_empty(),
         imported,
         errors,
     })
+}
+
+fn import_markdown_document(
+    sync_dir: &Path,
+    document: MarkdownImportDocument,
+) -> Result<ImportedFile, String> {
+    let filename = safe_file_name(&document.file_name);
+    let ext = file_extension_from_name(&filename);
+    if !is_markdown_import_extension(&ext) {
+        return Err(format!("Unsupported Markdown file type: {}", filename));
+    }
+
+    let effective_size = document.size.max(document.content.as_bytes().len() as u64);
+    let max_import_file_size = settings::import_file_size_limit_bytes();
+    if effective_size > max_import_file_size {
+        return Err(format!(
+            "File too large: {} bytes (max {} bytes)",
+            effective_size, max_import_file_size,
+        ));
+    }
+
+    let (base_dir, category) = route_file(&filename, &ext);
+    let now = chrono::Local::now();
+    let dest_rel = markdown_destination(base_dir, &filename);
+    let dest_full = sync_dir.join(&dest_rel);
+
+    if let Some(parent) = dest_full.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    let md = markdown_import_content(&filename, &document.content, &now);
+    std::fs::write(&dest_full, &md).map_err(|e| format!("Failed to write: {}", e))?;
+
+    Ok(ImportedFile {
+        original_name: filename,
+        dest_path: dest_rel,
+        category: format!("{:?}", category),
+        size: effective_size,
+    })
+}
+
+pub fn import_markdown_documents_sync(
+    documents: Vec<MarkdownImportDocument>,
+) -> Result<ImportResult, String> {
+    let sync_dir = files::sync_dir();
+    if !sync_dir.exists() {
+        return Err("GitMemo not initialized".into());
+    }
+
+    let mut imported = Vec::new();
+    let mut errors = Vec::new();
+
+    for document in documents {
+        match import_markdown_document(&sync_dir, document) {
+            Ok(file) => imported.push(file),
+            Err(e) => errors.push(e),
+        }
+    }
+
+    commit_imports_in_background(&sync_dir, &imported);
+
+    Ok(ImportResult {
+        success: errors.is_empty(),
+        imported,
+        errors,
+    })
+}
+
+fn commit_imports_in_background(sync_dir: &Path, imported: &[ImportedFile]) {
+    if imported.is_empty() {
+        return;
+    }
+
+    let msg = if imported.len() == 1 {
+        format!("import: {}", imported[0].original_name)
+    } else {
+        format!("import: {} files", imported.len())
+    };
+    let dir = sync_dir.to_path_buf();
+    std::thread::spawn(move || {
+        let _ = git::commit_and_push(&dir, &msg);
+    });
 }
 
 fn file_name_for_rejection(path: &Path, fallback: &str) -> String {
@@ -503,6 +621,15 @@ pub async fn check_import_files(paths: Vec<String>) -> Result<ImportFileCheckRes
 #[tauri::command]
 pub async fn import_files(paths: Vec<String>) -> Result<ImportResult, String> {
     tokio::task::spawn_blocking(move || import_paths(paths))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+}
+
+#[tauri::command]
+pub async fn import_markdown_documents(
+    documents: Vec<MarkdownImportDocument>,
+) -> Result<ImportResult, String> {
+    tokio::task::spawn_blocking(move || import_markdown_documents_sync(documents))
         .await
         .map_err(|e| format!("Task join error: {e}"))?
 }
