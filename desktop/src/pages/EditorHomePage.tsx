@@ -43,10 +43,12 @@ import {
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
+import { usePlatform } from "../hooks/usePlatform";
 
 export default function EditorHomePage({ active = true, openTarget, onOpenTargetConsumed }: { active?: boolean; openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const isMobile = usePlatform() === "mobile";
   const [roots, setRoots] = useState<EditorRootsStatus | null>(null);
   const [root, setRoot] = useState<EditorRoot>("claude");
   const [rel, setRel] = useState("");
@@ -474,6 +476,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
               onSave={handleSave}
               onCancel={handleCancelEdit}
               filePath={fileAbs || selectedFileRel}
+              mobile={isMobile}
               minHeight
               splitPreview={splitPreview}
               supportsSplitPreview={selectedIsMarkdown}

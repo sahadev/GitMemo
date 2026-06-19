@@ -72,7 +72,7 @@ export const FileEditor = forwardRef<HTMLTextAreaElement, FileEditorProps>(funct
     onChange(event.target.value);
   }, [onChange]);
 
-  if (supportsSplitPreview && splitPreview && !mobile) {
+  if (supportsSplitPreview && splitPreview) {
     return (
       <MarkdownSplitEditor
         ref={ref}
@@ -114,7 +114,7 @@ export const FileEditorSurface = forwardRef<HTMLTextAreaElement, FileEditorSurfa
   mobile = false,
   ...editorProps
 }, ref) {
-  const splitActive = editing && supportsSplitPreview && splitPreview && !mobile;
+  const splitActive = editing && supportsSplitPreview && splitPreview;
 
   return (
     <DetailScroll

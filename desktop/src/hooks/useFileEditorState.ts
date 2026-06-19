@@ -26,7 +26,6 @@ interface ToggleSplitPreviewOptions {
 
 export function useFileEditorState({
   sourceContent = "",
-  mobile = false,
   focusRef,
   focusDelayMs = 0,
   clearContentOnCancel = false,
@@ -78,7 +77,7 @@ export function useFileEditorState({
   }, []);
 
   const toggleSplitPreview = useCallback((options: ToggleSplitPreviewOptions = {}) => {
-    if (mobile || options.enabled === false) return;
+    if (options.enabled === false) return;
     if (!editing) {
       startEdit({
         content: options.content ?? sourceContent,
@@ -89,7 +88,7 @@ export function useFileEditorState({
       return;
     }
     setSplitPreview((value) => !value);
-  }, [editing, mobile, sourceContent, startEdit]);
+  }, [editing, sourceContent, startEdit]);
 
   return {
     editing,

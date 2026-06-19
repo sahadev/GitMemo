@@ -141,7 +141,7 @@ export function FileDetailToolbar({
   const refreshSpin = useTimedIconSpin<HTMLButtonElement>(handleRefreshClick, Boolean(onRefresh));
 
   useEffect(() => {
-    if (!active || isMobile) return;
+    if (!active) return;
 
     const visibleActions = [...actionsBeforeEdit, ...actionsAfterEdit].filter((action) => !action.hidden && !action.disabled);
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -176,7 +176,6 @@ export function FileDetailToolbar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     active,
-    isMobile,
     actionsAfterEdit,
     actionsBeforeEdit,
     editDisabled,
@@ -223,7 +222,7 @@ export function FileDetailToolbar({
       {actionsBeforeEdit.filter((action) => !action.hidden).map((action) => (
         <ToolbarActionButton key={action.key} action={action} shortcuts={shortcuts} />
       ))}
-      {onToggleSplitPreview && editing && !isMobile ? (
+      {onToggleSplitPreview && editing ? (
         <DetailIconButton
           type="button"
           onClick={onToggleSplitPreview}
