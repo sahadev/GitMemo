@@ -1,6 +1,6 @@
 {
   "name": "gitmemo-desktop",
-  "version": "1.0.138",
+  "version": "1.0.139",
   "private": true,
   "type": "module",
   "pnpm": {
