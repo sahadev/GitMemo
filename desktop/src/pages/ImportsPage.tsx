@@ -11,6 +11,7 @@ import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
@@ -37,6 +38,7 @@ import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { LocalImagePreview } from "../components/domain/files/LocalImagePreview";
 import {
   formatFileSize,
@@ -59,7 +61,7 @@ import {
 export default function ImportsPage({
   onFocusSidebar: _onFocusSidebar,
   enterTrigger: _enterTrigger,
-  active,
+  active = true,
   registerMobileBackHandler,
 }: {
   onFocusSidebar?: () => void;
@@ -104,6 +106,7 @@ export default function ImportsPage({
     sourceContent: fileContent,
     mobile: isMobile,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "imports" });
   const [saving, setSaving] = useState(false);
   const [importingFiles, setImportingFiles] = useState(false);
   const watchedFolders = useMemo(() => ["imports"], []);

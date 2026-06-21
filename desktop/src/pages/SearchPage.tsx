@@ -8,6 +8,7 @@ import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
 import { EmptyState } from "../components/base/EmptyState";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { SearchInput } from "../components/domain/search/SearchInput";
 import { SearchResultCard } from "../components/domain/search/SearchResultCard";
@@ -35,6 +36,7 @@ import { usePlatformFlags } from "../hooks/usePlatform";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
@@ -127,6 +129,7 @@ export default function SearchPage({
     clearContentOnCancel: true,
     clearContentOnComplete: true,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "search" });
   resetEditorRef.current = resetEditor;
 
   useEffect(() => {

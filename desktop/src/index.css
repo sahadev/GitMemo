@@ -423,6 +423,13 @@ a:focus-visible {
   height: 100dvh;
 }
 
+.gm-app-shell[data-mobile="true"][data-mobile-editor-chrome="true"] {
+  --gm-mobile-bottom-content-padding: env(safe-area-inset-bottom, 0px);
+  --gm-mobile-dashboard-bottom-padding: env(safe-area-inset-bottom, 0px);
+  --gm-mobile-bottom-selection-padding: env(safe-area-inset-bottom, 0px);
+  --gm-mobile-fixed-bar-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .gm-app-sidebar-shell {
   flex-shrink: 0;
   height: 100%;

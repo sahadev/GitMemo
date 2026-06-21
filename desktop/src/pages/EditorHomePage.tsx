@@ -14,6 +14,7 @@ import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { MonoBlock } from "../components/base/MonoBlock";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
@@ -44,6 +45,7 @@ import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
 import { usePlatform } from "../hooks/usePlatform";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 
 export default function EditorHomePage({ active = true, openTarget, onOpenTargetConsumed }: { active?: boolean; openTarget?: EditorOpenTarget | null; onOpenTargetConsumed?: () => void }) {
   const { t } = useI18n();
@@ -72,6 +74,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({ sourceContent: fileContent });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "editor-home" });
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [creatingDir, setCreatingDir] = useState(false);

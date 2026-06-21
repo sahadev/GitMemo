@@ -22,6 +22,7 @@ import EditorHomePage from "./pages/EditorHomePage";
 import ExternalFilesPage from "./pages/ExternalFilesPage";
 import ImportsPage from "./pages/ImportsPage";
 import { SetupWizard } from "./components/SetupWizard";
+import { shouldShowMobileTabBar } from "./components/domain/app/appChromeLogic";
 import { useSync } from "./hooks/useSync";
 import { usePlatformFlags } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
@@ -108,7 +109,16 @@ function App() {
   const [deferredSystemFilePath, setDeferredSystemFilePath] = useState<string | null>(null);
   const sync = useSync();
   const { gitStatus } = sync;
-  const { theme, toggleTheme, setPendingOpenPath, setAiRecordsTab, settings, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore();
+  const {
+    theme,
+    toggleTheme,
+    setPendingOpenPath,
+    setAiRecordsTab,
+    settings,
+    sidebarCollapsed,
+    toggleSidebarCollapsed,
+    mobileEditorActive,
+  } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const pageOrder = getAppPageOrder(isDesktop);
   const mobilePageStackRef = useRef<Page[]>([]);
@@ -502,6 +512,7 @@ function App() {
     () => (isDesktop ? <DropZone onOpenDroppedFiles={handleOpenDroppedFiles} onNavigateAfterImport={handleDropImportNavigate} /> : null),
     [isDesktop, handleOpenDroppedFiles, handleDropImportNavigate],
   );
+  const showMobileTabBar = shouldShowMobileTabBar({ isMobile, mobileEditorChromeActive: mobileEditorActive });
 
   const pageContent = initialized === false && currentPage !== "settings" ? (
     <SetupWizard onComplete={handleSetupComplete} />
@@ -526,6 +537,7 @@ function App() {
     <div
       className="gm-app-shell"
       data-mobile={isMobile ? "true" : "false"}
+      data-mobile-editor-chrome={mobileEditorActive ? "true" : "false"}
       onTouchStart={handleMobileTouchStart}
       onTouchEnd={handleMobileTouchEnd}
     >
@@ -559,7 +571,7 @@ function App() {
       >
         {pageContent}
       </main>
-      {isMobile && initialized !== false && (
+      {showMobileTabBar && initialized !== false && (
         <BottomNav currentPage={currentPage} onNavigate={navigatePage} />
       )}
       {dropZone}

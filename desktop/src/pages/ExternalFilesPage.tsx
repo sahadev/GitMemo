@@ -15,6 +15,7 @@ import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { MonoBlock } from "../components/base/MonoBlock";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
@@ -46,6 +47,7 @@ import {
 import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileEditorState } from "../hooks/useFileEditorState";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { relativeTime } from "../utils/time";
 import { PaneHeader } from "../components/AppHeaders";
 
@@ -82,6 +84,7 @@ export default function ExternalFilesPage({
     sourceContent: fileContent,
     mobile: isMobile,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "external-files" });
   const [saving, setSaving] = useState(false);
   const [choosingFile, setChoosingFile] = useState(false);
   const [importing, setImporting] = useState(false);

@@ -11,6 +11,7 @@ import { PaneTabHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
@@ -47,6 +48,7 @@ import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
 const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
@@ -111,6 +113,7 @@ export default function NotesPage({
     focusRef: editRef,
     focusDelayMs: 50,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "notes" });
   /** True while IME composition is active (more reliable than keydown.isComposing alone in some WebViews). */
   const imeComposingRef = useRef(false);
 

@@ -12,6 +12,7 @@ import { AppIcon } from "../components/base/AppIcon";
 import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { ConversationMessageCard } from "../components/domain/conversations/ConversationMessageCard";
 import {
   getConversationListCountLabel,
@@ -47,6 +48,7 @@ import { usePagedFileList } from "../hooks/usePagedFileList";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 
 export default function ConversationsPage({
   active = true,
@@ -91,6 +93,7 @@ export default function ConversationsPage({
     clearContentOnCancel: true,
     clearContentOnComplete: true,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "conversations" });
   const detailOpenedFromCrossPageRef = useRef(false);
 
   const loadConversationsPage = useCallback((offset: number, limit: number) => {

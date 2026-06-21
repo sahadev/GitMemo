@@ -28,6 +28,7 @@ import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import {
   ClipboardClipActionButton,
@@ -55,6 +56,7 @@ import {
   ClipboardStatusBadge,
   ClipboardToolbarButton,
 } from "../components/domain/clipboard/ClipboardComponents";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import {
   areClipEntriesEquivalent,
   canStartClipboardWatch,
@@ -181,6 +183,7 @@ export default function ClipboardPage({
     clearContentOnCancel: true,
     clearContentOnComplete: true,
   });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "clipboard" });
   resetEditorRef.current = resetEditor;
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const savedClipsRef = useRef<FileEntry[]>([]);

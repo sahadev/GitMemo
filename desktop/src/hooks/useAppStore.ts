@@ -9,6 +9,7 @@ import { initNotificationListeners, notify } from "../utils/notify";
 import { configureControlCopyPasteBridge } from "../utils/controlCopyPaste";
 import { getPlatformCapabilities, getPlatformFlags, type RuntimeInfo } from "../utils/platformLogic";
 import { getRuntimeInfo, getRuntimeInfoSync } from "./usePlatform";
+import { hasMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { canRequestDesktopUpdateCheck, type DesktopUpdateStatus } from "../components/domain/settings/settingsLogic";
 
 /** 检查更新请求超时（毫秒）。元数据从 GitHub 拉取，不设超时时弱网可能卡住数十秒。 */
@@ -124,6 +125,12 @@ interface AppStore {
   collapsedPanels: Record<string, boolean>;
   setPanelCollapsed: (panelKey: string, collapsed: boolean) => void;
 
+  // Mobile chrome state
+  mobileEditorChromeIds: string[];
+  mobileEditorActive: boolean;
+  registerMobileEditorChrome: (id: string) => void;
+  unregisterMobileEditorChrome: (id: string) => void;
+
   // Cross-page notes tab selection
   notesTab: NotesTab;
   setNotesTab: (tab: NotesTab) => void;
@@ -190,6 +197,8 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   theme: loadTheme(),
   sidebarCollapsed: loadBoolean("gitmemo-layout-sidebar-collapsed"),
   collapsedPanels: loadCollapsedPanels(["notes", "conversations", "plans", "clipboard"]),
+  mobileEditorChromeIds: [],
+  mobileEditorActive: false,
   notesTab: "scratch",
   aiRecordsTab: "conversations",
   pendingOpenPath: null,
@@ -268,6 +277,28 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
     set((state) => ({
       collapsedPanels: { ...state.collapsedPanels, [panelKey]: collapsed },
     }));
+  },
+
+  registerMobileEditorChrome: (id) => {
+    set((state) => {
+      if (state.mobileEditorChromeIds.includes(id)) return {};
+      const mobileEditorChromeIds = [...state.mobileEditorChromeIds, id];
+      return {
+        mobileEditorChromeIds,
+        mobileEditorActive: hasMobileEditorChrome(mobileEditorChromeIds),
+      };
+    });
+  },
+
+  unregisterMobileEditorChrome: (id) => {
+    set((state) => {
+      const mobileEditorChromeIds = state.mobileEditorChromeIds.filter((item) => item !== id);
+      if (mobileEditorChromeIds.length === state.mobileEditorChromeIds.length) return {};
+      return {
+        mobileEditorChromeIds,
+        mobileEditorActive: hasMobileEditorChrome(mobileEditorChromeIds),
+      };
+    });
   },
 
   setNotesTab: (tab) => {
