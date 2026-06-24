@@ -57,7 +57,7 @@ export default function AiRecordsPage({
 
   return (
     <div className="gm-ai-records-page">
-      <div className="gm-ai-records-pane-mount" data-active={conversationsActive ? "true" : "false"}>
+      <div className="gm-ai-records-pane-mount" data-markdown-visibility-mount="true" data-active={conversationsActive ? "true" : "false"}>
         <ConversationsPage
           active={active && conversationsActive}
           onFocusSidebar={onFocusSidebar}
@@ -66,7 +66,7 @@ export default function AiRecordsPage({
           registerMobileBackHandler={shouldRegisterAiRecordsMobileBackHandler(active, activeTab, "conversations") ? registerMobileBackHandler : undefined}
         />
       </div>
-      <div className="gm-ai-records-pane-mount" data-active={plansActive ? "true" : "false"}>
+      <div className="gm-ai-records-pane-mount" data-markdown-visibility-mount="true" data-active={plansActive ? "true" : "false"}>
         <PlansPage
           active={active && plansActive}
           onFocusSidebar={onFocusSidebar}

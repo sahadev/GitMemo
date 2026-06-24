@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Search, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useAppStore } from "../hooks/useAppStore";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
-import { shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
+import { isShortcutEditableTarget, shortcutMatches, withDefaultShortcuts } from "../utils/shortcuts";
 import { cacheLocalImageDataUrl, getCachedLocalImageDataUrl } from "../utils/localImages";
 import { AppIcon } from "./base/AppIcon";
 import { ImageContextMenu } from "./domain/files/ImageContextMenu";
@@ -29,7 +29,18 @@ type FindWindow = Window & {
   ) => boolean;
 };
 
+interface MarkdownFindShortcutContext {
+  defaultPrevented: boolean;
+  matchesFindShortcut: boolean;
+  editableTarget: boolean;
+  hiddenByInactivePageMount: boolean;
+}
+
 const frontmatterPattern = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+export function shouldHandleMarkdownFindShortcut(ctx: MarkdownFindShortcutContext) {
+  return !ctx.defaultPrevented && ctx.matchesFindShortcut && !ctx.editableTarget && !ctx.hiddenByInactivePageMount;
+}
 
 function looksLikeYamlFrontmatter(content: string) {
   const meaningfulLines = content
@@ -193,6 +204,10 @@ function scrollToFragment(anchor: HTMLAnchorElement, href: string) {
   return true;
 }
 
+function hasInactiveMarkdownVisibilityMount(root: HTMLElement | null) {
+  return Boolean(root?.closest('[data-markdown-visibility-mount="true"][data-active="false"]'));
+}
+
 function normalizePathSeparators(value: string) {
   return value.replace(/\\/g, "/");
 }
@@ -335,6 +350,7 @@ export function MarkdownContent({ content, filePath }: MarkdownViewProps) {
 export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const imeComposingRef = useRef(false);
   const settings = useAppStore((s) => s.settings);
@@ -348,8 +364,12 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || !shortcutMatches(e, shortcuts.find_in_document)) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (!shouldHandleMarkdownFindShortcut({
+        defaultPrevented: e.defaultPrevented,
+        matchesFindShortcut: shortcutMatches(e, shortcuts.find_in_document),
+        editableTarget: isShortcutEditableTarget(e.target),
+        hiddenByInactivePageMount: hasInactiveMarkdownVisibilityMount(rootRef.current),
+      })) return;
       e.preventDefault();
       setFindOpen(true);
       window.setTimeout(() => findInputRef.current?.focus(), 0);
@@ -360,7 +380,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   }, [shortcuts.find_in_document]);
 
   return (
-    <div className="markdown-body">
+    <div ref={rootRef} className="markdown-body">
       {findOpen && (
         <div className="gm-find-bar">
           <AppIcon icon={Search} size="xs" tone="secondary" />
