@@ -1,6 +1,6 @@
 # GitMemo Downloads
 
-Current source version: v1.0.139
+Current source version: v1.0.141
 
 ## Official Links
 
@@ -10,8 +10,8 @@ Current source version: v1.0.139
 
 ## Android APK
 
-- APK URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.139-arm64-v8a-release.apk
-- APK filename: gitmemo-android-v1.0.139-arm64-v8a-release.apk
+- APK URL: https://gitmemo.kakacut.cn/mobile/gitmemo-android-v1.0.141-arm64-v8a-release.apk
+- APK filename: gitmemo-android-v1.0.141-arm64-v8a-release.apk
 - ABI: arm64-v8a
 - Package type: release APK
 
@@ -25,7 +25,7 @@ Desktop packages are published through GitHub Releases when available.
 - Intel: look for a GitMemo desktop DMG or app archive for x86_64 / Intel.
 - Windows: setup `.exe` for Windows 10/11 x64.
   - Stable URL: https://gitmemo.kakacut.cn/desktop/windows/gitmemo-windows-x64-setup.exe
-  - Versioned filename: gitmemo-windows-v1.0.139-x64-setup.exe
+  - Versioned filename: gitmemo-windows-v1.0.141-x64-setup.exe
   - Note: current Windows installers are unsigned and may show a SmartScreen warning.
 
 ## CLI
