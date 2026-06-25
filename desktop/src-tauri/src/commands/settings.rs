@@ -46,6 +46,8 @@ pub struct DesktopSettings {
     pub autostart: bool,
     #[serde(default = "default_true")]
     pub clipboard_autostart: bool,
+    #[serde(default = "default_true")]
+    pub clipboard_auto_refresh: bool,
     #[serde(default)]
     pub control_copy_paste: bool,
     #[serde(default)]
@@ -125,6 +127,7 @@ impl Default for DesktopSettings {
         Self {
             autostart: false,
             clipboard_autostart: true,
+            clipboard_auto_refresh: true,
             control_copy_paste: false,
             sensitive_clipboard_action: SensitiveClipboardAction::Redact,
             vault_enabled: false,
@@ -585,6 +588,19 @@ pub fn set_clipboard_autostart(enabled: bool) -> Result<String, String> {
         "Clipboard auto-start enabled".into()
     } else {
         "Clipboard auto-start disabled".into()
+    })
+}
+
+#[tauri::command]
+pub fn set_clipboard_auto_refresh(enabled: bool) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.clipboard_auto_refresh = enabled;
+    save_settings(&settings)?;
+
+    Ok(if enabled {
+        "Clipboard auto-refresh enabled".into()
+    } else {
+        "Clipboard auto-refresh disabled".into()
     })
 }
 
@@ -1065,7 +1081,7 @@ pub fn remove_cursor_integration() -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_version_core, version_is_newer};
+    use super::{parse_version_core, version_is_newer, DesktopSettings};
 
     #[test]
     fn parses_version_core_with_prefix_and_suffix() {
@@ -1079,5 +1095,23 @@ mod tests {
         assert!(!version_is_newer("1.0.107", "1.0.109"));
         assert!(version_is_newer("1.0.109", "1.0.107"));
         assert!(version_is_newer("1.1.0", "1.0.109"));
+    }
+
+    #[test]
+    fn clipboard_auto_refresh_defaults_to_enabled_for_existing_settings() {
+        let settings = toml::from_str::<DesktopSettings>(
+            r#"
+autostart = false
+clipboard_autostart = true
+control_copy_paste = false
+vault_enabled = false
+proxy_mode = "system"
+proxy_url = ""
+import_file_size_limit_kb = 2048
+"#,
+        )
+        .expect("settings should deserialize");
+
+        assert!(settings.clipboard_auto_refresh);
     }
 }

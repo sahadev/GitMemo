@@ -74,6 +74,10 @@ export function shouldIgnoreClipWatcherRefresh(suppressUntil: number, now = Date
   return now < suppressUntil;
 }
 
+export function shouldAutoRefreshClipboardList(enabled: boolean | null | undefined) {
+  return enabled !== false;
+}
+
 export function canStartClipboardWatch(status: ClipboardStatus | null, privacyConfirmed: boolean) {
   return !status?.watching && privacyConfirmed;
 }

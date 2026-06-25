@@ -274,6 +274,16 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
     } catch (e) { console.error(e); }
   };
 
+  const toggleClipboardAutoRefresh = async () => {
+    if (!settings) return;
+    try {
+      await invoke<string>("set_clipboard_auto_refresh", { enabled: !settings.clipboard_auto_refresh });
+      refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
   const toggleControlCopyPaste = async () => {
     if (!settings) return;
     try {
@@ -711,6 +721,11 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
               <SettingsDivider />
               <SettingsRow icon={Clipboard} title={t("settings.clipboardAutostart")} description={t("settings.clipboardAutostartDesc")}>
                 <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow icon={RefreshCw} title={t("settings.clipboardAutoRefresh")} description={t("settings.clipboardAutoRefreshDesc")}>
+                <Switch enabled={settings?.clipboard_auto_refresh ?? true} onToggle={toggleClipboardAutoRefresh} />
               </SettingsRow>
 
               <SettingsDivider />

@@ -258,6 +258,8 @@
     "launchAtLoginDesc": "登录时自动启动 GitMemo",
     "clipboardAutostart": "自动启动剪贴板监控",
     "clipboardAutostartDesc": "启动时开始捕获剪贴板",
+    "clipboardAutoRefresh": "剪贴板页面自动刷新",
+    "clipboardAutoRefreshDesc": "监听到新的剪贴板记录后自动刷新当前列表；关闭后仍会保存记录，可手动刷新。",
     "sensitiveClipboard": "敏感剪贴板",
     "sensitiveClipboardDesc": "选择 GitMemo 如何保存复制到剪贴板的密码、Token、密钥和其他敏感内容。",
     "sensitiveClipboardRedact": "脱敏",

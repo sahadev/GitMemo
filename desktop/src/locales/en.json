@@ -258,6 +258,8 @@
     "launchAtLoginDesc": "Start GitMemo when you log in",
     "clipboardAutostart": "Auto-start clipboard monitor",
     "clipboardAutostartDesc": "Begin capturing clipboard on launch",
+    "clipboardAutoRefresh": "Auto-refresh clipboard page",
+    "clipboardAutoRefreshDesc": "Refresh the current list when new clipboard records arrive. Records are still saved when this is off.",
     "sensitiveClipboard": "Sensitive clipboard",
     "sensitiveClipboardDesc": "Choose how GitMemo saves copied passwords, tokens, keys, and other detected secrets.",
     "sensitiveClipboardRedact": "Redact",

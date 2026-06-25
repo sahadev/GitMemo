@@ -67,6 +67,7 @@ import {
   getVisibleClipEntries,
   normalizeClipImageLinks,
   resolveAdjacentClipAfterDelete,
+  shouldAutoRefreshClipboardList,
   shouldDisableClipboardSelectionActions,
   shouldIgnoreClipWatcherRefresh as shouldIgnoreClipWatcherRefreshUntil,
   shouldShowClipboardPrivacyDialog,
@@ -119,6 +120,7 @@ export default function ClipboardPage({
   const isMobile = usePlatform() === "mobile";
   const {
     clipboardStatus: status,
+    settings,
     refreshClipboardStatus,
     pendingOpenPath,
     consumePendingOpenPath,
@@ -351,9 +353,10 @@ export default function ClipboardPage({
   const shouldIgnoreClipWatcherRefresh = useCallback(() => {
     return shouldIgnoreClipWatcherRefreshUntil(suppressClipWatcherUntilRef.current);
   }, []);
+  const autoRefreshClipboardList = shouldAutoRefreshClipboardList(settings?.clipboard_auto_refresh);
 
   useFileWatcher(CLIP_WATCH_FOLDERS, refreshSavedClipsInPlace, {
-    active,
+    active: active && autoRefreshClipboardList,
     shouldIgnore: shouldIgnoreClipWatcherRefresh,
   });
 
@@ -373,7 +376,7 @@ export default function ClipboardPage({
     if (!active) return;
     const handleClipboardSaved = () => {
       suppressClipWatcherRefresh();
-      refreshSavedClipsInPlace();
+      if (autoRefreshClipboardList) refreshSavedClipsInPlace();
     };
     const unlisten = listen<ClipboardEvent>("clipboard-saved", handleClipboardSaved);
     window.addEventListener("focus", refreshSavedClipsInPlace);
@@ -381,7 +384,7 @@ export default function ClipboardPage({
       unlisten.then((fn) => fn());
       window.removeEventListener("focus", refreshSavedClipsInPlace);
     };
-  }, [active, refreshSavedClipsInPlace, suppressClipWatcherRefresh]);
+  }, [active, autoRefreshClipboardList, refreshSavedClipsInPlace, suppressClipWatcherRefresh]);
 
   const { sentinelRef, loadMore } = useAutoLoadMore({
     hasMore,

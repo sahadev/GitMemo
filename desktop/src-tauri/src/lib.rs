@@ -421,6 +421,7 @@ pub fn run() {
             settings::get_settings,
             settings::set_autostart,
             settings::set_clipboard_autostart,
+            settings::set_clipboard_auto_refresh,
             settings::set_control_copy_paste,
             settings::set_sensitive_clipboard_action,
             settings::set_vault_enabled,
