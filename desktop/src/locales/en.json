@@ -179,6 +179,8 @@
     "placeholderManual": "Write your document...",
     "placeholderTitle": "Title",
     "saving": "Saving...",
+    "titleRequired": "Enter a title",
+    "contentRequired": "Enter content",
     "enterToSave": "Enter to save, Shift+Enter for newline",
     "loading": "Loading...",
     "noNotes": "No {0} notes yet",

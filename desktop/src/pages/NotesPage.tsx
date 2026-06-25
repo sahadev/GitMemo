@@ -24,9 +24,11 @@ import {
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { NoteComposer } from "../components/domain/notes/NoteComposer";
 import {
-  canCreateNote,
+  canPressNoteCreateButton,
   canNavigateListFromEmptyComposer,
   getEmptyNotesDescriptionKey,
+  getNoteCreateBlockReason,
+  getNoteCreateBlockToastKey,
   getNoteComposerDraft,
   getNotePlaceholderKey,
   getNotesTabForPath,
@@ -231,7 +233,11 @@ export default function NotesPage({
   const setNoteDraft = isManualTab ? setManualDraft : setScratchDraft;
 
   const handleCreateNote = async () => {
-    if (!canCreateNote(activeTab, noteDraft, manualTitle, saving)) return;
+    const blockReason = getNoteCreateBlockReason(activeTab, noteDraft, manualTitle, saving);
+    if (blockReason) {
+      if (blockReason !== "saving") showToast(t(getNoteCreateBlockToastKey(blockReason)), true);
+      return;
+    }
     setSaving(true);
     try {
       let result: NoteResult;
@@ -331,7 +337,7 @@ export default function NotesPage({
           rows={isMobile ? 4 : 3}
           mobile={isMobile}
           saving={saving}
-          disabled={!canCreateNote(activeTab, noteDraft, manualTitle, saving)}
+          disabled={!canPressNoteCreateButton(noteDraft, saving)}
           helperText={saving ? t("notes.saving") : t("notes.enterToSave")}
           showHelper={shouldShowNoteComposerHelper(isMobile, saving)}
           onPaste={(e) => void handlePasteAttachments(e, setNoteDraft)}

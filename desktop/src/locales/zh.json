@@ -179,6 +179,8 @@
     "placeholderManual": "写下这份文档的内容...",
     "placeholderTitle": "标题",
     "saving": "保存中...",
+    "titleRequired": "请输入标题",
+    "contentRequired": "请输入内容",
     "enterToSave": "回车保存，Shift+回车换行",
     "loading": "加载中...",
     "noNotes": "暂无{0}",
