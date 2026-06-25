@@ -8,6 +8,15 @@ export function isManualNotesTab(tab: NotesTab) {
   return tab === "manual";
 }
 
+export interface NoteComposerDrafts {
+  scratch: string;
+  manual: string;
+}
+
+export function getNoteComposerDraft(tab: NotesTab, drafts: NoteComposerDrafts) {
+  return isManualNotesTab(tab) ? drafts.manual : drafts.scratch;
+}
+
 export function canCreateNote(tab: NotesTab, note: string, manualTitle: string, saving: boolean) {
   if (saving) return false;
   if (!note.trim()) return false;

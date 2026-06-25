@@ -27,6 +27,7 @@ import {
   canCreateNote,
   canNavigateListFromEmptyComposer,
   getEmptyNotesDescriptionKey,
+  getNoteComposerDraft,
   getNotePlaceholderKey,
   getNotesTabForPath,
   isManualNotesTab,
@@ -74,7 +75,8 @@ export default function NotesPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [newNote, setNewNote] = useState("");
+  const [scratchDraft, setScratchDraft] = useState("");
+  const [manualDraft, setManualDraft] = useState("");
   const [manualTitle, setManualTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -224,20 +226,23 @@ export default function NotesPage({
     loadMore,
     selectFromEmpty: true,
   });
+  const isManualTab = isManualNotesTab(activeTab);
+  const noteDraft = getNoteComposerDraft(activeTab, { scratch: scratchDraft, manual: manualDraft });
+  const setNoteDraft = isManualTab ? setManualDraft : setScratchDraft;
 
   const handleCreateNote = async () => {
-    if (!canCreateNote(activeTab, newNote, manualTitle, saving)) return;
+    if (!canCreateNote(activeTab, noteDraft, manualTitle, saving)) return;
     setSaving(true);
     try {
       let result: NoteResult;
-      if (isManualNotesTab(activeTab)) {
-        result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: newNote, append: false });
+      if (isManualTab) {
+        result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: noteDraft, append: false });
       } else {
-        result = await invoke<NoteResult>("create_note", { content: newNote });
+        result = await invoke<NoteResult>("create_note", { content: noteDraft });
       }
       showToast(result.message);
-      setNewNote("");
-      setManualTitle("");
+      setNoteDraft("");
+      if (isManualTab) setManualTitle("");
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
     finally { setSaving(false); }
@@ -271,7 +276,7 @@ export default function NotesPage({
     disabled: isMobile,
     navPrev,
     navNext,
-    allowFromEditable: (event) => event.target === textareaRef.current && canNavigateListFromEmptyComposer(newNote),
+    allowFromEditable: (event) => event.target === textareaRef.current && canNavigateListFromEmptyComposer(noteDraft),
   });
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
@@ -314,21 +319,22 @@ export default function NotesPage({
 
         {/* Quick note input */}
         <NoteComposer
-          showTitle={isManualNotesTab(activeTab)}
+          key={activeTab}
+          showTitle={isManualTab}
           title={manualTitle}
           onTitleChange={setManualTitle}
           titlePlaceholder={t("notes.placeholderTitle")}
-          note={newNote}
-          onNoteChange={setNewNote}
+          note={noteDraft}
+          onNoteChange={setNoteDraft}
           notePlaceholder={t(getNotePlaceholderKey(activeTab))}
           textareaRef={textareaRef}
           rows={isMobile ? 4 : 3}
           mobile={isMobile}
           saving={saving}
-          disabled={!canCreateNote(activeTab, newNote, manualTitle, saving)}
+          disabled={!canCreateNote(activeTab, noteDraft, manualTitle, saving)}
           helperText={saving ? t("notes.saving") : t("notes.enterToSave")}
           showHelper={shouldShowNoteComposerHelper(isMobile, saving)}
-          onPaste={(e) => void handlePasteAttachments(e, setNewNote)}
+          onPaste={(e) => void handlePasteAttachments(e, setNoteDraft)}
           onCompositionStart={() => { imeComposingRef.current = true; }}
           onCompositionEnd={() => { imeComposingRef.current = false; }}
           onKeyDown={(e) => {
