@@ -11,22 +11,30 @@ import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Badge } from "../components/base/Badge";
 import { EmptyState } from "../components/base/EmptyState";
-import { DetailPane, DetailScroll, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
+import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
   areFavoriteEntriesEquivalent,
+  canEditFavoriteContent,
   getFavoriteDetailPath,
   getFavoriteDetailTitle,
+  getFavoriteEditablePath,
   getFavoritesPaneState,
   getNextSelectedFavoriteTargetId,
   getSelectedFavoriteEntry,
+  shouldSaveFavoriteAsExternalFile,
   sourceLabelKey,
+  supportsFavoriteSplitPreview,
 } from "../components/domain/favorites/favoritesLogic";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
+import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
+import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { useListKeyboardNavigation, useListNavigation } from "../hooks/useListNavigation";
 import { relativeTime } from "../utils/time";
 import type { FavoriteContent, FavoriteEntry } from "../types/favorites";
@@ -61,7 +69,27 @@ export default function FavoritesPage({
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [content, setContent] = useState<FavoriteContent | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
   const refreshTimerRef = useRef<number | null>(null);
+  const {
+    editing,
+    editContent,
+    splitPreview,
+    setEditContent,
+    startEdit,
+    cancelEdit,
+    completeEdit,
+    resetEditor,
+    toggleSplitPreview,
+  } = useFileEditorState({
+    sourceContent: content?.content ?? "",
+    mobile: isMobile,
+    focusRef: editRef,
+    clearContentOnCancel: true,
+    clearContentOnComplete: true,
+  });
+  useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "favorites" });
 
   const selectedEntry = useMemo(
     () => getSelectedFavoriteEntry(favorites, selectedTargetId),
@@ -116,13 +144,15 @@ export default function FavoritesPage({
     try {
       const next = await invoke<FavoriteContent>("read_favorite_content", { targetId });
       setContent(next);
+      resetEditor(next.content);
     } catch (e) {
       setContent(null);
+      resetEditor();
       showToast(`Error: ${e}`, true);
     } finally {
       setContentLoading(false);
     }
-  }, [showToast]);
+  }, [resetEditor, showToast]);
 
   const { navPrev, navNext } = useListNavigation({
     items: favorites,
@@ -142,7 +172,8 @@ export default function FavoritesPage({
     setSelectedTargetId(null);
     setContent(null);
     setContentLoading(false);
-  }, []);
+    resetEditor();
+  }, [resetEditor]);
 
   useMobileDetailBackHandler({
     isMobile,
@@ -194,6 +225,32 @@ export default function FavoritesPage({
 
   const detailTitle = getFavoriteDetailTitle(content, selectedEntry, t("favorites.title"));
   const detailPath = getFavoriteDetailPath(content, selectedEntry);
+  const canEditSelectedFavorite = canEditFavoriteContent(isMobile, content, selectedEntry);
+  const favoriteEditablePath = getFavoriteEditablePath(content, selectedEntry);
+  const favoriteSupportsSplitPreview = supportsFavoriteSplitPreview(content, selectedEntry);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!content || !canEditFavoriteContent(isMobile, content, selectedEntry)) return;
+    const filePath = getFavoriteEditablePath(content, selectedEntry);
+    if (!filePath) return;
+    setSaving(true);
+    try {
+      if (shouldSaveFavoriteAsExternalFile(content, selectedEntry)) {
+        await invoke("save_external_file", { filePath, content: editContent });
+      } else {
+        await invoke("update_note", { filePath, content: editContent });
+      }
+      const next = await invoke<FavoriteContent>("read_favorite_content", { targetId: content.target_id });
+      setContent(next);
+      completeEdit(next.content);
+      showToast(t("favorites.saved"));
+      void loadFavorites();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setSaving(false);
+    }
+  }, [completeEdit, content, editContent, isMobile, loadFavorites, selectedEntry, showToast, t]);
 
   const detail = (
     <DetailPane>
@@ -211,6 +268,16 @@ export default function FavoritesPage({
               if (selectedTargetId) void openFavorite(selectedTargetId);
             }}
             refreshDisabled={contentLoading}
+            editing={editing}
+            onEdit={canEditSelectedFavorite ? startEdit : undefined}
+            onSave={canEditSelectedFavorite ? () => void handleSaveEdit() : undefined}
+            onCancel={canEditSelectedFavorite ? cancelEdit : undefined}
+            editTitle={t("common.edit")}
+            saveTitle={t("common.save")}
+            saveDisabled={saving}
+            saveTone="accent"
+            splitPreview={splitPreview}
+            onToggleSplitPreview={canEditSelectedFavorite && favoriteSupportsSplitPreview ? toggleSplitPreview : undefined}
             metadata={selectedEntry ? (
               <FavoriteButton
                 relPath={selectedEntry.rel_path}
@@ -220,7 +287,7 @@ export default function FavoritesPage({
                 sourceType={selectedEntry.source_type}
               />
             ) : null}
-            more={selectedEntry && content ? (
+            more={selectedEntry && content && !editing ? (
               <FileMoreActionsMenu
                 relPath={content.rel_path ?? undefined}
                 absolutePath={content.absolute_path ?? undefined}
@@ -230,15 +297,28 @@ export default function FavoritesPage({
               />
             ) : null}
           />
-          <DetailScroll mobileBottomPadding={isMobile} selectable>
+          <FileEditorSurface
+            ref={editRef}
+            editing={editing}
+            value={editContent}
+            onChange={setEditContent}
+            onSave={handleSaveEdit}
+            onCancel={cancelEdit}
+            filePath={favoriteEditablePath || undefined}
+            mobile={isMobile}
+            splitPreview={splitPreview}
+            supportsSplitPreview={favoriteSupportsSplitPreview}
+            mobileBottomPadding={isMobile}
+            selectable
+          >
             {contentLoading ? (
               <Loading compact text={t("common.loading")} />
             ) : selectedEntry && !selectedEntry.exists ? (
               <p className="gm-muted-text">{t("favorites.missingHint")}</p>
             ) : content ? (
-              <MarkdownView content={content.content} filePath={content.rel_path ?? undefined} />
+              <MarkdownView content={content.content} filePath={favoriteEditablePath || undefined} />
             ) : null}
-          </DetailScroll>
+          </FileEditorSurface>
         </>
       )}
     </DetailPane>

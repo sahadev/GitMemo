@@ -5183,6 +5183,14 @@ a:focus-visible {
   padding: var(--gm-control-pad-y) var(--gm-row-pad-x);
 }
 
+.gm-export-pdf-button[data-menu-item="true"] {
+  gap: var(--gm-space-3);
+  justify-content: flex-start;
+  padding: var(--gm-space-3) var(--gm-space-3);
+  text-align: left;
+  width: 100%;
+}
+
 .gm-export-pdf-button[data-mobile="true"][data-menu-item="false"] {
   min-height: var(--gm-control-height-xl);
   min-width: var(--gm-control-height-xl);

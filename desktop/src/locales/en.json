@@ -98,6 +98,7 @@
     "count": "{0}",
     "missing": "Missing",
     "missingHint": "The original file for this favorite no longer exists.",
+    "saved": "Favorite file saved",
     "sourceConversation": "Conversation",
     "sourceNote": "Note",
     "sourceClip": "Clipboard",

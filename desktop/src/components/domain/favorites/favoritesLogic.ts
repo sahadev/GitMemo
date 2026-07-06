@@ -55,3 +55,45 @@ export function getFavoriteDetailTitle(
 export function getFavoriteDetailPath(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
   return content?.rel_path || content?.absolute_path || selectedEntry?.rel_path || selectedEntry?.absolute_path || "";
 }
+
+export function getFavoriteEditablePath(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  return content?.rel_path || selectedEntry?.rel_path || content?.absolute_path || selectedEntry?.absolute_path || "";
+}
+
+export function isExternalFavorite(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  return Boolean(content?.absolute_path || selectedEntry?.absolute_path)
+    && !Boolean(content?.rel_path || selectedEntry?.rel_path);
+}
+
+export function isConversationFavorite(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  return (content?.source_type || selectedEntry?.source_type) === "conversation";
+}
+
+export function isEditableFavoriteSource(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  const sourceType = content?.source_type || selectedEntry?.source_type;
+  return sourceType === "note"
+    || sourceType === "clip"
+    || sourceType === "import"
+    || sourceType === "conversation"
+    || sourceType === "external";
+}
+
+export function canEditFavoriteContent(
+  isMobile: boolean,
+  content: FavoriteContent | null,
+  selectedEntry: FavoriteEntry | null,
+) {
+  if (!content?.exists) return false;
+  if (!getFavoriteEditablePath(content, selectedEntry)) return false;
+  if (!isEditableFavoriteSource(content, selectedEntry)) return false;
+  return !(isMobile && isConversationFavorite(content, selectedEntry));
+}
+
+export function shouldSaveFavoriteAsExternalFile(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  return isExternalFavorite(content, selectedEntry);
+}
+
+export function supportsFavoriteSplitPreview(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {
+  const path = getFavoriteEditablePath(content, selectedEntry).toLowerCase();
+  return /\.(md|markdown|mdx|mdc)$/.test(path);
+}

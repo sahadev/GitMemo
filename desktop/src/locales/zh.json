@@ -98,6 +98,7 @@
     "count": "{0} 条",
     "missing": "已丢失",
     "missingHint": "这个收藏的原始文件已不存在。",
+    "saved": "收藏文件已保存",
     "sourceConversation": "对话",
     "sourceNote": "笔记",
     "sourceClip": "剪贴板",
