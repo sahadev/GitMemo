@@ -926,7 +926,15 @@ a:focus-visible {
 
 .gm-file-list-meta {
   color: var(--text-secondary);
+  min-width: 0;
   font-size: var(--gm-font-xs);
+}
+
+.gm-file-list-subtitle {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gm-file-list-preview {

@@ -40,7 +40,7 @@ export const FileListItem = forwardRef<HTMLButtonElement, FileListItemProps>(fun
       </div>
       {subtitle || meta ? (
         <div className="gm-file-list-meta-row">
-          {subtitle ? <span className="gm-file-list-meta">{subtitle}</span> : null}
+          {subtitle ? <span className="gm-file-list-meta gm-file-list-subtitle">{subtitle}</span> : null}
           {meta}
         </div>
       ) : null}
