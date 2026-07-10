@@ -132,6 +132,21 @@ export function shouldShowDashboardEmptyGuide(stats: AppStats, visibleRecent: Re
   return !hasDashboardContentFiles(stats) && visibleRecent.length === 0;
 }
 
+export function hasDashboardQuickNoteContent(content: string) {
+  return content.trim().length > 0;
+}
+
+export function canSaveDashboardQuickNote(content: string, saving: boolean) {
+  return hasDashboardQuickNoteContent(content) && !saving;
+}
+
+export function getDashboardQuickNoteStatus(filePath: string | null): DashboardText {
+  if (filePath) {
+    return { kind: "translation", key: "dashboard.quickNoteEditing", args: [filePath] };
+  }
+  return { kind: "translation", key: "dashboard.quickNoteNewDraft" };
+}
+
 export function isAnyEditorIntegrationEnabled(claudeEnabled: boolean, cursorEnabled: boolean) {
   return claudeEnabled || cursorEnabled;
 }

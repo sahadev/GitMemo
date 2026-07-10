@@ -152,7 +152,17 @@
     "cliCardUpgrade": "CLI v{0}，建议 v{1}",
     "cliCardCopyInstallCommand": "复制安装命令",
     "cliCardCommandCopied": "已复制安装命令，请到终端中执行。",
-    "cliCardDismiss": "关闭此提示"
+    "cliCardDismiss": "关闭此提示",
+    "quickNoteTitle": "快记",
+    "quickNoteNewDraft": "新篇",
+    "quickNoteEditing": "当前篇：{0}",
+    "quickNoteSave": "保存",
+    "quickNoteSaving": "保存中...",
+    "quickNoteNew": "新建一篇",
+    "quickNoteOpen": "打开",
+    "quickNoteSaved": "已保存：{0}",
+    "quickNoteContentRequired": "先写一点内容",
+    "quickNotePlaceholder": "---\ntitle: 主题，例如「今天的产品想法」\ntags: [idea, todo]\nsource: dashboard\n---\n\n# 主题\n\n- 时间：保存时自动记录\n- 记录：\n- 下一步："
   },
   "conversations": {
     "title": "对话",

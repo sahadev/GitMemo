@@ -76,6 +76,176 @@ fn bg_remove_index_file(dir: PathBuf, rel_path: String) {
     std::thread::spawn(move || remove_index_file(&dir, &rel_path));
 }
 
+fn local_note_timestamp(now: &chrono::DateTime<chrono::Local>) -> String {
+    now.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+}
+
+fn split_frontmatter(content: &str) -> Option<(&str, &str)> {
+    if !content.starts_with("---") {
+        return None;
+    }
+
+    let rest = content.strip_prefix("---")?;
+    let rest = rest.strip_prefix('\r').unwrap_or(rest);
+    let rest = rest.strip_prefix('\n')?;
+    let end = rest.find("\n---")?;
+    let frontmatter = &rest[..end];
+    let body = &rest[end + 4..];
+    let body = body
+        .strip_prefix("\r\n")
+        .or_else(|| body.strip_prefix('\n'))
+        .unwrap_or(body);
+
+    Some((frontmatter, body))
+}
+
+fn metadata_lines(frontmatter: &str) -> Vec<String> {
+    frontmatter
+        .lines()
+        .map(str::trim_end)
+        .filter(|line| !line.trim().is_empty())
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn metadata_key_matches(line: &str, key: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed
+        .split_once(':')
+        .is_some_and(|(candidate, _)| candidate.trim() == key)
+}
+
+fn has_metadata_key(lines: &[String], keys: &[&str]) -> bool {
+    lines
+        .iter()
+        .any(|line| keys.iter().any(|key| metadata_key_matches(line, key)))
+}
+
+fn metadata_value(lines: &[String], key: &str) -> Option<String> {
+    lines.iter().find_map(|line| {
+        if !metadata_key_matches(line, key) {
+            return None;
+        }
+        let (_, value) = line.split_once(':')?;
+        let value = value.trim().trim_matches('"').trim_matches('\'').trim();
+        (!value.is_empty()).then(|| value.to_string())
+    })
+}
+
+fn upsert_metadata_line(lines: &mut Vec<String>, key: &str, value: &str) {
+    let mut replaced = false;
+    let mut next = Vec::with_capacity(lines.len() + 1);
+
+    for line in lines.drain(..) {
+        if metadata_key_matches(&line, key) {
+            if !replaced {
+                let indent_len = line.len() - line.trim_start().len();
+                next.push(format!("{}{}: {}", &line[..indent_len], key, value));
+                replaced = true;
+            }
+        } else {
+            next.push(line);
+        }
+    }
+
+    if !replaced {
+        next.push(format!("{}: {}", key, value));
+    }
+
+    *lines = next;
+}
+
+fn ensure_metadata_line(lines: &mut Vec<String>, key: &str, value: &str) {
+    if !has_metadata_key(lines, &[key]) {
+        lines.push(format!("{}: {}", key, value));
+    }
+}
+
+fn first_h1_title(body: &str) -> Option<String> {
+    body.lines().find_map(|line| {
+        let line = line.trim();
+        let heading = line.strip_prefix("# ")?;
+        let title = heading.trim().trim_end_matches('#').trim();
+        (!title.is_empty()).then(|| title.to_string())
+    })
+}
+
+fn normalize_dashboard_quick_note_markdown(
+    input: &str,
+    existing_content: Option<&str>,
+    now: &chrono::DateTime<chrono::Local>,
+) -> String {
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input).trim();
+    let user_split = split_frontmatter(input);
+    let existing_split = existing_content.and_then(split_frontmatter);
+    let mut lines = match (user_split, existing_split) {
+        (Some((frontmatter, _)), _) => metadata_lines(frontmatter),
+        (None, Some((frontmatter, _))) => metadata_lines(frontmatter),
+        (None, None) => Vec::new(),
+    };
+
+    let body = user_split.map_or(input, |(_, body)| body).trim_start();
+    let timestamp = local_note_timestamp(now);
+
+    let visible_h1_title = first_h1_title(body);
+    if user_split.is_none() {
+        if let Some(title) = visible_h1_title.as_deref() {
+            upsert_metadata_line(&mut lines, "title", title);
+        }
+    } else if !has_metadata_key(&lines, &["title"]) {
+        if let Some(topic) = metadata_value(&lines, "topic") {
+            ensure_metadata_line(&mut lines, "title", &topic);
+        } else if let Some(title) = visible_h1_title.as_deref() {
+            ensure_metadata_line(&mut lines, "title", &title);
+        }
+    }
+
+    if !has_metadata_key(&lines, &["date", "created"]) {
+        if let Some((frontmatter, _)) = existing_split {
+            let existing_lines = metadata_lines(frontmatter);
+            if let Some(date) = metadata_value(&existing_lines, "date")
+                .or_else(|| metadata_value(&existing_lines, "created"))
+            {
+                ensure_metadata_line(&mut lines, "date", &date);
+            } else {
+                ensure_metadata_line(&mut lines, "date", &timestamp);
+            }
+        } else {
+            ensure_metadata_line(&mut lines, "date", &timestamp);
+        }
+    }
+
+    ensure_metadata_line(&mut lines, "source", "dashboard");
+    upsert_metadata_line(&mut lines, "updated", &timestamp);
+
+    format!("---\n{}\n---\n\n{}\n", lines.join("\n"), body.trim_end())
+}
+
+fn next_scratch_note_path(
+    dir: &Path,
+    now: &chrono::DateTime<chrono::Local>,
+) -> Result<String, String> {
+    let date_str = now.format("%Y-%m-%d").to_string();
+    let scratch_dir = dir.join("notes/scratch");
+    std::fs::create_dir_all(&scratch_dir).map_err(|e| e.to_string())?;
+
+    let mut seq = 1u32;
+    loop {
+        let filename = format!("{}-{:03}.md", date_str, seq);
+        if !scratch_dir.join(&filename).exists() {
+            return Ok(format!("notes/scratch/{}", filename));
+        }
+        seq += 1;
+    }
+}
+
+fn is_safe_dashboard_quick_note_path(path: &str) -> bool {
+    path.starts_with("notes/scratch/")
+        && path.ends_with(".md")
+        && !path.contains("..")
+        && !path.contains('\\')
+}
+
 fn remove_index_files(dir: &Path, rel_paths: &[String]) {
     let db_path = dir.join(".metadata").join("index.db");
     if let Ok(conn) = database::open_or_create(&db_path) {
@@ -196,6 +366,71 @@ mod tests {
         assert!(!clip_content_matches_kind(text_clip, ClipKindFilter::Image));
         assert!(clip_content_matches_kind(image_clip, ClipKindFilter::Image));
         assert!(!clip_content_matches_kind(image_clip, ClipKindFilter::Text));
+    }
+
+    #[test]
+    fn dashboard_quick_note_adds_parseable_metadata() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-07-10T10:30:00+08:00")
+            .unwrap()
+            .with_timezone(&chrono::Local);
+        let markdown = normalize_dashboard_quick_note_markdown(
+            "# Daily plan\n\n- Ship quick notes",
+            None,
+            &now,
+        );
+
+        assert!(markdown.starts_with("---\n"));
+        assert!(markdown.contains("title: Daily plan\n"));
+        assert!(markdown.contains("date: 2026-07-10T10:30:00+08:00\n"));
+        assert!(markdown.contains("source: dashboard\n"));
+        assert!(markdown.contains("updated: 2026-07-10T10:30:00+08:00\n"));
+        assert!(markdown.ends_with("# Daily plan\n\n- Ship quick notes\n"));
+    }
+
+    #[test]
+    fn dashboard_quick_note_preserves_existing_metadata_when_updating_body_only() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-07-10T11:00:00+08:00")
+            .unwrap()
+            .with_timezone(&chrono::Local);
+        let existing = "---\ntitle: Original\ndate: 2026-07-01T09:00:00+08:00\ntags: [idea]\nsource: dashboard\nupdated: 2026-07-01T09:10:00+08:00\n---\n\nOld body\n";
+        let markdown = normalize_dashboard_quick_note_markdown("New body", Some(existing), &now);
+
+        assert!(markdown.contains("title: Original\n"));
+        assert!(markdown.contains("date: 2026-07-01T09:00:00+08:00\n"));
+        assert!(markdown.contains("tags: [idea]\n"));
+        assert!(markdown.contains("updated: 2026-07-10T11:00:00+08:00\n"));
+        assert!(markdown.ends_with("New body\n"));
+    }
+
+    #[test]
+    fn dashboard_quick_note_updates_title_from_visible_h1() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-07-10T11:30:00+08:00")
+            .unwrap()
+            .with_timezone(&chrono::Local);
+        let existing = "---\ntitle: Old title\ndate: 2026-07-01T09:00:00+08:00\nsource: dashboard\nupdated: 2026-07-01T09:10:00+08:00\n---\n\n# Old title\n";
+        let markdown =
+            normalize_dashboard_quick_note_markdown("# New title\n\nBody", Some(existing), &now);
+
+        assert!(markdown.contains("title: New title\n"));
+        assert!(markdown.contains("date: 2026-07-01T09:00:00+08:00\n"));
+        assert!(markdown.ends_with("# New title\n\nBody\n"));
+    }
+
+    #[test]
+    fn dashboard_quick_note_maps_topic_to_title() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-07-10T12:00:00+08:00")
+            .unwrap()
+            .with_timezone(&chrono::Local);
+        let markdown = normalize_dashboard_quick_note_markdown(
+            "---\ntopic: Meeting follow-up\ntags: [meeting, next]\n---\n\n- Call Alex",
+            None,
+            &now,
+        );
+
+        assert!(markdown.contains("topic: Meeting follow-up\n"));
+        assert!(markdown.contains("title: Meeting follow-up\n"));
+        assert!(markdown.contains("tags: [meeting, next]\n"));
+        assert!(markdown.ends_with("- Call Alex\n"));
     }
 }
 
@@ -514,6 +749,48 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
         success: true,
         path: rel_path.clone(),
         message: format!("Note created: {}", rel_path),
+    })
+}
+
+#[tauri::command]
+pub fn save_dashboard_quick_note(
+    content: String,
+    file_path: Option<String>,
+) -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    if !dir.exists() {
+        return Err("GitMemo not initialized".into());
+    }
+    if content.trim().is_empty() {
+        return Err("Enter content".into());
+    }
+
+    let now = chrono::Local::now();
+    let (rel_path, existing_content) = match file_path {
+        Some(path) => {
+            if !is_safe_dashboard_quick_note_path(&path) {
+                return Err("Quick note path must be a scratch note".into());
+            }
+            let full_path = dir.join(&path);
+            if !full_path.exists() {
+                return Err(format!("File not found: {}", path));
+            }
+            let existing = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+            (path, Some(existing))
+        }
+        None => (next_scratch_note_path(&dir, &now)?, None),
+    };
+
+    let markdown =
+        normalize_dashboard_quick_note_markdown(&content, existing_content.as_deref(), &now);
+    files::write_note(&dir, &rel_path, &markdown).map_err(|e| e.to_string())?;
+    bg_refresh_index_file(dir.clone(), rel_path.clone());
+    bg_commit_and_push(format!("note: dashboard quick {}", rel_path));
+
+    Ok(NoteResult {
+        success: true,
+        path: rel_path.clone(),
+        message: format!("Quick note saved: {}", rel_path),
     })
 }
 

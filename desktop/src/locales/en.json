@@ -152,7 +152,17 @@
     "cliCardUpgrade": "CLI v{0}, recommend v{1}",
     "cliCardCopyInstallCommand": "Copy install command",
     "cliCardCommandCopied": "Install command copied. Run it in your terminal.",
-    "cliCardDismiss": "Dismiss this hint"
+    "cliCardDismiss": "Dismiss this hint",
+    "quickNoteTitle": "Quick note",
+    "quickNoteNewDraft": "New draft",
+    "quickNoteEditing": "Editing: {0}",
+    "quickNoteSave": "Save",
+    "quickNoteSaving": "Saving...",
+    "quickNoteNew": "New note",
+    "quickNoteOpen": "Open",
+    "quickNoteSaved": "Saved: {0}",
+    "quickNoteContentRequired": "Write some content first",
+    "quickNotePlaceholder": "---\ntitle: Topic, for example \"Today's product idea\"\ntags: [idea, todo]\nsource: dashboard\n---\n\n# Topic\n\n- Time: recorded when saved\n- Note:\n- Next:"
   },
   "conversations": {
     "title": "Conversations",

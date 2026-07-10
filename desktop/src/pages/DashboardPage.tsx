@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useI18n } from "../hooks/useI18n";
 import { useSync } from "../hooks/useSync";
 import { useAppStore } from "../hooks/useAppStore";
+import { useToast } from "../hooks/useToast";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -16,6 +17,7 @@ import { Button } from "../components/base/Button";
 import {
   DashboardActivityRow,
   DashboardQuickInfoRow,
+  DashboardQuickNotePanel,
   DashboardStatCard,
 } from "../components/domain/dashboard/DashboardComponents";
 import {
@@ -27,6 +29,7 @@ import { OnboardingChecklist } from "../components/OnboardingChecklist";
 import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 import {
   canOpenDashboardRecentItem,
+  canSaveDashboardQuickNote,
   formatDashboardText,
   getCliStatusBadgeTone,
   getCliStatusText,
@@ -35,6 +38,7 @@ import {
   getDashboardDisplayedFileCount,
   getDashboardDisplayedRepoSizeKb,
   getDashboardMobileSyncState,
+  getDashboardQuickNoteStatus,
   getDashboardSyncStatus,
   getDashboardVisibleRecentItems,
   hasDashboardConversations,
@@ -50,6 +54,7 @@ import {
 
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
+import { type NoteResult } from "../types/notes";
 
 const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
   conversation: { icon: MessageSquare, tone: "olympic-blue" },
@@ -113,6 +118,7 @@ function loadDashboardRecentOnce() {
 
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
   const {
@@ -150,10 +156,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [recentLoading, setRecentLoading] = useState(!cached?.recent);
   const [error, setError] = useState("");
   const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
+  const [quickNoteDraft, setQuickNoteDraft] = useState("");
+  const [quickNotePath, setQuickNotePath] = useState<string | null>(null);
+  const [quickNoteSaving, setQuickNoteSaving] = useState(false);
   const dashboardCacheRef = useRef<DashboardCache>({
     stats: cached?.stats ?? null,
     recent: cached?.recent ?? [],
   });
+  const quickNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const quickNoteImeComposingRef = useRef(false);
 
   // Derived state
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
@@ -209,6 +220,50 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     void loadStats();
     void loadRecent();
   }, [loadRecent, loadStats]);
+
+  const saveQuickNote = useCallback(async () => {
+    if (!canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving)) {
+      if (!quickNoteDraft.trim()) showToast(t("dashboard.quickNoteContentRequired"), true);
+      return;
+    }
+
+    setQuickNoteSaving(true);
+    try {
+      const result = await invoke<NoteResult>("save_dashboard_quick_note", {
+        content: quickNoteDraft,
+        filePath: quickNotePath,
+      });
+      setQuickNotePath(result.path);
+      showToast(t("dashboard.quickNoteSaved", result.path));
+      loadData();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    } finally {
+      setQuickNoteSaving(false);
+    }
+  }, [loadData, quickNoteDraft, quickNotePath, quickNoteSaving, showToast, t]);
+
+  const startNewQuickNote = useCallback(() => {
+    if (quickNoteSaving) return;
+    setQuickNoteDraft("");
+    setQuickNotePath(null);
+    window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
+  }, [quickNoteSaving]);
+
+  const openQuickNote = useCallback(() => {
+    if (!quickNotePath || quickNoteSaving) return;
+    setNotesTab("scratch");
+    setPendingOpenPath(quickNotePath);
+    onNavigate?.("notes");
+  }, [onNavigate, quickNotePath, quickNoteSaving, setNotesTab, setPendingOpenPath]);
+
+  const handleQuickNoteKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== "Enter" || (!e.metaKey && !e.ctrlKey)) return;
+    const ev = e.nativeEvent;
+    if (quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229) return;
+    e.preventDefault();
+    void saveQuickNote();
+  }, [saveQuickNote]);
 
   useEffect(() => {
     if (!active) return;
@@ -274,6 +329,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   });
   const mobileSyncText = formatDashboardText(mobileSyncState.text, t);
   const mobileSyncActionText = formatDashboardText(mobileSyncState.actionText, t);
+  const quickNoteStatusText = quickNoteSaving
+    ? t("dashboard.quickNoteSaving")
+    : formatDashboardText(getDashboardQuickNoteStatus(quickNotePath), t);
+  const quickNoteSaveDisabled = !canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving);
 
   return (
     <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
@@ -389,6 +448,30 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           </div>
         </div>
       )}
+
+      {/* Dashboard quick-note extension point: after CLI card, before stat grid. */}
+      <DashboardQuickNotePanel
+        title={t("dashboard.quickNoteTitle")}
+        status={quickNoteStatusText}
+        placeholder={t("dashboard.quickNotePlaceholder")}
+        saveLabel={t("dashboard.quickNoteSave")}
+        savingLabel={t("dashboard.quickNoteSaving")}
+        newLabel={t("dashboard.quickNoteNew")}
+        openLabel={t("dashboard.quickNoteOpen")}
+        value={quickNoteDraft}
+        textareaRef={quickNoteTextareaRef}
+        saving={quickNoteSaving}
+        saveDisabled={quickNoteSaveDisabled}
+        canOpen={Boolean(quickNotePath)}
+        mobile={isMobile}
+        onChange={setQuickNoteDraft}
+        onSave={() => void saveQuickNote()}
+        onNew={startNewQuickNote}
+        onOpen={openQuickNote}
+        onKeyDown={handleQuickNoteKeyDown}
+        onCompositionStart={() => { quickNoteImeComposingRef.current = true; }}
+        onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
+      />
 
       {/* Stat Cards */}
       <div className="gm-dashboard-stat-grid">
