@@ -4865,6 +4865,30 @@ a:focus-visible {
   flex-shrink: 0;
 }
 
+.gm-dashboard-quick-note-hand {
+  animation: gm-dashboard-quick-note-hand-nudge 1200ms ease-in-out infinite both;
+  color: var(--accent);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: var(--gm-font-lg);
+  font-weight: 760;
+  line-height: var(--gm-leading-none);
+  transform-origin: center;
+}
+
+@keyframes gm-dashboard-quick-note-hand-nudge {
+  0%,
+  100% {
+    opacity: 0.74;
+    transform: translateX(2px);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(-6px);
+  }
+}
+
 .gm-dashboard-quick-note-chevron {
   align-items: center;
   display: flex;
@@ -5271,6 +5295,14 @@ a:focus-visible {
     position: absolute;
     right: var(--gm-card-pad-mobile);
     top: var(--gm-card-pad-mobile);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-dashboard-quick-note-hand {
+    animation: none;
+    opacity: 0.9;
+    transform: none;
   }
 }
 

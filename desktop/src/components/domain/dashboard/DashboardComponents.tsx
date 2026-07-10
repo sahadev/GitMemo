@@ -166,6 +166,7 @@ export function DashboardQuickNotePanel({
         <div className="gm-dashboard-quick-note-title">
           <AppIcon icon={FilePlus2} size="xs" tone="accent" className="gm-dashboard-quick-note-title-icon" />
           <span className="gm-section-title">{title}</span>
+          <span className="gm-dashboard-quick-note-hand" aria-hidden="true">☜</span>
         </div>
         <span className="gm-dashboard-quick-note-chevron" aria-label={toggleLabel} title={toggleLabel}>
           <AppIcon icon={expanded ? ChevronUp : ChevronDown} size="xs" tone="secondary" />
