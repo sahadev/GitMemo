@@ -54,10 +54,16 @@ fn refresh_index(dir: &Path) {
     }
 }
 
-fn refresh_index_file(dir: &Path, rel_path: &str) {
+fn try_refresh_index_file(dir: &Path, rel_path: &str) -> Result<(), String> {
     let db_path = dir.join(".metadata").join("index.db");
-    if let Ok(conn) = database::open_or_create(&db_path) {
-        let _ = database::index_relative_file(&conn, dir, rel_path);
+    let conn = database::open_or_create(&db_path).map_err(|err| err.to_string())?;
+    database::index_relative_file(&conn, dir, rel_path).map_err(|err| err.to_string())?;
+    Ok(())
+}
+
+fn refresh_index_file(dir: &Path, rel_path: &str) {
+    if let Err(err) = try_refresh_index_file(dir, rel_path) {
+        log::warn!("Failed to refresh index for '{}': {}", rel_path, err);
     }
 }
 
@@ -753,7 +759,16 @@ pub fn create_note(content: String) -> Result<NoteResult, String> {
 }
 
 #[tauri::command]
-pub fn save_dashboard_quick_note(
+pub async fn save_dashboard_quick_note(
+    content: String,
+    file_path: Option<String>,
+) -> Result<NoteResult, String> {
+    tokio::task::spawn_blocking(move || save_dashboard_quick_note_sync(content, file_path))
+        .await
+        .map_err(|err| format!("Task join error: {err}"))?
+}
+
+fn save_dashboard_quick_note_sync(
     content: String,
     file_path: Option<String>,
 ) -> Result<NoteResult, String> {
@@ -784,7 +799,7 @@ pub fn save_dashboard_quick_note(
     let markdown =
         normalize_dashboard_quick_note_markdown(&content, existing_content.as_deref(), &now);
     files::write_note(&dir, &rel_path, &markdown).map_err(|e| e.to_string())?;
-    bg_refresh_index_file(dir.clone(), rel_path.clone());
+    refresh_index_file(&dir, &rel_path);
     bg_commit_and_push(format!("note: dashboard quick {}", rel_path));
 
     Ok(NoteResult {

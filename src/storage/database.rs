@@ -1,4 +1,7 @@
-use crate::utils::datetime::{frontmatter_record_datetime_raw, record_timestamp_for_markdown};
+use crate::utils::{
+    datetime::{frontmatter_record_datetime_raw, record_timestamp_for_markdown},
+    frontmatter::scalar_value as frontmatter_value,
+};
 use anyhow::Result;
 use fs4::fs_std::FileExt;
 use rusqlite::{params, Connection};
@@ -282,25 +285,14 @@ fn file_metadata_snapshot(path: &Path) -> (SystemTime, i64, u64) {
 /// Extract tags from frontmatter (supports "tags: a, b, c" and "tags: [a, b, c]")
 #[allow(dead_code)]
 fn frontmatter_tags(content: &str) -> String {
-    if !content.starts_with("---") {
-        return String::new();
-    }
-    let rest = &content[3..];
-    let end = match rest.find("---") {
-        Some(e) => e,
-        None => return String::new(),
-    };
-    let fm = &rest[..end];
-    for line in fm.lines() {
-        let line = line.trim();
-        if let Some(val) = line.strip_prefix("tags:") {
-            let val = val.trim();
-            // Strip optional brackets
-            let val = val.trim_start_matches('[').trim_end_matches(']');
-            return val.to_string();
-        }
-    }
-    String::new()
+    frontmatter_value(content, "tags")
+        .map(|value| {
+            value
+                .trim_start_matches('[')
+                .trim_end_matches(']')
+                .to_string()
+        })
+        .unwrap_or_default()
 }
 
 /// Index a single file into the database
@@ -595,10 +587,15 @@ fn source_type_for_rel_path(rel_path: &str) -> Option<&'static str> {
 }
 
 fn extract_title(path: &Path, content: &str) -> String {
-    content
-        .lines()
-        .find(|l| l.starts_with("# "))
-        .map(|l| l.trim_start_matches("# ").to_string())
+    frontmatter_value(content, "title")
+        .map(ToString::to_string)
+        .or_else(|| {
+            content
+                .lines()
+                .find_map(|line| line.strip_prefix("# ").map(str::trim))
+                .filter(|title| !title.is_empty())
+                .map(ToString::to_string)
+        })
         .unwrap_or_else(|| {
             path.file_stem()
                 .unwrap_or_default()
@@ -1170,6 +1167,15 @@ mod tests {
     #[test]
     fn test_frontmatter_time_none() {
         assert_eq!(frontmatter_record_datetime_raw("No frontmatter here"), None);
+    }
+
+    #[test]
+    fn test_extract_title_prefers_frontmatter_title() {
+        let content = "---\ntitle: \"Dashboard: quick note\"\n---\n\n# Fallback heading";
+        assert_eq!(
+            extract_title(Path::new("notes/scratch/2026-07-10-002.md"), content),
+            "Dashboard: quick note"
+        );
     }
 
     #[test]

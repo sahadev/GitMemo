@@ -92,6 +92,19 @@ fn display_name_for_markdown(path: &Path, rel_path: &str, content: &str) -> Stri
     fallback
 }
 
+fn display_name_for_indexed_markdown(
+    path: &Path,
+    rel_path: &str,
+    indexed_title: &str,
+    content: &str,
+) -> String {
+    if content.is_empty() {
+        indexed_title.to_string()
+    } else {
+        display_name_for_markdown(path, rel_path, content)
+    }
+}
+
 /// Count .md files under a directory (recursive).
 fn count_md_files(dir: &Path) -> usize {
     if !dir.exists() {
@@ -291,10 +304,13 @@ fn recent_category_for_path(rel_path: &str) -> &'static str {
     }
 }
 
-fn recent_item_from_index(row: database::RecentDocumentItem) -> RecentItem {
+fn recent_item_from_index(sync_dir: &Path, row: database::RecentDocumentItem) -> RecentItem {
+    let full_path = sync_dir.join(&row.file_path);
+    let head = read_md_head(&full_path);
+    let name = display_name_for_indexed_markdown(&full_path, &row.file_path, &row.title, &head);
     let category = recent_category_for_path(&row.file_path).to_string();
     RecentItem {
-        name: row.title,
+        name,
         path: row.file_path,
         category,
         modified: row.activity_at,
@@ -315,7 +331,12 @@ fn get_recent_activity_from_index(sync_dir: &Path) -> Result<Vec<RecentItem>, St
 
     database::list_recent_documents(&conn, DASHBOARD_RECENT_LIMIT)
         .map_err(|e| e.to_string())
-        .map(|items| items.into_iter().map(recent_item_from_index).collect())
+        .map(|items| {
+            items
+                .into_iter()
+                .map(|row| recent_item_from_index(sync_dir, row))
+                .collect()
+        })
 }
 
 fn get_recent_activity_from_filesystem(sync_dir: &Path) -> Result<Vec<RecentItem>, String> {
@@ -484,6 +505,18 @@ mod tests {
             content,
         );
         assert_eq!(name, "Claude 会话总结");
+    }
+
+    #[test]
+    fn indexed_recent_display_name_corrects_stale_title() {
+        let content = "---\ntitle: Dashboard 快记\n---\n\n正文";
+        let name = display_name_for_indexed_markdown(
+            Path::new("notes/scratch/2026-07-10-002.md"),
+            "notes/scratch/2026-07-10-002.md",
+            "2026-07-10-002",
+            content,
+        );
+        assert_eq!(name, "Dashboard 快记");
     }
 
     #[test]

@@ -1,30 +1,10 @@
 //! Parse Markdown frontmatter timestamps for authored-date metadata and activity-based UI sorting/display.
 
+use super::frontmatter::{
+    block as frontmatter_block, strip_scalar_quotes as strip_yaml_scalar_quotes,
+};
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, TimeZone};
 use std::time::SystemTime;
-
-/// First YAML frontmatter block only (`---` … `---`).
-fn frontmatter_block(content: &str) -> Option<&str> {
-    if !content.starts_with("---") {
-        return None;
-    }
-    let rest = content.strip_prefix("---")?;
-    let rest = rest.strip_prefix('\r').unwrap_or(rest);
-    let rest = rest.strip_prefix('\n')?;
-    let end = rest.find("\n---")?;
-    Some(rest[..end].trim())
-}
-
-fn strip_yaml_scalar_quotes(s: &str) -> &str {
-    let s = s.trim();
-    if s.len() >= 2 {
-        let b = s.as_bytes();
-        if (b[0] == b'"' && b[s.len() - 1] == b'"') || (b[0] == b'\'' && b[s.len() - 1] == b'\'') {
-            return &s[1..s.len() - 1];
-        }
-    }
-    s
-}
 
 /// Raw `date` / `created` / `updated` value from the first frontmatter block (in that order).
 pub fn frontmatter_record_datetime_raw(content: &str) -> Option<String> {
