@@ -5,7 +5,7 @@ import type {
   Ref,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown, ChevronRight, FilePlus2, FolderOpen, Save } from "lucide-react";
+import { ChevronDown, ChevronUp, FilePlus2, FolderOpen, Save } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
@@ -101,7 +101,6 @@ export function DashboardCard({ icon, title, children, tone = "secondary", class
 
 interface DashboardQuickNotePanelProps {
   title: ReactNode;
-  status: ReactNode;
   placeholder: string;
   expanded: boolean;
   toggleLabel: string;
@@ -127,7 +126,6 @@ interface DashboardQuickNotePanelProps {
 
 export function DashboardQuickNotePanel({
   title,
-  status,
   placeholder,
   expanded,
   toggleLabel,
@@ -169,11 +167,8 @@ export function DashboardQuickNotePanel({
           <AppIcon icon={FilePlus2} size="xs" tone="accent" className="gm-dashboard-quick-note-title-icon" />
           <span className="gm-section-title">{title}</span>
         </div>
-        <span className="gm-dashboard-quick-note-status" title={typeof status === "string" ? status : undefined}>
-          {status}
-        </span>
         <span className="gm-dashboard-quick-note-chevron" aria-label={toggleLabel} title={toggleLabel}>
-          <AppIcon icon={expanded ? ChevronDown : ChevronRight} size="xs" tone="secondary" />
+          <AppIcon icon={expanded ? ChevronUp : ChevronDown} size="xs" tone="secondary" />
         </span>
       </button>
       {expanded ? (

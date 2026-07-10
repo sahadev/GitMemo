@@ -38,7 +38,6 @@ import {
   getDashboardDisplayedFileCount,
   getDashboardDisplayedRepoSizeKb,
   getDashboardMobileSyncState,
-  getDashboardQuickNoteStatus,
   getDashboardQuickNoteToggleText,
   getDashboardSyncStatus,
   getDashboardVisibleRecentItems,
@@ -350,9 +349,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   });
   const mobileSyncText = formatDashboardText(mobileSyncState.text, t);
   const mobileSyncActionText = formatDashboardText(mobileSyncState.actionText, t);
-  const quickNoteStatusText = quickNoteSaving
-    ? t("dashboard.quickNoteSaving")
-    : formatDashboardText(getDashboardQuickNoteStatus(quickNotePath), t);
   const quickNoteToggleText = formatDashboardText(getDashboardQuickNoteToggleText(quickNoteExpanded), t);
   const quickNoteSaveDisabled = !canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving);
 
@@ -553,7 +549,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* Dashboard quick-note extension point: after git cards, before recent activity. */}
       <DashboardQuickNotePanel
         title={t("dashboard.quickNoteTitle")}
-        status={quickNoteStatusText}
         placeholder={t("dashboard.quickNotePlaceholder")}
         expanded={quickNoteExpanded}
         toggleLabel={quickNoteToggleText}

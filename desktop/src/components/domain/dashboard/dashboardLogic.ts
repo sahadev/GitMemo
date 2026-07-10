@@ -140,13 +140,6 @@ export function canSaveDashboardQuickNote(content: string, saving: boolean) {
   return hasDashboardQuickNoteContent(content) && !saving;
 }
 
-export function getDashboardQuickNoteStatus(filePath: string | null): DashboardText {
-  if (filePath) {
-    return { kind: "translation", key: "dashboard.quickNoteEditing", args: [filePath] };
-  }
-  return { kind: "translation", key: "dashboard.quickNoteNewDraft" };
-}
-
 export function isDashboardQuickNoteExpandedPreference(value: string | null) {
   return value === "true";
 }
