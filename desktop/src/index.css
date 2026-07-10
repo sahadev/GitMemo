@@ -4892,7 +4892,7 @@ a:focus-visible {
   line-height: var(--gm-leading-relaxed);
   min-height: 214px;
   outline: none;
-  padding: var(--gm-card-header-gap);
+  padding: var(--gm-card-header-gap) clamp(244px, 28vw, 360px) var(--gm-card-header-gap) var(--gm-card-header-gap);
   resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   width: 100%;
@@ -4909,11 +4909,20 @@ a:focus-visible {
 
 .gm-dashboard-quick-note-actions {
   align-items: center;
+  background: color-mix(in srgb, var(--gm-color-bg-elevated) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-soft);
+  backdrop-filter: blur(8px);
   display: flex;
   flex-wrap: wrap;
   gap: var(--gm-toolbar-gap);
   justify-content: flex-end;
-  margin-top: var(--gm-card-content-gap);
+  padding: var(--gm-space-2);
+  position: absolute;
+  right: var(--gm-card-header-gap);
+  top: var(--gm-card-header-gap);
+  z-index: 1;
 }
 
 .gm-dashboard-stat-grid {
@@ -5203,10 +5212,15 @@ a:focus-visible {
   .gm-dashboard-quick-note-textarea {
     font-size: var(--gm-font-xs);
     min-height: 176px;
+    padding: var(--gm-card-header-gap) var(--gm-card-header-gap) calc(var(--gm-control-height-lg) + var(--gm-section-gap-lg)) var(--gm-card-header-gap);
   }
 
   .gm-dashboard-quick-note-actions {
-    justify-content: stretch;
+    bottom: var(--gm-card-header-gap);
+    justify-content: flex-start;
+    left: var(--gm-card-header-gap);
+    right: auto;
+    top: auto;
   }
 
   .gm-dashboard-quick-note-actions > button {

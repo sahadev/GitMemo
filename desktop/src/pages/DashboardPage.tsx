@@ -174,8 +174,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     stats: cached?.stats ?? null,
     recent: cached?.recent ?? [],
   });
+  const quickNoteScrollAnchorRef = useRef<HTMLDivElement>(null);
   const quickNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const quickNoteImeComposingRef = useRef(false);
+  const quickNoteShouldScrollOnExpandRef = useRef(false);
 
   // Derived state
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
@@ -265,10 +267,23 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     setQuickNoteExpanded((current) => {
       const next = !current;
       try { localStorage.setItem(QUICK_NOTE_EXPANDED_KEY, String(next)); } catch {}
-      if (next) window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
+      quickNoteShouldScrollOnExpandRef.current = next;
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    if (!quickNoteExpanded || !quickNoteShouldScrollOnExpandRef.current) return;
+    quickNoteShouldScrollOnExpandRef.current = false;
+    window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+      quickNoteScrollAnchorRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+      quickNoteTextareaRef.current?.focus({ preventScroll: true });
+    });
+  }, [quickNoteExpanded]);
 
   const openQuickNote = useCallback(() => {
     if (!quickNotePath || quickNoteSaving) return;
@@ -468,7 +483,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Stat Cards */}
-      <div className="gm-dashboard-stat-grid">
+      <div ref={quickNoteScrollAnchorRef} className="gm-dashboard-stat-grid">
         {statCards.map((card) => (
             <DashboardStatCard
               key={card.label}

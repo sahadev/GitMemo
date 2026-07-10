@@ -187,37 +187,37 @@ export function DashboardQuickNotePanel({
               rows={mobile ? 7 : 9}
               spellCheck
             />
-          </div>
-          <div className="gm-dashboard-quick-note-actions">
-            <Button
-              variant="primary"
-              onClick={onSave}
-              disabled={saveDisabled}
-              icon={Save}
-              mobile={mobile}
-            >
-              {saving ? savingLabel : saveLabel}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={onNew}
-              disabled={saving}
-              icon={FilePlus2}
-              mobile={mobile}
-            >
-              {newLabel}
-            </Button>
-            {canOpen ? (
+            <div className="gm-dashboard-quick-note-actions">
               <Button
-                variant="ghost"
-                onClick={onOpen}
-                disabled={saving}
-                icon={FolderOpen}
+                variant="primary"
+                onClick={onSave}
+                disabled={saveDisabled}
+                icon={Save}
                 mobile={mobile}
               >
-                {openLabel}
+                {saving ? savingLabel : saveLabel}
               </Button>
-            ) : null}
+              <Button
+                variant="secondary"
+                onClick={onNew}
+                disabled={saving}
+                icon={FilePlus2}
+                mobile={mobile}
+              >
+                {newLabel}
+              </Button>
+              {canOpen ? (
+                <Button
+                  variant="ghost"
+                  onClick={onOpen}
+                  disabled={saving}
+                  icon={FolderOpen}
+                  mobile={mobile}
+                >
+                  {openLabel}
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
