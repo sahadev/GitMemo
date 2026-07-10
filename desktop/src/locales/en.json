@@ -162,7 +162,7 @@
     "quickNoteCollapse": "Collapse quick note",
     "quickNoteSaved": "Saved: {0}",
     "quickNoteContentRequired": "Write some content first",
-    "quickNotePlaceholder": "---\ntitle: Topic, for example \"Today's product idea\"\ntags: [idea, todo]\nsource: dashboard\n---\n\nWrite something down"
+    "quickNotePlaceholder": "---\ntitle: Topic, for example \"Today's product idea\"\ntags: [idea, todo]\nsource: dashboard\n---\n\nWrite something..."
   },
   "conversations": {
     "title": "Conversations",

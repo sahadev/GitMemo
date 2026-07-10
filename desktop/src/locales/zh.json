@@ -162,7 +162,7 @@
     "quickNoteCollapse": "折起快记",
     "quickNoteSaved": "已保存：{0}",
     "quickNoteContentRequired": "先写一点内容",
-    "quickNotePlaceholder": "---\ntitle: 主题，例如「今天的产品想法」\ntags: [idea, todo]\nsource: dashboard\n---\n\n记点东西"
+    "quickNotePlaceholder": "---\ntitle: 主题，例如「今天的产品想法」\ntags: [idea, todo]\nsource: dashboard\n---\n\n记点什么..."
   },
   "conversations": {
     "title": "对话",
