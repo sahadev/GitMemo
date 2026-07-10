@@ -27,7 +27,7 @@ pub fn cmd_search(sync_dir: &Path, query: &str, type_filter: &str, limit: usize)
             i + 1,
             type_badge,
             style(&r.title).bold(),
-            &r.date
+            r.date
         );
         if !r.snippet.is_empty() {
             println!("     {}", style(&r.snippet).dim());
@@ -52,7 +52,7 @@ pub fn cmd_recent(sync_dir: &Path, limit: usize, days: u32) -> Result<()> {
     println!("\n  {}\n", style(t.recent_heading(days)).bold());
 
     for (i, r) in results.iter().enumerate() {
-        println!("  {}. {} ({})", i + 1, style(&r.title).bold(), &r.date);
+        println!("  {}. {} ({})", i + 1, style(&r.title).bold(), r.date);
         println!("     {}", style(&r.file_path).dim());
     }
     println!();
