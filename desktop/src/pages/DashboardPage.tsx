@@ -30,7 +30,6 @@ import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 import {
   canOpenDashboardRecentItem,
   canSaveDashboardQuickNote,
-  DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS,
   formatDashboardText,
   getCliStatusBadgeTone,
   getCliStatusText,
@@ -176,11 +175,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     stats: cached?.stats ?? null,
     recent: cached?.recent ?? [],
   });
-  const quickNoteScrollAnchorRef = useRef<HTMLDivElement>(null);
+  const quickNotePanelRef = useRef<HTMLElement>(null);
   const quickNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const quickNoteImeComposingRef = useRef(false);
   const quickNoteShouldScrollOnExpandRef = useRef(false);
-  const quickNoteExpandScrollTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   // Derived state
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
@@ -279,27 +277,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     if (!shouldScrollDashboardQuickNoteAfterExpand(quickNoteExpanded, quickNoteShouldScrollOnExpandRef.current)) return;
     quickNoteShouldScrollOnExpandRef.current = false;
 
-    if (quickNoteExpandScrollTimerRef.current) {
-      window.clearTimeout(quickNoteExpandScrollTimerRef.current);
-    }
-
-    quickNoteExpandScrollTimerRef.current = window.setTimeout(() => {
-      quickNoteExpandScrollTimerRef.current = null;
-      window.requestAnimationFrame(() => {
-        const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-        quickNoteScrollAnchorRef.current?.scrollIntoView({
-          behavior: reduceMotion ? "auto" : "smooth",
-          block: "start",
-        });
-        quickNoteTextareaRef.current?.focus({ preventScroll: true });
+    const frameId = window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+      quickNotePanelRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
       });
-    }, DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS);
+      quickNoteTextareaRef.current?.focus({ preventScroll: true });
+    });
 
-    return () => {
-      if (!quickNoteExpandScrollTimerRef.current) return;
-      window.clearTimeout(quickNoteExpandScrollTimerRef.current);
-      quickNoteExpandScrollTimerRef.current = null;
-    };
+    return () => window.cancelAnimationFrame(frameId);
   }, [quickNoteExpanded]);
 
   const openQuickNote = useCallback(() => {
@@ -500,7 +487,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       )}
 
       {/* Stat Cards */}
-      <div ref={quickNoteScrollAnchorRef} className="gm-dashboard-stat-grid">
+      <div className="gm-dashboard-stat-grid">
         {statCards.map((card) => (
             <DashboardStatCard
               key={card.label}
@@ -580,6 +567,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
       {/* Dashboard quick-note extension point: after git cards, before recent activity. */}
       <DashboardQuickNotePanel
+        panelRef={quickNotePanelRef}
         title={t("dashboard.quickNoteTitle")}
         placeholder={t("dashboard.quickNotePlaceholder")}
         expanded={quickNoteExpanded}

@@ -100,6 +100,7 @@ export function DashboardCard({ icon, title, children, tone = "secondary", class
 }
 
 interface DashboardQuickNotePanelProps {
+  panelRef?: Ref<HTMLElement>;
   title: ReactNode;
   placeholder: string;
   expanded: boolean;
@@ -125,6 +126,7 @@ interface DashboardQuickNotePanelProps {
 }
 
 export function DashboardQuickNotePanel({
+  panelRef,
   title,
   placeholder,
   expanded,
@@ -152,6 +154,7 @@ export function DashboardQuickNotePanel({
 
   return (
     <section
+      ref={panelRef}
       className="gm-dashboard-card gm-dashboard-quick-note"
       data-expanded={expanded ? "true" : "false"}
       data-mobile={mobile ? "true" : "false"}
