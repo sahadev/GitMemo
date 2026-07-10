@@ -30,6 +30,7 @@ import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 import {
   canOpenDashboardRecentItem,
   canSaveDashboardQuickNote,
+  DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS,
   formatDashboardText,
   getCliStatusBadgeTone,
   getCliStatusText,
@@ -45,6 +46,7 @@ import {
   hasGitRemote,
   isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
+  shouldScrollDashboardQuickNoteAfterExpand,
   shouldShowCliCapabilityCard,
   shouldShowDashboardEmptyGuide,
   type AppStats,
@@ -178,6 +180,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const quickNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const quickNoteImeComposingRef = useRef(false);
   const quickNoteShouldScrollOnExpandRef = useRef(false);
+  const quickNoteExpandScrollTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   // Derived state
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
@@ -273,16 +276,30 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, []);
 
   useEffect(() => {
-    if (!quickNoteExpanded || !quickNoteShouldScrollOnExpandRef.current) return;
+    if (!shouldScrollDashboardQuickNoteAfterExpand(quickNoteExpanded, quickNoteShouldScrollOnExpandRef.current)) return;
     quickNoteShouldScrollOnExpandRef.current = false;
-    window.requestAnimationFrame(() => {
-      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-      quickNoteScrollAnchorRef.current?.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "start",
+
+    if (quickNoteExpandScrollTimerRef.current) {
+      window.clearTimeout(quickNoteExpandScrollTimerRef.current);
+    }
+
+    quickNoteExpandScrollTimerRef.current = window.setTimeout(() => {
+      quickNoteExpandScrollTimerRef.current = null;
+      window.requestAnimationFrame(() => {
+        const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+        quickNoteScrollAnchorRef.current?.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+        quickNoteTextareaRef.current?.focus({ preventScroll: true });
       });
-      quickNoteTextareaRef.current?.focus({ preventScroll: true });
-    });
+    }, DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS);
+
+    return () => {
+      if (!quickNoteExpandScrollTimerRef.current) return;
+      window.clearTimeout(quickNoteExpandScrollTimerRef.current);
+      quickNoteExpandScrollTimerRef.current = null;
+    };
   }, [quickNoteExpanded]);
 
   const openQuickNote = useCallback(() => {
