@@ -144,7 +144,7 @@ export function isDashboardQuickNoteExpandedPreference(value: string | null) {
   return value === "true";
 }
 
-export const DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS = 320;
+export const DASHBOARD_QUICK_NOTE_EXPAND_SCROLL_DELAY_MS = 1000;
 
 export function shouldScrollDashboardQuickNoteAfterExpand(expanded: boolean, scrollRequested: boolean) {
   return expanded && scrollRequested;
