@@ -147,6 +147,17 @@ export function getDashboardQuickNoteStatus(filePath: string | null): DashboardT
   return { kind: "translation", key: "dashboard.quickNoteNewDraft" };
 }
 
+export function isDashboardQuickNoteExpandedPreference(value: string | null) {
+  return value === "true";
+}
+
+export function getDashboardQuickNoteToggleText(expanded: boolean): DashboardText {
+  return {
+    kind: "translation",
+    key: expanded ? "dashboard.quickNoteCollapse" : "dashboard.quickNoteExpand",
+  };
+}
+
 export function isAnyEditorIntegrationEnabled(claudeEnabled: boolean, cursorEnabled: boolean) {
   return claudeEnabled || cursorEnabled;
 }

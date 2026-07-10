@@ -5,7 +5,7 @@ import type {
   Ref,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { FilePlus2, FolderOpen, Save } from "lucide-react";
+import { ChevronDown, ChevronRight, FilePlus2, FolderOpen, Save } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
@@ -103,6 +103,8 @@ interface DashboardQuickNotePanelProps {
   title: ReactNode;
   status: ReactNode;
   placeholder: string;
+  expanded: boolean;
+  toggleLabel: string;
   saveLabel: string;
   savingLabel: string;
   newLabel: string;
@@ -114,6 +116,7 @@ interface DashboardQuickNotePanelProps {
   canOpen: boolean;
   mobile?: boolean;
   onChange: (value: string) => void;
+  onToggle: () => void;
   onSave: () => void;
   onNew: () => void;
   onOpen: () => void;
@@ -126,6 +129,8 @@ export function DashboardQuickNotePanel({
   title,
   status,
   placeholder,
+  expanded,
+  toggleLabel,
   saveLabel,
   savingLabel,
   newLabel,
@@ -137,6 +142,7 @@ export function DashboardQuickNotePanel({
   canOpen,
   mobile = false,
   onChange,
+  onToggle,
   onSave,
   onNew,
   onOpen,
@@ -144,63 +150,82 @@ export function DashboardQuickNotePanel({
   onCompositionStart,
   onCompositionEnd,
 }: DashboardQuickNotePanelProps) {
+  const bodyId = "dashboard-quick-note-body";
+
   return (
-    <section className="gm-dashboard-card gm-dashboard-quick-note" data-mobile={mobile ? "true" : "false"}>
-      <div className="gm-dashboard-quick-note-head">
-        <div className="gm-card-head gm-dashboard-quick-note-title">
-          <AppIcon icon={FilePlus2} size="xs" tone="accent" />
+    <section
+      className="gm-dashboard-card gm-dashboard-quick-note"
+      data-expanded={expanded ? "true" : "false"}
+      data-mobile={mobile ? "true" : "false"}
+    >
+      <button
+        type="button"
+        className="gm-dashboard-quick-note-toggle"
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={onToggle}
+      >
+        <div className="gm-dashboard-quick-note-title">
+          <AppIcon icon={FilePlus2} size="xs" tone="accent" className="gm-dashboard-quick-note-title-icon" />
           <span className="gm-section-title">{title}</span>
         </div>
         <span className="gm-dashboard-quick-note-status" title={typeof status === "string" ? status : undefined}>
           {status}
         </span>
-      </div>
-      <div className="gm-dashboard-quick-note-input-wrap">
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          onCompositionStart={onCompositionStart}
-          onCompositionEnd={onCompositionEnd}
-          placeholder={placeholder}
-          className="gm-dashboard-quick-note-textarea"
-          aria-label={typeof title === "string" ? title : undefined}
-          rows={mobile ? 7 : 9}
-          spellCheck
-        />
-      </div>
-      <div className="gm-dashboard-quick-note-actions">
-        <Button
-          variant="primary"
-          onClick={onSave}
-          disabled={saveDisabled}
-          icon={Save}
-          mobile={mobile}
-        >
-          {saving ? savingLabel : saveLabel}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={onNew}
-          disabled={saving}
-          icon={FilePlus2}
-          mobile={mobile}
-        >
-          {newLabel}
-        </Button>
-        {canOpen ? (
-          <Button
-            variant="ghost"
-            onClick={onOpen}
-            disabled={saving}
-            icon={FolderOpen}
-            mobile={mobile}
-          >
-            {openLabel}
-          </Button>
-        ) : null}
-      </div>
+        <span className="gm-dashboard-quick-note-chevron" aria-label={toggleLabel} title={toggleLabel}>
+          <AppIcon icon={expanded ? ChevronDown : ChevronRight} size="xs" tone="secondary" />
+        </span>
+      </button>
+      {expanded ? (
+        <div id={bodyId} className="gm-dashboard-quick-note-body">
+          <div className="gm-dashboard-quick-note-input-wrap">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              onKeyDown={onKeyDown}
+              onCompositionStart={onCompositionStart}
+              onCompositionEnd={onCompositionEnd}
+              placeholder={placeholder}
+              className="gm-dashboard-quick-note-textarea"
+              aria-label={typeof title === "string" ? title : undefined}
+              rows={mobile ? 7 : 9}
+              spellCheck
+            />
+          </div>
+          <div className="gm-dashboard-quick-note-actions">
+            <Button
+              variant="primary"
+              onClick={onSave}
+              disabled={saveDisabled}
+              icon={Save}
+              mobile={mobile}
+            >
+              {saving ? savingLabel : saveLabel}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={onNew}
+              disabled={saving}
+              icon={FilePlus2}
+              mobile={mobile}
+            >
+              {newLabel}
+            </Button>
+            {canOpen ? (
+              <Button
+                variant="ghost"
+                onClick={onOpen}
+                disabled={saving}
+                icon={FolderOpen}
+                mobile={mobile}
+              >
+                {openLabel}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

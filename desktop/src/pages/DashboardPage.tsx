@@ -39,10 +39,12 @@ import {
   getDashboardDisplayedRepoSizeKb,
   getDashboardMobileSyncState,
   getDashboardQuickNoteStatus,
+  getDashboardQuickNoteToggleText,
   getDashboardSyncStatus,
   getDashboardVisibleRecentItems,
   hasDashboardConversations,
   hasGitRemote,
+  isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
   shouldShowCliCapabilityCard,
   shouldShowDashboardEmptyGuide,
@@ -66,6 +68,7 @@ const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSq
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
 const CLI_CARD_DISMISSED_KEY = "gitmemo-dashboard-cli-card-dismissed";
+const QUICK_NOTE_EXPANDED_KEY = "gitmemo-dashboard-quick-note-expanded";
 let dashboardStatsRequest: Promise<AppStats> | null = null;
 let dashboardRecentRequest: Promise<RecentItem[]> | null = null;
 
@@ -96,6 +99,14 @@ function saveCache(c: DashboardCache) {
 
 function loadCliCardDismissed() {
   try { return localStorage.getItem(CLI_CARD_DISMISSED_KEY) === "true"; } catch { return false; }
+}
+
+function loadQuickNoteExpanded() {
+  try {
+    return isDashboardQuickNoteExpandedPreference(localStorage.getItem(QUICK_NOTE_EXPANDED_KEY));
+  } catch {
+    return false;
+  }
 }
 
 function loadDashboardStatsOnce() {
@@ -159,6 +170,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [quickNoteDraft, setQuickNoteDraft] = useState("");
   const [quickNotePath, setQuickNotePath] = useState<string | null>(null);
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+  const [quickNoteExpanded, setQuickNoteExpanded] = useState(loadQuickNoteExpanded);
   const dashboardCacheRef = useRef<DashboardCache>({
     stats: cached?.stats ?? null,
     recent: cached?.recent ?? [],
@@ -250,6 +262,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
   }, [quickNoteSaving]);
 
+  const toggleQuickNoteExpanded = useCallback(() => {
+    setQuickNoteExpanded((current) => {
+      const next = !current;
+      try { localStorage.setItem(QUICK_NOTE_EXPANDED_KEY, String(next)); } catch {}
+      if (next) window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
+      return next;
+    });
+  }, []);
+
   const openQuickNote = useCallback(() => {
     if (!quickNotePath || quickNoteSaving) return;
     setNotesTab("scratch");
@@ -332,6 +353,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const quickNoteStatusText = quickNoteSaving
     ? t("dashboard.quickNoteSaving")
     : formatDashboardText(getDashboardQuickNoteStatus(quickNotePath), t);
+  const quickNoteToggleText = formatDashboardText(getDashboardQuickNoteToggleText(quickNoteExpanded), t);
   const quickNoteSaveDisabled = !canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving);
 
   return (
@@ -449,30 +471,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         </div>
       )}
 
-      {/* Dashboard quick-note extension point: after CLI card, before stat grid. */}
-      <DashboardQuickNotePanel
-        title={t("dashboard.quickNoteTitle")}
-        status={quickNoteStatusText}
-        placeholder={t("dashboard.quickNotePlaceholder")}
-        saveLabel={t("dashboard.quickNoteSave")}
-        savingLabel={t("dashboard.quickNoteSaving")}
-        newLabel={t("dashboard.quickNoteNew")}
-        openLabel={t("dashboard.quickNoteOpen")}
-        value={quickNoteDraft}
-        textareaRef={quickNoteTextareaRef}
-        saving={quickNoteSaving}
-        saveDisabled={quickNoteSaveDisabled}
-        canOpen={Boolean(quickNotePath)}
-        mobile={isMobile}
-        onChange={setQuickNoteDraft}
-        onSave={() => void saveQuickNote()}
-        onNew={startNewQuickNote}
-        onOpen={openQuickNote}
-        onKeyDown={handleQuickNoteKeyDown}
-        onCompositionStart={() => { quickNoteImeComposingRef.current = true; }}
-        onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
-      />
-
       {/* Stat Cards */}
       <div className="gm-dashboard-stat-grid">
         {statCards.map((card) => (
@@ -551,6 +549,33 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           ) : null}
         </div>
       </div>
+
+      {/* Dashboard quick-note extension point: after git cards, before recent activity. */}
+      <DashboardQuickNotePanel
+        title={t("dashboard.quickNoteTitle")}
+        status={quickNoteStatusText}
+        placeholder={t("dashboard.quickNotePlaceholder")}
+        expanded={quickNoteExpanded}
+        toggleLabel={quickNoteToggleText}
+        saveLabel={t("dashboard.quickNoteSave")}
+        savingLabel={t("dashboard.quickNoteSaving")}
+        newLabel={t("dashboard.quickNoteNew")}
+        openLabel={t("dashboard.quickNoteOpen")}
+        value={quickNoteDraft}
+        textareaRef={quickNoteTextareaRef}
+        saving={quickNoteSaving}
+        saveDisabled={quickNoteSaveDisabled}
+        canOpen={Boolean(quickNotePath)}
+        mobile={isMobile}
+        onChange={setQuickNoteDraft}
+        onToggle={toggleQuickNoteExpanded}
+        onSave={() => void saveQuickNote()}
+        onNew={startNewQuickNote}
+        onOpen={openQuickNote}
+        onKeyDown={handleQuickNoteKeyDown}
+        onCompositionStart={() => { quickNoteImeComposingRef.current = true; }}
+        onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
+      />
 
       {/* Recent Activity — full width */}
       <div className="gm-dashboard-card gm-dashboard-card-section">

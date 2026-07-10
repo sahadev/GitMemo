@@ -4824,21 +4824,45 @@ a:focus-visible {
 
 .gm-dashboard-quick-note {
   margin-bottom: var(--gm-section-gap);
-  padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
+  overflow: hidden;
+  padding: 0;
 }
 
-.gm-dashboard-quick-note-head {
+.gm-dashboard-quick-note-toggle {
   align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
   display: flex;
   gap: var(--gm-card-header-gap);
   justify-content: space-between;
-  margin-bottom: var(--gm-card-content-gap);
   min-width: 0;
+  padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
+  text-align: left;
+  width: 100%;
+}
+
+.gm-dashboard-quick-note-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 66%, transparent);
+  outline-offset: -3px;
+}
+
+.gm-dashboard-quick-note-body {
+  border-top: 1px solid var(--border);
+  padding: var(--gm-card-content-gap) var(--gm-card-pad-x) var(--gm-card-pad-y);
 }
 
 .gm-dashboard-quick-note-title {
+  align-items: center;
+  display: flex;
+  gap: var(--gm-icon-text-gap);
   margin: 0;
   min-width: 0;
+}
+
+.gm-dashboard-quick-note-title-icon {
+  flex-shrink: 0;
 }
 
 .gm-dashboard-quick-note-status {
@@ -4855,6 +4879,13 @@ a:focus-visible {
   padding: var(--gm-space-2) var(--gm-space-3);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gm-dashboard-quick-note-chevron {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
 }
 
 .gm-dashboard-quick-note-input-wrap {
@@ -5168,18 +5199,26 @@ a:focus-visible {
   }
 
   .gm-dashboard-quick-note {
+    padding: 0;
+  }
+
+  .gm-dashboard-quick-note-toggle {
+    align-items: center;
+    gap: var(--gm-row-gap);
     padding: var(--gm-card-pad-mobile);
   }
 
-  .gm-dashboard-quick-note-head {
-    align-items: stretch;
-    flex-direction: column;
-    gap: var(--gm-row-gap);
+  .gm-dashboard-quick-note-body {
+    padding: var(--gm-card-content-gap) var(--gm-card-pad-mobile) var(--gm-card-pad-mobile);
+  }
+
+  .gm-dashboard-quick-note-title {
+    flex: 1;
   }
 
   .gm-dashboard-quick-note-status {
-    max-width: none;
-    width: 100%;
+    flex: 0 1 auto;
+    max-width: 42vw;
   }
 
   .gm-dashboard-quick-note-textarea {
@@ -5223,6 +5262,32 @@ a:focus-visible {
 
   .gm-dashboard-quick-info {
     padding: var(--gm-card-pad-mobile);
+  }
+}
+
+@media (max-width: 480px) {
+  .gm-dashboard-quick-note {
+    position: relative;
+  }
+
+  .gm-dashboard-quick-note-toggle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gm-dashboard-quick-note-title {
+    padding-right: var(--gm-icon-xl);
+  }
+
+  .gm-dashboard-quick-note-status {
+    max-width: none;
+    width: 100%;
+  }
+
+  .gm-dashboard-quick-note-chevron {
+    position: absolute;
+    right: var(--gm-card-pad-mobile);
+    top: var(--gm-card-pad-mobile);
   }
 }
 

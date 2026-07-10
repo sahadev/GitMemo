@@ -160,6 +160,8 @@
     "quickNoteSaving": "Saving...",
     "quickNoteNew": "New note",
     "quickNoteOpen": "Open",
+    "quickNoteExpand": "Expand quick note",
+    "quickNoteCollapse": "Collapse quick note",
     "quickNoteSaved": "Saved: {0}",
     "quickNoteContentRequired": "Write some content first",
     "quickNotePlaceholder": "---\ntitle: Topic, for example \"Today's product idea\"\ntags: [idea, todo]\nsource: dashboard\n---\n\n# Topic\n\n- Time: recorded when saved\n- Note:\n- Next:"
