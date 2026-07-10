@@ -45,6 +45,7 @@ import {
   hasGitRemote,
   isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
+  shouldInsertDashboardQuickNoteTemplate,
   shouldScrollDashboardQuickNoteAfterExpand,
   shouldShowCliCapabilityCard,
   shouldShowDashboardEmptyGuide,
@@ -181,6 +182,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const quickNoteShouldScrollOnExpandRef = useRef(false);
 
   // Derived state
+  const quickNotePlaceholder = t("dashboard.quickNotePlaceholder");
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
   const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatusChecked, cliStatus);
   const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
@@ -297,12 +299,24 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, [onNavigate, quickNotePath, quickNoteSaving, setNotesTab, setPendingOpenPath]);
 
   const handleQuickNoteKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== "Enter" || (!e.metaKey && !e.ctrlKey)) return;
     const ev = e.nativeEvent;
-    if (quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229) return;
+    const isComposing = quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229;
+    const hasModifierKey = e.shiftKey || e.altKey || e.metaKey || e.ctrlKey;
+
+    if (shouldInsertDashboardQuickNoteTemplate(e.key, quickNoteDraft, hasModifierKey, isComposing)) {
+      e.preventDefault();
+      setQuickNoteDraft(quickNotePlaceholder);
+      window.requestAnimationFrame(() => {
+        const textarea = quickNoteTextareaRef.current;
+        textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
+      });
+      return;
+    }
+
+    if (e.key !== "Enter" || (!e.metaKey && !e.ctrlKey) || isComposing) return;
     e.preventDefault();
     void saveQuickNote();
-  }, [saveQuickNote]);
+  }, [quickNoteDraft, quickNotePlaceholder, saveQuickNote]);
 
   useEffect(() => {
     if (!active) return;
@@ -569,7 +583,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       <DashboardQuickNotePanel
         panelRef={quickNotePanelRef}
         title={t("dashboard.quickNoteTitle")}
-        placeholder={t("dashboard.quickNotePlaceholder")}
+        placeholder={quickNotePlaceholder}
         expanded={quickNoteExpanded}
         toggleLabel={quickNoteToggleText}
         saveLabel={t("dashboard.quickNoteSave")}

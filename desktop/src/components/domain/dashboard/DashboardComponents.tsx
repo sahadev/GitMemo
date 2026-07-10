@@ -5,7 +5,7 @@ import type {
   Ref,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown, ChevronUp, FilePlus2, FolderOpen, Save } from "lucide-react";
+import { ChevronDown, ChevronUp, FilePlus2, FolderOpen, LoaderCircle, Save } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
@@ -193,33 +193,35 @@ export function DashboardQuickNotePanel({
             />
             <div className="gm-dashboard-quick-note-actions">
               <Button
-                variant="primary"
+                variant="icon"
+                tone="accent"
                 onClick={onSave}
                 disabled={saveDisabled}
-                icon={Save}
+                icon={saving ? LoaderCircle : Save}
+                iconSpin={saving}
                 mobile={mobile}
-              >
-                {saving ? savingLabel : saveLabel}
-              </Button>
+                title={saving ? savingLabel : saveLabel}
+                aria-label={saving ? savingLabel : saveLabel}
+              />
               <Button
-                variant="secondary"
+                variant="icon"
                 onClick={onNew}
                 disabled={saving}
                 icon={FilePlus2}
                 mobile={mobile}
-              >
-                {newLabel}
-              </Button>
+                title={newLabel}
+                aria-label={newLabel}
+              />
               {canOpen ? (
                 <Button
-                  variant="ghost"
+                  variant="icon"
                   onClick={onOpen}
                   disabled={saving}
                   icon={FolderOpen}
                   mobile={mobile}
-                >
-                  {openLabel}
-                </Button>
+                  title={openLabel}
+                  aria-label={openLabel}
+                />
               ) : null}
             </div>
           </div>

@@ -140,6 +140,25 @@ export function canSaveDashboardQuickNote(content: string, saving: boolean) {
   return hasDashboardQuickNoteContent(content) && !saving;
 }
 
+export function isDashboardQuickNoteDraftEmpty(content: string) {
+  return content.length === 0;
+}
+
+export function isDashboardQuickNoteTemplateShortcut(key: string, hasModifierKey: boolean) {
+  return key === "Tab" && !hasModifierKey;
+}
+
+export function shouldInsertDashboardQuickNoteTemplate(
+  key: string,
+  content: string,
+  hasModifierKey: boolean,
+  isComposing: boolean,
+) {
+  return isDashboardQuickNoteTemplateShortcut(key, hasModifierKey)
+    && isDashboardQuickNoteDraftEmpty(content)
+    && !isComposing;
+}
+
 export function isDashboardQuickNoteExpandedPreference(value: string | null) {
   return value === "true";
 }

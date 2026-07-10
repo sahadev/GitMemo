@@ -136,6 +136,8 @@
   --gm-size-switch-padding: 3px;
   --gm-size-card-rail: 3px;
   --gm-size-dashboard-cli-desc-max-width: 620px;
+  --gm-size-dashboard-quick-note-min-height: 340px;
+  --gm-size-dashboard-quick-note-actions-width: 132px;
   --gm-size-find-input-min-height: 30px;
   --gm-size-mobile-row-min-height: 44px;
   --gm-size-mobile-bottom-nav-height: 52px;
@@ -4915,9 +4917,9 @@ a:focus-visible {
   font-family: var(--gm-font-mono);
   font-size: var(--gm-font-sm);
   line-height: var(--gm-leading-relaxed);
-  min-height: 214px;
+  min-height: var(--gm-size-dashboard-quick-note-min-height);
   outline: none;
-  padding: var(--gm-card-header-gap) clamp(244px, 28vw, 360px) var(--gm-card-header-gap) var(--gm-card-header-gap);
+  padding: var(--gm-card-header-gap) var(--gm-size-dashboard-quick-note-actions-width) var(--gm-card-header-gap) var(--gm-card-header-gap);
   resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   width: 100%;
@@ -4934,16 +4936,9 @@ a:focus-visible {
 
 .gm-dashboard-quick-note-actions {
   align-items: center;
-  background: color-mix(in srgb, var(--gm-color-bg-elevated) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  border-radius: var(--gm-radius-lg);
-  box-shadow: var(--gm-shadow-soft);
-  backdrop-filter: blur(8px);
   display: flex;
-  flex-wrap: wrap;
   gap: var(--gm-toolbar-gap);
   justify-content: flex-end;
-  padding: var(--gm-space-2);
   position: absolute;
   right: var(--gm-card-header-gap);
   top: var(--gm-card-header-gap);
@@ -5246,10 +5241,6 @@ a:focus-visible {
     left: var(--gm-card-header-gap);
     right: auto;
     top: auto;
-  }
-
-  .gm-dashboard-quick-note-actions > button {
-    flex: 1 1 auto;
   }
 
   .gm-dashboard-stat-grid {
