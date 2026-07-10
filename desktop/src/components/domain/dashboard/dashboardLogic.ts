@@ -159,6 +159,31 @@ export function shouldInsertDashboardQuickNoteTemplate(
     && !isComposing;
 }
 
+export const DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT = "CmdOrCtrl+S";
+
+export interface DashboardQuickNoteSaveShortcutContext {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  repeat: boolean;
+  isComposing: boolean;
+}
+
+export function isDashboardQuickNoteSaveShortcut(ctx: DashboardQuickNoteSaveShortcutContext) {
+  const key = ctx.key.toLowerCase();
+  return (ctx.metaKey || ctx.ctrlKey)
+    && !ctx.altKey
+    && !ctx.shiftKey
+    && !ctx.repeat
+    && (key === "s" || key === "enter");
+}
+
+export function shouldSaveDashboardQuickNoteFromKeyboard(ctx: DashboardQuickNoteSaveShortcutContext) {
+  return !ctx.isComposing && isDashboardQuickNoteSaveShortcut(ctx);
+}
+
 export function isDashboardQuickNoteExpandedPreference(value: string | null) {
   return value === "true";
 }

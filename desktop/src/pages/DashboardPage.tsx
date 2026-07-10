@@ -30,6 +30,7 @@ import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
 import {
   canOpenDashboardRecentItem,
   canSaveDashboardQuickNote,
+  DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
   formatDashboardText,
   getCliStatusBadgeTone,
   getCliStatusText,
@@ -45,6 +46,7 @@ import {
   hasGitRemote,
   isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
+  shouldSaveDashboardQuickNoteFromKeyboard,
   shouldInsertDashboardQuickNoteTemplate,
   shouldScrollDashboardQuickNoteAfterExpand,
   shouldShowCliCapabilityCard,
@@ -57,6 +59,7 @@ import {
 
 import type { Page } from "../App";
 import { commitBrowseUrl } from "../utils/gitRemoteWeb";
+import { formatTitleWithShortcut } from "../utils/shortcuts";
 import { type NoteResult } from "../types/notes";
 
 const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
@@ -183,6 +186,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   // Derived state
   const quickNotePlaceholder = t("dashboard.quickNotePlaceholder");
+  const quickNoteSaveLabel = formatTitleWithShortcut(
+    t("dashboard.quickNoteSave"),
+    DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
+  );
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
   const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatusChecked, cliStatus);
   const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
@@ -313,7 +320,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       return;
     }
 
-    if (e.key !== "Enter" || (!e.metaKey && !e.ctrlKey) || isComposing) return;
+    if (!shouldSaveDashboardQuickNoteFromKeyboard({
+      key: e.key,
+      metaKey: e.metaKey,
+      ctrlKey: e.ctrlKey,
+      altKey: e.altKey,
+      shiftKey: e.shiftKey,
+      repeat: e.repeat,
+      isComposing,
+    })) return;
     e.preventDefault();
     void saveQuickNote();
   }, [quickNoteDraft, quickNotePlaceholder, saveQuickNote]);
@@ -586,7 +601,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         placeholder={quickNotePlaceholder}
         expanded={quickNoteExpanded}
         toggleLabel={quickNoteToggleText}
-        saveLabel={t("dashboard.quickNoteSave")}
+        saveLabel={quickNoteSaveLabel}
         savingLabel={t("dashboard.quickNoteSaving")}
         newLabel={t("dashboard.quickNoteNew")}
         openLabel={t("dashboard.quickNoteOpen")}
