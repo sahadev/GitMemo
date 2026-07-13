@@ -2025,6 +2025,10 @@ a:focus-visible {
   outline-offset: -2px;
 }
 
+.gm-search-review-results .gm-search-result-card[data-active="true"]:focus-visible {
+  outline: none;
+}
+
 .gm-search-review-results .gm-search-result-head {
   margin-bottom: 0;
 }
