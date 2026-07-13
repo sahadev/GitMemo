@@ -10,8 +10,10 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     const savedWidth = saved ? parseInt(saved, 10) : NaN;
     return Number.isFinite(savedWidth) ? clampWidth(savedWidth) : defaultWidth;
   });
+  const effectiveWidth = clampWidth(width);
   const dragging = useRef(false);
-  const widthRef = useRef(width);
+  const widthRef = useRef(effectiveWidth);
+  widthRef.current = effectiveWidth;
 
   const publishWidth = useCallback((nextWidth: number) => {
     window.dispatchEvent(new CustomEvent(panelResizeEvent, { detail: { key, width: nextWidth } }));
@@ -26,7 +28,7 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     e.preventDefault();
     dragging.current = true;
     const startX = e.clientX;
-    const startWidth = width;
+    const startWidth = effectiveWidth;
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!dragging.current) return;
@@ -52,26 +54,18 @@ export function useResizablePanel(key: string, defaultWidth: number, min = 200, 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", finishDrag);
     window.addEventListener("blur", finishDrag);
-  }, [clampWidth, commitWidth, publishWidth, width]);
-
-  useEffect(() => {
-    setWidth((current) => clampWidth(current));
-  }, [clampWidth]);
-
-  useEffect(() => {
-    widthRef.current = width;
-  }, [width]);
+  }, [clampWidth, commitWidth, effectiveWidth, publishWidth]);
 
   useEffect(() => {
     const handlePanelResize = (event: Event) => {
       const detail = (event as CustomEvent<{ key?: string; width?: number }>).detail;
       if (detail?.key !== key || typeof detail.width !== "number") return;
-      setWidth(clampWidth(detail.width));
+      setWidth(detail.width);
     };
 
     window.addEventListener(panelResizeEvent, handlePanelResize);
     return () => window.removeEventListener(panelResizeEvent, handlePanelResize);
-  }, [clampWidth, key]);
+  }, [key]);
 
-  return { width, onMouseDown };
+  return { width: effectiveWidth, onMouseDown };
 }

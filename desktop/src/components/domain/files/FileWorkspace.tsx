@@ -9,6 +9,7 @@ interface FileWorkspaceProps {
   showDetail: boolean;
   left: ReactNode;
   right: ReactNode;
+  narrowDetailThreshold?: number;
 }
 
 export function FileWorkspace({
@@ -17,6 +18,7 @@ export function FileWorkspace({
   showDetail,
   left,
   right,
+  narrowDetailThreshold,
 }: FileWorkspaceProps) {
   const { collapsedPanels, setPanelCollapsed } = useAppStore();
   const collapsed = collapsedPanels[panelKey] ?? false;
@@ -29,6 +31,7 @@ export function FileWorkspace({
         right={showDetail ? right : null}
         collapsed={collapsed}
         onCollapsedChange={(nextCollapsed) => setPanelCollapsed(panelKey, nextCollapsed)}
+        narrowDetailThreshold={narrowDetailThreshold}
       />
     </PageFrame>
   );

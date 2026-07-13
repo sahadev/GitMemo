@@ -7,6 +7,8 @@ export interface SearchResultItem {
 }
 
 export type SearchSourceType = "conversation" | "note" | "clip" | "plan" | "import" | "config" | "unknown";
+export type SearchLayoutMode = "results" | "split" | "detail";
+export type SearchNavigationDirection = "previous" | "next";
 
 const MOBILE_SEARCH_SOURCE_TYPES = new Set<SearchSourceType>([
   "conversation",
@@ -44,6 +46,60 @@ export function canShowSearchResultOnPlatform(isDesktop: boolean, item: SearchRe
 export function filterSearchResultsForPlatform(isDesktop: boolean, results: SearchResultItem[]) {
   if (isDesktop) return results;
   return results.filter((item) => canShowSearchResultOnPlatform(isDesktop, item));
+}
+
+export function hasSelectedSearchResult(selectedFile: string | null) {
+  return selectedFile !== null;
+}
+
+export function hasSearchResultPath(results: SearchResultItem[], path: string | null) {
+  return path !== null && results.some((item) => item.file_path === path);
+}
+
+export function getRetainedSearchResultPath(results: SearchResultItem[], selectedFile: string | null) {
+  return hasSearchResultPath(results, selectedFile) ? selectedFile : null;
+}
+
+export function getAdjacentSearchResultPath(
+  results: SearchResultItem[],
+  selectedFile: string | null,
+  direction: SearchNavigationDirection,
+) {
+  if (results.length === 0) return null;
+  const selectedIndex = selectedFile
+    ? results.findIndex((item) => item.file_path === selectedFile)
+    : -1;
+  if (selectedIndex < 0) {
+    return direction === "next" ? results[0].file_path : results[results.length - 1].file_path;
+  }
+  const nextIndex = direction === "next" ? selectedIndex + 1 : selectedIndex - 1;
+  return results[nextIndex]?.file_path ?? null;
+}
+
+export function shouldUseSearchSplitLayout(
+  isMobile: boolean,
+  results: SearchResultItem[],
+  selectedFile: string | null,
+) {
+  return !isMobile && hasSearchResultPath(results, selectedFile);
+}
+
+export function shouldUseSearchDetailLayout(
+  isMobile: boolean,
+  results: SearchResultItem[],
+  selectedFile: string | null,
+) {
+  return hasSelectedSearchResult(selectedFile) && !shouldUseSearchSplitLayout(isMobile, results, selectedFile);
+}
+
+export function getSearchLayoutMode(
+  isMobile: boolean,
+  results: SearchResultItem[],
+  selectedFile: string | null,
+): SearchLayoutMode {
+  if (shouldUseSearchSplitLayout(isMobile, results, selectedFile)) return "split";
+  if (shouldUseSearchDetailLayout(isMobile, results, selectedFile)) return "detail";
+  return "results";
 }
 
 export function getSearchResultLimit(isMobile: boolean) {

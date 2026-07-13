@@ -1,24 +1,27 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { Search, MessageSquare, StickyNote, Clipboard, FileText, Settings, FolderInput, Trash2, Copy, Check } from "lucide-react";
+import { Trash2, Copy, Check } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
-import { EmptyState } from "../components/base/EmptyState";
+import { AppIcon } from "../components/base/AppIcon";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { SearchInput } from "../components/domain/search/SearchInput";
-import { SearchResultCard } from "../components/domain/search/SearchResultCard";
+import { SearchResults } from "../components/domain/search/SearchResults";
 import {
   canDeleteSearchSource,
   canEditSearchSource,
   canOpenSearchPath,
   filterSearchResultsForPlatform,
+  getAdjacentSearchResultPath,
+  getRetainedSearchResultPath,
   getSearchDeletedToastKey,
   getSearchDeleteConfirmKey,
+  getSearchLayoutMode,
   getSearchResultLimit,
   getSearchSourceTypeFromPath,
   isClipSearchSource,
@@ -28,9 +31,9 @@ import {
   type SearchResultItem,
 } from "../components/domain/search/searchLogic";
 import { PageFrame } from "../components/layout/PageFrame";
+import { DetailPane, ListPane } from "../components/layout/Pane";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
-import { relativeTime } from "../utils/time";
 import { useAppStore } from "../hooks/useAppStore";
 import { usePlatformFlags } from "../hooks/usePlatform";
 import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
@@ -38,28 +41,13 @@ import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { useTimedCopy } from "../hooks/useTimedCopy";
-import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
+import { useListKeyboardNavigation } from "../hooks/useListNavigation";
+import { formatShortcut, isShortcutEditableTarget, withDefaultShortcuts } from "../utils/shortcuts";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
 const SEARCH_STATE_KEY = "gitmemo-search-state";
-
-function sourceVisual(sourceType: string): { icon: typeof MessageSquare; tone: AppIconTone } {
-  switch (sourceType) {
-    case "conversation":
-      return { icon: MessageSquare, tone: "accent" };
-    case "clip":
-      return { icon: Clipboard, tone: "success" };
-    case "plan":
-      return { icon: FileText, tone: "warning" };
-    case "config":
-      return { icon: Settings, tone: "secondary" };
-    case "import":
-      return { icon: FolderInput, tone: "teal" };
-    default:
-      return { icon: StickyNote, tone: "success" };
-  }
-}
+const SEARCH_REVIEW_MIN_SINGLE_ROW_DETAIL_WIDTH = 360;
 
 export default function SearchPage({
   active = true,
@@ -91,6 +79,9 @@ export default function SearchPage({
   const editRef = useRef<HTMLTextAreaElement>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
   const imeComposingRef = useRef(false);
+  const searchRequestRef = useRef(0);
+  const selectedFileRef = useRef<string | null>(null);
+  const navigationFileRef = useRef<string | null>(null);
   const { copied: copiedClip, markCopied: markCopiedClip, clearCopied: clearCopiedClip } = useTimedCopy<boolean>();
   const {
     selectedFile,
@@ -103,15 +94,22 @@ export default function SearchPage({
   } = useFileDetailState({
     canOpen: (path) => canOpenSearchPath(isDesktop, path),
     deriveContent: (content, path) => isClipSearchSource(getSearchSourceTypeFromPath(path)) ? stripMarkdownFrontmatter(content) : content,
-    onOpened: () => {
+    onOpened: ({ path }) => {
+      navigationFileRef.current = path;
       resetEditorRef.current?.();
       clearCopiedClip();
     },
     onClosed: () => {
+      navigationFileRef.current = null;
       resetEditorRef.current?.();
       clearCopiedClip();
     },
+    onOpenError: (error) => {
+      navigationFileRef.current = selectedFileRef.current;
+      console.error(error);
+    },
   });
+  selectedFileRef.current = selectedFile;
   const {
     editing,
     editContent,
@@ -142,11 +140,13 @@ export default function SearchPage({
         searched?: boolean;
         selectedFile?: string | null;
       };
+      const restoredResults = filterSearchResultsForPlatform(isDesktop, saved.results || []);
+      const restoredSelection = getRetainedSearchResultPath(restoredResults, saved.selectedFile ?? null);
       setQuery(saved.query || "");
-      setResults(filterSearchResultsForPlatform(isDesktop, saved.results || []));
+      setResults(restoredResults);
       setSearched(Boolean(saved.searched));
-      if (isDesktop && saved.selectedFile) {
-        void openFile(saved.selectedFile);
+      if (isDesktop && restoredSelection) {
+        void openFile(restoredSelection);
       }
     } catch {
       // Ignore invalid cached state.
@@ -159,10 +159,10 @@ export default function SearchPage({
 
   useEffect(() => {
     if (openFilePath && canOpenSearchPath(isDesktop, openFilePath)) {
-      openFile(openFilePath);
+      void openFile(openFilePath);
       onFileOpened?.();
     }
-  }, [isDesktop, openFilePath, onFileOpened]);
+  }, [isDesktop, onFileOpened, openFile, openFilePath]);
 
   useEffect(() => {
     sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify({
@@ -173,20 +173,69 @@ export default function SearchPage({
     }));
   }, [isDesktop, query, results, searched, selectedFile]);
 
+  const closeDetail = useCallback(() => {
+    clearDetail();
+    if (!isMobile) {
+      window.requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [clearDetail, isMobile]);
+
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    const searchQuery = query.trim();
+    if (!searchQuery) return;
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
     setLoading(true);
     setSearched(true);
     try {
       const res = await invoke<SearchResultItem[]>("search_all", {
-        query: query.trim(),
+        query: searchQuery,
         typeFilter: null,
         limit: getSearchResultLimit(isMobile),
       });
-      setResults(filterSearchResultsForPlatform(isDesktop, res));
-    } catch (e) { console.error(e); setResults([]); }
-    finally { setLoading(false); }
+      if (searchRequestRef.current !== requestId) return;
+      const nextResults = filterSearchResultsForPlatform(isDesktop, res);
+      setResults(nextResults);
+      const currentReviewPath = navigationFileRef.current ?? selectedFileRef.current;
+      if (currentReviewPath && !getRetainedSearchResultPath(nextResults, currentReviewPath)) {
+        closeDetail();
+      }
+    } catch (e) {
+      if (searchRequestRef.current !== requestId) return;
+      console.error(e);
+      setResults([]);
+      closeDetail();
+    } finally {
+      if (searchRequestRef.current === requestId) setLoading(false);
+    }
   };
+
+  const openSearchResult = useCallback((path: string) => {
+    navigationFileRef.current = path;
+    void openFile(path);
+  }, [openFile]);
+
+  const navigateSearchResults = useCallback((direction: "previous" | "next") => {
+    const nextPath = getAdjacentSearchResultPath(results, navigationFileRef.current, direction);
+    if (nextPath) openSearchResult(nextPath);
+  }, [openSearchResult, results]);
+  const navPrev = useCallback(() => navigateSearchResults("previous"), [navigateSearchResults]);
+  const navNext = useCallback(() => navigateSearchResults("next"), [navigateSearchResults]);
+
+  useListKeyboardNavigation({
+    active,
+    disabled: isMobile || editing || loading,
+    navPrev,
+    navNext,
+    allowFromEditable: (event) => (
+      event.target === inputRef.current
+      && !imeComposingRef.current
+      && !event.metaKey
+      && !event.ctrlKey
+      && !event.altKey
+      && !event.shiftKey
+    ),
+  });
 
   const handleSaveEdit = useCallback(async () => {
     if (!selectedFile) return;
@@ -235,9 +284,6 @@ export default function SearchPage({
   const selectedSourceType = selectedFile ? getSearchSourceTypeFromPath(selectedFile) : "unknown";
   const selectedCanEdit = selectedFile ? canEditSearchSource(isDesktop, selectedSourceType) : false;
   const selectedCanDelete = selectedFile ? canDeleteSearchSource(isDesktop, selectedSourceType) : false;
-  const closeDetail = useCallback(() => {
-    clearDetail();
-  }, [clearDetail]);
 
   const copySelectedClip = useCallback(async () => {
     if (!shouldCopySelectedSearchClip(selectedFile)) return;
@@ -259,6 +305,18 @@ export default function SearchPage({
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, [closeDetail, entryTrigger, isMobile]);
 
+  useEffect(() => {
+    if (!active || isMobile || !selectedFile || editing) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.key !== "Escape") return;
+      if (isShortcutEditableTarget(event.target) && event.target !== inputRef.current) return;
+      event.preventDefault();
+      closeDetail();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, closeDetail, editing, isMobile, selectedFile]);
+
   useMobileDetailBackHandler({
     isMobile,
     registerMobileBackHandler,
@@ -268,62 +326,96 @@ export default function SearchPage({
     cancelEdit,
   });
 
-  if (selectedFile) {
-    return (
-      <PageFrame column>
-        <FileDetailToolbar
-          title={isMobile ? selectedFile.split("/").pop() : selectedFile}
-          titleText={selectedFile}
-          active={active}
-          onBack={closeDetail}
-          onRefresh={() => {
-            if (selectedFile) void openFile(selectedFile);
-          }}
-          editing={editing}
-          onEdit={selectedCanEdit ? startEdit : undefined}
-          onSave={selectedCanEdit ? () => void handleSaveEdit() : undefined}
-          onCancel={selectedCanEdit ? cancelEdit : undefined}
-          editTitle={t("notes.edit")}
-          saveTitle={t("notes.save")}
-          splitPreview={splitPreview}
-          onToggleSplitPreview={selectedCanEdit ? toggleSplitPreview : undefined}
-          metadata={selectedFile ? (
-            <FavoriteButton
-              relPath={selectedFile}
-              active={active}
-              title={selectedFile.split("/").pop()}
-              sourceType={getSearchSourceTypeFromPath(selectedFile)}
-            />
-          ) : null}
-          actionsAfterEdit={[
-            {
-              key: "delete",
-              title: t("common.delete"),
-              icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
-              onClick: () => void handleDelete(),
-              tone: "danger",
-              hidden: editing || !selectedCanDelete,
-            },
-            {
-              key: "copy",
-              title: t("clipboard.copy"),
-              icon: copiedClip
-                ? <AppIcon icon={Check} size={isMobile ? "sm" : "xs"} />
-                : <AppIcon icon={Copy} size={isMobile ? "sm" : "xs"} />,
-              onClick: () => void copySelectedClip(),
-              tone: copiedClip ? "success" : "default",
-              hidden: editing || !selectedIsClip,
-            },
-          ]}
-          more={!editing ? (
-            <FileMoreActionsMenu
-              relPath={selectedFile}
-              active={active}
-              exportContent={fileContent}
-              exportTitle={selectedFile.split("/").pop()}
-            />
-          ) : null}
-        />
+  const layoutMode = getSearchLayoutMode(isMobile, results, selectedFile);
+  const emptyDescription = isMobile
+    ? t("search.mobileEmptyHint")
+    : t("search.emptyHint", formatShortcut(shortcuts.global_search));
+  const searchInput = (
+    <SearchInput
+      value={query}
+      onChange={setQuery}
+      inputRef={inputRef}
+      mobile={isMobile}
+      placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
+      onCompositionStart={() => { imeComposingRef.current = true; }}
+      onCompositionEnd={() => { imeComposingRef.current = false; }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter") return;
+        const nativeEvent = event.nativeEvent;
+        if (imeComposingRef.current || nativeEvent.isComposing) return;
+        if ("keyCode" in nativeEvent && (nativeEvent as KeyboardEvent).keyCode === 229) return;
+        void handleSearch();
+      }}
+    />
+  );
+  const renderSearchResults = (compact: boolean) => (
+    <SearchResults
+      active={active}
+      compact={compact}
+      emptyDescription={emptyDescription}
+      loading={loading}
+      mobile={isMobile}
+      query={query}
+      results={results}
+      searched={searched}
+      selectedFile={selectedFile}
+      onOpen={openSearchResult}
+    />
+  );
+  const detail = selectedFile ? (
+    <DetailPane>
+      <FileDetailToolbar
+        title={isMobile ? selectedFile.split("/").pop() : selectedFile}
+        titleText={selectedFile}
+        active={active}
+        onBack={closeDetail}
+        onRefresh={() => void openFile(selectedFile)}
+        editing={editing}
+        onEdit={selectedCanEdit ? startEdit : undefined}
+        onSave={selectedCanEdit ? () => void handleSaveEdit() : undefined}
+        onCancel={selectedCanEdit ? cancelEdit : undefined}
+        editTitle={t("notes.edit")}
+        saveTitle={t("notes.save")}
+        density={layoutMode === "split" ? "compact" : "default"}
+        splitPreview={splitPreview}
+        onToggleSplitPreview={selectedCanEdit ? toggleSplitPreview : undefined}
+        metadata={(
+          <FavoriteButton
+            relPath={selectedFile}
+            active={active}
+            title={selectedFile.split("/").pop()}
+            sourceType={getSearchSourceTypeFromPath(selectedFile)}
+          />
+        )}
+        actionsAfterEdit={[
+          {
+            key: "delete",
+            title: t("common.delete"),
+            icon: <AppIcon icon={Trash2} size={isMobile ? "sm" : "xs"} />,
+            onClick: () => void handleDelete(),
+            tone: "danger",
+            hidden: editing || !selectedCanDelete,
+          },
+          {
+            key: "copy",
+            title: t("clipboard.copy"),
+            icon: copiedClip
+              ? <AppIcon icon={Check} size={isMobile ? "sm" : "xs"} />
+              : <AppIcon icon={Copy} size={isMobile ? "sm" : "xs"} />,
+            onClick: () => void copySelectedClip(),
+            tone: copiedClip ? "success" : "default",
+            hidden: editing || !selectedIsClip,
+          },
+        ]}
+        more={!editing ? (
+          <FileMoreActionsMenu
+            relPath={selectedFile}
+            active={active}
+            exportContent={fileContent}
+            exportTitle={selectedFile.split("/").pop()}
+          />
+        ) : null}
+      />
       <FileEditorSurface
         ref={editRef}
         editing={editing}
@@ -331,74 +423,44 @@ export default function SearchPage({
         onChange={setEditContent}
         onSave={handleSaveEdit}
         onCancel={cancelEdit}
-        filePath={selectedFile ?? undefined}
+        filePath={selectedFile}
         mobile={isMobile}
         splitPreview={splitPreview}
         supportsSplitPreview={selectedCanEdit}
         mobileBottomPadding={isMobile}
         selectable
       >
-            <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
+        <MarkdownView content={fileContent} filePath={selectedFile} />
       </FileEditorSurface>
-      </PageFrame>
+    </DetailPane>
+  ) : null;
+
+  if (layoutMode === "split") {
+    return (
+      <FileWorkspace
+        panelKey="search"
+        showList
+        showDetail
+        narrowDetailThreshold={SEARCH_REVIEW_MIN_SINGLE_ROW_DETAIL_WIDTH}
+        left={(
+          <ListPane className="gm-search-list-pane">
+            {searchInput}
+            {renderSearchResults(true)}
+          </ListPane>
+        )}
+        right={detail}
+      />
     );
   }
 
-  return (
-      <PageFrame column>
-      {/* Search Bar */}
-      <SearchInput
-        value={query}
-        onChange={setQuery}
-        inputRef={inputRef}
-        mobile={isMobile}
-        placeholder={isMobile ? t("search.mobilePlaceholder") : t("search.placeholder", formatShortcut(shortcuts.app_search))}
-        onCompositionStart={() => { imeComposingRef.current = true; }}
-        onCompositionEnd={() => { imeComposingRef.current = false; }}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter") return;
-          const ev = e.nativeEvent;
-          if (imeComposingRef.current || ev.isComposing) return;
-          if ("keyCode" in ev && (ev as KeyboardEvent).keyCode === 229) return;
-          handleSearch();
-        }}
-      />
+  if (layoutMode === "detail") {
+    return <PageFrame column>{detail}</PageFrame>;
+  }
 
-      {/* Results */}
-      <div className="gm-page-scroll gm-search-results" data-mobile={isMobile ? "true" : "false"}>
-        {loading ? (
-          <p className="gm-muted-text">{t("search.searching")}</p>
-        ) : !searched ? (
-          <EmptyState
-            icon={Search}
-            iconSize="empty-lg"
-            title={isMobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
-            description={isMobile ? t("search.mobileEmptyHint") : t("search.emptyHint", formatShortcut(shortcuts.global_search))}
-          />
-        ) : results.length === 0 ? (
-          <p className="gm-muted-text">{t("search.noResults", query)}</p>
-        ) : (
-          <>
-            <p className="gm-search-result-count">{t("search.results", String(results.length))}</p>
-            <div className="gm-search-result-stack">
-              {results.map((r, i) => {
-                const visual = sourceVisual(r.source_type);
-                return (
-                  <SearchResultCard
-                    key={i}
-                    icon={visual.icon}
-                    iconTone={visual.tone}
-                    title={r.title}
-                    time={relativeTime(r.date, t)}
-                    snippet={r.snippet}
-                    onClick={() => openFile(r.file_path)}
-                  />
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+  return (
+    <PageFrame column>
+      {searchInput}
+      {renderSearchResults(false)}
     </PageFrame>
   );
 }

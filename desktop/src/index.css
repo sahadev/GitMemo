@@ -107,6 +107,7 @@
   --gm-size-split-pane-left-default: 320px;
   --gm-size-split-pane-left-min: 260px;
   --gm-size-split-pane-left-max: 560px;
+  --gm-size-split-pane-right-min: 232px;
   --gm-size-split-handle-width: 4px;
   --gm-size-split-collapsed-rail-width: 22px;
   --gm-size-layout-toggle: 22px;
@@ -1980,6 +1981,78 @@ a:focus-visible {
   font-size: var(--gm-font-xs);
   line-height: var(--gm-leading-normal);
   margin-top: var(--gm-space-2);
+}
+
+.gm-search-list-pane .gm-search-header {
+  flex-shrink: 0;
+  padding: var(--gm-space-4);
+}
+
+.gm-search-review-results {
+  padding: var(--gm-space-3) 0 var(--gm-space-6);
+}
+
+.gm-search-review-results > .gm-muted-text {
+  padding: var(--gm-space-4) var(--gm-list-row-pad-x);
+}
+
+.gm-search-review-results .gm-search-result-count {
+  margin: 0;
+  padding: 0 var(--gm-list-row-pad-x) var(--gm-space-3);
+}
+
+.gm-search-review-results .gm-search-result-stack {
+  border-top: 1px solid var(--border);
+  gap: 0;
+}
+
+.gm-search-review-results .gm-search-result-card {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-left: var(--gm-size-card-rail) solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x);
+}
+
+.gm-search-review-results .gm-search-result-card[data-active="true"] {
+  background: var(--gm-color-bg-selected);
+  border-left-color: var(--accent);
+}
+
+.gm-search-review-results .gm-search-result-card:focus-visible {
+  outline-offset: -2px;
+}
+
+.gm-search-review-results .gm-search-result-head {
+  margin-bottom: 0;
+}
+
+.gm-search-review-results .gm-search-result-time {
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-search-review-results .gm-search-result-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.gm-split-pane[data-panel-key="search"][data-narrow-detail="true"] .gm-file-detail-toolbar {
+  flex-wrap: wrap;
+  gap: var(--gm-control-gap);
+  padding: var(--gm-space-2);
+}
+
+.gm-split-pane[data-panel-key="search"][data-narrow-detail="true"] .gm-file-detail-title {
+  flex-basis: calc(100% - var(--gm-control-height-sm) - var(--gm-control-gap));
 }
 
 .gm-empty-state {

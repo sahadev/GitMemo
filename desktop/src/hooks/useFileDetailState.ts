@@ -34,6 +34,7 @@ export function useFileDetailState({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [rawFileContent, setRawFileContent] = useState("");
   const [fileContent, setFileContent] = useState("");
+  const openGenerationRef = useRef(0);
   const optionsRef = useRef({
     deriveContent,
     canOpen,
@@ -58,9 +59,12 @@ export function useFileDetailState({
     const options = optionsRef.current;
     const meta = { fromCrossPage, force };
     if (options.canOpen && !options.canOpen(path, meta)) return;
+    const openGeneration = openGenerationRef.current + 1;
+    openGenerationRef.current = openGeneration;
 
     try {
       const rawContent = await invoke<string>("read_file", { filePath: path });
+      if (openGenerationRef.current !== openGeneration) return;
       const content = options.deriveContent(rawContent, path);
       setSelectedFile(path);
       setRawFileContent(rawContent);
@@ -68,12 +72,14 @@ export function useFileDetailState({
       options.resetEditor?.(options.resetEditorContent?.(content, rawContent, path));
       options.onOpened?.({ path, rawContent, content, fromCrossPage, force });
     } catch (error) {
+      if (openGenerationRef.current !== openGeneration) return;
       options.onOpenError(error, path);
     }
   }, []);
 
   const clearDetail = useCallback(() => {
     const options = optionsRef.current;
+    openGenerationRef.current += 1;
     setSelectedFile(null);
     setRawFileContent("");
     setFileContent("");

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 
@@ -9,18 +9,27 @@ interface SearchResultCardProps {
   time: ReactNode;
   snippet?: ReactNode;
   onClick: () => void;
+  active?: boolean;
 }
 
-export function SearchResultCard({
+export const SearchResultCard = forwardRef<HTMLButtonElement, SearchResultCardProps>(function SearchResultCard({
   icon,
   iconTone,
   title,
   time,
   snippet,
   onClick,
-}: SearchResultCardProps) {
+  active = false,
+}, ref) {
   return (
-    <button type="button" className="gm-search-result-card" onClick={onClick}>
+    <button
+      ref={ref}
+      type="button"
+      className="gm-search-result-card"
+      data-active={active ? "true" : "false"}
+      aria-current={active ? "true" : undefined}
+      onClick={onClick}
+    >
       <div className="gm-search-result-head">
         <AppIcon icon={icon} size="xs" tone={iconTone} />
         <span className="gm-search-result-title">{title}</span>
@@ -29,4 +38,4 @@ export function SearchResultCard({
       {snippet ? <p className="gm-search-result-snippet">{snippet}</p> : null}
     </button>
   );
-}
+});
