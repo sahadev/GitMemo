@@ -29,7 +29,8 @@ import { FileEditorSurface } from "../components/domain/files/FileEditorSurface"
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
-  getMarkdownTitleFromPath,
+  getDocumentTitle,
+  getDocumentTitleForPath,
   getRemainingFilesAfterDelete,
   isPendingPathForFolder,
 } from "../components/domain/files/fileWorkspaceLogic";
@@ -262,6 +263,11 @@ export default function ConversationsPage({
   ]);
 
   const { showList, showDetail } = getConversationPaneState(isMobile, selectedFile);
+  const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(
+    selectedFile,
+    selectedFileEntry ? { ...selectedFileEntry, title: currentMeta?.title || selectedFileEntry.title } : null,
+  );
 
   useMobileDetailBackHandler({
     isMobile,
@@ -312,7 +318,7 @@ export default function ConversationsPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
-                  title={meta?.title || getMarkdownTitleFromPath(f.name)}
+                  title={getDocumentTitle({ ...f, title: f.title || meta?.title })}
                   subtitle={relativeTime(f.modified, t)}
                   meta={(
                     <>
@@ -346,7 +352,7 @@ export default function ConversationsPage({
         ) : (
           <>
             <FileDetailToolbar
-              title={currentMeta?.title || selectedFile}
+              title={selectedFileTitle}
               titleText={selectedFile}
               active={active}
               onBack={closeDetail}
@@ -355,7 +361,7 @@ export default function ConversationsPage({
                 if (selectedFile) void openFile(selectedFile);
               }}
               onTitleClick={() => {
-                const text = currentMeta?.title || selectedFile || "";
+                const text = selectedFileTitle;
                 navigator.clipboard.writeText(text);
                 showToast(t("conversations.copied"));
               }}
@@ -373,7 +379,7 @@ export default function ConversationsPage({
                     <FavoriteButton
                       relPath={selectedFile}
                       active={active}
-                      title={currentMeta?.title || selectedFile}
+                      title={selectedFileTitle}
                       sourceType="conversation"
                     />
                   ) : null}

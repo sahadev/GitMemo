@@ -75,7 +75,12 @@ import {
   type ClipFilter,
 } from "../components/domain/clipboard/clipboardLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
-import { getFileName, getFileWorkspacePaneState, isPendingPathForFolder } from "../components/domain/files/fileWorkspaceLogic";
+import {
+  getDocumentTitle,
+  getDocumentTitleForPath,
+  getFileWorkspacePaneState,
+  isPendingPathForFolder,
+} from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { ClipImageThumb } from "../components/domain/files/ClipImageThumb";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
@@ -594,7 +599,8 @@ export default function ClipboardPage({
   };
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
-  const selectedFileName = getFileName(selectedFile);
+  const selectedFileEntry = savedClips.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -795,7 +801,7 @@ export default function ClipboardPage({
                         </ClipboardClipContent>
                         <ClipboardClipMetaRow mobile={isMobile}>
                           <ClipboardClipMetaText>{relativeTime(file.modified, t)}</ClipboardClipMetaText>
-                          {file.preview_image ? <ClipboardClipMetaText muted>{file.name}</ClipboardClipMetaText> : null}
+                          {file.preview_image ? <ClipboardClipMetaText muted>{getDocumentTitle(file)}</ClipboardClipMetaText> : null}
                           <ClipboardClipMetaSpacer />
                           <ClipboardClipActionButton
                             mobile={isMobile}
@@ -883,7 +889,7 @@ export default function ClipboardPage({
             ) : (
               <>
                 <FileDetailToolbar
-                  title={isMobile ? selectedFileName : selectedFile}
+                  title={selectedFileTitle}
                   titleText={selectedFile}
                   active={active}
                   onBack={closeDetail}
@@ -904,7 +910,7 @@ export default function ClipboardPage({
                     <FavoriteButton
                       relPath={selectedFile}
                       active={active}
-                      title={selectedFileName}
+                      title={selectedFileTitle}
                       sourceType="clip"
                     />
                   ) : null}
@@ -933,7 +939,7 @@ export default function ClipboardPage({
                       relPath={selectedFile}
                       active={active}
                       exportContent={fileContent}
-                      exportTitle={selectedFileName}
+                      exportTitle={selectedFileTitle}
                     />
                   ) : null}
                 />

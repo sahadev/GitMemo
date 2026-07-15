@@ -5,6 +5,7 @@ import { useI18n } from "../../../hooks/useI18n";
 import { EmptyState } from "../../base/EmptyState";
 import type { AppIconTone } from "../../base/AppIcon";
 import { ListPaneBody } from "../../layout/Pane";
+import { getDocumentTitle } from "../files/fileWorkspaceLogic";
 import { SearchResultCard } from "./SearchResultCard";
 import type { SearchResultItem } from "./searchLogic";
 
@@ -92,7 +93,7 @@ export function SearchResults({
               }}
               icon={visual.icon}
               iconTone={visual.tone}
-              title={result.title}
+              title={getDocumentTitle({ title: result.title, file_path: result.file_path })}
               time={relativeTime(result.date, t)}
               snippet={result.snippet}
               active={selectedFile === result.file_path}

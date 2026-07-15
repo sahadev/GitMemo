@@ -1,6 +1,7 @@
 export interface ExternalFileEntry {
   file_path: string;
   file_name: string;
+  title?: string | null;
   parent_dir: string;
   exists: boolean;
   last_opened_at: string;

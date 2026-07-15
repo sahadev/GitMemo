@@ -19,6 +19,7 @@ import { shouldActivateMobileEditorChrome } from "../components/domain/app/appCh
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { getDocumentTitle } from "../components/domain/files/fileWorkspaceLogic";
 import {
   canClearMissingExternalFiles,
   getFirstExternalImportError,
@@ -231,6 +232,7 @@ export default function ExternalFilesPage({
     [entries, selectedFilePath],
   );
   const selectedIsMarkdown = selectedEntry ? isProbablyMarkdownFileName(selectedEntry.file_name) : false;
+  const selectedEntryTitle = getDocumentTitle(selectedEntry);
   const missingCount = useMemo(() => getMissingExternalFileCount(entries), [entries]);
 
   const handleSave = useCallback(async () => {
@@ -410,12 +412,13 @@ export default function ExternalFilesPage({
               ) : null}
               {!loading && entries.map((entry) => {
                 const active = selectedFilePath === entry.file_path;
+                const title = getDocumentTitle(entry);
                 return (
                   <FileListItem
                     key={entry.file_path}
                     onClick={() => void openExternalFile(entry.file_path)}
                     active={active}
-                    title={entry.file_name}
+                    title={title}
                     subtitle={entry.parent_dir}
                     meta={(
                       <>
@@ -438,7 +441,7 @@ export default function ExternalFilesPage({
             <DetailPane>
             <>
               <FileDetailToolbar
-                title={selectedEntry.file_name}
+                title={selectedEntryTitle}
                 titleText={selectedEntry.file_path}
                 active={active}
                 onBack={clearSelection}
@@ -463,7 +466,7 @@ export default function ExternalFilesPage({
                   <FavoriteButton
                     absolutePath={selectedEntry.file_path}
                     active={active}
-                    title={selectedEntry.file_name}
+                    title={selectedEntryTitle}
                     sourceType="external"
                   />
                 ) : null}
@@ -493,7 +496,7 @@ export default function ExternalFilesPage({
                     canReveal={selectedEntry.exists}
                     canExportPdf={isProbablyMarkdownFileName(selectedEntry.file_name)}
                     exportContent={fileContent}
-                    exportTitle={selectedEntry.file_name}
+                    exportTitle={selectedEntryTitle}
                   />
                 ) : null}
               />

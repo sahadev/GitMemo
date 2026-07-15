@@ -1,4 +1,5 @@
 export interface FileEntry {
+  /** Canonical display title returned by the backend. */
   name: string;
   path: string;
   source_type: string;

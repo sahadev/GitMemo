@@ -17,10 +17,9 @@ import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
   getFileCountLabel,
-  getFileName,
+  getDocumentTitle,
+  getDocumentTitleForPath,
   getFileWorkspacePaneState,
-  getMarkdownTitleFromPath,
-  getMobileFileTitle,
   getNextFileAfterDelete,
   getRemainingFilesAfterDelete,
   isPendingPathForFolder,
@@ -165,6 +164,8 @@ export default function PlansPage({
   });
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
+  const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
   const closeDetail = useCallback(() => {
     setSelectedFile(null);
     setFileContent("");
@@ -218,7 +219,7 @@ export default function PlansPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
-                  title={getMarkdownTitleFromPath(f.name)}
+                  title={getDocumentTitle(f)}
                   subtitle={relativeTime(f.modified, t)}
                 />
               );
@@ -246,7 +247,7 @@ export default function PlansPage({
         ) : (
           <>
             <FileDetailToolbar
-              title={getMobileFileTitle(isMobile, selectedFile, true)}
+              title={selectedFileTitle}
               titleText={selectedFile}
               active={active}
               onBack={closeDetail}
@@ -258,7 +259,7 @@ export default function PlansPage({
                 <FavoriteButton
                   relPath={selectedFile}
                   active={active}
-                  title={getMarkdownTitleFromPath(selectedFile)}
+                  title={selectedFileTitle}
                   sourceType="plan"
                 />
               ) : null}
@@ -277,7 +278,7 @@ export default function PlansPage({
                   relPath={selectedFile}
                   active={active}
                   exportContent={fileContent}
-                  exportTitle={getFileName(selectedFile)}
+                  exportTitle={selectedFileTitle}
                 />
               ) : null}
             />

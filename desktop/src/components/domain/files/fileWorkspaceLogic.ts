@@ -1,5 +1,20 @@
 import type { FileEntry } from "../../../types/files";
 
+/**
+ * Fields exposed by the different file-like data sources in the desktop UI.
+ * `title` and `name` are semantic values supplied by the backend; path fields
+ * are only used when no semantic title is available.
+ */
+export interface DocumentTitleSource {
+  title?: string | null;
+  name?: string | null;
+  file_name?: string | null;
+  path?: string | null;
+  file_path?: string | null;
+  rel_path?: string | null;
+  absolute_path?: string | null;
+}
+
 export function hasSelectedFile(selectedFile: string | null) {
   return selectedFile !== null;
 }
@@ -21,11 +36,60 @@ export function isPendingPathForFolder(
 }
 
 export function getFileName(path: string | null | undefined) {
-  return path?.split("/").pop() ?? "";
+  return path?.replace(/\\/g, "/").split("/").pop() ?? "";
 }
 
 export function getMarkdownTitleFromPath(path: string | null | undefined) {
-  return getFileName(path).replace(/\.md$/, "");
+  return stripMarkdownExtension(getFileName(path));
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return "";
+}
+
+function stripMarkdownExtension(name: string) {
+  return name.replace(/\.(?:md|markdown|mdx|mdc)$/i, "");
+}
+
+/**
+ * Resolve the single user-facing title for a file-like document.
+ *
+ * The backend owns title extraction. The UI only applies the agreed fallback
+ * order and never treats a preview/snippet as a title.
+ */
+export function getDocumentTitle(
+  source: DocumentTitleSource | string | null | undefined,
+  fallbackPath?: string | null,
+) {
+  if (typeof source === "string") {
+    return stripMarkdownExtension(getFileName(source));
+  }
+
+  const semanticTitle = firstNonEmpty(source?.title, source?.name);
+  if (semanticTitle) return semanticTitle;
+
+  const fileName = firstNonEmpty(source?.file_name);
+  if (fileName) return stripMarkdownExtension(fileName);
+
+  const path = firstNonEmpty(
+    source?.path,
+    source?.file_path,
+    source?.rel_path,
+    source?.absolute_path,
+    fallbackPath,
+  );
+  return stripMarkdownExtension(getFileName(path)) || path;
+}
+
+export function getDocumentTitleForPath(
+  path: string | null | undefined,
+  source?: DocumentTitleSource | null,
+) {
+  return getDocumentTitle(source ?? path, path);
 }
 
 export function getMobileFileTitle(isMobile: boolean, path: string | null | undefined, stripMarkdownExtension = false) {
@@ -47,8 +111,7 @@ export function getFileCountLabel(hasMore: boolean, loadedCount: number, totalFi
 }
 
 export function getNoteListItemTitle(file: FileEntry) {
-  const isDateName = /^\d{4}-\d{2}-\d{2}/.test(file.name);
-  return isDateName && file.preview ? file.preview : file.name;
+  return getDocumentTitle(file);
 }
 
 export function hasFilePreviewImage(file: FileEntry) {

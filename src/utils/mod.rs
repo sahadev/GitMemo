@@ -4,3 +4,4 @@ pub mod frontmatter;
 pub mod i18n;
 pub mod sanitize;
 pub mod ssh;
+pub mod title;

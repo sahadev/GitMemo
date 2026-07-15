@@ -13,6 +13,7 @@ import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { getDocumentTitle, getDocumentTitleForPath } from "../components/domain/files/fileWorkspaceLogic";
 import {
   getClaudeConfigTabs,
   getInitialClaudeConfigTab,
@@ -97,6 +98,8 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
   });
 
   const TabIcon = tabIcons[activeTab] ?? Brain;
+  const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
   return (
     <FileWorkspace
@@ -167,7 +170,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                   ref={(el) => { if (el) itemRefs.current.set(f.path, el); else itemRefs.current.delete(f.path); }}
                   onClick={() => openFile(f.path)}
                   active={selected}
-                  title={f.name}
+                  title={getDocumentTitle(f)}
                   subtitle={relativeTime(f.modified, t)}
                   preview={f.preview || f.path}
                 />
@@ -185,7 +188,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         ) : (
           <>
             <FileDetailToolbar
-              title={selectedFile}
+              title={selectedFileTitle}
               titleText={selectedFile}
               active={active}
               onBack={() => { setSelectedFile(null); setFileContent(""); }}
@@ -194,7 +197,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                 <FavoriteButton
                   relPath={selectedFile}
                   active={active}
-                  title={selectedFile.split("/").pop()}
+                  title={selectedFileTitle}
                   sourceType="config"
                 />
               ) : null}
@@ -203,7 +206,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
                   relPath={selectedFile}
                   active={active}
                   exportContent={fileContent}
-                  exportTitle={selectedFile.split("/").pop()}
+                  exportTitle={selectedFileTitle}
                 />
               ) : null}
             />

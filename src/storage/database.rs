@@ -1,6 +1,7 @@
 use crate::utils::{
     datetime::{frontmatter_record_datetime_raw, record_timestamp_for_markdown},
     frontmatter::scalar_value as frontmatter_value,
+    title::extract_display_title,
 };
 use anyhow::Result;
 use fs4::fs_std::FileExt;
@@ -11,7 +12,7 @@ use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-const INDEX_SCHEMA_VERSION: &str = "2";
+const INDEX_SCHEMA_VERSION: &str = "3";
 const INDEX_BUSY_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct SearchResult {
@@ -424,14 +425,13 @@ fn build_index_unlocked(conn: &Connection, sync_dir: &Path) -> Result<u32> {
             let (modified_time, file_mtime_ms, file_size) = file_metadata_snapshot(path);
             let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
 
-            let title = extract_title(path, &content);
-            let date = extract_record_date(path, &content);
-
             let rel_path = path
                 .strip_prefix(sync_dir)
                 .unwrap_or(path)
                 .to_string_lossy()
                 .replace('\\', "/");
+            let title = extract_title(path, &rel_path, &content);
+            let date = extract_record_date(path, &content);
             seen_paths.insert(rel_path.clone());
 
             index_file_with_activity(
@@ -586,22 +586,8 @@ fn source_type_for_rel_path(rel_path: &str) -> Option<&'static str> {
     }
 }
 
-fn extract_title(path: &Path, content: &str) -> String {
-    frontmatter_value(content, "title")
-        .map(ToString::to_string)
-        .or_else(|| {
-            content
-                .lines()
-                .find_map(|line| line.strip_prefix("# ").map(str::trim))
-                .filter(|title| !title.is_empty())
-                .map(ToString::to_string)
-        })
-        .unwrap_or_else(|| {
-            path.file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
-        })
+fn extract_title(path: &Path, rel_path: &str, content: &str) -> String {
+    extract_display_title(path, rel_path, content)
 }
 
 fn extract_record_date(path: &Path, content: &str) -> String {
@@ -705,7 +691,7 @@ fn sync_index_folder_unlocked(conn: &Connection, sync_dir: &Path, folder: &str) 
             continue;
         };
         let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
-        let title = extract_title(&path, &content);
+        let title = extract_title(&path, &rel_path, &content);
         let date = extract_record_date(&path, &content);
         index_file_with_activity(
             conn,
@@ -764,7 +750,7 @@ fn index_relative_file_unlocked(
     let content = std::fs::read_to_string(&full_path)?;
     let (modified_time, file_mtime_ms, file_size) = file_metadata_snapshot(&full_path);
     let (activity_at, activity_ts) = record_timestamp_for_markdown(&content, modified_time);
-    let title = extract_title(&full_path, &content);
+    let title = extract_title(&full_path, rel_path, &content);
     let date = extract_record_date(&full_path, &content);
 
     index_file_with_activity(
@@ -1173,7 +1159,11 @@ mod tests {
     fn test_extract_title_prefers_frontmatter_title() {
         let content = "---\ntitle: \"Dashboard: quick note\"\n---\n\n# Fallback heading";
         assert_eq!(
-            extract_title(Path::new("notes/scratch/2026-07-10-002.md"), content),
+            extract_title(
+                Path::new("notes/scratch/2026-07-10-002.md"),
+                "notes/scratch/2026-07-10-002.md",
+                content,
+            ),
             "Dashboard: quick note"
         );
     }

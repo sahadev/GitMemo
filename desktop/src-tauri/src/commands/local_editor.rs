@@ -1,12 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
+
+use gitmemo_core::utils::title::extract_display_title;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalFileEntry {
     pub file_path: String,
     pub file_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     pub parent_dir: String,
     pub exists: bool,
     pub last_opened_at: String,
@@ -162,6 +167,27 @@ fn is_supported_external_file(abs_path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+fn is_markdown_title_path(path: &Path) -> bool {
+    path.extension().and_then(OsStr::to_str).is_some_and(|ext| {
+        matches!(
+            ext.to_ascii_lowercase().as_str(),
+            "md" | "markdown" | "mdx" | "mdc"
+        )
+    })
+}
+
+fn read_display_title(path: &Path, rel_path: &str) -> Option<String> {
+    if !is_markdown_title_path(path) || !path.is_file() {
+        return None;
+    }
+    let file = fs::File::open(path).ok()?;
+    let mut limited = file.take(64 * 1024);
+    let mut bytes = Vec::new();
+    limited.read_to_end(&mut bytes).ok()?;
+    let content = String::from_utf8_lossy(&bytes);
+    Some(extract_display_title(path, rel_path, &content))
+}
+
 fn sanitize_file_stem(name: &str) -> String {
     let mut out = String::new();
     for ch in name.chars() {
@@ -204,13 +230,15 @@ fn modified_at(path: &Path) -> Option<String> {
 }
 
 fn entry_from_abs_path(abs_path: &Path, last_opened_at: String) -> ExternalFileEntry {
+    let file_path = abs_path.to_string_lossy().into_owned();
     ExternalFileEntry {
-        file_path: abs_path.to_string_lossy().into_owned(),
+        file_path: file_path.clone(),
         file_name: abs_path
             .file_name()
             .and_then(OsStr::to_str)
             .unwrap_or("file")
             .to_string(),
+        title: read_display_title(abs_path, &file_path),
         parent_dir: abs_path
             .parent()
             .map(|p| p.to_string_lossy().into_owned())
@@ -323,6 +351,9 @@ fn refresh_external_files_index() -> Result<Vec<ExternalFileEntry>, String> {
         let path = PathBuf::from(&entry.file_path);
         entry.exists = path.is_file();
         entry.last_modified_at = modified_at(&path);
+        if entry.exists {
+            entry.title = read_display_title(&path, &entry.file_path);
+        }
         if entry.file_name.is_empty() {
             entry.file_name = path
                 .file_name()
@@ -425,6 +456,7 @@ pub struct EditorRootsStatus {
 pub struct EditorDirEntry {
     pub name: String,
     pub rel_path: String,
+    pub title: Option<String>,
     pub is_dir: bool,
 }
 
@@ -684,9 +716,15 @@ pub fn list_editor_directory(root: String, rel: String) -> Result<Vec<EditorDirE
         } else {
             format!("{}/{}", rel.trim_end_matches('/'), name)
         };
+        let title = if is_dir {
+            None
+        } else {
+            read_display_title(&path, &rel_path)
+        };
         out.push(EditorDirEntry {
             name,
             rel_path,
+            title,
             is_dir,
         });
     }

@@ -18,6 +18,7 @@ import { shouldActivateMobileEditorChrome } from "../components/domain/app/appCh
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { getDocumentTitle, getDocumentTitleForPath } from "../components/domain/files/fileWorkspaceLogic";
 import {
   EDITOR_ROOTS,
   getEditorEmptyTextKey,
@@ -302,6 +303,8 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   }, [openTarget, root, rel, selectedFileRel, openFile, clearSelection, onOpenTargetConsumed]);
 
   const leftEmptyText = t(getEditorEmptyTextKey(root));
+  const selectedFileEntry = getSelectedEditorEntry(entries, selectedFileRel);
+  const selectedFileTitle = getDocumentTitleForPath(selectedFileRel, selectedFileEntry);
 
   const list = (
     <ListPane>
@@ -398,7 +401,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
                 }}
                 active={sel}
                 icon={<AppIcon icon={entry.is_dir ? Folder : File} size="xs" />}
-                title={entry.name}
+                title={entry.is_dir ? entry.name : getDocumentTitle(entry)}
                 subtitle={entry.is_dir ? t("editorHome.folder") : undefined}
               />
             );
@@ -419,7 +422,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
       ) : (
         <>
           <FileDetailToolbar
-            title={selectedFileRel}
+            title={selectedFileTitle}
             titleText={fileAbs || selectedFileRel}
             active={active}
             onBack={clearSelection}
@@ -439,7 +442,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
               <FavoriteButton
                 absolutePath={fileAbs || undefined}
                 active={active}
-                title={selectedFileRel.split("/").pop()}
+                title={selectedFileTitle}
                 sourceType="external"
               />
             ) : null}
@@ -459,7 +462,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
                 active={active}
                 canExportPdf={isProbablyMarkdownEditorPath(selectedFileRel)}
                 exportContent={fileContent}
-                exportTitle={selectedFileRel.split("/").pop()}
+                exportTitle={selectedFileTitle}
               />
             ) : null}
             density="compact"

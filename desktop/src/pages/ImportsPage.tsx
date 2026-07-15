@@ -16,7 +16,8 @@ import { FileEditorSurface } from "../components/domain/files/FileEditorSurface"
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
-  getFileName,
+  getDocumentTitle,
+  getDocumentTitleForPath,
   getFileWorkspacePaneState,
   hasFilePreviewImage,
   isPendingPathForFolder,
@@ -323,6 +324,8 @@ export default function ImportsPage({
   });
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
+  const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
   return (
     <FileWorkspace
@@ -382,7 +385,7 @@ export default function ImportsPage({
                           placeholderClassName="gm-import-thumb-placeholder"
                         />
                       ) : undefined}
-                      title={file.name}
+                      title={getDocumentTitle(file)}
                       subtitle={relativeTime(file.modified, t)}
                       preview={!hasImage ? file.preview : undefined}
                     />
@@ -409,7 +412,7 @@ export default function ImportsPage({
             {selectedFile ? (
               <>
                 <FileDetailToolbar
-                  title={selectedFile}
+                  title={selectedFileTitle}
                   titleText={selectedFile}
                   active={active}
                   onBack={closeDetail}
@@ -430,7 +433,7 @@ export default function ImportsPage({
                     <FavoriteButton
                       relPath={selectedFile}
                       active={active}
-                      title={getFileName(selectedFile)}
+                      title={selectedFileTitle}
                       sourceType="import"
                     />
                   ) : null}
@@ -449,7 +452,7 @@ export default function ImportsPage({
                       relPath={selectedFile}
                       active={active}
                       exportContent={fileContent}
-                      exportTitle={getFileName(selectedFile)}
+                      exportTitle={selectedFileTitle}
                     />
                   ) : null}
                 />

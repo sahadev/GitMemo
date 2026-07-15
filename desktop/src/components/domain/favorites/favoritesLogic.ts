@@ -1,4 +1,5 @@
 import type { FavoriteContent, FavoriteEntry } from "../../../types/favorites";
+import { getDocumentTitle } from "../files/fileWorkspaceLogic";
 
 export function sourceLabelKey(sourceType: string) {
   switch (sourceType) {
@@ -49,7 +50,11 @@ export function getFavoriteDetailTitle(
   selectedEntry: FavoriteEntry | null,
   fallbackTitle: string,
 ) {
-  return content?.title || selectedEntry?.title || fallbackTitle;
+  return getDocumentTitle({
+    title: content?.title || selectedEntry?.title,
+    rel_path: content?.rel_path || selectedEntry?.rel_path,
+    absolute_path: content?.absolute_path || selectedEntry?.absolute_path,
+  }) || fallbackTitle;
 }
 
 export function getFavoriteDetailPath(content: FavoriteContent | null, selectedEntry: FavoriteEntry | null) {

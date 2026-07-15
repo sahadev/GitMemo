@@ -1,6 +1,7 @@
 use gitmemo_core::services;
 use gitmemo_core::storage::{database, files};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
+use gitmemo_core::utils::title::extract_display_title;
 use serde::Serialize;
 use std::panic;
 use std::path::Path;
@@ -186,16 +187,8 @@ fn fuzzy_search_files_sync(
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-
-            let title = std::fs::read_to_string(path)
-                .ok()
-                .and_then(|content| {
-                    content
-                        .lines()
-                        .find(|l| l.starts_with("# "))
-                        .map(|l| l.trim_start_matches("# ").to_string())
-                })
-                .unwrap_or_else(|| file_name.clone());
+            let content = std::fs::read_to_string(path).unwrap_or_default();
+            let title = extract_display_title(path, &rel_path, &content);
 
             let name_lower = file_name.to_lowercase();
             let title_lower = title.to_lowercase();
@@ -215,7 +208,6 @@ fn fuzzy_search_files_sync(
                     "note"
                 };
 
-                let content = std::fs::read_to_string(path).unwrap_or_default();
                 let (date, sort_ts) = path
                     .metadata()
                     .ok()

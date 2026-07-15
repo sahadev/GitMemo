@@ -1,10 +1,9 @@
 use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
+use gitmemo_core::utils::title::extract_display_title;
 use serde::Serialize;
 use std::io::Read;
 use std::path::Path;
-
-use super::markdown::{frontmatter_value, markdown_body};
 
 const DASHBOARD_RECENT_LIMIT: usize = 8;
 const DASHBOARD_RECENT_FOLDERS: [&str; 5] = [
@@ -31,65 +30,8 @@ fn read_md_head(path: &Path) -> String {
     String::from_utf8_lossy(&buf[..n]).into_owned()
 }
 
-fn preview_from_body(body: &str) -> String {
-    body.lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("!["))
-        .take(3)
-        .collect::<Vec<_>>()
-        .join("\n")
-        .chars()
-        .take(200)
-        .collect::<String>()
-}
-
-fn first_heading(content: &str) -> Option<String> {
-    content
-        .lines()
-        .find_map(|l| l.strip_prefix("# ").map(str::trim))
-        .filter(|s| !s.is_empty())
-        .map(ToString::to_string)
-}
-
-fn file_stem(path: &Path) -> String {
-    path.file_stem()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string()
-}
-
-fn is_generated_date_name(name: &str) -> bool {
-    let bytes = name.as_bytes();
-    if bytes.len() < 10 {
-        return false;
-    }
-    bytes[0..4].iter().all(u8::is_ascii_digit)
-        && bytes[4] == b'-'
-        && bytes[5..7].iter().all(u8::is_ascii_digit)
-        && bytes[7] == b'-'
-        && bytes[8..10].iter().all(u8::is_ascii_digit)
-}
-
 fn display_name_for_markdown(path: &Path, rel_path: &str, content: &str) -> String {
-    if let Some(title) = frontmatter_value(content, "title") {
-        return title.to_string();
-    }
-    if let Some(heading) = first_heading(content) {
-        return heading;
-    }
-
-    let fallback = file_stem(path);
-    let body = markdown_body(content);
-    let preview = preview_from_body(body);
-    let is_clip = rel_path.starts_with("clips/");
-    let is_clipboard_image = frontmatter_value(content, "source") == Some("clipboard-image");
-    if !preview.is_empty()
-        && ((is_clip && !is_clipboard_image) || is_generated_date_name(&fallback))
-    {
-        return preview;
-    }
-
-    fallback
+    extract_display_title(path, rel_path, content)
 }
 
 fn display_name_for_indexed_markdown(
@@ -531,7 +473,7 @@ mod tests {
     }
 
     #[test]
-    fn recent_display_name_uses_preview_for_generated_note_names() {
+    fn recent_display_name_uses_body_summary_for_generated_note_names() {
         let content =
             "---\nupdated: 2026-05-27T15:00:00+08:00\n---\n\n这是一段没有标题的草稿内容。\n第二行";
         let name = display_name_for_markdown(
@@ -543,7 +485,7 @@ mod tests {
     }
 
     #[test]
-    fn recent_display_name_uses_preview_for_text_clip() {
+    fn recent_display_name_uses_body_summary_for_text_clip() {
         let content = "---\nsource: clipboard\n---\nhttps://example.com/page";
         let name = display_name_for_markdown(
             Path::new("clips/15-19-34-http.md"),

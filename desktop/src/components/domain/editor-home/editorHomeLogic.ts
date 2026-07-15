@@ -14,6 +14,7 @@ export interface EditorRootsStatus {
 export interface EditorDirEntry {
   name: string;
   rel_path: string;
+  title?: string | null;
   is_dir: boolean;
 }
 

@@ -16,8 +16,8 @@ import { FileEditorSurface } from "../components/domain/files/FileEditorSurface"
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
-  getFileName,
   getFileWorkspacePaneState,
+  getDocumentTitleForPath,
   getNoteListItemTitle,
   isPendingPathForFolder,
 } from "../components/domain/files/fileWorkspaceLogic";
@@ -286,7 +286,8 @@ export default function NotesPage({
   });
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
-  const selectedFileName = getFileName(selectedFile);
+  const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -403,7 +404,7 @@ export default function NotesPage({
         {selectedFile ? (
           <>
             <FileDetailToolbar
-              title={isMobile ? selectedFileName : selectedFile}
+              title={selectedFileTitle}
               titleText={selectedFile}
               active={active}
               onBack={closeDetail}
@@ -420,7 +421,7 @@ export default function NotesPage({
                 <FavoriteButton
                   relPath={selectedFile}
                   active={active}
-                  title={selectedFileName}
+                  title={selectedFileTitle}
                   sourceType="note"
                 />
               ) : null}
@@ -439,7 +440,7 @@ export default function NotesPage({
                   relPath={selectedFile}
                   active={active}
                   exportContent={fileContent}
-                  exportTitle={selectedFileName}
+                  exportTitle={selectedFileTitle}
                 />
               ) : null}
             />

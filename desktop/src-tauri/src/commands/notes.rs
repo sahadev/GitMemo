@@ -4,6 +4,7 @@ use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use gitmemo_core::utils::sanitize::git_error_for_user;
+use gitmemo_core::utils::title::extract_display_title;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -295,6 +296,7 @@ impl PlanSyncResult {
 
 #[derive(Debug, Serialize)]
 pub struct FileEntry {
+    /// Canonical display title; `title` below preserves the raw frontmatter value.
     pub name: String,
     pub path: String,
     pub source_type: String,
@@ -573,16 +575,7 @@ fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
     let model = frontmatter_value(&content, "model").map(|s| s.to_string());
     let messages = frontmatter_value(&content, "messages").map(|s| s.to_string());
 
-    let name = content
-        .lines()
-        .find(|l| l.starts_with("# "))
-        .map(|l| l.trim_start_matches("# ").to_string())
-        .unwrap_or_else(|| {
-            path.file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
-        });
+    let name = extract_display_title(path, &rel_path, &content);
 
     let (modified, modified_ts) = record_timestamp_for_markdown(&content, candidate.modified_time);
     let size = candidate.size;

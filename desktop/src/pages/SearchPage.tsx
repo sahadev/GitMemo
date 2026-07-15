@@ -10,6 +10,7 @@ import { AppIcon } from "../components/base/AppIcon";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { getDocumentTitle } from "../components/domain/files/fileWorkspaceLogic";
 import { SearchInput } from "../components/domain/search/SearchInput";
 import { SearchResults } from "../components/domain/search/SearchResults";
 import {
@@ -284,6 +285,12 @@ export default function SearchPage({
   const selectedSourceType = selectedFile ? getSearchSourceTypeFromPath(selectedFile) : "unknown";
   const selectedCanEdit = selectedFile ? canEditSearchSource(isDesktop, selectedSourceType) : false;
   const selectedCanDelete = selectedFile ? canDeleteSearchSource(isDesktop, selectedSourceType) : false;
+  const selectedSearchResult = results.find((result) => result.file_path === selectedFile) ?? null;
+  const selectedFileTitle = getDocumentTitle(
+    selectedSearchResult
+      ? { title: selectedSearchResult.title, file_path: selectedSearchResult.file_path }
+      : selectedFile,
+  );
 
   const copySelectedClip = useCallback(async () => {
     if (!shouldCopySelectedSearchClip(selectedFile)) return;
@@ -365,7 +372,7 @@ export default function SearchPage({
   const detail = selectedFile ? (
     <DetailPane>
       <FileDetailToolbar
-        title={isMobile ? selectedFile.split("/").pop() : selectedFile}
+        title={selectedFileTitle}
         titleText={selectedFile}
         active={active}
         onBack={closeDetail}
@@ -383,7 +390,7 @@ export default function SearchPage({
           <FavoriteButton
             relPath={selectedFile}
             active={active}
-            title={selectedFile.split("/").pop()}
+            title={selectedFileTitle}
             sourceType={getSearchSourceTypeFromPath(selectedFile)}
           />
         )}
@@ -412,7 +419,7 @@ export default function SearchPage({
             relPath={selectedFile}
             active={active}
             exportContent={fileContent}
-            exportTitle={selectedFile.split("/").pop()}
+            exportTitle={selectedFileTitle}
           />
         ) : null}
       />

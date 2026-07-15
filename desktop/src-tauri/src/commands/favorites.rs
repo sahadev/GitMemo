@@ -1,7 +1,8 @@
-use super::markdown::{frontmatter_value, markdown_body};
+use super::markdown::markdown_body;
 use super::sync_log;
 use gitmemo_core::storage::{files, git};
 use gitmemo_core::utils::sanitize::git_error_for_user;
+use gitmemo_core::utils::title::extract_display_title;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -231,6 +232,43 @@ fn preview_from_content(content: &str) -> String {
         .collect()
 }
 
+fn is_markdown_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "md" | "markdown" | "mdx" | "mdc"
+            )
+        })
+}
+
+fn title_for_record(record: &FavoriteRecord, path: Option<&Path>, content: &str) -> String {
+    if let Some(path) = path.filter(|_| !content.is_empty()) {
+        let is_internal = record.rel_path.is_some();
+        if is_internal || is_markdown_path(path) {
+            let display_path = record
+                .rel_path
+                .as_deref()
+                .or(record.absolute_path.as_deref())
+                .unwrap_or_default();
+            return extract_display_title(path, display_path, content);
+        }
+    }
+
+    record
+        .title
+        .clone()
+        .or_else(|| {
+            record
+                .rel_path
+                .as_deref()
+                .or(record.absolute_path.as_deref())
+                .map(fallback_title)
+        })
+        .unwrap_or_else(|| record.target_id.clone())
+}
+
 fn read_file_head(path: &Path) -> String {
     let Ok(file) = std::fs::File::open(path) else {
         return String::new();
@@ -414,21 +452,7 @@ fn entry_from_record(record: FavoriteRecord) -> FavoriteEntry {
         .filter(|path| path.is_file())
         .map(|path| read_file_head(path))
         .unwrap_or_default();
-    let fallback = record
-        .title
-        .clone()
-        .or_else(|| {
-            record
-                .rel_path
-                .as_deref()
-                .or(record.absolute_path.as_deref())
-                .map(fallback_title)
-        })
-        .unwrap_or_else(|| record.target_id.clone());
-    let title = frontmatter_value(&head, "title")
-        .filter(|value| !value.trim().is_empty())
-        .map(str::to_string)
-        .unwrap_or(fallback);
+    let title = title_for_record(&record, path.as_deref(), &head);
     let source_modified = path.as_ref().and_then(|path| modified_at(path));
     let favorited_at = record
         .favorited_at
@@ -548,18 +572,7 @@ pub fn read_favorite_content(target_id: String) -> Result<FavoriteContent, Strin
     } else {
         String::new()
     };
-    let title = frontmatter_value(&content, "title")
-        .filter(|value| !value.trim().is_empty())
-        .map(str::to_string)
-        .or(record.title.clone())
-        .or_else(|| {
-            record
-                .rel_path
-                .as_deref()
-                .or(record.absolute_path.as_deref())
-                .map(fallback_title)
-        })
-        .unwrap_or_else(|| record.target_id.clone());
+    let title = title_for_record(&record, Some(&path), &content);
     Ok(FavoriteContent {
         target_id: record.target_id,
         title,

@@ -259,7 +259,7 @@ export default function FavoritesPage({
       ) : (
         <>
           <FileDetailToolbar
-            title={isMobile ? detailTitle : detailPath || detailTitle}
+            title={detailTitle}
             titleText={detailPath || detailTitle}
             active={active}
             onBack={isMobile ? closeDetail : undefined}
