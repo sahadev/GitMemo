@@ -3,9 +3,23 @@ import type { FileEntry } from "../../../types/files";
 
 export type ClipFilter = "all" | "text" | "image";
 
+export interface ClipLoadScope {
+  generation: number;
+  requestId: number;
+  filter: ClipFilter;
+}
+
 export interface AdjacentClipAfterDelete {
   nextClip: FileEntry | null;
   shouldClearDetail: boolean;
+}
+
+export function isCurrentClipLoadScope(scope: ClipLoadScope, current: ClipLoadScope) {
+  return (
+    scope.generation === current.generation &&
+    scope.requestId === current.requestId &&
+    scope.filter === current.filter
+  );
 }
 
 export function normalizeClipImageLinks(content: string, clipPath: string) {

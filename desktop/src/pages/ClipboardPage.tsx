@@ -65,6 +65,7 @@ import {
   getNewClipEntries,
   getSelectedClipDeletionPath,
   getVisibleClipEntries,
+  isCurrentClipLoadScope,
   normalizeClipImageLinks,
   resolveAdjacentClipAfterDelete,
   shouldAutoRefreshClipboardList,
@@ -72,6 +73,7 @@ import {
   shouldIgnoreClipWatcherRefresh as shouldIgnoreClipWatcherRefreshUntil,
   shouldShowClipboardPrivacyDialog,
   updateClipTotalAfterDelete,
+  type ClipLoadScope,
   type ClipFilter,
 } from "../components/domain/clipboard/clipboardLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
@@ -107,6 +109,11 @@ interface ScrollAnchor {
   scrollTop: number;
 }
 
+interface LoadSavedClipsOptions {
+  reset?: boolean;
+  preserveScroll?: boolean;
+}
+
 export default function ClipboardPage({
   active = true,
   onFocusSidebar: _onFocusSidebar,
@@ -140,7 +147,6 @@ export default function ClipboardPage({
   const [hasMore, setHasMore] = useState(false);
   const [clipTotal, setClipTotal] = useState<number | null>(null);
   const [clipFilter, setClipFilter] = useState<ClipFilter>("all");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedClipPaths, setSelectedClipPaths] = useState<string[]>([]);
   const [creatingNote, setCreatingNote] = useState(false);
@@ -195,6 +201,13 @@ export default function ClipboardPage({
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
+  const clipFilterRef = useRef<ClipFilter>(clipFilter);
+  const loadGenerationRef = useRef(0);
+  const loadRequestSequenceRef = useRef(0);
+  const latestLoadRequestRef = useRef(0);
+  const resetInFlightGenerationRef = useRef<number | null>(null);
+  const loadMoreInFlightRequestRef = useRef<number | null>(null);
+  const loadSavedClipsRef = useRef<(options?: LoadSavedClipsOptions) => Promise<void>>(async () => {});
   const refreshTimerRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
   const refreshQueuedRef = useRef(false);
@@ -234,10 +247,15 @@ export default function ClipboardPage({
     return { path: null, offsetTop: 0, scrollTop: container.scrollTop };
   }, []);
 
-  const restoreScrollAnchor = useCallback((anchor: ScrollAnchor | null) => {
+  const restoreScrollAnchor = useCallback((
+    anchor: ScrollAnchor | null,
+    shouldRestore: () => boolean = () => true,
+  ) => {
     if (!anchor) return;
     requestAnimationFrame(() => {
+      if (!shouldRestore()) return;
       requestAnimationFrame(() => {
+        if (!shouldRestore()) return;
         const container = listScrollRef.current;
         if (!container) return;
         if (!anchor.path) {
@@ -259,11 +277,34 @@ export default function ClipboardPage({
   const loadSavedClips = useCallback(async ({
     reset = true,
     preserveScroll = false,
-  }: { reset?: boolean; preserveScroll?: boolean } = {}) => {
+  }: LoadSavedClipsOptions = {}) => {
+    if (!reset && (resetInFlightGenerationRef.current !== null || loadMoreInFlightRequestRef.current !== null)) {
+      return;
+    }
+
+    const generation = reset
+      ? loadGenerationRef.current + 1
+      : loadGenerationRef.current;
+    if (reset) loadGenerationRef.current = generation;
+
+    const requestId = loadRequestSequenceRef.current + 1;
+    loadRequestSequenceRef.current = requestId;
+    latestLoadRequestRef.current = requestId;
+    const scope: ClipLoadScope = { generation, requestId, filter: clipFilter };
+    const isCurrentRequest = () => isCurrentClipLoadScope(scope, {
+      generation: loadGenerationRef.current,
+      requestId: latestLoadRequestRef.current,
+      filter: clipFilterRef.current,
+    });
+
+    if (reset) resetInFlightGenerationRef.current = generation;
+    else loadMoreInFlightRequestRef.current = requestId;
+
     const anchor = preserveScroll ? captureScrollAnchor() : null;
     const showBlockingLoading = reset && (!preserveScroll || savedClipsLengthRef.current === 0);
     if (showBlockingLoading) setClipsLoading(true);
-    else if (!reset) setLoadingMore(true);
+    if (reset) setLoadingMore(false);
+    else setLoadingMore(true);
     try {
       if (reset) {
         const initialTargetCount = Math.max(
@@ -284,6 +325,7 @@ export default function ClipboardPage({
             ),
             clipKind: clipFilter,
           });
+          if (!isCurrentRequest()) return;
           total = page.total;
           entries.push(...page.entries);
           if (!page.has_more || page.entries.length === 0) break;
@@ -293,7 +335,7 @@ export default function ClipboardPage({
         setSavedClips((prev) => areClipEntriesEquivalent(prev, visibleEntries) ? prev : visibleEntries);
         setClipTotal(total);
         setHasMore(entries.length < total);
-        if (preserveScroll) restoreScrollAnchor(anchor);
+        if (preserveScroll) restoreScrollAnchor(anchor, isCurrentRequest);
       } else {
         const page = await invoke<FilePage>("list_files_page", {
           folder: "clips",
@@ -301,6 +343,7 @@ export default function ClipboardPage({
           limit: FILE_PAGE_SIZE,
           clipKind: clipFilter,
         });
+        if (!isCurrentRequest()) return;
         setClipTotal(page.total);
         setSavedClips((prev) => {
           return [...prev, ...getNewClipEntries(prev, page.entries, deletedClipPathsRef.current)];
@@ -308,16 +351,32 @@ export default function ClipboardPage({
         setHasMore(page.has_more);
       }
     }
-    catch (e) { console.error(e); }
+    catch (e) {
+      if (isCurrentRequest()) console.error(e);
+    }
     finally {
-      if (showBlockingLoading) setClipsLoading(false);
-      else setLoadingMore(false);
+      if (isCurrentRequest()) {
+        if (reset) {
+          setClipsLoading(false);
+          setLoadingMore(false);
+        } else {
+          setLoadingMore(false);
+        }
+      }
+      if (resetInFlightGenerationRef.current === generation) {
+        resetInFlightGenerationRef.current = null;
+      }
+      if (loadMoreInFlightRequestRef.current === requestId) {
+        loadMoreInFlightRequestRef.current = null;
+      }
     }
   }, [captureScrollAnchor, clipFilter, restoreScrollAnchor]);
 
+  loadSavedClipsRef.current = loadSavedClips;
+
   useEffect(() => {
     void loadSavedClips();
-  }, [refreshTrigger, loadSavedClips]);
+  }, [loadSavedClips]);
 
   const runRefreshSavedClipsInPlace = useCallback(() => {
     if (refreshInFlightRef.current) {
@@ -326,7 +385,7 @@ export default function ClipboardPage({
     }
 
     refreshInFlightRef.current = true;
-    void loadSavedClips({ preserveScroll: true }).finally(() => {
+    void loadSavedClipsRef.current({ preserveScroll: true }).finally(() => {
       refreshInFlightRef.current = false;
       if (!refreshQueuedRef.current) return;
 
@@ -336,7 +395,7 @@ export default function ClipboardPage({
         runRefreshSavedClipsInPlace();
       }, 150);
     });
-  }, [loadSavedClips]);
+  }, []);
 
   const refreshSavedClipsInPlace = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -519,7 +578,25 @@ export default function ClipboardPage({
 
   const changeClipFilter = useCallback((nextFilter: ClipFilter) => {
     if (nextFilter === clipFilter) return;
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    refreshQueuedRef.current = false;
+    clipFilterRef.current = nextFilter;
+    loadGenerationRef.current += 1;
+    loadRequestSequenceRef.current += 1;
+    latestLoadRequestRef.current = loadRequestSequenceRef.current;
+    resetInFlightGenerationRef.current = null;
+    loadMoreInFlightRequestRef.current = null;
+    savedClipsRef.current = [];
+    savedClipsLengthRef.current = 0;
     setClipFilter(nextFilter);
+    setSavedClips([]);
+    setClipTotal(null);
+    setHasMore(false);
+    setClipsLoading(true);
+    setLoadingMore(false);
     clearDetail();
     setMultiSelectMode(false);
     setSelectedClipPaths([]);
@@ -688,7 +765,7 @@ export default function ClipboardPage({
                     mobile={isMobile}
                     icon={RefreshCw}
                     onClick={() => {
-                      setRefreshTrigger((t) => t + 1);
+                      void loadSavedClips();
                       void refreshClipboardStatus();
                       if (selectedFile) void openFile(selectedFile);
                     }}
@@ -894,7 +971,7 @@ export default function ClipboardPage({
                   active={active}
                   onBack={closeDetail}
                   onRefresh={() => {
-                    setRefreshTrigger((t) => t + 1);
+                    void loadSavedClips();
                     void refreshClipboardStatus();
                     if (selectedFile) void openFile(selectedFile);
                   }}
