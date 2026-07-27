@@ -5,7 +5,7 @@ import type {
   ReactNode,
   Ref,
 } from "react";
-import { RefreshCw, type LucideIcon } from "lucide-react";
+import { ArrowUp, RefreshCw, type LucideIcon } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { cx } from "../../base/classNames";
 import { useTimedIconSpin } from "../../base/useTimedIconSpin";
@@ -129,6 +129,34 @@ export function ClipboardListBody({
     >
       {children}
     </div>
+  );
+}
+
+export function ClipboardBackToTopButton({
+  mobile,
+  visible,
+  onClick,
+  label,
+}: {
+  mobile: boolean;
+  visible: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="gm-clipboard-back-to-top"
+      data-mobile={mobile ? "true" : "false"}
+      data-visible={visible ? "true" : "false"}
+      aria-hidden={!visible}
+      aria-label={label}
+      title={label}
+      tabIndex={visible ? 0 : -1}
+      onClick={onClick}
+    >
+      <AppIcon icon={ArrowUp} size={mobile ? "sm" : "xs"} />
+    </button>
   );
 }
 

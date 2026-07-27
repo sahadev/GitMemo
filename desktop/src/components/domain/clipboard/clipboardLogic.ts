@@ -3,6 +3,8 @@ import type { FileEntry } from "../../../types/files";
 
 export type ClipFilter = "all" | "text" | "image";
 
+export const CLIPBOARD_BACK_TO_TOP_THRESHOLD = 320;
+
 export interface ClipLoadScope {
   generation: number;
   requestId: number;
@@ -90,6 +92,10 @@ export function shouldIgnoreClipWatcherRefresh(suppressUntil: number, now = Date
 
 export function shouldAutoRefreshClipboardList(enabled: boolean | null | undefined) {
   return enabled !== false;
+}
+
+export function shouldShowClipboardBackToTop(scrollTop: number, selecting: boolean) {
+  return !selecting && scrollTop >= CLIPBOARD_BACK_TO_TOP_THRESHOLD;
 }
 
 export function canStartClipboardWatch(status: ClipboardStatus | null, privacyConfirmed: boolean) {

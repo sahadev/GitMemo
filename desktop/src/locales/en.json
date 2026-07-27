@@ -236,6 +236,7 @@
     "selectedDeleted": "Deleted {0}",
     "deleteClip": "Delete",
     "clipDeleted": "Clip deleted",
+    "backToTop": "Back to top",
     "loading": "Loading..."
   },
   "search": {

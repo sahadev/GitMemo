@@ -44,6 +44,7 @@ import {
   ClipboardEmptyState,
   ClipboardFilterBar,
   ClipboardFilterButton,
+  ClipboardBackToTopButton,
   ClipboardFooterTotal,
   ClipboardListBody,
   ClipboardListLoading,
@@ -71,6 +72,7 @@ import {
   shouldAutoRefreshClipboardList,
   shouldDisableClipboardSelectionActions,
   shouldIgnoreClipWatcherRefresh as shouldIgnoreClipWatcherRefreshUntil,
+  shouldShowClipboardBackToTop,
   shouldShowClipboardPrivacyDialog,
   updateClipTotalAfterDelete,
   type ClipLoadScope,
@@ -199,6 +201,7 @@ export default function ClipboardPage({
   useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "clipboard" });
   resetEditorRef.current = resetEditor;
   const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const savedClipsRef = useRef<FileEntry[]>([]);
   const savedClipsLengthRef = useRef(0);
   const clipFilterRef = useRef<ClipFilter>(clipFilter);
@@ -216,6 +219,19 @@ export default function ClipboardPage({
   const wasActiveRef = useRef(active);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const privacy = useClipboardPrivacy();
+
+  useEffect(() => {
+    const container = listScrollRef.current;
+    if (!container) return;
+
+    const updateBackToTopVisibility = () => {
+      setShowBackToTop(shouldShowClipboardBackToTop(container.scrollTop, multiSelectModeRef.current));
+    };
+
+    updateBackToTopVisibility();
+    container.addEventListener("scroll", updateBackToTopVisibility, { passive: true });
+    return () => container.removeEventListener("scroll", updateBackToTopVisibility);
+  }, []);
 
   useEffect(() => {
     multiSelectModeRef.current = multiSelectMode;
@@ -927,6 +943,13 @@ export default function ClipboardPage({
                 </>
               )}
             </ClipboardListBody>
+
+            <ClipboardBackToTopButton
+              mobile={isMobile}
+              visible={showBackToTop}
+              onClick={() => listScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+              label={t("clipboard.backToTop")}
+            />
 
             {multiSelectMode ? (
               <ClipboardSelectionBar mobile={isMobile}>

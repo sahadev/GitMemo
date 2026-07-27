@@ -236,6 +236,7 @@
     "selectedDeleted": "已删除 {0} 条",
     "deleteClip": "删除",
     "clipDeleted": "已删除",
+    "backToTop": "返回顶部",
     "loading": "加载中..."
   },
   "search": {

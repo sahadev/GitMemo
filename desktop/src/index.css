@@ -1123,6 +1123,62 @@ a:focus-visible {
   padding-bottom: var(--gm-mobile-bottom-selection-padding);
 }
 
+.gm-clipboard-back-to-top {
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--gm-radius-pill);
+  bottom: 56px;
+  box-shadow: var(--gm-shadow-control-strong);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  height: var(--gm-control-height-lg);
+  justify-content: center;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  position: absolute;
+  right: var(--gm-space-5);
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
+  visibility: hidden;
+  width: var(--gm-control-height-lg);
+  z-index: 20;
+}
+
+.gm-clipboard-back-to-top[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.gm-clipboard-back-to-top:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.gm-clipboard-back-to-top:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.gm-clipboard-back-to-top[data-mobile="true"] {
+  bottom: calc(var(--gm-size-mobile-bottom-nav-height) + var(--gm-space-5));
+  height: 44px;
+  right: var(--gm-space-4);
+  width: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-clipboard-back-to-top {
+    transition: none;
+  }
+}
+
 .gm-clipboard-list-loading {
   align-items: center;
   display: flex;
