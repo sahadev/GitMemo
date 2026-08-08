@@ -9,6 +9,7 @@ import { FavoriteButton } from "../components/FavoriteButton";
 import { AppIcon } from "../components/base/AppIcon";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import type { EditorHandle } from "../components/domain/editor/editorTypes";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { getDocumentTitle } from "../components/domain/files/fileWorkspaceLogic";
 import { SearchInput } from "../components/domain/search/SearchInput";
@@ -77,7 +78,7 @@ export default function SearchPage({
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const editRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<EditorHandle | null>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
   const imeComposingRef = useRef(false);
   const searchRequestRef = useRef(0);

@@ -1,14 +1,8 @@
-import {
-  forwardRef,
-  useCallback,
-  type ChangeEventHandler,
-  type ClipboardEventHandler,
-  type KeyboardEventHandler,
-  type ReactNode,
-} from "react";
-import { CodeTextarea } from "../../base/CodeTextarea";
+import { forwardRef, type ReactNode } from "react";
 import { cx } from "../../base/classNames";
 import { DetailScroll } from "../../layout/Pane";
+import { CodeMirrorEditor } from "../editor/CodeMirrorEditor";
+import type { EditorHandle, EditorPasteHandler } from "../editor/editorTypes";
 import { MarkdownSplitEditor } from "../../MarkdownSplitEditor";
 
 interface FileEditorProps {
@@ -16,8 +10,7 @@ interface FileEditorProps {
   onChange: (value: string) => void;
   onSave?: () => void | Promise<void>;
   onCancel?: () => void;
-  onPaste?: ClipboardEventHandler<HTMLTextAreaElement>;
-  onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
+  onPaste?: EditorPasteHandler;
   filePath?: string;
   mobile?: boolean;
   minHeight?: boolean;
@@ -36,13 +29,12 @@ interface FileEditorSurfaceProps extends FileEditorProps {
   scrollClassName?: string;
 }
 
-export const FileEditor = forwardRef<HTMLTextAreaElement, FileEditorProps>(function FileEditor({
+export const FileEditor = forwardRef<EditorHandle, FileEditorProps>(function FileEditor({
   value,
   onChange,
   onSave,
   onCancel,
   onPaste,
-  onKeyDown,
   filePath,
   mobile = false,
   minHeight = false,
@@ -52,33 +44,14 @@ export const FileEditor = forwardRef<HTMLTextAreaElement, FileEditorProps>(funct
   cancelOnEscape = true,
   className,
 }, ref) {
-  const handleKeyDown = useCallback<KeyboardEventHandler<HTMLTextAreaElement>>((event) => {
-    onKeyDown?.(event);
-    if (event.defaultPrevented) return;
-
-    if (onSave && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
-      event.preventDefault();
-      void onSave();
-      return;
-    }
-
-    if (cancelOnEscape && onCancel && event.key === "Escape") {
-      event.preventDefault();
-      onCancel();
-    }
-  }, [cancelOnEscape, onCancel, onKeyDown, onSave]);
-
-  const handleChange = useCallback<ChangeEventHandler<HTMLTextAreaElement>>((event) => {
-    onChange(event.target.value);
-  }, [onChange]);
-
   if (supportsSplitPreview && splitPreview) {
     return (
       <MarkdownSplitEditor
         ref={ref}
         value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
+        onChange={onChange}
+        onSave={onSave}
+        onCancel={cancelOnEscape ? onCancel : undefined}
         onPaste={onPaste}
         filePath={filePath}
         mobile={mobile}
@@ -88,22 +61,22 @@ export const FileEditor = forwardRef<HTMLTextAreaElement, FileEditorProps>(funct
   }
 
   return (
-    <CodeTextarea
+    <CodeMirrorEditor
       ref={ref}
       value={value}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
+      onChange={onChange}
+      onSave={onSave}
+      onCancel={cancelOnEscape ? onCancel : undefined}
       onPaste={onPaste}
+      filePath={filePath}
       mobile={mobile}
       minHeight={minHeight}
-      boxed={boxed}
-      spellCheck={false}
-      className={className}
+      className={cx(className, boxed && "gm-code-mirror-box")}
     />
   );
 });
 
-export const FileEditorSurface = forwardRef<HTMLTextAreaElement, FileEditorSurfaceProps>(function FileEditorSurface({
+export const FileEditorSurface = forwardRef<EditorHandle, FileEditorSurfaceProps>(function FileEditorSurface({
   editing,
   children,
   mobileBottomPadding = false,

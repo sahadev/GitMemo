@@ -3,32 +3,22 @@ import {
   useCallback,
   useEffect,
   useRef,
-  type ChangeEventHandler,
-  type ClipboardEventHandler,
-  type KeyboardEventHandler,
-  type Ref,
+  useState,
 } from "react";
-import { CodeTextarea } from "./base/CodeTextarea";
+import type { EditorView } from "@codemirror/view";
 import { MarkdownContent } from "./MarkdownView";
+import { CodeMirrorEditor } from "./domain/editor/CodeMirrorEditor";
+import type { EditorHandle, EditorPasteHandler } from "./domain/editor/editorTypes";
 
 interface MarkdownSplitEditorProps {
   value: string;
-  onChange: ChangeEventHandler<HTMLTextAreaElement>;
-  onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
-  onPaste?: ClipboardEventHandler<HTMLTextAreaElement>;
+  onChange: (value: string) => void;
+  onSave?: () => void | Promise<void>;
+  onCancel?: () => void;
+  onPaste?: EditorPasteHandler;
   filePath?: string;
   mobile?: boolean;
   minHeight?: boolean;
-}
-
-function assignRef(ref: Ref<HTMLTextAreaElement>, node: HTMLTextAreaElement | null) {
-  if (typeof ref === "function") {
-    ref(node);
-    return;
-  }
-  if (ref) {
-    ref.current = node;
-  }
 }
 
 function scrollRatio(node: HTMLElement) {
@@ -41,16 +31,17 @@ function applyScrollRatio(node: HTMLElement, ratio: number) {
   node.scrollTop = max > 0 ? max * ratio : 0;
 }
 
-export const MarkdownSplitEditor = forwardRef<HTMLTextAreaElement, MarkdownSplitEditorProps>(function MarkdownSplitEditor({
+export const MarkdownSplitEditor = forwardRef<EditorHandle, MarkdownSplitEditorProps>(function MarkdownSplitEditor({
   value,
   onChange,
-  onKeyDown,
+  onSave,
+  onCancel,
   onPaste,
   filePath,
   mobile = false,
   minHeight = false,
 }, ref) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const pendingSyncRef = useRef<{ source: HTMLElement; target: HTMLElement } | null>(null);
   const syncFrameRef = useRef<number | null>(null);
@@ -85,22 +76,27 @@ export const MarkdownSplitEditor = forwardRef<HTMLTextAreaElement, MarkdownSplit
     });
   }, [markProgrammaticScroll]);
 
-  const setTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
-    textareaRef.current = node;
-    assignRef(ref, node);
-  }, [ref]);
+  useEffect(() => {
+    const source = editorView?.scrollDOM;
+    const preview = previewRef.current;
+    if (!source || !preview) return;
+
+    const handleScroll = () => syncScroll(source, preview);
+    source.addEventListener("scroll", handleScroll, { passive: true });
+    return () => source.removeEventListener("scroll", handleScroll);
+  }, [editorView, syncScroll]);
 
   useEffect(() => {
-    const textarea = textareaRef.current;
+    const source = editorView?.scrollDOM;
     const preview = previewRef.current;
-    if (!textarea || !preview) return;
+    if (!source || !preview) return;
 
     const frame = window.requestAnimationFrame(() => {
       markProgrammaticScroll(preview);
-      applyScrollRatio(preview, scrollRatio(textarea));
+      applyScrollRatio(preview, scrollRatio(source));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [markProgrammaticScroll, value]);
+  }, [editorView, markProgrammaticScroll, value]);
 
   useEffect(() => () => {
     if (syncFrameRef.current !== null) {
@@ -114,19 +110,20 @@ export const MarkdownSplitEditor = forwardRef<HTMLTextAreaElement, MarkdownSplit
   return (
     <div className="gm-markdown-split-editor" data-mobile={mobile ? "true" : "false"}>
       <div className="gm-markdown-split-pane gm-markdown-split-source">
-        <CodeTextarea
-          ref={setTextareaRef}
+        <CodeMirrorEditor
+          ref={ref}
           value={value}
           onChange={onChange}
-          onKeyDown={onKeyDown}
+          onSave={onSave}
+          onCancel={onCancel}
           onPaste={onPaste}
-          onScroll={(e) => {
-            const preview = previewRef.current;
-            if (preview) syncScroll(e.currentTarget, preview);
+          onViewReady={(view) => {
+            setEditorView(view);
           }}
-          className="gm-markdown-split-textarea"
+          filePath={filePath}
           mobile={mobile}
           minHeight={minHeight}
+          className="gm-markdown-split-editor-host"
         />
       </div>
       <div className="gm-markdown-split-divider" aria-hidden="true" />
@@ -134,8 +131,8 @@ export const MarkdownSplitEditor = forwardRef<HTMLTextAreaElement, MarkdownSplit
         ref={previewRef}
         className="gm-markdown-split-pane gm-markdown-split-preview markdown-body"
         onScroll={(e) => {
-          const textarea = textareaRef.current;
-          if (textarea) syncScroll(e.currentTarget, textarea);
+          const source = editorView?.scrollDOM;
+          if (source) syncScroll(e.currentTarget, source);
         }}
       >
         <MarkdownContent content={value} filePath={filePath} />

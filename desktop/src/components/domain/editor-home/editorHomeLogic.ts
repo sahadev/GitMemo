@@ -1,3 +1,5 @@
+import { isMarkdownEditorPath } from "../editor/editorLogic";
+
 export type EditorRoot = "claude" | "cursor" | "codex" | "anonymous";
 
 export interface EditorRootsStatus {
@@ -38,10 +40,7 @@ export function parentRel(rel: string): string {
   return separatorIndex < 0 ? "" : normalized.slice(0, separatorIndex);
 }
 
-export function isProbablyMarkdownEditorPath(path: string): boolean {
-  const lower = path.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
-}
+export { isMarkdownEditorPath as isProbablyMarkdownEditorPath };
 
 export function joinRel(base: string, name: string): string {
   return base ? `${base.replace(/\/+$/, "")}/${name}` : name;

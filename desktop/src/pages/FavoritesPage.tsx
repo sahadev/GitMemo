@@ -13,6 +13,7 @@ import { Badge } from "../components/base/Badge";
 import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import type { EditorHandle } from "../components/domain/editor/editorTypes";
 import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
@@ -70,7 +71,7 @@ export default function FavoritesPage({
   const [content, setContent] = useState<FavoriteContent | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const editRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<EditorHandle | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const {
     editing,

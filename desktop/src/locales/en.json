@@ -43,6 +43,21 @@
     "editableWarning": "Edits here change local files directly.",
     "untitled": "untitled"
   },
+  "editorToolbar": {
+    "heading": "Heading",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "inlineCode": "Inline code",
+    "link": "Link",
+    "quote": "Quote",
+    "bulletList": "Bullet list",
+    "orderedList": "Numbered list",
+    "codeBlock": "Code block",
+    "find": "Find",
+    "undo": "Undo",
+    "redo": "Redo"
+  },
   "imports": {
     "title": "Imports",
     "empty": "Drag files to the window to import",

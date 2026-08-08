@@ -1,6 +1,7 @@
-import type { ClipboardEvent, CompositionEvent, KeyboardEvent, Ref } from "react";
+import type { CompositionEvent, KeyboardEvent, Ref } from "react";
 import { Send } from "lucide-react";
 import { AppIcon } from "../../base/AppIcon";
+import type { EditorPasteHandler } from "../editor/editorTypes";
 
 interface NoteComposerProps {
   showTitle: boolean;
@@ -17,7 +18,7 @@ interface NoteComposerProps {
   disabled: boolean;
   helperText?: string;
   showHelper: boolean;
-  onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
+  onPaste: EditorPasteHandler;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onCompositionStart?: (event: CompositionEvent<HTMLTextAreaElement>) => void;
   onCompositionEnd?: (event: CompositionEvent<HTMLTextAreaElement>) => void;
@@ -62,7 +63,10 @@ export function NoteComposer({
           ref={textareaRef}
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
-          onPaste={onPaste}
+          onPaste={(event) => onPaste({
+            clipboardData: event.clipboardData,
+            preventDefault: () => event.preventDefault(),
+          })}
           onKeyDown={onKeyDown}
           onCompositionStart={onCompositionStart}
           onCompositionEnd={onCompositionEnd}

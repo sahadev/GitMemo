@@ -26,6 +26,7 @@ import {
   type ConversationMeta,
 } from "../components/domain/conversations/conversationsLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import type { EditorHandle } from "../components/domain/editor/editorTypes";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
@@ -76,7 +77,7 @@ export default function ConversationsPage({
   const [rawContent, setRawContent] = useState("");
   const [rawBody, setRawBody] = useState("");
   const [currentMeta, setCurrentMeta] = useState<ConversationMeta | null>(null);
-  const editRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<EditorHandle | null>(null);
   const {
     editing,
     editContent,

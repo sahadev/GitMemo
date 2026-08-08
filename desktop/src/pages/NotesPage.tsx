@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ClipboardEvent, type Dispatch, type SetStateAction } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
@@ -13,6 +13,7 @@ import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import type { EditorHandle, EditorPasteEvent } from "../components/domain/editor/editorTypes";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
@@ -82,7 +83,7 @@ export default function NotesPage({
   const [manualTitle, setManualTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<EditorHandle | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
   const {
     selectedFile,
@@ -165,7 +166,7 @@ export default function NotesPage({
   }, [arrayBufferToBase64]);
 
   const handlePasteAttachments = useCallback(async (
-    e: ClipboardEvent<HTMLTextAreaElement>,
+    e: EditorPasteEvent,
     setter: Dispatch<SetStateAction<string>>,
   ) => {
     // Try clipboardData.items first (standard), then fall back to clipboardData.files

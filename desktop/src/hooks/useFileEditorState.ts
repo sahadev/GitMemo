@@ -1,9 +1,10 @@
 import { useCallback, useState, type RefObject } from "react";
+import type { EditorHandle } from "../components/domain/editor/editorTypes";
 
 interface UseFileEditorStateOptions {
   sourceContent?: string;
   mobile?: boolean;
-  focusRef?: RefObject<HTMLTextAreaElement | null>;
+  focusRef?: RefObject<EditorHandle | null>;
   focusDelayMs?: number;
   clearContentOnCancel?: boolean;
   clearContentOnComplete?: boolean;

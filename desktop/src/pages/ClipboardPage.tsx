@@ -79,6 +79,7 @@ import {
   type ClipFilter,
 } from "../components/domain/clipboard/clipboardLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
+import type { EditorHandle } from "../components/domain/editor/editorTypes";
 import {
   getDocumentTitle,
   getDocumentTitleForPath,
@@ -155,7 +156,7 @@ export default function ClipboardPage({
   const { copied: copiedId, markCopied: markCopiedId } = useTimedCopy<string>();
   const [deletingSelected, setDeletingSelected] = useState(false);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const editRef = useRef<HTMLTextAreaElement | null>(null);
+  const editRef = useRef<EditorHandle | null>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
   const multiSelectModeRef = useRef(false);
   const detailOpenedFromCrossPageRef = useRef(false);

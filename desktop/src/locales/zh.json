@@ -43,6 +43,21 @@
     "editableWarning": "此处的修改会直接写入本机文件。",
     "untitled": "untitled"
   },
+  "editorToolbar": {
+    "heading": "标题",
+    "bold": "粗体",
+    "italic": "斜体",
+    "strike": "删除线",
+    "inlineCode": "行内代码",
+    "link": "链接",
+    "quote": "引用",
+    "bulletList": "无序列表",
+    "orderedList": "有序列表",
+    "codeBlock": "代码块",
+    "find": "查找",
+    "undo": "撤销",
+    "redo": "重做"
+  },
   "imports": {
     "title": "导入文件",
     "empty": "拖拽文件到窗口即可导入",

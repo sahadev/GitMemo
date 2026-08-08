@@ -1,3 +1,5 @@
+import { isMarkdownEditorPath } from "../editor/editorLogic";
+
 export interface ExternalFileEntry {
   file_path: string;
   file_name: string;
@@ -50,8 +52,7 @@ export interface RecentlySavedExternalFile {
 export type ExternalFileDialogSelection = string | string[] | null;
 
 export function isProbablyMarkdownFileName(name: string) {
-  const lower = name.toLowerCase();
-  return lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".mdx") || lower.endsWith(".mdc");
+  return isMarkdownEditorPath(name);
 }
 
 export function getFirstExternalFileDialogPath(selection: ExternalFileDialogSelection) {
