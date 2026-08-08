@@ -23,16 +23,22 @@ import {
   search,
   searchKeymap,
 } from "@codemirror/search";
-import { EditorState, type Extension } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
   drawSelection,
   keymap,
   type ViewUpdate,
 } from "@codemirror/view";
+import { useAppStore } from "../../../hooks/useAppStore";
 import { cx } from "../../base/classNames";
 import { EditorToolbar } from "./EditorToolbar";
-import { applyMarkdownCommand, getEditorMode, type MarkdownCommandId } from "./editorLogic";
+import {
+  applyMarkdownCommand,
+  getEditorMode,
+  isDarkEditorTheme,
+  type MarkdownCommandId,
+} from "./editorLogic";
 import type { EditorHandle, EditorPasteHandler } from "./editorTypes";
 
 interface CodeMirrorEditorProps {
@@ -48,7 +54,7 @@ interface CodeMirrorEditorProps {
   onViewReady?: (view: EditorView | null) => void;
 }
 
-const editorTheme = EditorView.theme({
+const editorThemeStyles = {
   "&": {
     backgroundColor: "transparent",
     color: "var(--text)",
@@ -72,7 +78,7 @@ const editorTheme = EditorView.theme({
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--accent)",
   },
-  ".cm-selectionBackground, ::selection": {
+  "&.cm-focused .cm-selectionBackground, .cm-content ::selection": {
     backgroundColor: "color-mix(in srgb, var(--accent) 28%, transparent)",
   },
   ".cm-activeLine": {
@@ -82,7 +88,14 @@ const editorTheme = EditorView.theme({
     backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
     outline: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)",
   },
-}, {dark: true});
+};
+
+const lightEditorTheme = EditorView.theme(editorThemeStyles, { dark: false });
+const darkEditorTheme = EditorView.theme(editorThemeStyles, { dark: true });
+
+function resolveEditorTheme(theme: "dark" | "light"): Extension {
+  return isDarkEditorTheme(theme) ? darkEditorTheme : lightEditorTheme;
+}
 
 function isDocumentChanged(update: ViewUpdate) {
   return update.docChanged;
@@ -102,6 +115,7 @@ export const CodeMirrorEditor = forwardRef<EditorHandle, CodeMirrorEditorProps>(
 }, ref: Ref<EditorHandle>) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const themeCompartmentRef = useRef(new Compartment());
   const [view, setView] = useState<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onSaveRef = useRef(onSave);
@@ -110,6 +124,7 @@ export const CodeMirrorEditor = forwardRef<EditorHandle, CodeMirrorEditorProps>(
   const onViewReadyRef = useRef(onViewReady);
   const syncingValueRef = useRef(false);
   const mode = getEditorMode(filePath);
+  const theme = useAppStore((state) => state.theme);
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
   useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
@@ -144,7 +159,7 @@ export const CodeMirrorEditor = forwardRef<EditorHandle, CodeMirrorEditorProps>(
       },
     };
     const extensions: Extension[] = [
-      editorTheme,
+      themeCompartmentRef.current.of(resolveEditorTheme(theme)),
       EditorView.lineWrapping,
       drawSelection(),
       history(),
@@ -203,6 +218,15 @@ export const CodeMirrorEditor = forwardRef<EditorHandle, CodeMirrorEditorProps>(
     // resetting the CodeMirror history on every controlled value update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  useEffect(() => {
+    const currentView = viewRef.current;
+    if (!currentView) return;
+
+    currentView.dispatch({
+      effects: themeCompartmentRef.current.reconfigure(resolveEditorTheme(theme)),
+    });
+  }, [theme]);
 
   useEffect(() => {
     const currentView = viewRef.current;

@@ -15,7 +15,12 @@ const errors = diagnostics.filter((diagnostic) => diagnostic.category === ts.Dia
 assert.deepEqual(errors, []);
 
 const logicModuleUrl = `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
-const { applyMarkdownCommand, getEditorMode, isMarkdownEditorPath } = await import(logicModuleUrl);
+const {
+  applyMarkdownCommand,
+  getEditorMode,
+  isDarkEditorTheme,
+  isMarkdownEditorPath,
+} = await import(logicModuleUrl);
 
 test("markdown mode is selected for supported document extensions", () => {
   assert.equal(isMarkdownEditorPath("notes/example.md"), true);
@@ -24,6 +29,11 @@ test("markdown mode is selected for supported document extensions", () => {
   assert.equal(isMarkdownEditorPath("src/main.rs"), false);
   assert.equal(getEditorMode("notes/example.md"), "markdown");
   assert.equal(getEditorMode("src/main.rs"), "plain");
+});
+
+test("editor theme follows the application color theme", () => {
+  assert.equal(isDarkEditorTheme("light"), false);
+  assert.equal(isDarkEditorTheme("dark"), true);
 });
 
 test("inline commands preserve the selected content and place the cursor inside the markup", () => {

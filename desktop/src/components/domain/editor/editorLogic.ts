@@ -1,4 +1,5 @@
 export type EditorMode = "markdown" | "plain";
+export type EditorColorTheme = "dark" | "light";
 
 export type MarkdownCommandId =
   | "bold"
@@ -32,6 +33,10 @@ export function isMarkdownEditorPath(filePath?: string): boolean {
 
 export function getEditorMode(filePath?: string): EditorMode {
   return isMarkdownEditorPath(filePath) ? "markdown" : "plain";
+}
+
+export function isDarkEditorTheme(theme: EditorColorTheme): boolean {
+  return theme === "dark";
 }
 
 function wrapSelection(
