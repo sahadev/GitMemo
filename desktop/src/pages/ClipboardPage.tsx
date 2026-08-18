@@ -188,7 +188,6 @@ export default function ClipboardPage({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({
@@ -197,7 +196,6 @@ export default function ClipboardPage({
     focusRef: editRef,
     focusDelayMs: 50,
     clearContentOnCancel: true,
-    clearContentOnComplete: true,
   });
   useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "clipboard" });
   resetEditorRef.current = resetEditor;
@@ -707,13 +705,12 @@ export default function ClipboardPage({
       await invoke<NoteResult>("update_note", { filePath: selectedFile, content: nextContent });
       setRawFileContent(nextContent);
       setFileContent(editContent);
-      completeEdit();
       showToast(t("clipboard.saved"));
       refreshSavedClipsInPlace();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [completeEdit, editContent, rawFileContent, refreshSavedClipsInPlace, selectedFile, showToast, t]);
+  }, [editContent, rawFileContent, refreshSavedClipsInPlace, selectedFile, showToast, t]);
 
   const handleMultiSelectBack = useCallback(() => {
     if (!multiSelectMode) return false;

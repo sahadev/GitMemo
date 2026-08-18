@@ -80,7 +80,6 @@ export default function FavoritesPage({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({
@@ -88,7 +87,6 @@ export default function FavoritesPage({
     mobile: isMobile,
     focusRef: editRef,
     clearContentOnCancel: true,
-    clearContentOnComplete: true,
   });
   useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "favorites" });
 
@@ -243,7 +241,7 @@ export default function FavoritesPage({
       }
       const next = await invoke<FavoriteContent>("read_favorite_content", { targetId: content.target_id });
       setContent(next);
-      completeEdit(next.content);
+      setEditContent(next.content);
       showToast(t("favorites.saved"));
       void loadFavorites();
     } catch (e) {
@@ -251,7 +249,7 @@ export default function FavoritesPage({
     } finally {
       setSaving(false);
     }
-  }, [completeEdit, content, editContent, isMobile, loadFavorites, selectedEntry, showToast, t]);
+  }, [content, editContent, isMobile, loadFavorites, selectedEntry, setEditContent, showToast, t]);
 
   const detail = (
     <DetailPane>

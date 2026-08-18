@@ -5914,14 +5914,43 @@ a:focus-visible {
   background: var(--gm-color-bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--gm-radius-md);
+  bottom: 0;
   box-shadow: var(--gm-shadow-soft);
   display: flex;
   gap: var(--gm-space-3);
-  margin-bottom: var(--gm-space-4);
+  left: var(--gm-find-bar-left, 0px);
   padding: var(--gm-space-3) var(--gm-space-3);
-  position: sticky;
-  top: 0;
+  position: fixed;
+  right: 0;
   z-index: var(--gm-z-sticky);
+}
+
+.gm-markdown-find-open {
+  padding-bottom: calc(var(--gm-control-height-lg) + var(--gm-space-6));
+}
+
+.gm-app-main {
+  --gm-find-bar-app-left: var(--gm-size-sidebar-width);
+}
+
+.gm-app-main[data-sidebar-collapsed="true"] {
+  --gm-find-bar-app-left: var(--gm-size-sidebar-collapsed-width);
+}
+
+.gm-split-pane {
+  --gm-find-bar-left: calc(var(--gm-find-bar-app-left) + var(--gm-split-pane-left-width, 0px) + var(--gm-size-split-handle-width));
+}
+
+.gm-split-pane[data-collapsed="true"] {
+  --gm-find-bar-left: calc(var(--gm-find-bar-app-left) + var(--gm-size-split-collapsed-rail-width));
+}
+
+.gm-split-pane-mobile {
+  --gm-find-bar-left: 0px;
+}
+
+.gm-app-shell[data-mobile="true"] .gm-find-bar {
+  bottom: var(--gm-mobile-fixed-bar-bottom);
 }
 
 .gm-find-input {

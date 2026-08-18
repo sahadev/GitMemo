@@ -109,7 +109,6 @@ export default function NotesPage({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({
@@ -260,7 +259,6 @@ export default function NotesPage({
     try {
       const result = await invoke<NoteResult>("update_note", { filePath: selectedFile, content: editContent });
       setFileContent(editContent);
-      completeEdit();
       showToast(result.message);
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }

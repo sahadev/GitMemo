@@ -71,7 +71,6 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({ sourceContent: fileContent });
@@ -171,16 +170,16 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
         content: editContent,
       });
       setFileContent(editContent);
-      completeEdit();
+      setSelectedFileRel(result.rel_path);
+      setFocusedEntryRel(result.rel_path);
       showToast(result.message || t("editorHome.saved"));
       void loadDir();
-      void openFile(result.rel_path);
     } catch (e) {
       showToast(`Error: ${e}`, true);
     } finally {
       setSaving(false);
     }
-  }, [selectedFileRel, root, editContent, completeEdit, showToast, t, loadDir, openFile]);
+  }, [selectedFileRel, root, editContent, showToast, t, loadDir]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedFileRel) return;

@@ -380,7 +380,7 @@ export default function MarkdownView({ content, filePath }: MarkdownViewProps) {
   }, [shortcuts.find_in_document]);
 
   return (
-    <div ref={rootRef} className="markdown-body">
+    <div ref={rootRef} className={`markdown-body${findOpen ? " gm-markdown-find-open" : ""}`}>
       {findOpen && (
         <div className="gm-find-bar">
           <AppIcon icon={Search} size="xs" tone="secondary" />

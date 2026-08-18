@@ -119,7 +119,6 @@ export default function SearchPage({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({
@@ -127,7 +126,6 @@ export default function SearchPage({
     mobile: isMobile,
     focusRef: editRef,
     clearContentOnCancel: true,
-    clearContentOnComplete: true,
   });
   useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "search" });
   resetEditorRef.current = resetEditor;
@@ -249,12 +247,11 @@ export default function SearchPage({
       await invoke("update_note", { filePath: selectedFile, content: nextContent });
       setFileContent(editContent);
       setRawFileContent(nextContent);
-      completeEdit();
       showToast(t("notes.save"));
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [completeEdit, rawFileContent, selectedFile, editContent, showToast, t]);
+  }, [rawFileContent, selectedFile, editContent, showToast, t]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedFile) return;

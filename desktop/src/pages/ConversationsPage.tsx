@@ -85,7 +85,6 @@ export default function ConversationsPage({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   } = useFileEditorState({
@@ -93,7 +92,6 @@ export default function ConversationsPage({
     mobile: isMobile,
     focusRef: editRef,
     clearContentOnCancel: true,
-    clearContentOnComplete: true,
   });
   useMobileEditorChrome({ active: shouldActivateMobileEditorChrome({ pageActive: active, editing }), id: "conversations" });
   const detailOpenedFromCrossPageRef = useRef(false);
@@ -184,13 +182,12 @@ export default function ConversationsPage({
         next.set(selectedFile, parseConversationFrontmatter(editContent).meta);
         return next;
       });
-      completeEdit();
       showToast(t("conversations.saved"));
       void loadFiles();
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }
-  }, [selectedFile, editContent, applyConversationRaw, completeEdit, loadFiles, showToast, t]);
+  }, [selectedFile, editContent, applyConversationRaw, loadFiles, showToast, t]);
 
   const handleDelete = async () => {
     if (isMobile) return;

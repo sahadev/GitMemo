@@ -7,7 +7,6 @@ interface UseFileEditorStateOptions {
   focusRef?: RefObject<EditorHandle | null>;
   focusDelayMs?: number;
   clearContentOnCancel?: boolean;
-  clearContentOnComplete?: boolean;
 }
 
 interface StartEditOptions {
@@ -30,7 +29,6 @@ export function useFileEditorState({
   focusRef,
   focusDelayMs = 0,
   clearContentOnCancel = false,
-  clearContentOnComplete = false,
 }: UseFileEditorStateOptions = {}) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
@@ -61,16 +59,6 @@ export function useFileEditorState({
     }
   }, [clearContentOnCancel]);
 
-  const completeEdit = useCallback((content?: string) => {
-    setEditing(false);
-    setSplitPreview(false);
-    if (content !== undefined) {
-      setEditContent(content);
-    } else if (clearContentOnComplete) {
-      setEditContent("");
-    }
-  }, [clearContentOnComplete]);
-
   const resetEditor = useCallback((content = "") => {
     setEditing(false);
     setEditContent(content);
@@ -98,7 +86,6 @@ export function useFileEditorState({
     setEditContent,
     startEdit,
     cancelEdit,
-    completeEdit,
     resetEditor,
     toggleSplitPreview,
   };

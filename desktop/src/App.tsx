@@ -567,6 +567,7 @@ function App() {
       )}
       <main
         className="gm-app-main"
+        data-sidebar-collapsed={isDesktop && sidebarCollapsed ? "true" : "false"}
         onClick={() => setSidebarFocused(false)}
       >
         {pageContent}
