@@ -2832,6 +2832,20 @@ a:focus-visible {
   width: 100%;
 }
 
+/* Keep CodeMirror's find/replace panel attached to the app viewport instead
+ * of the editor's document scroll container. */
+.gm-code-mirror-host .cm-panels-bottom {
+  bottom: 0;
+  left: var(--gm-find-bar-left, 0px);
+  position: fixed;
+  right: 0;
+  z-index: var(--gm-z-sticky);
+}
+
+.gm-app-shell[data-mobile="true"] .gm-code-mirror-host .cm-panels-bottom {
+  bottom: var(--gm-mobile-fixed-bar-bottom);
+}
+
 .gm-code-mirror-host[data-mobile="true"] .cm-content {
   font-size: var(--gm-font-md);
 }
