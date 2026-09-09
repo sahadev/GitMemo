@@ -47,7 +47,7 @@ import {
   isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
   shouldSaveDashboardQuickNoteFromKeyboard,
-  shouldInsertDashboardQuickNoteTemplate,
+  shouldInsertDashboardQuickNoteTab,
   shouldScrollDashboardQuickNoteAfterExpand,
   shouldShowCliCapabilityCard,
   shouldShowDashboardEmptyGuide,
@@ -310,13 +310,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     const isComposing = quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229;
     const hasModifierKey = e.shiftKey || e.altKey || e.metaKey || e.ctrlKey;
 
-    if (shouldInsertDashboardQuickNoteTemplate(e.key, quickNoteDraft, hasModifierKey, isComposing)) {
+    if (shouldInsertDashboardQuickNoteTab(e.key, hasModifierKey, isComposing)) {
       e.preventDefault();
-      setQuickNoteDraft(quickNotePlaceholder);
-      window.requestAnimationFrame(() => {
-        const textarea = quickNoteTextareaRef.current;
-        textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
-      });
+      const textarea = e.currentTarget;
+      const selectionStart = textarea.selectionStart;
+      const selectionEnd = textarea.selectionEnd;
+      textarea.setRangeText("\t", selectionStart, selectionEnd, "end");
+      setQuickNoteDraft(textarea.value);
       return;
     }
 
@@ -331,7 +331,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     })) return;
     e.preventDefault();
     void saveQuickNote();
-  }, [quickNoteDraft, quickNotePlaceholder, saveQuickNote]);
+  }, [quickNoteDraft, saveQuickNote]);
 
   useEffect(() => {
     if (!active) return;

@@ -140,23 +140,8 @@ export function canSaveDashboardQuickNote(content: string, saving: boolean) {
   return hasDashboardQuickNoteContent(content) && !saving;
 }
 
-export function isDashboardQuickNoteDraftEmpty(content: string) {
-  return content.length === 0;
-}
-
-export function isDashboardQuickNoteTemplateShortcut(key: string, hasModifierKey: boolean) {
-  return key === "Tab" && !hasModifierKey;
-}
-
-export function shouldInsertDashboardQuickNoteTemplate(
-  key: string,
-  content: string,
-  hasModifierKey: boolean,
-  isComposing: boolean,
-) {
-  return isDashboardQuickNoteTemplateShortcut(key, hasModifierKey)
-    && isDashboardQuickNoteDraftEmpty(content)
-    && !isComposing;
+export function shouldInsertDashboardQuickNoteTab(key: string, hasModifierKey: boolean, isComposing: boolean) {
+  return key === "Tab" && !hasModifierKey && !isComposing;
 }
 
 export const DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT = "CmdOrCtrl+S";
