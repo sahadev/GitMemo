@@ -47,6 +47,7 @@ import {
   isDashboardQuickNoteExpandedPreference,
   isDashboardEditorConfigured,
   shouldSaveDashboardQuickNoteFromKeyboard,
+  shouldInsertDashboardQuickNoteTemplate,
   shouldInsertDashboardQuickNoteTab,
   shouldScrollDashboardQuickNoteAfterExpand,
   shouldShowCliCapabilityCard,
@@ -310,6 +311,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     const isComposing = quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229;
     const hasModifierKey = e.shiftKey || e.altKey || e.metaKey || e.ctrlKey;
 
+    if (shouldInsertDashboardQuickNoteTemplate(e.key, quickNoteDraft, hasModifierKey, isComposing)) {
+      e.preventDefault();
+      setQuickNoteDraft(quickNotePlaceholder);
+      window.requestAnimationFrame(() => {
+        const textarea = quickNoteTextareaRef.current;
+        textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
+      });
+      return;
+    }
+
     if (shouldInsertDashboardQuickNoteTab(e.key, hasModifierKey, isComposing)) {
       e.preventDefault();
       const textarea = e.currentTarget;
@@ -331,7 +342,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     })) return;
     e.preventDefault();
     void saveQuickNote();
-  }, [quickNoteDraft, saveQuickNote]);
+  }, [quickNoteDraft, quickNotePlaceholder, saveQuickNote]);
 
   useEffect(() => {
     if (!active) return;

@@ -140,6 +140,19 @@ export function canSaveDashboardQuickNote(content: string, saving: boolean) {
   return hasDashboardQuickNoteContent(content) && !saving;
 }
 
+export function isDashboardQuickNoteDraftEmpty(content: string) {
+  return content.length === 0;
+}
+
+export function shouldInsertDashboardQuickNoteTemplate(
+  key: string,
+  content: string,
+  hasModifierKey: boolean,
+  isComposing: boolean,
+) {
+  return key === "Tab" && !hasModifierKey && isDashboardQuickNoteDraftEmpty(content) && !isComposing;
+}
+
 export function shouldInsertDashboardQuickNoteTab(key: string, hasModifierKey: boolean, isComposing: boolean) {
   return key === "Tab" && !hasModifierKey && !isComposing;
 }
