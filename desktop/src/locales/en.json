@@ -512,6 +512,7 @@
     "undo": "Undo",
     "restored": "Restored",
     "deleteHint": "Delete this image",
+    "zoom": "zoom",
     "syncing": "Syncing...",
     "synced": "Synced"
   },

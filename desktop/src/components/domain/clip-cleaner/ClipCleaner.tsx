@@ -51,9 +51,13 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
   const [gitSyncing, setGitSyncing] = useState(false);
   const [gitDone, setGitDone] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const imagesRef = useRef<ClipImageEntry[]>([]);
   const deletingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
 
   useEffect(() => {
     imagesRef.current = images;
@@ -197,6 +201,61 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   const previewItem = previewIndex != null ? images[previewIndex] : null;
   const previewSrc = useImageDataUrl(previewItem?.path ?? null);
 
+  // Reset zoom/pan whenever the previewed image changes.
+  useEffect(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  }, [previewItem?.path]);
+
+  // Wheel zoom on the preview stage (native listener so preventDefault works).
+  useEffect(() => {
+    if (!previewItem) return;
+    const el = stageRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      setScale((current) => {
+        const next = Math.min(8, Math.max(0.5, current * factor));
+        if (next <= 1) setPan({ x: 0, y: 0 });
+        return next;
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [previewItem]);
+
+  // End drag on global mouseup.
+  useEffect(() => {
+    const onUp = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("mouseup", onUp);
+    return () => window.removeEventListener("mouseup", onUp);
+  }, []);
+
+  const onStageMouseDown = useCallback((e: React.MouseEvent) => {
+    if (scale <= 1) return;
+    dragRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+  }, [pan.x, pan.y, scale]);
+
+  const onStageMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragRef.current) return;
+    setPan({
+      x: dragRef.current.panX + e.clientX - dragRef.current.startX,
+      y: dragRef.current.panY + e.clientY - dragRef.current.startY,
+    });
+  }, []);
+
+  const onStageMouseUp = useCallback(() => {
+    dragRef.current = null;
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
   const totalSize = images.reduce((sum, im) => sum + im.size, 0);
   const visibleImages = images.slice(0, visibleCount);
   const hasMore = visibleCount < images.length;
@@ -247,9 +306,23 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
             <ChevronLeft size={28} />
           </button>
 
-          <div className="gm-clip-cleaner-preview-stage">
+          <div
+            ref={stageRef}
+            className="gm-clip-cleaner-preview-stage"
+            data-zoomed={scale > 1 ? "true" : "false"}
+            onMouseDown={onStageMouseDown}
+            onMouseMove={onStageMouseMove}
+            onMouseUp={onStageMouseUp}
+            onDoubleClick={resetZoom}
+          >
             {previewSrc ? (
-              <img src={previewSrc} alt={previewItem.name} className="gm-clip-cleaner-preview-img" draggable={false} />
+              <img
+                src={previewSrc}
+                alt={previewItem.name}
+                className="gm-clip-cleaner-preview-img"
+                draggable={false}
+                style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})` }}
+              />
             ) : (
               <Loader2 size={28} className="animate-spin text-white/50" />
             )}
@@ -268,6 +341,7 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
 
           <div className="gm-clip-cleaner-preview-hint">
             <span>← → {t("clipCleaner.navigate")}</span>
+            <span>{t("clipCleaner.zoom")} {Math.round(scale * 100)}%</span>
             <span>Delete {t("clipCleaner.delete")}</span>
             <span>Esc {t("clipCleaner.exit")}</span>
           </div>

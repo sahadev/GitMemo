@@ -512,6 +512,7 @@
     "undo": "撤销",
     "restored": "已恢复",
     "deleteHint": "删除这张图片",
+    "zoom": "缩放",
     "syncing": "同步中...",
     "synced": "已同步"
   },
