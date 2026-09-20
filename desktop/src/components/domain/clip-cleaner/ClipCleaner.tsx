@@ -6,6 +6,8 @@ import { useI18n } from "../../../hooks/useI18n";
 import { getCachedLocalImageDataUrl, cacheLocalImageDataUrl } from "../../../utils/localImages";
 import type { ClipImageEntry } from "../../../types/files";
 
+const LIST_PAGE_SIZE = 100;
+
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -39,44 +41,16 @@ function useImageDataUrl(path: string | null) {
   return src;
 }
 
-/** Lazily loaded thumbnail; only fetches the image once it enters the viewport. */
-function CleanerThumb({ path, className }: { path: string; className?: string }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [src, setSrc] = useState<string | null>(() => getCachedLocalImageDataUrl(path));
-
-  useEffect(() => {
-    if (src) return;
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          io.disconnect();
-          invoke<string>("read_file_base64", { filePath: path })
-            .then((b64) => setSrc(cacheLocalImageDataUrl(path, b64)))
-            .catch(() => undefined);
-        }
-      },
-      { rootMargin: "300px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [path, src]);
-
-  if (src) {
-    return <img src={src} alt="" loading="lazy" className={className} draggable={false} />;
-  }
-  return <div ref={ref} className={className} />;
-}
-
 export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const [images, setImages] = useState<ClipImageEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
   const imagesRef = useRef<ClipImageEntry[]>([]);
   const deletingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     imagesRef.current = images;
@@ -184,10 +158,28 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [closePreview, deleteCurrent, next, onClose, prev, previewIndex]);
 
+  // Load more rows as the user scrolls the list.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || loading || visibleCount >= images.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleCount((count) => Math.min(count + LIST_PAGE_SIZE, images.length));
+        }
+      },
+      { rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loading, images.length, visibleCount]);
+
   const previewItem = previewIndex != null ? images[previewIndex] : null;
   const previewSrc = useImageDataUrl(previewItem?.path ?? null);
 
   const totalSize = images.reduce((sum, im) => sum + im.size, 0);
+  const visibleImages = images.slice(0, visibleCount);
+  const hasMore = visibleCount < images.length;
 
   return (
     <div className="gm-clip-cleaner">
@@ -269,27 +261,28 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
           {loading ? (
             <div className="gm-clip-cleaner-loading">
               <Loader2 size={24} className="animate-spin text-white/50" />
+              <span>{t("clipCleaner.loading")}</span>
             </div>
           ) : images.length === 0 ? (
             <div className="gm-clip-cleaner-loading">
               <span className="text-white/50">{t("clipCleaner.empty")}</span>
             </div>
           ) : (
-            <div className="gm-clip-cleaner-grid">
-              {images.map((im, index) => (
+            <div className="gm-clip-cleaner-list">
+              {visibleImages.map((im, index) => (
                 <button
                   key={im.path}
                   type="button"
-                  className="gm-clip-cleaner-cell"
+                  className="gm-clip-cleaner-row"
                   onClick={() => setPreviewIndex(index)}
                 >
-                  <CleanerThumb path={im.path} className="gm-clip-cleaner-cell-img" />
-                  <div className="gm-clip-cleaner-cell-meta">
-                    <span className="gm-clip-cleaner-cell-name">{im.name}</span>
-                    <span className="gm-clip-cleaner-cell-size">{formatBytes(im.size)}</span>
-                  </div>
+                  <span className="gm-clip-cleaner-row-name">{im.name}</span>
+                  <span className="gm-clip-cleaner-row-size">{formatBytes(im.size)}</span>
                 </button>
               ))}
+              <div ref={sentinelRef} className="gm-clip-cleaner-sentinel">
+                {hasMore ? <Loader2 size={18} className="animate-spin text-white/40" /> : null}
+              </div>
             </div>
           )}
 

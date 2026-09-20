@@ -501,6 +501,7 @@
     "count": "{0} 张图片",
     "total": "共 {0}",
     "empty": "暂无图片",
+    "loading": "加载中...",
     "hintClick": "点击图片进入预览",
     "navigate": "切换",
     "delete": "删除",

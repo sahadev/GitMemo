@@ -1,4 +1,5 @@
-import { Settings, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Settings, RefreshCw, MoreHorizontal, ChevronDown } from "lucide-react";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -34,8 +35,11 @@ const navItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] =
   { id: "ai-records", icon: MessageSquare, labelKey: "nav.aiRecords" },
   { id: "notes", icon: StickyNote, labelKey: "nav.notes" },
   { id: "clipboard", icon: Clipboard, labelKey: "nav.clipboard" },
-  { id: "vault", icon: KeyRound, labelKey: "nav.vault" },
   { id: "favorites", icon: Star, labelKey: "nav.favorites" },
+];
+
+const moreNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }[] = [
+  { id: "vault", icon: KeyRound, labelKey: "nav.vault" },
   { id: "imports", icon: Download, labelKey: "nav.imports" },
   { id: "claude-config", icon: Brain, labelKey: "nav.claudeConfig" },
   { id: "external-files", icon: FileSymlink, labelKey: "nav.externalFiles" },
@@ -48,6 +52,8 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
   const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
   const desktopUpdateAvailable = updateStatus === "available";
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreActive = moreNavItems.some((item) => item.id === currentPage);
 
   const openVersionDetails = () => {
     if (desktopUpdateAvailable) {
@@ -90,6 +96,37 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             </button>
           );
         })}
+        <button
+          onClick={() => setMoreOpen((value) => !value)}
+          className="gm-sidebar-nav-item gm-sidebar-more-toggle"
+          data-active={moreActive ? "true" : "false"}
+          data-open={moreOpen ? "true" : "false"}
+          aria-expanded={moreOpen}
+        >
+          <AppIcon icon={MoreHorizontal} size="sm" className="gm-sidebar-nav-icon" />
+          <span className="gm-sidebar-nav-label">{t("common.more")}</span>
+          <ChevronDown size={14} className="gm-sidebar-more-chevron" />
+        </button>
+        {moreOpen ? (
+          <div className="gm-sidebar-more-group">
+            {moreNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = currentPage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className="gm-sidebar-nav-item"
+                  data-active={active ? "true" : "false"}
+                  data-focused={active && focused ? "true" : "false"}
+                >
+                  <AppIcon icon={Icon} size="sm" className="gm-sidebar-nav-icon" />
+                  <span className="gm-sidebar-nav-label">{t(item.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </nav>
 
       {/* Sync button + version */}

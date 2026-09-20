@@ -57,6 +57,7 @@ import {
   ClipboardStatusBadge,
   ClipboardToolbarButton,
 } from "../components/domain/clipboard/ClipboardComponents";
+import { ClipboardToolbarMenu } from "../components/domain/clipboard/ClipboardToolbarMenu";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import {
   areClipEntriesEquivalent,
@@ -781,14 +782,6 @@ export default function ClipboardPage({
                     onClick={toggleMultiSelectMode}
                     title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")}
                   />
-                  {!isMobile && (
-                    <ClipboardToolbarButton
-                      mobile={isMobile}
-                      icon={Eraser}
-                      onClick={() => setCleanerOpen(true)}
-                      title={t("clipCleaner.title")}
-                    />
-                  )}
                   <ClipboardToolbarButton
                     mobile={isMobile}
                     icon={RefreshCw}
@@ -800,21 +793,31 @@ export default function ClipboardPage({
                     title={t("common.refresh")}
                   />
                   {!isMobile && (
-                    <>
-                      <ClipboardToolbarButton
-                        mobile={isMobile}
-                        icon={Save}
-                        onClick={saveNow}
-                        title={t("clipboard.saveCurrentClipboard")}
-                      />
-                      <ClipboardToolbarButton
-                        mobile={isMobile}
-                        icon={status?.watching ? Square : Play}
-                        tone={status?.watching ? "danger" : "success"}
-                        onClick={toggleWatch}
-                        title={status?.watching ? t("common.stop") : t("common.start")}
-                      />
-                    </>
+                    <ClipboardToolbarMenu
+                      mobile={isMobile}
+                      title={t("common.more")}
+                      items={[
+                        {
+                          key: "cleanup",
+                          icon: Eraser,
+                          label: t("clipCleaner.title"),
+                          onClick: () => setCleanerOpen(true),
+                        },
+                        {
+                          key: "save",
+                          icon: Save,
+                          label: t("clipboard.saveCurrentClipboard"),
+                          onClick: saveNow,
+                        },
+                        {
+                          key: "watch",
+                          icon: status?.watching ? Square : Play,
+                          label: status?.watching ? t("common.stop") : t("common.start"),
+                          onClick: toggleWatch,
+                          tone: status?.watching ? "danger" : "success",
+                        },
+                      ]}
+                    />
                   )}
                 </>
               )}

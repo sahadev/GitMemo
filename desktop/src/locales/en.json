@@ -501,6 +501,7 @@
     "count": "{0} images",
     "total": "{0} total",
     "empty": "No images",
+    "loading": "Loading...",
     "hintClick": "Click an image to preview",
     "navigate": "navigate",
     "delete": "delete",
