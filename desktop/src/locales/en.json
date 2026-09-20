@@ -493,7 +493,24 @@
     "splitPreview": "Split preview",
     "hideSplitPreview": "Hide split preview",
     "loading": "Loading...",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "close": "Close"
+  },
+  "clipCleaner": {
+    "title": "Image Cleanup",
+    "count": "{0} images",
+    "total": "{0} total",
+    "empty": "No images",
+    "hintClick": "Click an image to preview",
+    "navigate": "navigate",
+    "delete": "delete",
+    "exit": "exit",
+    "prev": "Previous",
+    "next": "Next",
+    "deleted": "Deleted",
+    "undo": "Undo",
+    "restored": "Restored",
+    "deleteHint": "Delete this image"
   },
   "vault": {
     "title": "Vault",

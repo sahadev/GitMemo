@@ -389,6 +389,9 @@ pub fn run() {
             notes::delete_clip,
             notes::delete_clips,
             notes::delete_plan,
+            notes::list_clip_images,
+            notes::delete_clip_image,
+            notes::undo_last_image_delete,
             notes::save_pasted_attachment,
             // Favorites
             favorites::list_favorites,

@@ -325,6 +325,16 @@ pub struct FilePage {
 }
 
 #[derive(Debug, Serialize)]
+pub struct ClipImageEntry {
+    /// Image file path relative to the sync dir, e.g. `clips/2026-04-17/x.png`.
+    pub path: String,
+    pub name: String,
+    pub size: u64,
+    /// Companion `.md` clip path when the image belongs to a clipboard-image clip.
+    pub paired_md: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct SavedAttachment {
     pub path: String,
     pub markdown: String,
@@ -439,6 +449,32 @@ mod tests {
         assert!(markdown.contains("title: Meeting follow-up\n"));
         assert!(markdown.contains("tags: [meeting, next]\n"));
         assert!(markdown.ends_with("- Call Alex\n"));
+    }
+
+    #[test]
+    fn clip_image_to_md_maps_extension() {
+        assert_eq!(
+            clip_image_to_md_rel("clips/2026-04-17/foo.png"),
+            "clips/2026-04-17/foo.md"
+        );
+        assert_eq!(clip_image_to_md_rel("clips/bar.jpg"), "clips/bar.md");
+        assert_eq!(clip_image_to_md_rel("clips/baz.jpeg"), "clips/baz.md");
+    }
+
+    #[test]
+    fn normalize_clip_image_path_accepts_only_images_under_clips() {
+        assert_eq!(
+            normalize_clip_image_path("clips/a.png").unwrap(),
+            "clips/a.png"
+        );
+        assert_eq!(
+            normalize_clip_image_path("/clips/a.png").unwrap(),
+            "clips/a.png"
+        );
+        assert!(normalize_clip_image_path("clips/../a.png").is_err());
+        assert!(normalize_clip_image_path("clips/a.md").is_err());
+        assert!(normalize_clip_image_path("notes/a.png").is_err());
+        assert!(normalize_clip_image_path("clips/a.txt").is_err());
     }
 }
 
@@ -2115,4 +2151,252 @@ fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) {
             }
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Clip image cleanup
+// ---------------------------------------------------------------------------
+
+const CLIP_IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg"];
+const TRASH_DIR_NAME: &str = ".backups/trash";
+const TRASH_MANIFEST_NAME: &str = ".backups/trash-manifest.json";
+
+fn is_clip_image_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| CLIP_IMAGE_EXTS.contains(&ext.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+fn normalize_clip_image_path(file_path: &str) -> Result<String, String> {
+    let norm = file_path
+        .replace('\\', "/")
+        .trim_start_matches('/')
+        .to_string();
+    if !norm.starts_with("clips/") || norm.contains("..") {
+        return Err("Invalid clip image path".into());
+    }
+    if !is_clip_image_path(Path::new(&norm)) {
+        return Err("Invalid clip image path".into());
+    }
+    Ok(norm)
+}
+
+fn clip_image_to_md_rel(image_rel: &str) -> String {
+    let path = Path::new(image_rel);
+    let parent = path.parent().map(|p| p.to_string_lossy().to_string());
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let md_name = format!("{stem}.md");
+    match parent.filter(|s| !s.is_empty()) {
+        Some(p) => format!("{p}/{md_name}"),
+        None => md_name,
+    }
+}
+
+fn clear_trash_dir(dir: &Path) {
+    let trash = dir.join(TRASH_DIR_NAME);
+    if trash.exists() {
+        let _ = std::fs::remove_dir_all(&trash);
+    }
+    let _ = std::fs::create_dir_all(&trash);
+    let _ = std::fs::remove_file(dir.join(TRASH_MANIFEST_NAME));
+}
+
+fn move_file_to_trash(dir: &Path, trash_dir: &Path, rel_path: &str) -> Result<(), String> {
+    let src = dir.join(rel_path);
+    if !src.is_file() {
+        return Ok(());
+    }
+    let file_name = Path::new(rel_path)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .ok_or_else(|| format!("Invalid path: {rel_path}"))?;
+    let dst = trash_dir.join(&file_name);
+    std::fs::rename(&src, &dst).map_err(|e| format!("Failed to move {}: {e}", rel_path))?;
+    Ok(())
+}
+
+fn write_trash_manifest(dir: &Path, rel_paths: &[String]) {
+    let manifest_path = dir.join(TRASH_MANIFEST_NAME);
+    if let Ok(json) = serde_json::to_string_pretty(rel_paths) {
+        let _ = std::fs::write(&manifest_path, json);
+    }
+}
+
+fn read_trash_manifest(dir: &Path) -> Option<Vec<String>> {
+    let manifest_path = dir.join(TRASH_MANIFEST_NAME);
+    let content = std::fs::read_to_string(manifest_path).ok()?;
+    serde_json::from_str::<Vec<String>>(&content).ok()
+}
+
+/// List all image files under `clips/` ordered by size (largest first).
+#[tauri::command]
+pub async fn list_clip_images() -> Result<Vec<ClipImageEntry>, String> {
+    tokio::task::spawn_blocking(|| {
+        let dir = sync_dir();
+        let target = dir.join("clips");
+        if !target.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut entries: Vec<ClipImageEntry> = Vec::new();
+        for entry in walkdir::WalkDir::new(&target)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .filter(|e| is_clip_image_path(e.path()))
+        {
+            let full = entry.path();
+            let meta = match full.metadata() {
+                Ok(meta) => meta,
+                Err(_) => continue,
+            };
+            let rel_path = full
+                .strip_prefix(&dir)
+                .unwrap_or(full)
+                .to_string_lossy()
+                .replace('\\', "/");
+            let md_rel = clip_image_to_md_rel(&rel_path);
+            let paired_md = dir.join(&md_rel).is_file().then_some(md_rel);
+            let name = full
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+
+            entries.push(ClipImageEntry {
+                path: rel_path,
+                name,
+                size: meta.len(),
+                paired_md,
+            });
+        }
+
+        entries.sort_by(|a, b| b.size.cmp(&a.size));
+        Ok(entries)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
+}
+
+/// Delete a clip image. When the image belongs to a clipboard-image clip, the
+/// companion `.md` is removed together with the image. Files are moved to a
+/// trash folder first so the last deletion can be undone.
+#[tauri::command]
+pub fn delete_clip_image(image_path: String) -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    let norm = normalize_clip_image_path(&image_path)?;
+    let full = dir.join(&norm);
+    if !full.is_file() {
+        return Err(format!("Image not found: {image_path}"));
+    }
+
+    clear_trash_dir(&dir);
+    let trash = dir.join(TRASH_DIR_NAME);
+    let mut moved: Vec<String> = Vec::new();
+
+    let md_rel = clip_image_to_md_rel(&norm);
+    let md_full = dir.join(&md_rel);
+    if md_full.is_file() {
+        if let Ok(content) = std::fs::read_to_string(&md_full) {
+            if is_clipboard_image_content(&content) {
+                let body = if content.starts_with("---") {
+                    content[3..]
+                        .find("---")
+                        .map(|end| content[3 + end + 3..].trim_start())
+                        .unwrap_or(content.as_str())
+                } else {
+                    content.as_str()
+                };
+                if let Some(img_name) = extract_markdown_image_path(body) {
+                    if !img_name.contains("..") && !img_name.contains('/') {
+                        let parent = Path::new(&md_rel)
+                            .parent()
+                            .map(|p| p.to_string_lossy().to_string())
+                            .filter(|s| !s.is_empty());
+                        let img_rel = match parent {
+                            Some(p) => format!("{p}/{img_name}"),
+                            None => img_name,
+                        };
+                        if dir.join(&img_rel).is_file() {
+                            move_file_to_trash(&dir, &trash, &img_rel)?;
+                            moved.push(img_rel);
+                        }
+                    }
+                }
+                move_file_to_trash(&dir, &trash, &md_rel)?;
+                remove_index_file(&dir, &md_rel);
+                moved.push(md_rel);
+            }
+        }
+    }
+
+    // The image itself may still be present when there is no companion md.
+    if dir.join(&norm).is_file() {
+        move_file_to_trash(&dir, &trash, &norm)?;
+        moved.push(norm);
+    }
+
+    if moved.is_empty() {
+        return Err("Nothing to delete".into());
+    }
+
+    write_trash_manifest(&dir, &moved);
+    bg_commit_and_push(format!("delete clip image: {}", moved.join(", ")));
+
+    Ok(NoteResult {
+        success: true,
+        path: image_path,
+        message: format!("Deleted {} file(s)", moved.len()),
+    })
+}
+
+/// Restore the most recently deleted clip image (and its companion md).
+#[tauri::command]
+pub fn undo_last_image_delete() -> Result<NoteResult, String> {
+    let dir = sync_dir();
+    let trash = dir.join(TRASH_DIR_NAME);
+    let Some(rel_paths) = read_trash_manifest(&dir) else {
+        return Err("Nothing to undo".into());
+    };
+    if rel_paths.is_empty() {
+        return Err("Nothing to undo".into());
+    }
+
+    let mut restored: Vec<String> = Vec::new();
+    for rel_path in &rel_paths {
+        let file_name = match Path::new(rel_path).file_name().map(|s| s.to_string_lossy().to_string()) {
+            Some(name) => name,
+            None => continue,
+        };
+        let src = trash.join(&file_name);
+        if !src.is_file() {
+            continue;
+        }
+        let dst = dir.join(rel_path);
+        if let Some(parent) = dst.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        if std::fs::rename(&src, &dst).is_ok() {
+            restored.push(rel_path.clone());
+            refresh_index_file(&dir, rel_path);
+        }
+    }
+
+    let _ = std::fs::remove_file(dir.join(TRASH_MANIFEST_NAME));
+    if trash.exists() {
+        let _ = std::fs::remove_dir_all(&trash);
+    }
+    if restored.is_empty() {
+        return Err("Nothing to undo".into());
+    }
+
+    bg_commit_and_push(format!("undo delete clip image: {}", restored.join(", ")));
+    Ok(NoteResult {
+        success: true,
+        path: restored.join(","),
+        message: format!("Restored {} file(s)", restored.len()),
+    })
 }

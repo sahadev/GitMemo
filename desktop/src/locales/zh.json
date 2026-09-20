@@ -493,7 +493,24 @@
     "splitPreview": "分屏预览",
     "hideSplitPreview": "关闭分屏预览",
     "loading": "加载中...",
-    "loadMore": "加载更多"
+    "loadMore": "加载更多",
+    "close": "关闭"
+  },
+  "clipCleaner": {
+    "title": "图片清理",
+    "count": "{0} 张图片",
+    "total": "共 {0}",
+    "empty": "暂无图片",
+    "hintClick": "点击图片进入预览",
+    "navigate": "切换",
+    "delete": "删除",
+    "exit": "退出",
+    "prev": "上一张",
+    "next": "下一张",
+    "deleted": "已删除",
+    "undo": "撤销",
+    "restored": "已恢复",
+    "deleteHint": "删除这张图片"
   },
   "vault": {
     "title": "保险箱",

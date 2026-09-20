@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2, FileText, Image as ImageIcon, Layers } from "lucide-react";
+import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2, FileText, Image as ImageIcon, Layers, Eraser } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
@@ -88,6 +88,7 @@ import {
 } from "../components/domain/files/fileWorkspaceLogic";
 import { LoadMoreRow } from "../components/domain/files/LoadMoreRow";
 import { ClipImageThumb } from "../components/domain/files/ClipImageThumb";
+import ClipCleaner from "../components/domain/clip-cleaner/ClipCleaner";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 import type { Page } from "../App";
@@ -155,6 +156,7 @@ export default function ClipboardPage({
   const [creatingNote, setCreatingNote] = useState(false);
   const { copied: copiedId, markCopied: markCopiedId } = useTimedCopy<string>();
   const [deletingSelected, setDeletingSelected] = useState(false);
+  const [cleanerOpen, setCleanerOpen] = useState(false);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editRef = useRef<EditorHandle | null>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
@@ -739,6 +741,10 @@ export default function ClipboardPage({
   const selectionActionsDisabled = shouldDisableClipboardSelectionActions(selectedClipPaths, creatingNote, deletingSelected);
   const clipboardPanelCollapsed = collapsedPanels.clipboard ?? false;
 
+  if (cleanerOpen) {
+    return <ClipCleaner onClose={() => setCleanerOpen(false)} />;
+  }
+
   return (
     <ClipboardPageFrame>
       {showPrivacyDialog && (
@@ -775,6 +781,14 @@ export default function ClipboardPage({
                     onClick={toggleMultiSelectMode}
                     title={multiSelectMode ? t("common.cancel") : t("clipboard.selectMode")}
                   />
+                  {!isMobile && (
+                    <ClipboardToolbarButton
+                      mobile={isMobile}
+                      icon={Eraser}
+                      onClick={() => setCleanerOpen(true)}
+                      title={t("clipCleaner.title")}
+                    />
+                  )}
                   <ClipboardToolbarButton
                     mobile={isMobile}
                     icon={RefreshCw}
