@@ -511,7 +511,9 @@
     "deleted": "Deleted",
     "undo": "Undo",
     "restored": "Restored",
-    "deleteHint": "Delete this image"
+    "deleteHint": "Delete this image",
+    "syncing": "Syncing...",
+    "synced": "Synced"
   },
   "vault": {
     "title": "Vault",

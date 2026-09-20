@@ -37,7 +37,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <FrontendLoadedSignal />
     <ErrorBoundary>
       <MantineProvider theme={gitmemoTheme} defaultColorScheme="auto">
-        <Notifications position="bottom-center" autoClose={2500} />
+        <Notifications position="bottom-center" autoClose={2500} zIndex={2000} />
         <App />
       </MantineProvider>
     </ErrorBoundary>

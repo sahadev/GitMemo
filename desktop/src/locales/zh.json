@@ -511,7 +511,9 @@
     "deleted": "已删除",
     "undo": "撤销",
     "restored": "已恢复",
-    "deleteHint": "删除这张图片"
+    "deleteHint": "删除这张图片",
+    "syncing": "同步中...",
+    "synced": "已同步"
   },
   "vault": {
     "title": "保险箱",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { X, ChevronLeft, ChevronRight, Trash2, Images, Loader2 } from "lucide-react";
 import { useToast } from "../../../hooks/useToast";
 import { useI18n } from "../../../hooks/useI18n";
@@ -48,6 +49,8 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
+  const [gitSyncing, setGitSyncing] = useState(false);
+  const [gitDone, setGitDone] = useState(false);
   const imagesRef = useRef<ClipImageEntry[]>([]);
   const deletingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -71,6 +74,23 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     void loadImages();
   }, [loadImages]);
+
+  // Track git commit/push state so the user knows when a deletion has synced.
+  useEffect(() => {
+    const cleanups: Array<() => void> = [];
+    let doneTimer: number | null = null;
+    void listen("git-sync-start", () => setGitSyncing(true)).then((fn) => cleanups.push(fn));
+    void listen("git-sync-end", () => {
+      setGitSyncing(false);
+      setGitDone(true);
+      if (doneTimer) window.clearTimeout(doneTimer);
+      doneTimer = window.setTimeout(() => setGitDone(false), 3000);
+    }).then((fn) => cleanups.push(fn));
+    return () => {
+      cleanups.forEach((fn) => fn());
+      if (doneTimer) window.clearTimeout(doneTimer);
+    };
+  }, []);
 
   const handleUndo = useCallback(async () => {
     try {
@@ -181,6 +201,15 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
   const visibleImages = images.slice(0, visibleCount);
   const hasMore = visibleCount < images.length;
 
+  const syncIndicator = gitSyncing ? (
+    <span className="gm-clip-cleaner-sync-status">
+      <Loader2 size={12} className="animate-spin" />
+      {t("clipCleaner.syncing")}
+    </span>
+  ) : gitDone ? (
+    <span className="gm-clip-cleaner-sync-status gm-clip-cleaner-sync-done">{t("clipCleaner.synced")}</span>
+  ) : null;
+
   return (
     <div className="gm-clip-cleaner">
       {previewItem ? (
@@ -194,6 +223,7 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
               <span className="gm-clip-cleaner-preview-size">
                 {formatBytes(previewItem.size)} · {previewIndex! + 1}/{images.length}
               </span>
+              {syncIndicator}
             </div>
             <button
               type="button"
@@ -250,6 +280,7 @@ export default function ClipCleaner({ onClose }: { onClose: () => void }) {
               <h2>{t("clipCleaner.title")}</h2>
             </div>
             <div className="gm-clip-cleaner-header-info">
+              {syncIndicator}
               <span>{t("clipCleaner.count", images.length)}</span>
               <span>{t("clipCleaner.total", formatBytes(totalSize))}</span>
             </div>

@@ -6754,11 +6754,23 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 
 .gm-clip-cleaner-header-info {
   display: flex;
+  align-items: center;
   gap: 14px;
   margin-left: auto;
   margin-right: 8px;
   color: var(--gm-color-text-muted);
   font-size: var(--gm-font-sm);
+}
+
+.gm-clip-cleaner-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gm-color-text-muted);
+  font-size: var(--gm-font-xs);
+}
+.gm-clip-cleaner-sync-done {
+  color: var(--gm-color-success);
 }
 
 .gm-clip-cleaner-icon-btn {
