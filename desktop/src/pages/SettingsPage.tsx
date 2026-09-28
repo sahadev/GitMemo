@@ -846,6 +846,17 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
               </SettingsIndentedFieldGroup>
             )}
           </SettingsSubStack>
+
+          <SettingsDivider />
+          <SettingsRow
+            icon={Eraser}
+            title={t("settings.largeFileCleanup")}
+            description={t("settings.largeFileCleanupDesc")}
+          >
+            <SettingsActionButton variant="secondary" onClick={() => setCleanerOpen(true)}>
+              {t("settings.open")}
+            </SettingsActionButton>
+          </SettingsRow>
         </SettingsStack>
       </SettingsCard>
       )}
@@ -932,17 +943,6 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                   </SettingsRow>
                 </>
               )}
-
-              <SettingsDivider />
-              <SettingsRow
-                icon={Eraser}
-                title={t("settings.largeFileCleanup")}
-                description={t("settings.largeFileCleanupDesc")}
-              >
-                <SettingsActionButton variant="secondary" onClick={() => setCleanerOpen(true)}>
-                  {t("settings.open")}
-                </SettingsActionButton>
-              </SettingsRow>
           </SettingsStack>
         </SettingsCard>
       )}
