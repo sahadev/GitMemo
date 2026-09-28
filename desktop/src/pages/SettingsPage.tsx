@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound, Smartphone } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound, Smartphone, Eraser } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -12,6 +12,7 @@ import { useTimedCopy } from "../hooks/useTimedCopy";
 import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { ImageContextMenu } from "../components/domain/files/ImageContextMenu";
+import ClipCleaner from "../components/domain/clip-cleaner/ClipCleaner";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -160,6 +161,7 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
   const [showSyncLogs, setShowSyncLogs] = useState(false);
+  const [cleanerOpen, setCleanerOpen] = useState(false);
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
   const [loadingSyncLogs, setLoadingSyncLogs] = useState(false);
   const [clearingSyncLogs, setClearingSyncLogs] = useState(false);
@@ -663,6 +665,10 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
   ];
   const showMobileExtraTopSafeAreaSetting = shouldShowMobileExtraTopSafeAreaSetting(isMobile);
 
+  if (cleanerOpen) {
+    return <ClipCleaner onClose={() => setCleanerOpen(false)} />;
+  }
+
   return (
     <SettingsPageShell mobile={isMobile}>
       <SettingsPageHeader
@@ -941,6 +947,17 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
               <SettingsDivider />
               <SettingsRow icon={FolderOpen} title={t("settings.localDirs")} description={t("settings.localDirsDesc")}>
                 <SettingsActionButton variant="secondary" onClick={() => onNavigate?.("editor-home")}>
+                  {t("settings.open")}
+                </SettingsActionButton>
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow
+                icon={Eraser}
+                title={t("settings.largeFileCleanup")}
+                description={t("settings.largeFileCleanupDesc")}
+              >
+                <SettingsActionButton variant="secondary" onClick={() => setCleanerOpen(true)}>
                   {t("settings.open")}
                 </SettingsActionButton>
               </SettingsRow>

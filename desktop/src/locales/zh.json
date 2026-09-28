@@ -368,6 +368,8 @@
     "updateSkills": "更新 Skills",
     "localDirs": "本机 Claude / Cursor / Codex 目录",
     "localDirsDesc": "浏览并编辑本机 Claude / Cursor / Codex 目录，并在独立工作区中管理匿名草稿",
+    "largeFileCleanup": "大文件清理",
+    "largeFileCleanupDesc": "查看和删除占空间的剪贴板大图片，删除后可撤销",
     "open": "打开",
     "shortcuts": "快捷键",
     "shortcutsDesc": "点击一个快捷键，然后按下新的组合键。",
