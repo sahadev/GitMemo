@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode, RefObject } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, Copy, RefreshCw, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Copy, RefreshCw, X } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
@@ -16,11 +16,16 @@ interface ChildrenProps {
 
 interface SettingsPageShellProps extends ChildrenProps {
   mobile?: boolean;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function SettingsPageShell({ children, className, mobile = false }: SettingsPageShellProps) {
+export function SettingsPageShell({ children, className, mobile = false, contentRef }: SettingsPageShellProps) {
   return (
-    <div className={cx("gm-page", "gm-page-scroll", "gm-settings-page", className)} data-mobile={mobile ? "true" : "false"}>
+    <div
+      ref={contentRef}
+      className={cx("gm-page", "gm-page-scroll", "gm-settings-page", className)}
+      data-mobile={mobile ? "true" : "false"}
+    >
       {children}
     </div>
   );
@@ -45,6 +50,22 @@ export function SettingsPageHeader({ title, refreshIcon, refreshTitle, onRefresh
         onClick={onRefresh}
         title={refreshTitle}
       />
+    </header>
+  );
+}
+
+interface SettingsSubPageHeaderProps {
+  title: ReactNode;
+  backTitle: string;
+  onBack: () => void;
+}
+
+/** Header for a settings sub-page: a back control followed by the section title. */
+export function SettingsSubPageHeader({ title, backTitle, onBack }: SettingsSubPageHeaderProps) {
+  return (
+    <header className="gm-settings-page-header">
+      <SettingsIconButton icon={ArrowLeft} onClick={onBack} title={backTitle} aria-label={backTitle} />
+      <h1 className="gm-page-title">{title}</h1>
     </header>
   );
 }
@@ -129,6 +150,36 @@ export function SettingsRow({
       </div>
       {children ? <div className="gm-settings-row-control">{children}</div> : null}
     </div>
+  );
+}
+
+interface SettingsNavRowProps {
+  icon: LucideIcon;
+  iconTone?: AppIconTone;
+  title: ReactNode;
+  description?: ReactNode;
+  onClick: () => void;
+  className?: string;
+}
+
+/** Top-level entry that opens a settings sub-page. */
+export function SettingsNavRow({
+  icon,
+  iconTone = "secondary",
+  title,
+  description,
+  onClick,
+  className,
+}: SettingsNavRowProps) {
+  return (
+    <button type="button" className={cx("gm-settings-nav-row", className)} onClick={onClick}>
+      <AppIcon icon={icon} tone={iconTone} />
+      <div className="gm-settings-row-copy">
+        <p className="gm-settings-row-title">{title}</p>
+        {description ? <p className="gm-settings-row-description">{description}</p> : null}
+      </div>
+      <ChevronRight aria-hidden={true} className="gm-settings-nav-row-chevron" size={16} />
+    </button>
   );
 }
 

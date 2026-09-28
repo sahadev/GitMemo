@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ChevronDown, ChevronRight, ShieldCheck, KeyRound, Smartphone, Eraser } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ShieldCheck, KeyRound, Smartphone, Eraser, Keyboard, SlidersHorizontal } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -13,6 +13,8 @@ import type { Page } from "../App";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { ImageContextMenu } from "../components/domain/files/ImageContextMenu";
 import ClipCleaner from "../components/domain/clip-cleaner/ClipCleaner";
+import { SettingsNavList, type SettingsSectionEntry } from "../components/domain/settings/SettingsNavList";
+import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler";
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   findShortcutConflict,
@@ -72,6 +74,7 @@ import {
   SettingsSegmentedGroup,
   SettingsStack,
   SettingsStatus,
+  SettingsSubPageHeader,
   SettingsSubStack,
   SettingsUpdateProgress,
   SettingsUpdateStatus,
@@ -114,6 +117,8 @@ import {
   type SyncLogEntry,
 } from "../components/domain/settings/settingsLogic";
 
+type SettingsSection = "general" | "clipboard" | "sync" | "integrations" | "shortcuts";
+
 const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
   { id: "global_search", labelKey: "settings.shortcutGlobalSearchLabel", descKey: "settings.shortcutGlobalSearchDesc" },
   { id: "app_search", labelKey: "settings.shortcutAppSearchLabel", descKey: "settings.shortcutAppSearchDesc" },
@@ -129,7 +134,13 @@ const shortcutRows: { id: ShortcutId; labelKey: string; descKey: string }[] = [
 ];
 
 
-export default function SettingsPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean } = {}) {
+interface SettingsPageProps {
+  onNavigate?: (page: Page) => void;
+  active?: boolean;
+  registerMobileBackHandler?: (handler: (() => boolean) | null) => void;
+}
+
+export default function SettingsPage({ onNavigate, active = false, registerMobileBackHandler }: SettingsPageProps = {}) {
   const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
   const { isMobile, isDesktop, capabilities } = usePlatformFlags();
@@ -162,6 +173,7 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
   const [changelog, setChangelog] = useState<{ version: string; date: string; changes: string[] }[]>([]);
   const [showSyncLogs, setShowSyncLogs] = useState(false);
   const [cleanerOpen, setCleanerOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<SettingsSection | null>(null);
   const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
   const [loadingSyncLogs, setLoadingSyncLogs] = useState(false);
   const [clearingSyncLogs, setClearingSyncLogs] = useState(false);
@@ -185,8 +197,9 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
   const [savingImportLimit, setSavingImportLimit] = useState(false);
   const [importFileSizeLimitDraftKb, setImportFileSizeLimitDraftKb] = useState(IMPORT_SIZE_LIMIT_DEFAULT_KB);
   const savingImportLimitValueRef = useRef<number | null>(null);
-  const [shortcutsExpanded, setShortcutsExpanded] = useState(false);
   const [mobileExtraTopSafeArea, setMobileExtraTopSafeArea] = useState(loadMobileExtraTopSafeArea);
+  const settingsScrollRef = useRef<HTMLDivElement | null>(null);
+  const indexScrollTopRef = useRef(0);
 
   useEffect(() => {
     invoke<string>("get_branch").then((b) => { setBranch(b); setBranchInput(b); }).catch(console.error);
@@ -664,21 +677,93 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
     { id: "zh", label: "中文" },
   ];
   const showMobileExtraTopSafeAreaSetting = shouldShowMobileExtraTopSafeAreaSetting(isMobile);
+  const settingsSections: SettingsSectionEntry<SettingsSection>[] = [
+    {
+      id: "general",
+      icon: SlidersHorizontal,
+      title: t("settings.sectionGeneral"),
+      description: t("settings.sectionGeneralDesc"),
+    },
+    ...(isDesktop
+      ? [{
+          id: "clipboard" as const,
+          icon: Clipboard,
+          title: t("settings.sectionClipboard"),
+          description: t("settings.sectionClipboardDesc"),
+        }]
+      : []),
+    {
+      id: "sync",
+      icon: GitBranch,
+      title: t("settings.sectionSync"),
+      description: t("settings.sectionSyncDesc"),
+    },
+    ...(isDesktop
+      ? [
+          {
+            id: "integrations" as const,
+            icon: Terminal,
+            title: t("settings.sectionIntegrations"),
+            description: t("settings.sectionIntegrationsDesc"),
+          },
+          {
+            id: "shortcuts" as const,
+            icon: Keyboard,
+            title: t("settings.shortcuts"),
+            description: t("settings.shortcutsDesc"),
+          },
+        ]
+      : []),
+  ];
+  const activeSectionEntry = settingsSections.find((entry) => entry.id === activeSection) ?? null;
+
+  const openSection = useCallback((id: SettingsSection) => {
+    indexScrollTopRef.current = settingsScrollRef.current?.scrollTop ?? 0;
+    setActiveSection(id);
+  }, []);
+  const closeSection = useCallback(() => setActiveSection(null), []);
+
+  // Entering a sub-page starts at the top; going back restores the index position.
+  useEffect(() => {
+    settingsScrollRef.current?.scrollTo({ top: activeSection === null ? indexScrollTopRef.current : 0 });
+  }, [activeSection]);
+
+  useMobileDetailBackHandler({
+    isMobile,
+    registerMobileBackHandler,
+    hasDetail: activeSection !== null && !cleanerOpen,
+    closeDetail: closeSection,
+  });
 
   if (cleanerOpen) {
     return <ClipCleaner onClose={() => setCleanerOpen(false)} />;
   }
 
   return (
-    <SettingsPageShell mobile={isMobile}>
-      <SettingsPageHeader
-        title={t("settings.title")}
-        refreshIcon={RefreshCw}
-        refreshTitle={t("common.refresh")}
-        onRefresh={() => void handleRefresh()}
-      />
+    <SettingsPageShell mobile={isMobile} contentRef={settingsScrollRef}>
+      {activeSectionEntry && (
+        <SettingsSubPageHeader
+          title={activeSectionEntry.title}
+          backTitle={t("common.back")}
+          onBack={closeSection}
+        />
+      )}
 
-      <SettingsCard>
+      {activeSection === null && (
+        <>
+          <SettingsPageHeader
+            title={t("settings.title")}
+            refreshIcon={RefreshCw}
+            refreshTitle={t("common.refresh")}
+            onRefresh={() => void handleRefresh()}
+          />
+
+          <SettingsNavList entries={settingsSections} onSelect={openSection} />
+        </>
+      )}
+
+      {activeSection === "general" && (
+        <SettingsCard>
         <SettingsStack>
           <SettingsRow
             icon={theme === "dark" ? Moon : Sun}
@@ -723,9 +808,52 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
               <SettingsRow icon={Power} title={t("settings.launchAtLogin")} description={t("settings.launchAtLoginDesc")}>
                 <Switch enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
               </SettingsRow>
+            </>
+          )}
 
-              <SettingsDivider />
-              <SettingsRow icon={Clipboard} title={t("settings.clipboardAutostart")} description={t("settings.clipboardAutostartDesc")}>
+          <SettingsDivider />
+          <SettingsSubStack>
+            <SettingsRow icon={Wifi} title={t("settings.proxy")} description={t("settings.proxyDesc")}>
+              <SettingsSegmentedGroup>
+                {availableProxyModes.map((mode) => (
+                  <SettingsSegmentedButton
+                    key={mode}
+                    active={effectiveProxyMode === mode}
+                    onClick={() => void setProxyMode(mode)}
+                  >
+                    {t(getProxyModeLabelKey(mode))}
+                  </SettingsSegmentedButton>
+                ))}
+              </SettingsSegmentedGroup>
+            </SettingsRow>
+            {shouldShowCustomProxyInput(effectiveProxyMode, editingProxy) && (
+              <SettingsIndentedFieldGroup>
+                <SettingsInput
+                  autoFocus
+                  mono
+                  width="proxy"
+                  value={proxyUrlInput || settings?.proxy_url || ""}
+                  onChange={(e) => setProxyUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveProxyUrl();
+                    if (e.key === "Escape") { setEditingProxy(false); setProxyUrlInput(settings?.proxy_url ?? ""); }
+                  }}
+                  placeholder={t("settings.proxyUrlPlaceholder")}
+                />
+                <SettingsActionButton variant="primary" onClick={() => void saveProxyUrl()}>
+                  {t("conversations.save")}
+                </SettingsActionButton>
+              </SettingsIndentedFieldGroup>
+            )}
+          </SettingsSubStack>
+        </SettingsStack>
+      </SettingsCard>
+      )}
+
+      {activeSection === "clipboard" && (
+        <SettingsCard>
+          <SettingsStack>
+            <SettingsRow icon={Clipboard} title={t("settings.clipboardAutostart")} description={t("settings.clipboardAutostartDesc")}>
                 <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
               </SettingsRow>
 
@@ -804,56 +932,32 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
                   </SettingsRow>
                 </>
               )}
-            </>
-          )}
 
-          <SettingsDivider />
-          <SettingsSubStack>
-            <SettingsRow icon={Wifi} title={t("settings.proxy")} description={t("settings.proxyDesc")}>
-              <SettingsSegmentedGroup>
-                {availableProxyModes.map((mode) => (
-                  <SettingsSegmentedButton
-                    key={mode}
-                    active={effectiveProxyMode === mode}
-                    onClick={() => void setProxyMode(mode)}
-                  >
-                    {t(getProxyModeLabelKey(mode))}
-                  </SettingsSegmentedButton>
-                ))}
-              </SettingsSegmentedGroup>
-            </SettingsRow>
-            {shouldShowCustomProxyInput(effectiveProxyMode, editingProxy) && (
-              <SettingsIndentedFieldGroup>
-                <SettingsInput
-                  autoFocus
-                  mono
-                  width="proxy"
-                  value={proxyUrlInput || settings?.proxy_url || ""}
-                  onChange={(e) => setProxyUrlInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing) void saveProxyUrl();
-                    if (e.key === "Escape") { setEditingProxy(false); setProxyUrlInput(settings?.proxy_url ?? ""); }
-                  }}
-                  placeholder={t("settings.proxyUrlPlaceholder")}
-                />
-                <SettingsActionButton variant="primary" onClick={() => void saveProxyUrl()}>
-                  {t("conversations.save")}
-                </SettingsActionButton>
-              </SettingsIndentedFieldGroup>
-            )}
-          </SettingsSubStack>
-
-          {isDesktop && (
-            <>
               <SettingsDivider />
-              <SettingsSubStack>
-                <SettingsRow
-                  icon={Terminal}
-                  title={t("settings.cliCapability")}
-                  description={t("settings.cliCapabilityDesc")}
-                  status={cliStatusView.label}
-                  statusTone={cliStatusView.tone}
-                >
+              <SettingsRow
+                icon={Eraser}
+                title={t("settings.largeFileCleanup")}
+                description={t("settings.largeFileCleanupDesc")}
+              >
+                <SettingsActionButton variant="secondary" onClick={() => setCleanerOpen(true)}>
+                  {t("settings.open")}
+                </SettingsActionButton>
+              </SettingsRow>
+          </SettingsStack>
+        </SettingsCard>
+      )}
+
+      {activeSection === "integrations" && (
+        <SettingsCard>
+          <SettingsStack>
+          <SettingsSubStack>
+            <SettingsRow
+              icon={Terminal}
+              title={t("settings.cliCapability")}
+              description={t("settings.cliCapabilityDesc")}
+              status={cliStatusView.label}
+              statusTone={cliStatusView.tone}
+            >
                   <SettingsControlGroup wrap>
                     <SettingsActionButton
                       icon={copiedField === "cliCommand" ? undefined : Copy}
@@ -950,21 +1054,13 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
                   {t("settings.open")}
                 </SettingsActionButton>
               </SettingsRow>
+          </SettingsStack>
+        </SettingsCard>
+      )}
 
-              <SettingsDivider />
-              <SettingsRow
-                icon={Eraser}
-                title={t("settings.largeFileCleanup")}
-                description={t("settings.largeFileCleanupDesc")}
-              >
-                <SettingsActionButton variant="secondary" onClick={() => setCleanerOpen(true)}>
-                  {t("settings.open")}
-                </SettingsActionButton>
-              </SettingsRow>
-            </>
-          )}
-
-          <SettingsDivider />
+      {activeSection === "sync" && (
+        <SettingsCard>
+          <SettingsStack>
           <SettingsRow icon={GitBranch} title={t("settings.syncBranch")} description={t("settings.syncBranchDesc")}>
             {editingBranch ? (
               <SettingsInput
@@ -1180,9 +1276,10 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
           </SettingsRow>
         </SettingsStack>
       </SettingsCard>
+      )}
 
-      {isDesktop && (
-        <SettingsCard topSpacing>
+      {activeSection === "shortcuts" && (
+        <SettingsCard>
           <SettingsStack>
             <SettingsCardHeader
               title={t("settings.shortcuts")}
@@ -1190,28 +1287,17 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
               actions={(
                 <SettingsControlGroup>
                   <SettingsActionButton
-                    icon={shortcutsExpanded ? ChevronDown : ChevronRight}
+                    icon={RotateCcw}
                     variant="ghost"
-                    onClick={() => setShortcutsExpanded((expanded) => !expanded)}
-                    aria-expanded={shortcutsExpanded}
+                    disabled={savingShortcut !== null}
+                    onClick={resetAllShortcuts}
                   >
-                    {shortcutsExpanded ? t("settings.collapseShortcuts") : t("settings.expandShortcuts")}
+                    {t("settings.resetShortcuts")}
                   </SettingsActionButton>
-                  {shortcutsExpanded && (
-                    <SettingsActionButton
-                      icon={RotateCcw}
-                      variant="ghost"
-                      disabled={savingShortcut !== null}
-                      onClick={resetAllShortcuts}
-                    >
-                      {t("settings.resetShortcuts")}
-                    </SettingsActionButton>
-                  )}
                 </SettingsControlGroup>
               )}
             />
-            {shortcutsExpanded && (
-              <SettingsSubStack>
+            <SettingsSubStack>
                 {shortcutRows.map((row) => {
                   const recording = recordingShortcut === row.id;
                   const saving = savingShortcut === row.id || savingShortcut === "all";
@@ -1242,11 +1328,11 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
                   );
                 })}
               </SettingsSubStack>
-            )}
           </SettingsStack>
         </SettingsCard>
       )}
 
+      {activeSection === null && (
       <SettingsAbout>
         <SettingsLogoImage src="/logo.png" alt="GitMemo" {...logoActions.imgProps} />
         <ImageContextMenu menu={logoActions.menu} />
@@ -1326,6 +1412,7 @@ export default function SettingsPage({ onNavigate, active = false }: { onNavigat
           </SettingsFooterButton>
         </SettingsFooterLinks>
       </SettingsAbout>
+      )}
 
       {isMobile && <SettingsMobileSpacer />}
 

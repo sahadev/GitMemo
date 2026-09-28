@@ -4170,6 +4170,33 @@ a:focus-visible {
   border-top: 1px solid var(--border);
 }
 
+.gm-settings-nav-row {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--gm-radius-md);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: var(--gm-settings-row-icon-gap);
+  margin: 0 calc(-1 * var(--gm-space-3));
+  padding: var(--gm-space-2) var(--gm-space-3);
+  text-align: left;
+}
+
+.gm-settings-nav-row:hover {
+  background: var(--bg-hover);
+}
+
+.gm-settings-nav-row .gm-settings-row-copy {
+  flex: 1;
+}
+
+.gm-settings-nav-row-chevron {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
 .gm-settings-row {
   align-items: center;
   display: flex;
