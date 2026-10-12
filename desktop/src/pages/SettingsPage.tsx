@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ShieldCheck, KeyRound, Smartphone, Eraser, Keyboard, SlidersHorizontal, CloudUpload } from "lucide-react";
 import { useSync } from "../hooks/useSync";
+import type { GitSyncEvent } from "../types/notes";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useAppStore } from "../hooks/useAppStore";
@@ -301,9 +303,32 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
 
   const toggleCommitClipboardImages = async () => {
     if (!settings) return;
+    const enabled = !settings.commit_clipboard_images;
     try {
-      await invoke<string>("set_commit_clipboard_images", { enabled: !settings.commit_clipboard_images });
+      await invoke<string>("set_commit_clipboard_images", { enabled });
       refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+      return;
+    }
+    if (!enabled) return;
+
+    // Images captured while the switch was off stay put until the user says so.
+    try {
+      const pending = await invoke<number>("pending_clip_image_count");
+      if (pending <= 0) return;
+      const confirmed = await ask(
+        t("settings.commitClipboardImagesSyncConfirm", String(pending)),
+        { title: t("settings.commitClipboardImagesSyncTitle") },
+      );
+      if (!confirmed) return;
+      const result = await invoke<GitSyncEvent>("sync_pending_clip_images");
+      showToast(
+        result.ok
+          ? t("settings.commitClipboardImagesSynced", String(pending))
+          : result.message,
+        !result.ok,
+      );
     } catch (e) {
       showToast(`Error: ${e}`, true);
     }

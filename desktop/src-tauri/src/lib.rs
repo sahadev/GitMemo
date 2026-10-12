@@ -392,6 +392,8 @@ pub fn run() {
             notes::list_clip_images,
             notes::delete_clip_image,
             notes::sync_clip_image,
+            notes::sync_pending_clip_images,
+            notes::pending_clip_image_count,
             notes::undo_last_image_delete,
             notes::save_pasted_attachment,
             // Favorites

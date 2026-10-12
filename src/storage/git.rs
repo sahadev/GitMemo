@@ -2049,6 +2049,47 @@ mod tests {
     }
 
     #[test]
+    fn all_pending_images_can_be_synced_in_one_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path();
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo_path)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        std::fs::create_dir_all(repo_path.join(".metadata")).unwrap();
+        std::fs::create_dir_all(repo_path.join("clips")).unwrap();
+        std::fs::write(repo_path.join(".gitignore"), ".metadata/\n").unwrap();
+
+        let images = [
+            ("clips/a.png", "clips/a.md"),
+            ("clips/b.png", "clips/b.md"),
+        ];
+        for (png, md) in images {
+            std::fs::write(repo_path.join(png), b"png").unwrap();
+            std::fs::write(repo_path.join(md), "![x](x.png)\n").unwrap();
+            crate::storage::pending_images::add(repo_path, &[png, md]).unwrap();
+        }
+
+        // Mirrors the settings toggle: one commit carries every pending image.
+        let pending = crate::storage::pending_images::list(repo_path);
+        let refs: Vec<&str> = pending.iter().map(|s| s.as_str()).collect();
+        commit_and_push_allowing(repo_path, "clip: sync pending screenshots", &refs).unwrap();
+
+        let repo = git2::Repository::open(repo_path).unwrap();
+        let tree = current_head_commit(&repo).unwrap().unwrap().tree().unwrap();
+        for (png, md) in images {
+            assert!(tree.get_path(Path::new(png)).is_ok(), "{png} missing");
+            assert!(tree.get_path(Path::new(md)).is_ok(), "{md} missing");
+        }
+    }
+
+    #[test]
     fn synced_image_survives_the_next_commit() {
         let tmp = tempfile::tempdir().unwrap();
         let repo_path = tmp.path();

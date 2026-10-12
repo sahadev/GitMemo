@@ -2362,6 +2362,62 @@ pub fn delete_clip_image(image_path: String) -> Result<NoteResult, String> {
     })
 }
 
+/// Commit and push pending clip-image paths, emitting the events every other
+/// background sync emits.
+fn commit_pending_clip_images(
+    dir: &Path,
+    message: &str,
+    allow: &[String],
+    app: &AppHandle,
+) -> GitSyncEvent {
+    let refs: Vec<&str> = allow.iter().map(|s| s.as_str()).collect();
+    let _ = app.emit("git-sync-start", ());
+    let result = git::commit_and_push_allowing(dir, message, &refs);
+
+    let event = match result {
+        Ok(result) => {
+            // The registry only guards uncommitted files. Keeping an entry past
+            // its commit would stage a deletion on the next commit.
+            let _ = gitmemo_core::storage::pending_images::remove(dir, &refs);
+            if let Some(err) = result.push_error {
+                GitSyncEvent {
+                    ok: false,
+                    message: git_error_for_user(err),
+                }
+            } else if !git::has_remote(dir) {
+                GitSyncEvent {
+                    ok: true,
+                    message: "Saved locally".into(),
+                }
+            } else {
+                GitSyncEvent {
+                    ok: true,
+                    message: "Synced".into(),
+                }
+            }
+        }
+        Err(e) => GitSyncEvent {
+            ok: false,
+            message: git_error_for_user(e.to_string()),
+        },
+    };
+
+    let _ = app.emit("git-sync-end", &event);
+    if !event.ok {
+        sync_log::write_sync_log("image sync", false, &event.message, None);
+    }
+    event
+}
+
+/// How many clipboard images still wait for a manual sync.
+#[tauri::command]
+pub fn pending_clip_image_count() -> usize {
+    gitmemo_core::storage::pending_images::list(&sync_dir())
+        .iter()
+        .filter(|rel| is_clip_image_path(Path::new(rel)))
+        .count()
+}
+
 /// Commit and push a single clipboard-image clip that waits for a manual sync.
 ///
 /// The image and its companion `.md` are allowed through the pending-image
@@ -2378,45 +2434,30 @@ pub async fn sync_clip_image(app: AppHandle, image_path: String) -> Result<GitSy
         if dir.join(&md_rel).is_file() {
             allow.push(md_rel);
         }
-        let allow_refs: Vec<&str> = allow.iter().map(|s| s.as_str()).collect();
 
-        let _ = app.emit("git-sync-start", ());
-        let result = git::commit_and_push_allowing(&dir, "clip: screenshot", &allow_refs);
-
-        let event = match result {
-            Ok(result) => {
-                // The registry only guards uncommitted files. Keeping an entry
-                // past its commit would stage a deletion on the next commit.
-                let _ = gitmemo_core::storage::pending_images::remove(&dir, &allow_refs);
-                if let Some(err) = result.push_error {
-                    GitSyncEvent {
-                        ok: false,
-                        message: git_error_for_user(err),
-                    }
-                } else if !git::has_remote(&dir) {
-                    GitSyncEvent {
-                        ok: true,
-                        message: "Saved locally".into(),
-                    }
-                } else {
-                    GitSyncEvent {
-                        ok: true,
-                        message: "Synced".into(),
-                    }
-                }
-            }
-            Err(e) => GitSyncEvent {
-                ok: false,
-                message: git_error_for_user(e.to_string()),
-            },
-        };
-
-        let _ = app.emit("git-sync-end", &event);
-        if !event.ok {
-            sync_log::write_sync_log("image sync", false, &event.message, None);
-        }
+        let event = commit_pending_clip_images(&dir, "clip: screenshot", &allow, &app);
         emit_files_changed();
+        Ok(event)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
+}
 
+/// Commit and push every clipboard image that still waits for a manual sync.
+#[tauri::command]
+pub async fn sync_pending_clip_images(app: AppHandle) -> Result<GitSyncEvent, String> {
+    tokio::task::spawn_blocking(move || {
+        let dir = sync_dir();
+        let pending = gitmemo_core::storage::pending_images::list(&dir);
+        if pending.is_empty() {
+            return Ok(GitSyncEvent {
+                ok: true,
+                message: "No changes".into(),
+            });
+        }
+
+        let event = commit_pending_clip_images(&dir, "clip: sync pending screenshots", &pending, &app);
+        emit_files_changed();
         Ok(event)
     })
     .await
