@@ -1219,6 +1219,7 @@ fn commit_and_push_with_token(repo_path: &Path, message: &str, token: &str) -> R
 
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    drop_pending_images(repo_path, &mut index, &[]);
     index.write()?;
 
     let tree_id = index.write_tree()?;
@@ -1350,6 +1351,42 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
     );
 }
 
+/// Strip clip images that still wait for a manual sync from the staging area.
+///
+/// `allow` lists paths that may be staged regardless; the manual image sync
+/// passes the image it was asked to sync so exactly that file gets through.
+///
+/// The registry only ever holds untracked paths, so dropping an entry can never
+/// stage a deletion. Best effort: a broken registry must not block a commit.
+fn drop_pending_images(repo_path: &Path, index: &mut git2::Index, allow: &[&str]) {
+    let allow: Vec<String> = allow
+        .iter()
+        .map(|p| crate::storage::pending_images::normalize(p))
+        .collect();
+    let pending = crate::storage::pending_images::list(repo_path);
+
+    // Deleted files must lose their entry, otherwise a later re-commit would
+    // treat a stale path as a deletion.
+    let gone: Vec<String> = pending
+        .iter()
+        .filter(|rel| !repo_path.join(rel).exists())
+        .cloned()
+        .collect();
+    if !gone.is_empty() {
+        let gone_refs: Vec<&str> = gone.iter().map(|s| s.as_str()).collect();
+        let _ = crate::storage::pending_images::remove(repo_path, &gone_refs);
+    }
+
+    for rel in pending {
+        if gone.iter().any(|g| g == &rel) || allow.iter().any(|a| a == &rel) {
+            continue;
+        }
+        if let Err(e) = index.remove_path(Path::new(&rel)) {
+            eprintln!("[gitmemo] Could not drop pending image {}: {}", rel, e);
+        }
+    }
+}
+
 /// Stage all changes, commit, and push. Returns sync result.
 /// Commit staged changes without pushing. Used during init when remote
 /// SSH keys may not be configured yet.
@@ -1361,6 +1398,7 @@ pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
 
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    drop_pending_images(repo_path, &mut index, &[]);
     index.write()?;
 
     let tree_id = index.write_tree()?;
@@ -1386,10 +1424,26 @@ pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
 pub fn commit_and_push(repo_path: &Path, message: &str) -> Result<SyncResult> {
     // Serialize the full write path, not just network operations. Background
     // UI actions can otherwise stage/commit at the same time and race on HEAD.
-    with_repo_network_lock(repo_path, || commit_and_push_inner(repo_path, message))
+    with_repo_network_lock(repo_path, || commit_and_push_inner(repo_path, message, &[]))
 }
 
-fn commit_and_push_inner(repo_path: &Path, message: &str) -> Result<SyncResult> {
+/// Like [`commit_and_push`], but lets `allow_paths` through the pending-image
+/// filter. Used by the manual clipboard image sync.
+pub fn commit_and_push_allowing(
+    repo_path: &Path,
+    message: &str,
+    allow_paths: &[&str],
+) -> Result<SyncResult> {
+    with_repo_network_lock(repo_path, || {
+        commit_and_push_inner(repo_path, message, allow_paths)
+    })
+}
+
+fn commit_and_push_inner(
+    repo_path: &Path,
+    message: &str,
+    allow_paths: &[&str],
+) -> Result<SyncResult> {
     #[cfg(target_os = "android")]
     if let Some(token) = configured_access_token(repo_path) {
         return commit_and_push_with_token(repo_path, message, &token);
@@ -1404,6 +1458,7 @@ fn commit_and_push_inner(repo_path: &Path, message: &str) -> Result<SyncResult> 
     // Stage all
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
+    drop_pending_images(repo_path, &mut index, allow_paths);
     index.write()?;
 
     // Check if there's anything to commit
@@ -1938,6 +1993,94 @@ pub fn test_remote(repo_path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pending_images_are_excluded_from_commits_until_allowed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path();
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo_path)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        std::fs::create_dir_all(repo_path.join(".metadata")).unwrap();
+        std::fs::create_dir_all(repo_path.join("clips/2026-04-17")).unwrap();
+        std::fs::write(repo_path.join(".gitignore"), ".metadata/\n").unwrap();
+
+        let png = "clips/2026-04-17/10-00-00-screenshot.png";
+        let md = "clips/2026-04-17/10-00-00-screenshot.md";
+        std::fs::write(repo_path.join(png), b"png").unwrap();
+        std::fs::write(repo_path.join(md), "![screenshot](10-00-00-screenshot.png)\n").unwrap();
+        crate::storage::pending_images::add(repo_path, &[png, md]).unwrap();
+
+        // An unrelated commit must not pick the pending image up.
+        std::fs::write(repo_path.join("clips/2026-04-17/10-05-00-hello.md"), "hello\n").unwrap();
+        commit_and_push(repo_path, "clip: hello").unwrap();
+
+        let head_has = |path: &str| -> bool {
+            let repo = git2::Repository::open(repo_path).unwrap();
+            let commit = current_head_commit(&repo).unwrap().unwrap();
+            let found = commit.tree().unwrap().get_path(Path::new(path)).is_ok();
+            found
+        };
+        assert!(head_has("clips/2026-04-17/10-05-00-hello.md"));
+        assert!(!head_has(png));
+        assert!(!head_has(md));
+        assert!(repo_path.join(png).is_file());
+
+        // The manual sync lets exactly those paths through.
+        commit_and_push_allowing(repo_path, "clip: screenshot", &[png, md]).unwrap();
+        assert!(head_has(png));
+        assert!(head_has(md));
+
+        // Entries for files that no longer exist are pruned, so a later commit
+        // can never turn them into a deletion.
+        crate::storage::pending_images::add(repo_path, &["clips/2026-04-17/gone.png"]).unwrap();
+        commit_and_push(repo_path, "clip: prune").unwrap();
+        assert!(!crate::storage::pending_images::contains(
+            repo_path,
+            "clips/2026-04-17/gone.png"
+        ));
+    }
+
+    #[test]
+    fn synced_image_survives_the_next_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path();
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo_path)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        std::fs::create_dir_all(repo_path.join(".metadata")).unwrap();
+        std::fs::write(repo_path.join(".gitignore"), ".metadata/\n").unwrap();
+
+        let png = "clips/shot.png";
+        std::fs::create_dir_all(repo_path.join("clips")).unwrap();
+        std::fs::write(repo_path.join(png), b"png").unwrap();
+        // Mirrors the manual sync: allow the image through once, then drop its
+        // registry entry so the next commit cannot turn it into a deletion.
+        crate::storage::pending_images::add(repo_path, &[png]).unwrap();
+        commit_and_push_allowing(repo_path, "clip: screenshot", &[png]).unwrap();
+        crate::storage::pending_images::remove(repo_path, &[png]).unwrap();
+
+        std::fs::write(repo_path.join("note.md"), "note\n").unwrap();
+        commit_and_push(repo_path, "note").unwrap();
+
+        let repo = git2::Repository::open(repo_path).unwrap();
+        let tree = current_head_commit(&repo).unwrap().unwrap().tree().unwrap();
+        assert!(tree.get_path(Path::new(png)).is_ok());
+    }
 
     #[test]
     fn worktree_content_size_uses_git_visible_files() {

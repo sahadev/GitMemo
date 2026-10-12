@@ -48,6 +48,10 @@ pub struct DesktopSettings {
     pub clipboard_autostart: bool,
     #[serde(default = "default_true")]
     pub clipboard_auto_refresh: bool,
+    /// When off (default), captured clipboard images are saved locally but stay
+    /// out of git until they are synced from their detail page.
+    #[serde(default)]
+    pub commit_clipboard_images: bool,
     #[serde(default)]
     pub control_copy_paste: bool,
     #[serde(default)]
@@ -128,6 +132,7 @@ impl Default for DesktopSettings {
             autostart: false,
             clipboard_autostart: true,
             clipboard_auto_refresh: true,
+            commit_clipboard_images: false,
             control_copy_paste: false,
             sensitive_clipboard_action: SensitiveClipboardAction::Redact,
             vault_enabled: false,
@@ -601,6 +606,19 @@ pub fn set_clipboard_auto_refresh(enabled: bool) -> Result<String, String> {
         "Clipboard auto-refresh enabled".into()
     } else {
         "Clipboard auto-refresh disabled".into()
+    })
+}
+
+#[tauri::command]
+pub fn set_commit_clipboard_images(enabled: bool) -> Result<String, String> {
+    let mut settings = load_settings();
+    settings.commit_clipboard_images = enabled;
+    save_settings(&settings)?;
+
+    Ok(if enabled {
+        "Clipboard image auto-commit enabled".into()
+    } else {
+        "Clipboard image auto-commit disabled".into()
     })
 }
 

@@ -629,10 +629,22 @@ pub(crate) mod desktop_poll {
         );
         std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
 
-        let dir = sync_dir.clone();
-        std::thread::spawn(move || {
-            let _ = git::commit_and_push(&dir, "clip: screenshot");
-        });
+        if settings::current_settings().commit_clipboard_images {
+            let dir = sync_dir.clone();
+            std::thread::spawn(move || {
+                let _ = git::commit_and_push(&dir, "clip: screenshot");
+            });
+        } else {
+            // Keep the image out of git until the user syncs it from its detail
+            // page. Registering both files keeps the commit filter and the
+            // detail-page status in sync.
+            let png_rel = format!("clips/{}/{}", date_str, png_filename);
+            if let Err(e) =
+                gitmemo_core::storage::pending_images::add(&sync_dir, &[&png_rel, &rel_path])
+            {
+                log::warn!("Failed to mark screenshot as pending sync: {}", e);
+            }
+        }
 
         Ok(ClipboardEvent {
             saved: true,

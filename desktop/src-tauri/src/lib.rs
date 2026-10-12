@@ -391,6 +391,7 @@ pub fn run() {
             notes::delete_plan,
             notes::list_clip_images,
             notes::delete_clip_image,
+            notes::sync_clip_image,
             notes::undo_last_image_delete,
             notes::save_pasted_attachment,
             // Favorites
@@ -426,6 +427,7 @@ pub fn run() {
             settings::set_autostart,
             settings::set_clipboard_autostart,
             settings::set_clipboard_auto_refresh,
+            settings::set_commit_clipboard_images,
             settings::set_control_copy_paste,
             settings::set_sensitive_clipboard_action,
             settings::set_vault_enabled,

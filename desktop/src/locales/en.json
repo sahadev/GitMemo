@@ -251,6 +251,8 @@
     "selectedDeleted": "Deleted {0}",
     "deleteClip": "Delete",
     "clipDeleted": "Clip deleted",
+    "syncImage": "Sync",
+    "imageSynced": "Synced",
     "backToTop": "Back to top",
     "loading": "Loading..."
   },
@@ -289,6 +291,8 @@
     "clipboardAutostartDesc": "Begin capturing clipboard on launch",
     "clipboardAutoRefresh": "Auto-refresh clipboard page",
     "clipboardAutoRefreshDesc": "Refresh the current list when new clipboard records arrive. Records are still saved when this is off.",
+    "commitClipboardImages": "Auto-commit clipboard images",
+    "commitClipboardImagesDesc": "Off by default: images stay local and are synced from their detail page. On: screenshots are committed and pushed automatically.",
     "sensitiveClipboard": "Sensitive clipboard",
     "sensitiveClipboardDesc": "Choose how GitMemo saves copied passwords, tokens, keys, and other detected secrets.",
     "sensitiveClipboardRedact": "Redact",

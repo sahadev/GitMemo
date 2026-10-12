@@ -1,4 +1,5 @@
 use super::markdown::frontmatter_value;
+use super::settings;
 use super::sync_log;
 use gitmemo_core::storage::files::refresh_updated_frontmatter;
 use gitmemo_core::storage::{database, files, git};
@@ -307,6 +308,10 @@ pub struct FileEntry {
     pub modified_ts: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preview_image: Option<String>,
+    /// Clipboard-image clips only: `false` while the image still awaits a manual
+    /// sync (auto-commit of clipboard images is off by default).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub synced: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -611,6 +616,9 @@ fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
     let model = frontmatter_value(&content, "model").map(|s| s.to_string());
     let messages = frontmatter_value(&content, "messages").map(|s| s.to_string());
 
+    let synced = is_clipboard_image
+        .then(|| !gitmemo_core::storage::pending_images::contains(dir, &rel_path));
+
     let name = extract_display_title(path, &rel_path, &content);
 
     let (modified, modified_ts) = record_timestamp_for_markdown(&content, candidate.modified_time);
@@ -639,6 +647,7 @@ fn build_file_entry(dir: &Path, candidate: FileCandidate) -> FileEntry {
         preview,
         modified_ts,
         preview_image,
+        synced,
         title,
         model,
         messages,
@@ -2353,6 +2362,81 @@ pub fn delete_clip_image(image_path: String) -> Result<NoteResult, String> {
     })
 }
 
+/// Commit and push a single clipboard-image clip that waits for a manual sync.
+///
+/// The image and its companion `.md` are allowed through the pending-image
+/// filter for this one commit, and only leave the registry once the commit ran,
+/// so a failure keeps the image protected from unrelated commits.
+#[tauri::command]
+pub async fn sync_clip_image(app: AppHandle, image_path: String) -> Result<GitSyncEvent, String> {
+    tokio::task::spawn_blocking(move || {
+        let dir = sync_dir();
+        let image_rel = normalize_clip_image_path(&image_path)?;
+        let md_rel = clip_image_to_md_rel(&image_rel);
+
+        let mut allow: Vec<String> = vec![image_rel];
+        if dir.join(&md_rel).is_file() {
+            allow.push(md_rel);
+        }
+        let allow_refs: Vec<&str> = allow.iter().map(|s| s.as_str()).collect();
+
+        let _ = app.emit("git-sync-start", ());
+        let result = git::commit_and_push_allowing(&dir, "clip: screenshot", &allow_refs);
+
+        let event = match result {
+            Ok(result) => {
+                // The registry only guards uncommitted files. Keeping an entry
+                // past its commit would stage a deletion on the next commit.
+                let _ = gitmemo_core::storage::pending_images::remove(&dir, &allow_refs);
+                if let Some(err) = result.push_error {
+                    GitSyncEvent {
+                        ok: false,
+                        message: git_error_for_user(err),
+                    }
+                } else if !git::has_remote(&dir) {
+                    GitSyncEvent {
+                        ok: true,
+                        message: "Saved locally".into(),
+                    }
+                } else {
+                    GitSyncEvent {
+                        ok: true,
+                        message: "Synced".into(),
+                    }
+                }
+            }
+            Err(e) => GitSyncEvent {
+                ok: false,
+                message: git_error_for_user(e.to_string()),
+            },
+        };
+
+        let _ = app.emit("git-sync-end", &event);
+        if !event.ok {
+            sync_log::write_sync_log("image sync", false, &event.message, None);
+        }
+        emit_files_changed();
+
+        Ok(event)
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
+}
+
+/// Whether a restored clip file is part of a clipboard image (the image itself
+/// or its companion `.md`).
+fn is_restored_clip_image(dir: &Path, rel: &str) -> bool {
+    if is_clip_image_path(Path::new(rel)) {
+        return true;
+    }
+    if !rel.ends_with(".md") {
+        return false;
+    }
+    std::fs::read_to_string(dir.join(rel))
+        .map(|content| is_clipboard_image_content(&content))
+        .unwrap_or(false)
+}
+
 /// Restore the most recently deleted clip image (and its companion md).
 #[tauri::command]
 pub fn undo_last_image_delete() -> Result<NoteResult, String> {
@@ -2391,6 +2475,22 @@ pub fn undo_last_image_delete() -> Result<NoteResult, String> {
     }
     if restored.is_empty() {
         return Err("Nothing to undo".into());
+    }
+
+    // Undoing follows the same rule as capturing: with auto-commit off the
+    // restored image must not slip into git through this commit.
+    if !settings::current_settings().commit_clipboard_images {
+        let pending: Vec<String> = restored
+            .iter()
+            .filter(|rel| is_restored_clip_image(&dir, rel))
+            .cloned()
+            .collect();
+        if !pending.is_empty() {
+            let refs: Vec<&str> = pending.iter().map(|s| s.as_str()).collect();
+            if let Err(e) = gitmemo_core::storage::pending_images::add(&dir, &refs) {
+                log::warn!("Failed to mark restored image as pending sync: {}", e);
+            }
+        }
     }
 
     bg_commit_and_push(format!("undo delete clip image: {}", restored.join(", ")));

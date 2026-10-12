@@ -8,6 +8,8 @@ export interface FileEntry {
   preview: string;
   modifiedTs?: number;
   preview_image?: string | null;
+  /** Clipboard-image clips only: `false` while the image awaits a manual sync. */
+  synced?: boolean | null;
   title?: string | null;
   model?: string | null;
   messages?: string | null;

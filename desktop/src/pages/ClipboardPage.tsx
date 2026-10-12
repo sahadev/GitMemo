@@ -3,12 +3,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
-import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2, FileText, Image as ImageIcon, Layers, Eraser } from "lucide-react";
+import { Clipboard, Play, Square, Save, Copy, Check, Trash2, RefreshCw, ListChecks, X, FilePlus2, FileText, Image as ImageIcon, Layers, Eraser, CloudUpload, CloudCheck } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { Loading } from "../components/Loading";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FavoriteButton } from "../components/FavoriteButton";
+import { DetailIconButton } from "../components/DetailIconButton";
 import { DesktopSplitPane } from "../components/DesktopSplitPane";
 import { PaneHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
@@ -23,7 +24,7 @@ import { useAppStore, type ClipboardStatus } from "../hooks/useAppStore";
 import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { FILE_PAGE_SIZE, type FileEntry, type FilePage } from "../types/files";
-import { type NoteResult } from "../types/notes";
+import { type GitSyncEvent, type NoteResult } from "../types/notes";
 import { useAutoLoadMore } from "../hooks/useAutoLoadMore";
 import { useFileListNavigation } from "../hooks/useFileListNavigation";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
@@ -158,6 +159,7 @@ export default function ClipboardPage({
   const { copied: copiedId, markCopied: markCopiedId } = useTimedCopy<string>();
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [cleanerOpen, setCleanerOpen] = useState(false);
+  const [syncingImage, setSyncingImage] = useState(false);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editRef = useRef<EditorHandle | null>(null);
   const resetEditorRef = useRef<(() => void) | null>(null);
@@ -696,6 +698,26 @@ export default function ClipboardPage({
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
   const selectedFileEntry = savedClips.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
+  const selectedImagePath = selectedFileEntry?.preview_image ?? null;
+  const selectedImageSynced = selectedFileEntry?.synced;
+
+  const syncSelectedImage = async () => {
+    if (!selectedImagePath || syncingImage) return;
+    setSyncingImage(true);
+    try {
+      const result = await invoke<GitSyncEvent>("sync_clip_image", { imagePath: selectedImagePath });
+      // The backend drops the image from the pending registry as soon as the
+      // commit ran, so the entry counts as synced even when the push failed.
+      setSavedClips((prev) => prev.map((clip) => (
+        clip.path === selectedFile ? { ...clip, synced: true } : clip
+      )));
+      showToast(result.ok ? t("clipboard.imageSynced") : result.message, !result.ok);
+    } catch (e) {
+      showToast(String(e), true);
+    } finally {
+      setSyncingImage(false);
+    }
+  };
   const closeDetail = useCallback(() => {
     clearDetail();
   }, [clearDetail]);
@@ -1022,12 +1044,30 @@ export default function ClipboardPage({
                   splitPreview={splitPreview}
                   onToggleSplitPreview={toggleSplitPreview}
                   metadata={selectedFile ? (
-                    <FavoriteButton
-                      relPath={selectedFile}
-                      active={active}
-                      title={selectedFileTitle}
-                      sourceType="clip"
-                    />
+                    <>
+                      {selectedImagePath ? (
+                        selectedImageSynced ? (
+                          <DetailIconButton type="button" disabled title={t("clipboard.imageSynced")} tone="success">
+                            <AppIcon icon={CloudCheck} size={isMobile ? "sm" : "xs"} />
+                          </DetailIconButton>
+                        ) : (
+                          <DetailIconButton
+                            type="button"
+                            onClick={() => void syncSelectedImage()}
+                            disabled={syncingImage}
+                            title={t("clipboard.syncImage")}
+                          >
+                            <AppIcon icon={CloudUpload} size={isMobile ? "sm" : "xs"} spin={syncingImage} />
+                          </DetailIconButton>
+                        )
+                      ) : null}
+                      <FavoriteButton
+                        relPath={selectedFile}
+                        active={active}
+                        title={selectedFileTitle}
+                        sourceType="clip"
+                      />
+                    </>
                   ) : null}
                   actionsAfterEdit={[
                     {

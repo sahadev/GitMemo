@@ -70,6 +70,7 @@ export interface DesktopSettings {
   autostart: boolean;
   clipboard_autostart: boolean;
   clipboard_auto_refresh: boolean;
+  commit_clipboard_images: boolean;
   control_copy_paste: boolean;
   sensitive_clipboard_action: "redact" | "plaintext";
   vault_enabled: boolean;

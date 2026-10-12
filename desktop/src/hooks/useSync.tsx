@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { notify } from "../utils/notify";
+import type { GitSyncEvent } from "../types/notes";
 
 export interface GitStatus {
   initialized: boolean;
@@ -17,11 +18,6 @@ export interface GitStatus {
 }
 
 type SyncState = "idle" | "syncing" | "success" | "failed";
-
-interface GitSyncEvent {
-  ok: boolean;
-  message: string;
-}
 
 interface SyncStore {
   state: SyncState;

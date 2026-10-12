@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ShieldCheck, KeyRound, Smartphone, Eraser, Keyboard, SlidersHorizontal } from "lucide-react";
+import { Power, Clipboard, Sun, Moon, GitBranch, ExternalLink, Globe, FolderOpen, Globe2, Terminal, Code, Copy, MessageCircle, ScrollText, Download, RefreshCw, Wifi, RotateCcw, ShieldCheck, KeyRound, Smartphone, Eraser, Keyboard, SlidersHorizontal, CloudUpload } from "lucide-react";
 import { useSync } from "../hooks/useSync";
 import { useI18n, type Locale } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -293,6 +293,16 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
     if (!settings) return;
     try {
       await invoke<string>("set_clipboard_auto_refresh", { enabled: !settings.clipboard_auto_refresh });
+      refreshSettings();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
+  const toggleCommitClipboardImages = async () => {
+    if (!settings) return;
+    try {
+      await invoke<string>("set_commit_clipboard_images", { enabled: !settings.commit_clipboard_images });
       refreshSettings();
     } catch (e) {
       showToast(`Error: ${e}`, true);
@@ -871,6 +881,11 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
               <SettingsDivider />
               <SettingsRow icon={RefreshCw} title={t("settings.clipboardAutoRefresh")} description={t("settings.clipboardAutoRefreshDesc")}>
                 <Switch enabled={settings?.clipboard_auto_refresh ?? true} onToggle={toggleClipboardAutoRefresh} />
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow icon={CloudUpload} title={t("settings.commitClipboardImages")} description={t("settings.commitClipboardImagesDesc")}>
+                <Switch enabled={settings?.commit_clipboard_images ?? false} onToggle={toggleCommitClipboardImages} />
               </SettingsRow>
 
               <SettingsDivider />
