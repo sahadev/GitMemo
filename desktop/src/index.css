@@ -7241,6 +7241,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   text-transform: uppercase;
 }
 .gm-inst-list-count { color: var(--gm-text-2); }
+.gm-favorites-count { white-space: nowrap; }
 .gm-inst-list-rows { flex: 1; min-height: 0; overflow-y: auto; }
 .gm-inst-list-row {
   align-items: center;

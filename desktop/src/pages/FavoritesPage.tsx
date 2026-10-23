@@ -7,7 +7,6 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Badge } from "../components/base/Badge";
 import { EmptyState } from "../components/base/EmptyState";
@@ -183,14 +182,10 @@ export default function FavoritesPage({
 
   const list = (
     <ListPane>
-      <PaneHeader
-        icon={Star}
-        iconFill="currentColor"
-        title={t("favorites.title")}
-        actions={(
-          <Badge>{t("favorites.count", favorites.length)}</Badge>
-        )}
-      />
+      <div className="gm-inst-list-head">
+        <span>{t("favorites.title")}</span>
+        <span className="gm-inst-list-count gm-favorites-count">{t("favorites.count", favorites.length)}</span>
+      </div>
       <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
           <Loading compact text={t("common.loading")} />
