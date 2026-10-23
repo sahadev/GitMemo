@@ -626,7 +626,7 @@ a:focus-visible {
 .gm-page-header {
   align-items: center;
   background: var(--gm-color-bg-surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--border);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-card-header-gap);
@@ -670,7 +670,7 @@ a:focus-visible {
 .gm-pane-header {
   align-items: center;
   background: var(--gm-color-bg-surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--border);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-icon-text-gap);
@@ -1738,7 +1738,7 @@ a:focus-visible {
 
 .gm-privacy-dialog {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-modal);
   max-width: 420px;
@@ -1892,7 +1892,7 @@ a:focus-visible {
 .gm-note-title-input,
 .gm-note-textarea {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   color: var(--text);
   font-family: inherit;
@@ -2018,7 +2018,7 @@ a:focus-visible {
 
 .gm-search-input {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   color: var(--text);
   font-family: inherit;
@@ -2391,7 +2391,7 @@ a:focus-visible {
 
 .gm-sidebar {
   background: var(--gm-color-bg-surface);
-  border-right: 1px solid var(--border);
+  border-right: var(--gm-border-w) solid var(--border);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -2886,7 +2886,7 @@ a:focus-visible {
 
 .gm-code-editor-box {
   background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   padding: var(--gm-section-gap);
 }
@@ -2946,7 +2946,7 @@ a:focus-visible {
 
 .gm-code-mirror-box {
   background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   margin: var(--gm-section-gap);
 }
@@ -3115,7 +3115,7 @@ a:focus-visible {
 
 .gm-dashboard-card {
   background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
@@ -3228,7 +3228,7 @@ a:focus-visible {
 
 .gm-button-secondary {
   background: var(--gm-color-bg-elevated);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   color: var(--accent);
 }
 
@@ -3842,7 +3842,7 @@ a:focus-visible {
 
 .gm-setup-input {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   box-sizing: border-box;
   color: var(--text);
@@ -3874,7 +3874,7 @@ a:focus-visible {
 
 .gm-setup-info-panel {
   background: var(--bg-hover);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   padding: var(--gm-space-3) var(--gm-space-4);
 }
@@ -4039,7 +4039,7 @@ a:focus-visible {
 
 .gm-setup-log-panel {
   background: var(--bg-hover);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   overflow: hidden;
 }
@@ -4167,7 +4167,7 @@ a:focus-visible {
 
 .gm-settings-card {
   background: color-mix(in srgb, var(--bg-card) 94%, var(--bg) 6%);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
@@ -4432,7 +4432,7 @@ a:focus-visible {
 
 .gm-settings-segmented-button {
   background: var(--bg-hover);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   color: var(--text-secondary);
   cursor: pointer;
@@ -4574,7 +4574,7 @@ a:focus-visible {
 
 .gm-settings-info-panel {
   background: var(--bg-hover);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   padding: var(--gm-card-header-gap) var(--gm-section-gap);
 }
@@ -4968,7 +4968,7 @@ a:focus-visible {
 
 .gm-settings-modal {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-modal);
   display: flex;
@@ -5631,7 +5631,7 @@ a:focus-visible {
 
 .gm-menu-popover {
   background: var(--gm-color-bg-elevated);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   box-shadow: var(--gm-shadow-popover);
   padding: var(--gm-space-2);
@@ -5773,7 +5773,7 @@ a:focus-visible {
 
 .gm-error-panel {
   background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   max-width: min(760px, 88vw);
   padding: var(--gm-space-5);
@@ -5864,7 +5864,7 @@ a:focus-visible {
 
 .gm-drop-card {
   background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-modal);
   max-width: var(--gm-size-drop-card-max-width);
