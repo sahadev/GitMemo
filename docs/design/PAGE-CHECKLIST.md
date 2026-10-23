@@ -287,3 +287,22 @@ rg -n -B20 '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' desktop/src/index.css \
 | 组件里写死的色值 | 见 §0 第四条 | 13 行（11 打印豁免 + 2 预览遮罩） | 恒为 13 或更低 |
 
 用法：改完一页，跑一遍这七条，把数字记在提交说明里。数字不动就是没接上——比看截图可靠，因为截图看不出「这块颜色是变量还是写死的」。
+
+---
+
+## 8 提交后验 HEAD（每批必做）
+
+「工作区 tsc 0」和「HEAD tsc 0」是两件事。工作区干净只说明本机没写坏；别人拉下来能不能构建，只由 `HEAD` 决定。中间态（脚本改文件写了一半、编辑器保存了一半）如果正好撞上 commit，就会把语法错带进主线。
+
+所以每批提交之后，从 `HEAD` 单独开一个 worktree 再跑一次类型检查，输出必须是空的：
+
+```sh
+cd /Users/Zhuanz/Code/other/GitMemo-desktop
+rm -rf /tmp/headcheck
+git worktree add -q --detach /tmp/headcheck HEAD
+ln -sfn "$PWD/desktop/node_modules" /tmp/headcheck/desktop/node_modules
+cd /tmp/headcheck && ./desktop/node_modules/.bin/tsc -p desktop/tsconfig.json --noEmit
+cd /Users/Zhuanz/Code/other/GitMemo-desktop && git worktree remove --force /tmp/headcheck
+```
+
+独立 worktree 不受旁人正在改的文件干扰，几秒钟一次。这一步过了，这一批才算合格；只在工作区跑，等于没验。
