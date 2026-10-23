@@ -1,3 +1,4 @@
 # 文档已规定、但 desktop/src/index.css 尚未定义的变量。
 # 落地后把对应行删掉；check-doc-tokens.mjs 会把它当「待新增」而不是「名字写错」。
---gm-accent-2        # 第二套皮肤（F）的辅助色，尚未进实现
+--gm-accent-2      # 第二套皮肤（F）的辅助色，尚未进实现
+--gm-media-scrim   # 图片预览的遮罩（rgba(0,0,0,.6) 及其渐变版），尚未进实现
