@@ -328,8 +328,15 @@ export default function FavoritesPage({
 
   // 列表为空时整屏只显示空态：空的详情栏是负资产，不靠文案掩盖
   if (!loading && favorites.length === 0) {
+    // 页头常驻：列表为空不等于页面为空，用户仍要知道自己在哪、这页有多少条
     return (
-      <PageFrame>
+      <PageFrame column>
+        <PaneHeader
+          icon={Star}
+          iconFill="currentColor"
+          title={t("favorites.title")}
+          actions={<Badge>{t("favorites.count", favorites.length)}</Badge>}
+        />
         <EmptyState
           icon={Star}
           iconSize="empty-lg"

@@ -110,7 +110,7 @@
     "remove": "Remove favorite",
     "added": "Added to favorites",
     "removed": "Removed from favorites",
-    "empty": "No favorites yet. Star a note, conversation or clip and it will show up here.",
+    "empty": "No favorites yet",
     "selectToView": "Select a favorite to view",
     "count": "{0}",
     "missing": "Missing",
@@ -123,7 +123,8 @@
     "sourceImport": "Import",
     "sourceConfig": "Config",
     "sourceExternal": "External file",
-    "sourceUnknown": "File"
+    "sourceUnknown": "File",
+    "emptyHint": "Star a note, conversation or clipboard entry to collect it here."
   },
   "sidebar": {
     "syncing": "Syncing...",
