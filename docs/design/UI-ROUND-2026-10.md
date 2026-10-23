@@ -46,15 +46,15 @@
 每条附一条可复跑命令，结论不能只靠叙述。工作目录 = 仓库根。
 
 **1. 设置块的尺寸字面量**
-颜色与行高已全部走变量；剩 11 处是组件常量（`outline-offset`、分隔线 `width:1px`、日志区 `max-height:220px`、复制按钮 `min-width:56px`、状态点 `8/4/22px`）。
+严格按 `.gm-settings-*` 选择器扫，字面量为 0。此前报的「11 处」是行区间统计的污染：`awk '/^\.gm-settings/,/^@media/'` 会把 `.gm-setup-*`、`.gm-onboarding-*`、`.gm-dashboard-*` 的规则一起框进来。
 
 ```sh
-awk '/^\.gm-settings/,/^@media/' desktop/src/index.css \
-  | grep -E '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' | grep -v 'var('
+rg -n -B20 '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' desktop/src/index.css \
+  | rg 'gm-settings' | rg -v 'var\('
 ```
 
-期望：只输出上述几类常量，不出现颜色与行高。
-状态：颜色与行高已闭环；组件常量允许保留，新增规则不许再写。
+期望：空。
+状态：已闭环，0 处。
 
 **2. 圆角迁移**
 已全部迁移：94 处引用 `--gm-radius-control/panel/card`，旧 `md/lg/sm/xs` 归零。

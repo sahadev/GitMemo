@@ -237,9 +237,18 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 
 ### 6.2 设置块的尺寸字面量
 
-现状：从 56 处降到 11 处，剩下的都不是颜色与行高，而是组件常量——`outline-offset: 2px/-3px`、`width: 1px`（分隔线）、`max-height: 220px`（日志区）、`min-width: 56px`（复制按钮）、`height/width: 8px|4px|22px`（状态点与滑块）。
+现状：严格按 `.gm-settings-*` 选择器扫，字面量是 **0**。
+
+```sh
+rg -n -B20 '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' desktop/src/index.css \
+  | rg 'gm-settings' | rg -v 'var\('
+```
+
+（判读方式：命中的规则块属于 `.gm-settings-*` 才算。）
+
+**这条数字曾被算错两次**，原因是用了「按行区间」的 `awk '/^\.gm-settings/,/^@media/'`：区间里夹着 `.gm-setup-result-list`、`.gm-onboarding-progress`、`.gm-onboarding-check`、`.gm-dashboard-quick-note-toggle` 等别的页面的规则，于是「设置块还有 11 处」实际是别的页面。教训：**按选择器前缀扫，不要按行区间扫**——行区间会被中间插入的其他规则污染。
 判定：`awk '/^\.gm-settings/,/^@media/' desktop/src/index.css | grep -E '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' | grep -v 'var('` 应只剩上述常量。
-状态：**颜色与行高已闭环**；组件常量允许保留，但不要在新增规则里继续写。
+状态：**已闭环，字面量为 0**。
 
 ### 6.3 笔记页 Esc 回列表
 
