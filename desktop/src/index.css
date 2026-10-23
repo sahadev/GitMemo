@@ -2249,6 +2249,13 @@ a:focus-visible {
   min-height: 100%;
 }
 
+/* 整屏空态跟在页头下面时，高度由剩余空间决定，否则 100% 会多出页头那一截而被裁 */
+.gm-page-frame-column > .gm-empty-state {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .gm-empty-state-compact {
   padding: var(--gm-section-gap-lg);
 }
