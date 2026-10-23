@@ -1550,16 +1550,21 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-bottom: var(--gm-border-w) solid var(--border);
-  border-left: var(--gm-size-card-rail) solid transparent;
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
+  border-left: 2px solid transparent;
   color: var(--text);
   cursor: pointer;
   display: flex;
   gap: var(--gm-icon-text-gap);
-  min-height: 70px;
+  min-height: var(--gm-density-row);
   padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x);
   text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
   width: 100%;
+}
+
+.gm-vault-entry:active {
+  background: var(--gm-selected);
 }
 
 .gm-vault-entry:hover {
@@ -1697,9 +1702,9 @@ a:focus-visible {
 }
 
 .gm-vault-secret {
-  background: var(--bg-card);
-  border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-lg);
+  background: var(--gm-inset);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   flex: 1;
   font-family: var(--gm-font-mono);
