@@ -109,7 +109,7 @@
     "remove": "Remove favorite",
     "added": "Added to favorites",
     "removed": "Removed from favorites",
-    "empty": "No favorites yet",
+    "empty": "No favorites yet. Star a note, conversation or clip and it will show up here.",
     "selectToView": "Select a favorite to view",
     "count": "{0}",
     "missing": "Missing",
@@ -201,7 +201,7 @@
   "conversations": {
     "title": "Conversations",
     "loading": "Loading...",
-    "empty": "No conversations yet",
+    "empty": "No conversations yet. Chat with Claude, Cursor or Codex and records sync in automatically.",
     "selectToView": "Select a conversation to view",
     "edit": "Edit",
     "save": "Save",
@@ -288,7 +288,7 @@
     "results": "{0} results"
   },
   "plans": {
-    "empty": "No plans yet",
+    "empty": "No plans yet. Generate one from a conversation, or sync the remote repo and plans will show up here.",
     "emptyDesc": "Plans from the remote repository will appear here after sync.",
     "selectToView": "Select a plan to view",
     "delete": "Delete",

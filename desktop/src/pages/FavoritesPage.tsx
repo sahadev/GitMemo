@@ -254,7 +254,9 @@ export default function FavoritesPage({
   const detail = (
     <DetailPane>
       {!selectedTargetId ? (
-        <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.selectToView")} full />
+        favorites.length > 0 ? (
+          <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.selectToView")} full />
+        ) : null
       ) : (
         <>
           <FileDetailToolbar

@@ -472,7 +472,9 @@ export default function ImportsPage({
                 </FileEditorSurface>
               </>
             ) : (
-              <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />
+              files.length > 0 ? (
+                <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />
+              ) : null
             )}
           </DetailPane>
         )}

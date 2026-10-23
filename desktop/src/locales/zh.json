@@ -109,7 +109,7 @@
     "remove": "取消收藏",
     "added": "已收藏",
     "removed": "已取消收藏",
-    "empty": "暂无收藏",
+    "empty": "还没有收藏。在笔记、对话或剪贴板条目上点星标，收藏就会出现在这里。",
     "selectToView": "选择一条收藏查看内容",
     "count": "{0} 条",
     "missing": "已丢失",
@@ -201,7 +201,7 @@
   "conversations": {
     "title": "对话",
     "loading": "加载中...",
-    "empty": "暂无对话记录",
+    "empty": "还没有对话记录。用 Claude、Cursor 或 Codex 聊一轮，记录会自动同步进来。",
     "selectToView": "选择一个对话查看",
     "edit": "编辑",
     "save": "保存",
@@ -288,7 +288,7 @@
     "results": "{0} 条结果"
   },
   "plans": {
-    "empty": "暂无计划",
+    "empty": "还没有计划。在对话里生成一份计划，或从远程仓库同步后就会出现在这里。",
     "emptyDesc": "同步后，远程仓库中的计划会显示在这里。",
     "selectToView": "选择一个计划查看",
     "delete": "删除",

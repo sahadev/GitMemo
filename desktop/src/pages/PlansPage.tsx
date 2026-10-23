@@ -243,7 +243,9 @@ export default function PlansPage({
         right={showDetail && (
       <DetailPane>
         {!selectedFile ? (
-          <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.selectToView")} full />
+          files.length > 0 ? (
+            <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.selectToView")} full />
+          ) : null
         ) : (
           <>
             <FileDetailToolbar

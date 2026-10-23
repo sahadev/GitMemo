@@ -346,7 +346,9 @@ export default function ConversationsPage({
         right={showDetail && (
       <DetailPane>
         {!selectedFile ? (
-          <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.selectToView")} full />
+          files.length > 0 ? (
+            <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.selectToView")} full />
+          ) : null
         ) : (
           <>
             <FileDetailToolbar
