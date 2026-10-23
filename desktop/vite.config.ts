@@ -28,7 +28,9 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      ignored: ["**/src-tauri/**"],
+      // 设计提案、验收截图和临时快照会频繁写入；让它们触发整页重载会把
+      // 正在编辑的笔记冲掉（实测一次会话 21 次 reload）。
+      ignored: ["**/src-tauri/**", "**/design-proposals/**", "**/.design-baseline/**"],
     },
   },
 }));
