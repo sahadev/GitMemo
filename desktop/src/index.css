@@ -507,7 +507,7 @@ a:focus-visible {
 
 .gm-app-sidebar-shell[data-collapsed="true"] {
   background: var(--gm-color-bg-surface);
-  border-right: var(--gm-size-divider) solid var(--border);
+  border-right: var(--gm-size-divider) solid var(--gm-line);
   width: var(--gm-size-sidebar-collapsed-width);
 }
 
@@ -518,7 +518,7 @@ a:focus-visible {
 .gm-layout-boundary-toggle {
   align-items: center;
   background: var(--gm-color-bg-elevated);
-  border: var(--gm-size-divider) solid var(--border);
+  border: var(--gm-size-divider) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
@@ -645,7 +645,7 @@ a:focus-visible {
 .gm-page-header {
   align-items: center;
   background: var(--gm-color-bg-surface);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-card-header-gap);
@@ -689,7 +689,7 @@ a:focus-visible {
 .gm-pane-header {
   align-items: center;
   background: var(--gm-color-bg-surface);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-icon-text-gap);
@@ -786,7 +786,7 @@ a:focus-visible {
 .gm-segment-row,
 .gm-compact-tab-row {
   background: var(--bg-card);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
 }
 
@@ -817,7 +817,7 @@ a:focus-visible {
 
 .gm-segment-button {
   background: var(--bg);
-  border-color: var(--border);
+  border-color: var(--gm-line);
   font-weight: 650;
   padding: var(--gm-control-pad-y) var(--gm-control-pad-x-lg);
 }
@@ -1061,7 +1061,7 @@ a:focus-visible {
 }
 
 .gm-clip-image-thumb {
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   flex-shrink: 0;
   height: 40px;
@@ -1139,7 +1139,7 @@ a:focus-visible {
 .gm-clipboard-filter-bar {
   align-items: center;
   background: var(--bg-card);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-space-2);
@@ -1217,7 +1217,7 @@ a:focus-visible {
 .gm-clipboard-back-to-top {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   bottom: 56px;
   box-shadow: var(--gm-shadow-control-strong);
@@ -1327,7 +1327,7 @@ a:focus-visible {
 .gm-clipboard-selection-toggle span {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   box-shadow: var(--gm-shadow-control-strong);
   color: var(--text-secondary);
@@ -1436,7 +1436,7 @@ a:focus-visible {
 .gm-clipboard-selection-bar {
   align-items: center;
   background: var(--bg);
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   bottom: 0;
   box-shadow: var(--gm-shadow-bottom-soft);
   display: flex;
@@ -1466,7 +1466,7 @@ a:focus-visible {
 
 .gm-clipboard-selection-action {
   align-items: center;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: flex;
@@ -1508,7 +1508,7 @@ a:focus-visible {
 }
 
 .gm-clipboard-footer-total {
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
   padding: var(--gm-nav-item-gap) var(--gm-list-header-pad-x);
@@ -1531,7 +1531,7 @@ a:focus-visible {
 
 .gm-vault-list-pane {
   background: var(--gm-color-bg-surface);
-  border-right: var(--gm-border-w) solid var(--border);
+  border-right: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1675,7 +1675,7 @@ a:focus-visible {
 
 .gm-vault-detail-header {
   align-items: flex-start;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-card-header-gap);
   justify-content: space-between;
@@ -1741,7 +1741,7 @@ a:focus-visible {
 }
 
 .gm-vault-detail-footer {
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   justify-content: flex-end;
   padding: var(--gm-space-4) var(--gm-page-pad-x);
 }
@@ -1865,7 +1865,7 @@ a:focus-visible {
 .gm-load-more-row {
   background: transparent;
   border: none;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   color: var(--accent);
   cursor: pointer;
   font-size: var(--gm-font-xs);
@@ -1917,7 +1917,7 @@ a:focus-visible {
 
 .gm-note-composer {
   background: var(--bg-card);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   flex-shrink: 0;
   padding: var(--gm-space-4);
 }
@@ -1981,7 +1981,7 @@ a:focus-visible {
 
 .gm-note-send-button[data-mobile="true"] {
   background: var(--bg-card);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   bottom: var(--gm-nav-item-gap);
   height: var(--gm-control-height-md);
   width: var(--gm-control-height-md);
@@ -2032,7 +2032,7 @@ a:focus-visible {
 .gm-search-header {
   align-items: center;
   background: var(--gm-color-bg-surface);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   padding: var(--gm-section-gap-lg) var(--gm-page-pad-x) var(--gm-section-gap);
 }
@@ -2152,14 +2152,14 @@ a:focus-visible {
 }
 
 .gm-search-review-results .gm-search-result-stack {
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   gap: 0;
 }
 
 .gm-search-review-results .gm-search-result-card {
   background: transparent;
   border: none;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   border-left: var(--gm-size-card-rail) solid transparent;
   border-radius: 0;
   box-shadow: none;
@@ -2296,7 +2296,7 @@ a:focus-visible {
 .gm-status-pill {
   align-items: center;
   background: var(--gm-color-bg-inset);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   display: inline-flex;
   gap: var(--gm-space-2);
@@ -2323,7 +2323,7 @@ a:focus-visible {
 
 .gm-badge {
   align-items: center;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   display: inline-flex;
   flex-shrink: 0;
@@ -2445,7 +2445,7 @@ a:focus-visible {
 
 .gm-sidebar {
   background: var(--gm-color-bg-surface);
-  border-right: var(--gm-border-w) solid var(--border);
+  border-right: var(--gm-border-w) solid var(--gm-line);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -2456,7 +2456,7 @@ a:focus-visible {
 .gm-sidebar-brand {
   align-items: center;
   background: var(--gm-color-bg-elevated);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   justify-content: space-between;
   padding: var(--gm-space-4) var(--gm-space-5);
@@ -2578,14 +2578,14 @@ a:focus-visible {
 
 .gm-sidebar-footer {
   background: var(--gm-color-bg-elevated);
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   padding: var(--gm-card-header-gap);
 }
 
 .gm-sidebar-sync-button {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
@@ -2668,7 +2668,7 @@ a:focus-visible {
 .gm-bottom-nav {
   align-items: center;
   background: color-mix(in srgb, var(--gm-color-bg-surface) 94%, var(--gm-color-bg-page));
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   bottom: 0;
   box-shadow: var(--gm-shadow-bottom);
   box-sizing: border-box;
@@ -3094,7 +3094,7 @@ a:focus-visible {
 }
 
 .gm-markdown-split-divider {
-  background: var(--border);
+  background: var(--gm-line);
   flex-shrink: 0;
   width: 1px;
 }
@@ -3128,7 +3128,7 @@ a:focus-visible {
 }
 
 .gm-split-resizer-line {
-  background: var(--border);
+  background: var(--gm-line);
   bottom: 0;
   left: 50%;
   pointer-events: none;
@@ -3249,7 +3249,7 @@ a:focus-visible {
 }
 
 .gm-status-badge {
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   font-size: var(--gm-font-2xs);
   font-weight: 650;
@@ -3390,7 +3390,7 @@ a:focus-visible {
 
 .gm-setup-sidebar {
   background: color-mix(in srgb, var(--bg-card) 88%, var(--bg) 12%);
-  border-right: var(--gm-border-w) solid var(--border);
+  border-right: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -3400,7 +3400,7 @@ a:focus-visible {
 }
 
 .gm-setup-sidebar[data-mobile="true"] {
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   border-right: none;
   gap: var(--gm-space-4);
   padding: var(--gm-space-5) var(--gm-space-5) var(--gm-space-4);
@@ -3485,7 +3485,7 @@ a:focus-visible {
 .gm-setup-value-row {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   display: flex;
   gap: var(--gm-space-3);
@@ -3539,13 +3539,13 @@ a:focus-visible {
 
 .gm-setup-step-item[data-active="true"] {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
-  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--gm-line));
 }
 
 .gm-setup-step-index {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: flex;
@@ -3582,7 +3582,7 @@ a:focus-visible {
 
 .gm-setup-tip {
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
@@ -3677,13 +3677,13 @@ a:focus-visible {
 
 .gm-setup-button[data-variant="secondary"] {
   background: transparent;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   color: var(--text);
 }
 
 .gm-setup-button[data-variant="ghost"] {
   background: transparent;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   color: var(--text-secondary);
 }
 
@@ -3740,7 +3740,7 @@ a:focus-visible {
 .gm-setup-option {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: flex;
@@ -3810,7 +3810,7 @@ a:focus-visible {
 .gm-setup-checkbox {
   align-items: center;
   background: transparent;
-  border: 2px solid var(--border);
+  border: 2px solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--gm-color-on-accent);
   display: flex;
@@ -3836,7 +3836,7 @@ a:focus-visible {
 .gm-setup-badge {
   align-items: center;
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: inline-flex;
@@ -3871,7 +3871,7 @@ a:focus-visible {
 .gm-setup-platform-button {
   align-items: center;
   background: transparent;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-pill);
   color: var(--text);
   cursor: pointer;
@@ -3974,7 +3974,7 @@ a:focus-visible {
 
 .gm-setup-public-key-box {
   align-items: center;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--gm-line);
   border-radius: var(--gm-radius-panel);
   color: var(--text-secondary);
   display: flex;
@@ -4108,7 +4108,7 @@ a:focus-visible {
 
 .gm-setup-log-head {
   align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-space-4);
   justify-content: space-between;
@@ -4289,7 +4289,7 @@ a:focus-visible {
 }
 
 .gm-settings-divider {
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
 }
 
 .gm-settings-nav-row {
@@ -4858,7 +4858,7 @@ a:focus-visible {
 }
 
 .gm-settings-footer-divider {
-  color: var(--border);
+  color: var(--gm-line);
 }
 
 .gm-settings-mobile-spacer {
@@ -4867,7 +4867,7 @@ a:focus-visible {
 
 .gm-onboarding-card {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
-  border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 34%, var(--gm-line));
   border-radius: var(--gm-radius-control);
   margin-bottom: var(--gm-section-gap);
   padding: var(--gm-section-gap-lg);
@@ -4875,7 +4875,7 @@ a:focus-visible {
 
 .gm-onboarding-card[data-done="true"] {
   background: color-mix(in srgb, var(--green) 8%, var(--bg-card));
-  border-color: color-mix(in srgb, var(--green) 34%, var(--border));
+  border-color: color-mix(in srgb, var(--green) 34%, var(--gm-line));
 }
 
 .gm-onboarding-header {
@@ -4911,7 +4911,7 @@ a:focus-visible {
 .gm-onboarding-dismiss {
   align-items: center;
   background: transparent;
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
@@ -4923,7 +4923,7 @@ a:focus-visible {
 
 .gm-onboarding-progress {
   appearance: none;
-  background: var(--border);
+  background: var(--gm-line);
   border: none;
   border-radius: var(--gm-radius-control);
   display: block;
@@ -4934,7 +4934,7 @@ a:focus-visible {
 }
 
 .gm-onboarding-progress::-webkit-progress-bar {
-  background: var(--border);
+  background: var(--gm-line);
   border-radius: var(--gm-radius-control);
 }
 
@@ -4967,7 +4967,7 @@ a:focus-visible {
 .gm-onboarding-check {
   align-items: center;
   background: transparent;
-  border: 2px solid var(--border);
+  border: 2px solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   display: flex;
   flex-shrink: 0;
@@ -5056,7 +5056,7 @@ a:focus-visible {
 
 .gm-settings-modal-header {
   align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-space-3);
   justify-content: space-between;
@@ -5100,13 +5100,13 @@ a:focus-visible {
 
 .gm-settings-log-entry {
   background: var(--bg);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   overflow: hidden;
 }
 
 .gm-settings-log-filename {
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   color: var(--text-secondary);
   font-family: var(--gm-font-mono);
   font-size: var(--gm-font-xs);
@@ -5270,7 +5270,7 @@ a:focus-visible {
 }
 
 .gm-dashboard-quick-note-body {
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   padding: var(--gm-card-content-gap) var(--gm-card-pad-x) var(--gm-card-pad-y);
 }
 
@@ -5314,7 +5314,7 @@ a:focus-visible {
       color-mix(in srgb, var(--gm-color-bg-elevated) 96%, var(--accent) 4%),
       var(--bg)
     );
-  border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 20%, var(--gm-line));
   border-radius: var(--gm-radius-control);
   box-sizing: border-box;
   color: var(--text);
@@ -5334,7 +5334,7 @@ a:focus-visible {
 }
 
 .gm-dashboard-quick-note-textarea:focus {
-  border-color: color-mix(in srgb, var(--accent) 64%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 64%, var(--gm-line));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
@@ -5578,7 +5578,7 @@ a:focus-visible {
 
 .gm-dashboard-empty-guide {
   background: color-mix(in srgb, var(--accent) 6%, var(--gm-color-bg-surface));
-  border: 1px dashed color-mix(in srgb, var(--accent) 44%, var(--border));
+  border: 1px dashed color-mix(in srgb, var(--accent) 44%, var(--gm-line));
   border-radius: var(--gm-radius-panel);
   margin-bottom: var(--gm-section-gap);
   padding: var(--gm-section-gap-lg) var(--gm-card-pad-x);
@@ -5610,7 +5610,7 @@ a:focus-visible {
 
 .gm-dashboard-quick-info {
   background: var(--gm-color-bg-elevated);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--gm-line);
   border-radius: var(--gm-radius-panel);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
@@ -5825,7 +5825,7 @@ a:focus-visible {
 
 .gm-kbd {
   background: var(--gm-color-bg-inset);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: inline-block;
@@ -5839,7 +5839,7 @@ a:focus-visible {
 
 .gm-floating-toast {
   background: var(--gm-color-bg-elevated);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   box-shadow: var(--gm-shadow-popover);
   z-index: 50;
@@ -5968,7 +5968,7 @@ a:focus-visible {
 }
 
 .gm-drop-head {
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   padding: var(--gm-space-6) var(--gm-space-6) var(--gm-space-5);
 }
 
@@ -6015,7 +6015,7 @@ a:focus-visible {
 
 .gm-drop-summary {
   background: var(--gm-color-bg-elevated);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   margin-bottom: var(--gm-space-6);
   padding: var(--gm-space-4) var(--gm-space-5);
@@ -6052,7 +6052,7 @@ a:focus-visible {
 
 .gm-drop-action {
   background: var(--gm-color-bg-elevated);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   cursor: pointer;
   padding: var(--gm-space-5);
@@ -6102,7 +6102,7 @@ a:focus-visible {
 
 .gm-drop-action:hover {
   background: var(--bg-hover);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--gm-line));
 }
 
 .gm-drop-action:disabled {
@@ -6113,7 +6113,7 @@ a:focus-visible {
 .gm-find-bar {
   align-items: center;
   background: var(--gm-color-bg-elevated);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   bottom: 0;
   box-shadow: var(--gm-shadow-soft);
@@ -6156,7 +6156,7 @@ a:focus-visible {
 
 .gm-find-input {
   background: var(--gm-color-bg-inset);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   color: var(--text);
   flex: 1;
@@ -6210,7 +6210,7 @@ a:focus-visible {
 
 .gm-toast-head {
   align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-nav-item-gap);
   padding: var(--gm-space-4) var(--gm-space-5);
@@ -6234,7 +6234,7 @@ a:focus-visible {
 
 .gm-toast-row {
   align-items: flex-start;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-card-header-gap);
   padding: var(--gm-space-4) var(--gm-space-5);
@@ -6336,7 +6336,7 @@ a:focus-visible {
 
 .gm-quick-paste-panel {
   background: var(--gm-color-bg-surface);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-panel);
   box-shadow: var(--gm-shadow-modal), var(--gm-shadow-inset-top);
   overflow: hidden;
@@ -6373,7 +6373,7 @@ a:focus-visible {
 }
 
 .gm-quick-paste-divider {
-  background: var(--border);
+  background: var(--gm-line);
   height: var(--gm-size-divider);
 }
 
@@ -6460,7 +6460,7 @@ a:focus-visible {
 
 .gm-quick-paste-footer {
   align-items: center;
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   color: var(--text-secondary);
   display: flex;
   font-size: var(--gm-font-xs);
@@ -6617,7 +6617,7 @@ select:focus-visible {
 
 .markdown-body pre {
   background: var(--gm-color-bg-inset);
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-control);
   padding: var(--gm-space-4) var(--gm-space-5);
   margin-bottom: 1em;
@@ -6648,7 +6648,7 @@ select:focus-visible {
 }
 
 .markdown-body th, .markdown-body td {
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
   padding: var(--gm-space-2) var(--gm-space-4);
   text-align: left;
   font-size: var(--gm-font-xs);
@@ -6661,7 +6661,7 @@ select:focus-visible {
 
 .markdown-body hr {
   border: none;
-  border-top: var(--gm-border-w) solid var(--border);
+  border-top: var(--gm-border-w) solid var(--gm-line);
   margin: 1.7em 0;
 }
 
