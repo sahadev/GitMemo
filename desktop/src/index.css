@@ -3091,7 +3091,7 @@ a:focus-visible {
 .gm-markdown-split-divider {
   background: var(--gm-line);
   flex-shrink: 0;
-  width: 1px;
+  width: var(--gm-size-divider);
 }
 
 .gm-mono-text {
@@ -4788,8 +4788,8 @@ a:focus-visible {
   border-radius: var(--gm-radius-pill);
   box-shadow: 0 0 0 2px var(--bg-card);
   flex: 0 0 auto;
-  height: 8px;
-  width: 8px;
+  height: var(--gm-icon-dot);
+  width: var(--gm-icon-dot);
 }
 
 .gm-settings-update-status {
