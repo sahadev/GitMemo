@@ -324,6 +324,8 @@ export default function ImportsPage({
   });
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
+  // 列表为空时不渲染详情栏：否则右侧是一整片空白，比重复提示更像坏了。
+  const detailVisible = showDetail && (files.length > 0 || Boolean(selectedFile));
   const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
@@ -407,7 +409,7 @@ export default function ImportsPage({
           </ListPane>
         )}
 
-        right={showDetail && (
+        right={detailVisible && (
           <DetailPane>
             {selectedFile ? (
               <>
@@ -479,7 +481,7 @@ export default function ImportsPage({
           </DetailPane>
         )}
       showList={showList}
-      showDetail={showDetail}
+      showDetail={detailVisible}
     />
   );
 }
