@@ -31,12 +31,14 @@ interface SearchResultsProps {
   compact?: boolean;
   emptyDescription: string;
   loading: boolean;
+  error?: string | null;
   mobile: boolean;
   query: string;
   results: SearchResultItem[];
   searched: boolean;
   selectedFile: string | null;
   onOpen: (path: string) => void;
+  onRetry?: () => void;
 }
 
 export function SearchResults({
@@ -50,6 +52,8 @@ export function SearchResults({
   searched,
   selectedFile,
   onOpen,
+  error,
+  onRetry,
 }: SearchResultsProps) {
   const { t } = useI18n();
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -67,6 +71,17 @@ export function SearchResults({
     return () => window.cancelAnimationFrame(frame);
   }, [active, compact, selectedFile]);
 
+  const errorBanner = error ? (
+    <div className="gm-inst-list-error" role="alert">
+      <span className="gm-inst-list-error-text">{t("search.searchFailed", error)}</span>
+      {onRetry ? (
+        <button type="button" className="gm-toolbar-button" onClick={onRetry}>
+          {t("common.retry")}
+        </button>
+      ) : null}
+    </div>
+  ) : null;
+
   const content = loading ? (
     <div aria-hidden="true" aria-label={t("search.searching")}>
       {[0, 1, 2, 3].map((i) => (
@@ -80,6 +95,8 @@ export function SearchResults({
       title={mobile ? t("search.mobileEmptyTitle") : t("search.emptyTitle")}
       description={emptyDescription}
     />
+  ) : error ? (
+    null
   ) : results.length === 0 ? (
     <EmptyState
       icon={Search}
@@ -115,11 +132,17 @@ export function SearchResults({
   );
 
   if (compact) {
-    return <ListPaneBody className="gm-search-review-results">{content}</ListPaneBody>;
+    return (
+      <ListPaneBody className="gm-search-review-results">
+        {errorBanner}
+        {content}
+      </ListPaneBody>
+    );
   }
 
   return (
     <div className="gm-page-scroll gm-search-results" data-mobile={mobile ? "true" : "false"}>
+      {errorBanner}
       {content}
     </div>
   );

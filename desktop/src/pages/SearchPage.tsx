@@ -75,6 +75,7 @@ export default function SearchPage({
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -196,6 +197,7 @@ export default function SearchPage({
       if (searchRequestRef.current !== requestId) return;
       const nextResults = filterSearchResultsForPlatform(isDesktop, res);
       setResults(nextResults);
+      setSearchError(null);
       const currentReviewPath = navigationFileRef.current ?? selectedFileRef.current;
       if (currentReviewPath && !getRetainedSearchResultPath(nextResults, currentReviewPath)) {
         closeDetail();
@@ -203,7 +205,9 @@ export default function SearchPage({
     } catch (e) {
       if (searchRequestRef.current !== requestId) return;
       console.error(e);
+      // 搜索失败不替换结果区：保留关键词与搜索框，让用户能「改个词」或「再搜一次」。
       setResults([]);
+      setSearchError(e instanceof Error ? e.message : String(e));
       closeDetail();
     } finally {
       if (searchRequestRef.current === requestId) setLoading(false);
@@ -371,12 +375,14 @@ export default function SearchPage({
       compact={compact}
       emptyDescription={emptyDescription}
       loading={loading}
+      error={searchError}
       mobile={isMobile}
       query={query}
       results={results}
       searched={searched}
       selectedFile={selectedFile}
       onOpen={openSearchResult}
+      onRetry={() => void handleSearch()}
     />
   );
   const detail = selectedFile ? (

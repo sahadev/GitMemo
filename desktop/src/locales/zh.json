@@ -291,7 +291,8 @@
     "mobileEmptyHint": "输入关键词后回车搜索",
     "noResults": "未找到「{0}」的结果",
     "noResultsHint": "换个更短的关键词，或去掉标点和引号再试",
-    "results": "{0} 条结果"
+    "results": "{0} 条结果",
+    "searchFailed": "搜索失败：{0}"
   },
   "plans": {
     "empty": "还没有计划。在对话里生成一份计划，或从远程仓库同步后就会出现在这里。",

@@ -291,7 +291,8 @@
     "mobileEmptyHint": "Type a keyword and press Enter",
     "noResults": "No results for \"{0}\"",
     "noResultsHint": "Try a shorter keyword, or drop the punctuation and quotes",
-    "results": "{0} results"
+    "results": "{0} results",
+    "searchFailed": "Search failed: {0}"
   },
   "plans": {
     "empty": "No plans yet. Generate one from a conversation, or sync the remote repo and plans will show up here.",
