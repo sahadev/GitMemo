@@ -1,0 +1,665 @@
+#!/usr/bin/env node
+/**
+ * design-screenshots.mjs
+ *
+ * Repeatable visual baseline for the GitMemo Desktop UI.
+ *
+ * Starts the desktop Vite dev server, walks the six primary routes, and writes
+ * one PNG per route per viewport into desktop/.design-baseline/. A manifest
+ * records a sha256 per image so runs can be compared.
+ *
+ * Why a backend stub: the app talks to Tauri commands. In a plain browser those
+ * commands are missing, so the UI renders "cannot read invoke" error states.
+ * This script installs a Playwright-only stub (window.__TAURI_INTERNALS__) that
+ * answers get_runtime_info / get_stats / get_recent_activity and rejects every
+ * other command, which produces the app's real empty states instead. Nothing in
+ * desktop/src is modified. Use --no-stub to capture the raw no-backend state.
+ *
+ * Playwright is intentionally NOT added to package.json. The script reuses an
+ * existing install (project, repo, or npx cache); if none exists it runs
+ * `npm exec --yes --package=playwright` once to fetch one. If the matching
+ * browser build is missing it falls back to any Chromium already in the
+ * Playwright browser cache.
+ *
+ * Usage
+ *   node scripts/design-screenshots.mjs                    # capture both viewports
+ *   node scripts/design-screenshots.mjs --viewport=desktop
+ *   node scripts/design-screenshots.mjs --routes=dashboard,notes
+ *   node scripts/design-screenshots.mjs --compare          # diff vs previous run
+ *   node scripts/design-screenshots.mjs --help
+ *
+ * Exit codes
+ *   0 captured (or identical when --compare)
+ *   1 --compare found differences
+ *   2 bad invocation / server or browser unavailable
+ *
+ * No dependencies, Node >= 20.
+ */
+
+import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import {
+  existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync,
+} from "node:fs";
+import http from "node:http";
+import { createRequire } from "node:module";
+import os from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(HERE, "..");
+const DESKTOP = join(REPO_ROOT, "desktop");
+const DEFAULT_OUT = join(DESKTOP, ".design-baseline");
+const MANIFEST = "manifest.json";
+
+const ROUTES = [
+  { id: "dashboard", navKey: "dashboard", marker: ".gm-dashboard-page" },
+  { id: "search", navKey: "search", marker: ".gm-page-frame-column" },
+  { id: "ai-records", navKey: "aiRecords", marker: ".gm-ai-records-page" },
+  // notes and favorites share their root classes, so navigation state is the check
+  { id: "notes", navKey: "notes", marker: null },
+  { id: "clipboard", navKey: "clipboard", marker: ".gm-clipboard-page" },
+  { id: "favorites", navKey: "favorites", marker: null },
+];
+
+const VIEWPORTS = {
+  desktop: { width: 1440, height: 900, family: "desktop", os: "macos", dir: "desktop-1440" },
+  mobile: { width: 390, height: 844, family: "mobile", os: "android", dir: "mobile-390" },
+};
+
+const FREEZE_CSS = `*, *::before, *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  caret-color: transparent !important;
+  scroll-behavior: auto !important;
+}
+
+/* Transient toasts are not part of the layout baseline. */
+.mantine-Notifications-root,
+[data-mantine-shared-portal-node] {
+  display: none !important;
+}`;
+
+// ---------------------------------------------------------------- arguments
+
+function parseArgs(argv) {
+  const opts = {
+    out: DEFAULT_OUT,
+    viewports: ["desktop", "mobile"],
+    routes: ROUTES.map((r) => r.id),
+    url: null,
+    port: 5273,
+    theme: "dark",
+    locale: "en",
+    stub: true,
+    emptyState: false,
+    compare: false,
+    timeoutMs: 60_000,
+    help: false,
+  };
+
+  for (const arg of argv) {
+    const [flag, raw] = arg.includes("=") ? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)] : [arg, undefined];
+    const value = () => {
+      if (raw !== undefined) return raw;
+      throw new Error(`${flag} needs a value (${flag}=...)`);
+    };
+    switch (flag) {
+      case "--help":
+      case "-h":
+        opts.help = true;
+        break;
+      case "--out":
+        opts.out = resolve(process.cwd(), value());
+        break;
+      case "--viewport": {
+        const list = value().split(",").map((s) => s.trim()).filter(Boolean);
+        for (const v of list) if (!VIEWPORTS[v]) throw new Error(`unknown viewport: ${v} (desktop, mobile)`);
+        opts.viewports = list;
+        break;
+      }
+      case "--routes": {
+        const list = value().split(",").map((s) => s.trim()).filter(Boolean);
+        for (const r of list) if (!ROUTES.some((route) => route.id === r)) {
+          throw new Error(`unknown route: ${r} (${ROUTES.map((route) => route.id).join(", ")})`);
+        }
+        opts.routes = list;
+        break;
+      }
+      case "--url":
+        opts.url = value().replace(/\/$/, "");
+        break;
+      case "--port":
+        opts.port = Number(value());
+        if (!Number.isInteger(opts.port)) throw new Error("--port must be an integer");
+        break;
+      case "--theme":
+        opts.theme = value();
+        if (!["dark", "light"].includes(opts.theme)) throw new Error("--theme must be dark or light");
+        break;
+      case "--locale":
+        opts.locale = value();
+        if (!["en", "zh"].includes(opts.locale)) throw new Error("--locale must be en or zh");
+        break;
+      case "--no-stub":
+        opts.stub = false;
+        break;
+      case "--empty-state":
+        opts.emptyState = true;
+        break;
+      case "--compare":
+        opts.compare = true;
+        break;
+      case "--timeout":
+        opts.timeoutMs = Number(value()) * 1000;
+        break;
+      default:
+        throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+  return opts;
+}
+
+function printHelp() {
+  process.stdout.write(`design-screenshots — capture the GitMemo Desktop visual baseline
+
+Usage
+  node scripts/design-screenshots.mjs [options]
+
+Options
+  --viewport=<list>   desktop | mobile | desktop,mobile        (default: both)
+  --routes=<list>     ${ROUTES.map((r) => r.id).join(" | ")}
+  --out=<dir>         output directory (default: desktop/.design-baseline)
+  --url=<url>         use an already running dev server instead of spawning one
+  --port=<n>          dev server port (default: 5273)
+  --theme=dark|light  theme pinned in localStorage (default: dark)
+  --locale=en|zh      UI language pinned in localStorage (default: en)
+  --no-stub           do not stub the Tauri backend (captures error states)
+  --empty-state       stub zero counts instead of sample counts (first-run UI)
+  --compare           compare against the previous manifest, exit 1 on any diff
+  --timeout=<seconds> per-navigation timeout (default: 60)
+  -h, --help          show this help
+
+Output
+  <out>/<viewport-1440|mobile-390>/<route>.png   one 1x screenshot per route
+  <out>/manifest.json                            sizes + sha256 per screenshot
+
+Notes
+  * Playwright is used from an existing install; nothing is added to package.json.
+  * The Tauri backend is stubbed in-page so empty states render deterministically.
+  * Screenshots are pixel-comparable across runs on the same machine.
+  * desktop/.design-baseline/ is git-ignored; it is a local baseline, not a build artifact.
+`);
+}
+
+// -------------------------------------------------------------- dev server
+
+function waitForServer(url, timeoutMs) {
+  const started = Date.now();
+  return new Promise((resolvePromise, reject) => {
+    const attempt = () => {
+      const req = http.get(url, (res) => {
+        res.resume();
+        if (res.statusCode && res.statusCode < 500) resolvePromise();
+        else retry();
+      });
+      req.on("error", retry);
+      req.setTimeout(2000, () => req.destroy());
+    };
+    const retry = () => {
+      if (Date.now() - started > timeoutMs) {
+        reject(new Error(`dev server did not answer within ${Math.round(timeoutMs / 1000)}s: ${url}`));
+        return;
+      }
+      setTimeout(attempt, 250);
+    };
+    attempt();
+  });
+}
+
+async function startDevServer(opts) {
+  const viteBin = join(DESKTOP, "node_modules", ".bin", process.platform === "win32" ? "vite.cmd" : "vite");
+  if (!existsSync(viteBin)) {
+    throw new Error(`vite not found at ${viteBin}. Run "pnpm install" inside desktop/ first.`);
+  }
+  const child = spawn(viteBin, ["--host", "127.0.0.1", "--port", String(opts.port), "--strictPort"], {
+    cwd: DESKTOP,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let log = "";
+  child.stdout.on("data", (d) => { log += d.toString(); });
+  child.stderr.on("data", (d) => { log += d.toString(); });
+
+  const url = `http://127.0.0.1:${opts.port}/`;
+  try {
+    await waitForServer(url, opts.timeoutMs);
+    if (child.exitCode !== null) {
+      throw new Error(`port ${opts.port} is already in use by another dev server — stop it or pass --port=<n>`);
+    }
+  } catch (err) {
+    child.kill("SIGTERM");
+    throw new Error(`${err.message}\n--- vite output ---\n${log.slice(-1200)}`);
+  }
+  return { child, url: `http://127.0.0.1:${opts.port}/`, log: () => log };
+}
+
+function stopDevServer(server) {
+  return new Promise((done) => {
+    const child = server?.child;
+    if (!child || child.exitCode !== null) { done(); return; }
+    const timer = setTimeout(() => {
+      try { child.kill("SIGKILL"); } catch { /* already gone */ }
+    }, 3000);
+    timer.unref();
+    child.once("exit", () => { clearTimeout(timer); done(); });
+    child.kill("SIGTERM");
+  });
+}
+
+// --------------------------------------------------------------- playwright
+
+function readVersion(pkgDir) {
+  try {
+    return JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")).version ?? "0.0.0";
+  } catch {
+    return null;
+  }
+}
+
+function compareVersions(a, b) {
+  const pa = a.split(/[.-]/).map((n) => Number(n) || 0);
+  const pb = b.split(/[.-]/).map((n) => Number(n) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i += 1) {
+    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  }
+  return 0;
+}
+
+function candidatePlaywrightDirs() {
+  const dirs = [
+    join(DESKTOP, "node_modules", "playwright"),
+    join(REPO_ROOT, "node_modules", "playwright"),
+  ];
+  for (const npxRoot of [join(os.homedir(), ".npm", "_npx")]) {
+    if (!existsSync(npxRoot)) continue;
+    for (const entry of readdirSync(npxRoot)) {
+      const dir = join(npxRoot, entry, "node_modules", "playwright");
+      if (existsSync(join(dir, "package.json"))) dirs.push(dir);
+    }
+  }
+  return dirs
+    .map((dir) => ({ dir, version: readVersion(dir) }))
+    .filter((entry) => entry.version)
+    .sort((a, b) => compareVersions(b.version, a.version));
+}
+
+function loadPlaywrightFrom(dir) {
+  const req = createRequire(join(dir, "package.json"));
+  return req(dir);
+}
+
+async function resolvePlaywright() {
+  const found = candidatePlaywrightDirs();
+  for (const entry of found) {
+    try {
+      return { pw: loadPlaywrightFrom(entry.dir), version: entry.version, dir: entry.dir };
+    } catch {
+      // try the next candidate
+    }
+  }
+  // Nothing usable: fetch a throwaway copy through npx, exactly as the task allows.
+  process.stderr.write("playwright not found locally — fetching a temporary copy via npm exec (not added to package.json)\n");
+  spawnSync("npm", ["exec", "--yes", "--package=playwright", "--", "playwright", "--version"], {
+    stdio: "ignore",
+    timeout: 300_000,
+  });
+  for (const entry of candidatePlaywrightDirs()) {
+    try {
+      return { pw: loadPlaywrightFrom(entry.dir), version: entry.version, dir: entry.dir };
+    } catch {
+      // keep looking
+    }
+  }
+  throw new Error(
+    "could not obtain playwright. Install it out-of-band, e.g.\n"
+    + "  npm exec --package=playwright -- playwright install chromium\n"
+    + "  npm exec --package=playwright -- playwright --version",
+  );
+}
+
+function browserCacheRoots() {
+  return [
+    join(os.homedir(), "Library", "Caches", "ms-playwright"),
+    join(os.homedir(), ".cache", "ms-playwright"),
+  ].filter((p) => existsSync(p));
+}
+
+function installedChromium() {
+  const candidates = [];
+  for (const root of browserCacheRoots()) {
+    for (const dir of readdirSync(root)) {
+      const full = join(root, dir);
+      if (dir.startsWith("chromium_headless_shell-")) {
+        const inner = join(full, `${dir.replace(/_headless_shell-\d+$/, "")}-headless-shell`);
+        // layout differs per platform; probe both shapes
+        for (const guess of [
+          join(full, "chrome-headless-shell-mac-arm64", "chrome-headless-shell"),
+          join(full, "chrome-headless-shell-mac-x64", "chrome-headless-shell"),
+          join(full, "chrome-headless-shell-linux64", "chrome-headless-shell"),
+          join(inner, "chrome-headless-shell"),
+        ]) {
+          if (existsSync(guess)) candidates.push({ path: guess, revision: Number(dir.split("-").pop()) || 0 });
+        }
+      }
+      if (dir.startsWith("chromium-")) {
+        for (const guess of [
+          join(full, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
+          join(full, "chrome-mac-x64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
+          join(full, "chrome-linux", "chrome"),
+        ]) {
+          if (existsSync(guess)) candidates.push({ path: guess, revision: Number(dir.split("-").pop()) || 0 });
+        }
+      }
+    }
+  }
+  candidates.sort((a, b) => b.revision - a.revision);
+  return candidates[0]?.path ?? null;
+}
+
+async function launchChromium(chromium) {
+  try {
+    return { browser: await chromium.launch(), fallback: null };
+  } catch (err) {
+    const exe = installedChromium();
+    if (!exe) {
+      throw new Error(
+        `${err.message.split("\n")[0]}\nNo installed Chromium to fall back to. Run:\n  npm exec --package=playwright -- playwright install chromium`,
+      );
+    }
+    return { browser: await chromium.launch({ executablePath: exe }), fallback: exe };
+  }
+}
+
+// ---------------------------------------------------------------- fixtureing
+
+function backendStub(viewport, opts) {
+  const { family, os: osName } = VIEWPORTS[viewport];
+  const stats = opts.emptyState
+    ? { conversations: 0, manuals: 0, scratch_notes: 0, clips: 0, plans: 0, tracked_files: 0, total_size_kb: 0, repository_size_kb: 0 }
+    // Sample counts so the dashboard renders its populated layout instead of
+    // the first-run guide. No user data is involved.
+    : { conversations: 128, manuals: 42, scratch_notes: 16, clips: 320, plans: 9, tracked_files: 515, total_size_kb: 18432, repository_size_kb: 23120 };
+  return `(() => {
+    const platform = { family: ${JSON.stringify(family)}, os: ${JSON.stringify(osName)} };
+    const sampleStats = ${JSON.stringify(stats)};
+    let nextId = 1;
+    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      unregisterListener: (_event, id) => { delete window["_" + id]; },
+    };
+    window.__TAURI_INTERNALS__ = {
+      metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
+      transformCallback: (cb) => { const id = nextId++; window["_" + id] = cb; return id; },
+      unregisterCallback: (id) => { delete window["_" + id]; },
+      convertFileSrc: (p) => p,
+      invoke: (cmd) => {
+        switch (cmd) {
+          case "get_runtime_info":
+          case "get_runtime_platform":
+            return Promise.resolve(platform);
+          case "get_stats":
+            return Promise.resolve(sampleStats);
+          case "get_recent_activity":
+            return Promise.resolve([]);
+          case "frontend_loaded":
+          case "plugin:event|unlisten":
+            return Promise.resolve(null);
+          case "plugin:event|listen":
+            return Promise.resolve(1);
+          default:
+            return Promise.reject(new Error("design-screenshots stub: " + cmd));
+        }
+      },
+    };
+  })();`;
+}
+
+function loadLabels(locale) {
+  const file = join(DESKTOP, "src", "locales", `${locale}.json`);
+  const nav = JSON.parse(readFileSync(file, "utf8")).nav ?? {};
+  const missing = ROUTES.filter((r) => !nav[r.navKey]).map((r) => r.navKey);
+  if (missing.length) throw new Error(`locale ${locale} is missing nav labels: ${missing.join(", ")}`);
+  return nav;
+}
+
+// ------------------------------------------------------------------- capture
+
+async function openPage(browser, viewport, opts, labels) {
+  const { width, height } = VIEWPORTS[viewport];
+  const context = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: 1,
+    colorScheme: opts.theme,
+    reducedMotion: "reduce",
+    locale: opts.locale === "zh" ? "zh-CN" : "en-US",
+    timezoneId: "UTC",
+    acceptDownloads: false,
+  });
+  if (opts.stub) await context.addInitScript(backendStub(viewport, opts));
+  await context.addInitScript(
+    ({ theme, locale }) => {
+      localStorage.setItem("gitmemo-theme", theme);
+      localStorage.setItem("gitmemo-locale", locale);
+    },
+    { theme: opts.theme, locale: opts.locale },
+  );
+
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (err) => errors.push(String(err).split("\n")[0]));
+
+  await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+  await page.waitForSelector(".gm-app-shell", { timeout: opts.timeoutMs });
+  if (!opts.stub) {
+    const hasTauri = await page.evaluate(() => Boolean(window.__TAURI_INTERNALS__));
+    if (!hasTauri) {
+      process.stderr.write(`warning: ${viewport}: no Tauri backend in the browser — pages will show backend errors (use the default stub).\n`);
+    }
+  }
+  await page.addStyleTag({ content: FREEZE_CSS });
+  return { context, page, errors };
+}
+
+async function navigate(page, viewport, route, labels, opts) {
+  const label = labels[route.navKey];
+  let activeNav = null;
+
+  if (viewport === "desktop") {
+    if (!(await page.locator(".gm-sidebar").count())) {
+      await page.locator(".gm-sidebar-boundary-toggle").click();
+    }
+    const item = page.locator(".gm-sidebar-nav").getByRole("button", { name: label, exact: true });
+    if (!(await item.count())) throw new Error(`sidebar has no "${label}" entry`);
+    await item.first().click();
+    activeNav = page.locator('.gm-sidebar-nav-item[data-active="true"]').filter({ hasText: label }).first();
+  } else {
+    const tab = page.locator(".gm-bottom-nav-item").filter({ hasText: label });
+    if (await tab.count()) {
+      await tab.first().click();
+      activeNav = page.locator('.gm-bottom-nav-item[data-active="true"]').filter({ hasText: label }).first();
+    } else if (route.id === "search") {
+      // The mobile tab bar has no search entry; the dashboard header owns it.
+      await page.locator(".gm-bottom-nav-item").first().click();
+      await page.waitForSelector(".gm-dashboard-page", { timeout: opts.timeoutMs });
+      const entry = page.locator(`.gm-dashboard-page button[title="${label}"]`);
+      if (!(await entry.count())) throw new Error(`dashboard header has no "${label}" entry`);
+      await entry.first().click();
+    } else {
+      throw new Error(`no mobile navigation entry for route "${route.id}"`);
+    }
+  }
+
+  if (activeNav) await activeNav.waitFor({ state: "visible", timeout: opts.timeoutMs });
+
+  const marker = route.marker
+    ? page.locator('.gm-app-page-mount[data-active="true"]').locator(route.marker).first()
+    : null;
+  if (marker) await marker.waitFor({ state: "visible", timeout: opts.timeoutMs });
+
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(250);
+  return marker;
+}
+
+async function capture(page, file) {
+  await page.screenshot({ path: file, animations: "disabled", caret: "hide", scale: "css" });
+  const buf = readFileSync(file);
+  return { sha256: createHash("sha256").update(buf).digest("hex"), bytes: buf.length };
+}
+
+async function runCapture(opts) {
+  const labels = loadLabels(opts.locale);
+  const { pw, version: pwVersion } = await resolvePlaywright();
+  const { browser, fallback } = await launchChromium(pw.chromium);
+
+  if (opts.stub) {
+    process.stdout.write("note: Tauri backend stubbed in-page — screenshots show real empty states, not live data.\n");
+  }
+  if (fallback) {
+    process.stdout.write(`note: bundled Chromium for playwright ${pwVersion} missing, using ${fallback}\n`);
+  }
+
+  const startedAt = new Date().toISOString();
+  const shots = [];
+  const errorsByRoute = [];
+
+  try {
+    for (const viewport of opts.viewports) {
+      const dir = join(opts.out, VIEWPORTS[viewport].dir);
+      mkdirSync(dir, { recursive: true });
+      const { context, page, errors } = await openPage(browser, viewport, opts, labels);
+      try {
+        for (const routeId of opts.routes) {
+          const route = ROUTES.find((r) => r.id === routeId);
+          await navigate(page, viewport, route, labels, opts);
+          const file = join(dir, `${route.id}.png`);
+          const { sha256, bytes } = await capture(page, file);
+          shots.push({
+            route: route.id,
+            viewport,
+            width: VIEWPORTS[viewport].width,
+            height: VIEWPORTS[viewport].height,
+            file: `${VIEWPORTS[viewport].dir}/${route.id}.png`,
+            sha256,
+            bytes,
+          });
+          process.stdout.write(`  ${viewport.padEnd(7)} ${route.id.padEnd(11)} ${String(bytes).padStart(7)} B  ${sha256.slice(0, 12)}\n`);
+        }
+      } catch (err) {
+        errorsByRoute.push({ viewport, message: err.message.split("\n")[0] });
+      } finally {
+        if (errors.length) errorsByRoute.push({ viewport, message: `page errors: ${errors.slice(0, 3).join(" | ")}` });
+        await context.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+
+  // A partial run (one viewport or a route subset) must not erase the rest of
+  // the baseline; merge instead.
+  const partial = opts.viewports.length < Object.keys(VIEWPORTS).length || opts.routes.length < ROUTES.length;
+  let mergedShots = shots;
+  if (partial && existsSync(join(opts.out, MANIFEST))) {
+    try {
+      const previous = JSON.parse(readFileSync(join(opts.out, MANIFEST), "utf8"));
+      const fresh = new Set(shots.map((s) => `${s.viewport}/${s.route}`));
+      mergedShots = [...previous.shots.filter((s) => !fresh.has(`${s.viewport}/${s.route}`)), ...shots];
+    } catch { /* unreadable manifest: replace it */ }
+  }
+
+  const manifest = {
+    generatedAt: startedAt,
+    partial,
+    tool: "scripts/design-screenshots.mjs",
+    playwright: pwVersion,
+    chromiumFallback: fallback ? "cache" : null,
+    theme: opts.theme,
+    locale: opts.locale,
+    backendStub: opts.stub,
+    viewports: opts.viewports,
+    routes: opts.routes,
+    shots: mergedShots,
+  };
+  mkdirSync(opts.out, { recursive: true });
+  writeFileSync(join(opts.out, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  if (errorsByRoute.length) {
+    for (const e of errorsByRoute) process.stderr.write(`error (${e.viewport}): ${e.message}\n`);
+    throw new Error("capture incomplete — see errors above");
+  }
+  return manifest;
+}
+
+// ---------------------------------------------------------------------- main
+
+async function main() {
+  let opts;
+  try {
+    opts = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    process.stderr.write(`design-screenshots: ${err.message}\n\nRun with --help for usage.\n`);
+    return 2;
+  }
+  if (opts.help) {
+    printHelp();
+    return 0;
+  }
+
+  let server = null;
+  try {
+    if (!opts.url) {
+      process.stdout.write(`starting vite dev server on port ${opts.port}…\n`);
+      server = await startDevServer(opts);
+      opts.url = server.url;
+    }
+
+    if (opts.compare) {
+      const manifestPath = join(opts.out, MANIFEST);
+      if (!existsSync(manifestPath)) {
+        process.stderr.write(`design-screenshots: nothing to compare against (${manifestPath} missing)\n`);
+        return 2;
+      }
+      const previous = JSON.parse(readFileSync(manifestPath, "utf8"));
+      const allShots = [...previous.shots];
+      rmSync(join(opts.out, MANIFEST), { force: true });
+      const fresh = await runCapture(opts);
+      writeFileSync(join(opts.out, MANIFEST), `${JSON.stringify({ ...fresh, comparedWith: previous.generatedAt }, null, 2)}\n`);
+
+      const prevMap = new Map(allShots.map((s) => [`${s.viewport}/${s.route}`, s]));
+      const diffs = fresh.shots.filter((s) => prevMap.get(`${s.viewport}/${s.route}`)?.sha256 !== s.sha256);
+      if (diffs.length === 0) {
+        process.stdout.write(`identical to previous run (${previous.generatedAt}) — ${fresh.shots.length} screenshots\n`);
+        return 0;
+      }
+      process.stdout.write(`changed screenshots vs ${previous.generatedAt}:\n`);
+      for (const s of diffs) process.stdout.write(`  ${s.viewport}/${s.route}  ${s.file}\n`);
+      return 1;
+    }
+
+    await runCapture(opts);
+    process.stdout.write(`baseline written to ${opts.out}\n`);
+    return 0;
+  } catch (err) {
+    process.stderr.write(`design-screenshots: ${err.message}\n`);
+    return 2;
+  } finally {
+    await stopDevServer(server);
+  }
+}
+
+main().then((code) => { process.exit(code); });
+

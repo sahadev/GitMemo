@@ -37,3 +37,6 @@ desktop/public/changelog.json
 # Local release mirroring
 release-assets/
 downloaded-artifacts/
+
+# Local visual baselines (regenerate with scripts/design-screenshots.mjs)
+desktop/.design-baseline/
