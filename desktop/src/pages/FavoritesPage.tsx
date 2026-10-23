@@ -17,6 +17,7 @@ import type { EditorHandle } from "../components/domain/editor/editorTypes";
 import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { PageFrame } from "../components/layout/PageFrame";
 import {
   areFavoriteEntriesEquivalent,
   canEditFavoriteContent,
@@ -324,6 +325,21 @@ export default function FavoritesPage({
       )}
     </DetailPane>
   );
+
+  // 列表为空时整屏只显示空态：空的详情栏是负资产，不靠文案掩盖
+  if (!loading && favorites.length === 0) {
+    return (
+      <PageFrame>
+        <EmptyState
+          icon={Star}
+          iconSize="empty-lg"
+          title={t("favorites.empty")}
+          description={t("favorites.emptyHint")}
+          full
+        />
+      </PageFrame>
+    );
+  }
 
   return (
     <FileWorkspace
