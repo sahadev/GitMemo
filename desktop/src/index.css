@@ -1950,12 +1950,14 @@ a:focus-visible {
 }
 
 .gm-search-result-stack {
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: var(--gm-card-header-gap);
+  gap: 0;
 }
 
 .gm-search-result-card {
+  border-bottom: 1px solid var(--border);
   color: var(--text);
   cursor: pointer;
   padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x);
