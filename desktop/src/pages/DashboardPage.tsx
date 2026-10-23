@@ -291,10 +291,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       detail: undefined,
     },
     {
+      // 笔记 = 手写笔记 + 便签。只算 manuals 会漏掉便签，看起来像「笔记数不对」。
       id: "notes",
-      label: t("dashboard.manuals"),
-      value: stats?.manuals,
-      level: Math.min(5, Math.ceil((stats?.manuals ?? 0) / 40)),
+      label: t("nav.notes"),
+      value: stats ? (stats.manuals ?? 0) + (stats.scratch_notes ?? 0) : undefined,
+      level: Math.min(5, Math.ceil((((stats?.manuals ?? 0) + (stats?.scratch_notes ?? 0))) / 40)),
       detail: undefined,
     },
     {
