@@ -315,7 +315,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 圆角迁移接近完成。实测（2026-10-24，`rg -c 'var\(--gm-radius-(control|panel|card)\)' desktop/src/index.css`）：
 
 - 皮肤级圆角 89 处引用：`--gm-radius-control` 71、`--gm-radius-panel` 17、`--gm-radius-card` 1。
-- 旧名还剩 16 处待核：`--gm-radius-pill` 13（头像、圆点、胶囊，多半该永久保留）、`--gm-r-1` 2（网格名，需确认是否该并到 control）。`--gm-radius-none` 已随清零一并移除，无引用。
+- 旧名还剩 16 处待核：`--gm-radius-pill` 13（头像、圆点、胶囊，多半该永久保留）、`--gm-r-1` 2（网格名，需确认是否该并到 control）。原先那个「无圆角」的旧名已随迁移移除，当前无引用。
 
 判定口径：`--gm-radius-sm/md/lg/xs` 已清零；剩下的是 pill 与网格名，逐条确认归属即可，不阻塞。
 
