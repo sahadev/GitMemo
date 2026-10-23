@@ -7599,6 +7599,10 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-body { grid-template-columns: minmax(0, 1fr); }
   .gm-inst-list { border-right: 0; border-bottom: var(--gm-border-w) solid var(--gm-line-strong); max-height: 40vh; }
   .gm-inst-main { padding: var(--gm-space-3); }
+  .gm-inst-identity { flex-wrap: wrap; gap: var(--gm-space-2); }
+  .gm-inst-identity-status,
+  .gm-inst-identity-count { display: none; }
+  .gm-inst-identity-path { max-width: 100%; }
   .gm-inst-banner { flex-direction: column; gap: var(--gm-space-2); }
   .gm-inst-banner-meta { text-align: left; white-space: normal; }
   .gm-inst-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }

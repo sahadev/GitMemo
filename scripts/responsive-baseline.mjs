@@ -403,6 +403,25 @@ async function main() {
     const { results, failures } = pass;
     await browser.close();
 
+    // Same width + same page, dark vs light: the geometry signature has to match,
+    // otherwise switching skins moved something.
+    const layoutRows = [];
+    const byKey = new Map();
+    for (const r of results) {
+      const key = `${r.width}/${r.pageId}`;
+      const entry = byKey.get(key) ?? { key };
+      entry[r.skin] = r.geometryHash;
+      byKey.set(key, entry);
+    }
+    for (const entry of byKey.values()) {
+      if (!entry.dark || !entry.light) continue;
+      layoutRows.push({ key: entry.key, a: entry.dark, b: entry.light, match: entry.dark === entry.light });
+    }
+    layoutRows.sort((x, y) => (x.key < y.key ? -1 : 1));
+    for (const row of layoutRows) {
+      if (!row.match) failures.push({ width: row.key.split("/")[0], page: row.key.split("/")[1], kind: "换肤布局变化", detail: `${row.a} ≠ ${row.b}` });
+    }
+
     const contaminated = pass.contaminated;
     if (contaminated) {
       process.stderr.write(`\n警告：三次采集期间 desktop/src 都在被改动（${pass.before} → ${pass.after}），结果不可作为验收依据。\n`);
@@ -421,7 +440,7 @@ async function main() {
     }, null, 2)}\n`);
 
     process.stdout.write("\n换肤布局对齐（同宽度下深/浅几何签名对比）\n");
-    for (const row of layoutRows.sort((x, y) => (x.key < y.key ? -1 : 1))) {
+    for (const row of layoutRows) {
       process.stdout.write(`  ${row.key.padEnd(20)} ${row.match ? "一致" : `不一致 ${row.a} ≠ ${row.b}`}\n`);
     }
 
