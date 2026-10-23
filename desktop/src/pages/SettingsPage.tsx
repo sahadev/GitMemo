@@ -810,7 +810,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
             title={t("settings.appearance")}
             description={t("settings.appearanceDesc", t(`settings.${theme}`))}
           >
-            <Switch enabled={theme === "dark"} onToggle={toggleTheme} />
+            <Switch enabled={theme === "dark"} onToggle={toggleTheme} label={t("settings.appearance")} />
           </SettingsRow>
 
           <SettingsDivider />
@@ -837,7 +837,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                 title={t("settings.mobileExtraTopSafeArea")}
                 description={t("settings.mobileExtraTopSafeAreaDesc")}
               >
-                <Switch enabled={mobileExtraTopSafeArea} onToggle={toggleMobileExtraTopSafeArea} />
+                <Switch enabled={mobileExtraTopSafeArea} onToggle={toggleMobileExtraTopSafeArea} label={t("settings.mobileExtraTopSafeArea")} />
               </SettingsRow>
             </>
           )}
@@ -846,7 +846,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
             <>
               <SettingsDivider />
               <SettingsRow icon={Power} title={t("settings.launchAtLogin")} description={t("settings.launchAtLoginDesc")}>
-                <Switch enabled={settings?.autostart ?? false} onToggle={toggleAutostart} />
+                <Switch enabled={settings?.autostart ?? false} onToggle={toggleAutostart} label={t("settings.launchAtLogin")} />
               </SettingsRow>
             </>
           )}
@@ -905,17 +905,17 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
         <SettingsCard>
           <SettingsStack>
             <SettingsRow icon={Clipboard} title={t("settings.clipboardAutostart")} description={t("settings.clipboardAutostartDesc")}>
-                <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} />
+                <Switch enabled={settings?.clipboard_autostart ?? false} onToggle={toggleClipboardAutostart} label={t("settings.clipboardAutostart")} />
               </SettingsRow>
 
               <SettingsDivider />
               <SettingsRow icon={RefreshCw} title={t("settings.clipboardAutoRefresh")} description={t("settings.clipboardAutoRefreshDesc")}>
-                <Switch enabled={settings?.clipboard_auto_refresh ?? true} onToggle={toggleClipboardAutoRefresh} />
+                <Switch enabled={settings?.clipboard_auto_refresh ?? true} onToggle={toggleClipboardAutoRefresh} label={t("settings.clipboardAutoRefresh")} />
               </SettingsRow>
 
               <SettingsDivider />
               <SettingsRow icon={CloudUpload} title={t("settings.commitClipboardImages")} description={t("settings.commitClipboardImagesDesc")}>
-                <Switch enabled={settings?.commit_clipboard_images ?? false} onToggle={toggleCommitClipboardImages} />
+                <Switch enabled={settings?.commit_clipboard_images ?? false} onToggle={toggleCommitClipboardImages} label={t("settings.commitClipboardImages")} />
               </SettingsRow>
 
               <SettingsDivider />
@@ -947,7 +947,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                   <SettingsActionButton variant="secondary" onClick={() => onNavigate?.("vault")}>
                     {t("settings.openVault")}
                   </SettingsActionButton>
-                  <Switch enabled={settings?.vault_enabled ?? false} onToggle={toggleVaultEnabled} />
+                  <Switch enabled={settings?.vault_enabled ?? false} onToggle={toggleVaultEnabled} label={t("settings.vaultMode")} />
                 </SettingsControlGroup>
               </SettingsRow>
 
@@ -984,7 +984,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                 <>
                   <SettingsDivider />
                   <SettingsRow icon={Clipboard} title={t("settings.controlCopyPaste")} description={t("settings.controlCopyPasteDesc")}>
-                    <Switch enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} />
+                    <Switch enabled={settings?.control_copy_paste ?? false} onToggle={toggleControlCopyPaste} label={t("settings.controlCopyPaste")} />
                   </SettingsRow>
                 </>
               )}
@@ -1056,6 +1056,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                     enabled={claudeEnabled}
                     disabled={integrationStatusLoading}
                     onToggle={() => void toggleClaudeIntegration()}
+                    label={t("settings.claudeIntegration")}
                   />
                 </SettingsControlGroup>
               </SettingsRow>
@@ -1089,6 +1090,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                     enabled={cursorEnabled}
                     disabled={integrationStatusLoading}
                     onToggle={() => void toggleCursorIntegration()}
+                    label={t("settings.cursorIntegration")}
                   />
                 </SettingsControlGroup>
               </SettingsRow>
