@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings, RefreshCw, MoreHorizontal, ChevronDown } from "lucide-react";
 import {
   LayoutDashboard,
@@ -53,6 +53,18 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
   const desktopUpdateAvailable = updateStatus === "available";
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // 「更多」是子菜单而不是模态：Esc 应当能收起它，和点一次「更多」等价。
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMoreOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [moreOpen]);
   const moreActive = moreNavItems.some((item) => item.id === currentPage);
 
   const openVersionDetails = () => {
