@@ -407,6 +407,21 @@
   --gm-density-subheader: 28px;
 }
 
+/* ---------------------------------------------------------------------------
+   组件常量白名单（扫描时请跳过，不是漏改）
+
+   下面这些字面量属于「组件自身的尺寸常数」，不属于皮肤/密度阶梯：
+   - 触控热区 44 / 38：手指目标的最小物理尺寸，跟皮肤无关
+   - 媒体缩略图 40 / 56 / 48 / 80：图像预览的固定画框
+   - 状态点与进度条 4 / 8 / 22 / 2：点的直径、进度条厚度，放大会变粗块
+   - 焦点环 `outline: 2px`：环宽跟浏览器默认一致，换皮肤不换环宽
+   - 打印块（`#gitmemo-print-root`）与 `env(safe-area-inset-*)` 兜底：单位与环境变量，非屏幕样式
+   - Markdown 的 `em` 字号与打印的 `pt`：相对单位与纸张单位
+
+   有现成 token 的（分隔线 1px、状态点 8px）已改用 `--gm-size-divider` /
+   `--gm-icon-dot`；其余保留，是因为强行变量化会造出只用一次的 token。
+   --------------------------------------------------------------------------- */
+
 * {
   margin: 0;
   padding: 0;
@@ -1253,6 +1268,7 @@ a:focus-visible {
 }
 
 .gm-clipboard-back-to-top[data-mobile="true"] {
+  /* 触控热区 44px：移动端最小点击尺寸 */
   bottom: calc(var(--gm-size-mobile-bottom-nav-height) + var(--gm-space-5));
   height: 44px;
   right: var(--gm-space-4);
@@ -4917,6 +4933,7 @@ a:focus-visible {
 }
 
 .gm-onboarding-progress {
+  /* 进度条厚度：组件常量，不随皮肤变 */
   appearance: none;
   background: var(--gm-line);
   border: none;
@@ -7097,6 +7114,8 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 
 .gm-clip-cleaner-nav {
+  /* 看图器翻页热区：叠在图像上，不参与密度阶梯 */
+  /* 看图器翻页热区：固定在图像之上，不参与密度阶梯 */
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -7342,6 +7361,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   margin-top: var(--gm-space-1);
 }
 .gm-inst-gauge-bar {
+  /* 读数条厚度：组件常量 */
   background: var(--gm-line);
   display: block;
   height: 2px;
