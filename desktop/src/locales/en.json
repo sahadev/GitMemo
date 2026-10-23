@@ -206,7 +206,7 @@
   "conversations": {
     "title": "Conversations",
     "loading": "Loading...",
-    "empty": "No conversations yet. Chat with Claude, Cursor or Codex and records sync in automatically.",
+    "empty": "No conversations yet",
     "selectToView": "Select a conversation to view",
     "edit": "Edit",
     "save": "Save",
@@ -219,7 +219,8 @@
     "deleteConversation": "Delete conversation",
     "msgs": "msgs",
     "user": "User",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "emptyHint": "Talk to Claude, Cursor or Codex and the transcript syncs in automatically."
   },
   "notes": {
     "listLoadFailed": "Could not load notes: {0}",

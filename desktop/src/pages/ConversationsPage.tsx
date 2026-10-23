@@ -348,10 +348,22 @@ export default function ConversationsPage({
             files.length > 0 ? (
             <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.selectToView")} full />
           ) : (
-            <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.empty")} full />
+            <EmptyState
+              icon={MessageSquare}
+              iconSize="hero"
+              title={t("conversations.empty")}
+              description={t("conversations.emptyHint")}
+              full
+            />
           )
           ) : (
-            <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.empty")} full />
+            <EmptyState
+              icon={MessageSquare}
+              iconSize="hero"
+              title={t("conversations.empty")}
+              description={t("conversations.emptyHint")}
+              full
+            />
           )
         ) : (
           <>

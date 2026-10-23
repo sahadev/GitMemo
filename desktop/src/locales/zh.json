@@ -206,7 +206,7 @@
   "conversations": {
     "title": "对话",
     "loading": "加载中...",
-    "empty": "还没有对话记录。用 Claude、Cursor 或 Codex 聊一轮，记录会自动同步进来。",
+    "empty": "还没有对话",
     "selectToView": "选择一个对话查看",
     "edit": "编辑",
     "save": "保存",
@@ -219,7 +219,8 @@
     "deleteConversation": "删除对话",
     "msgs": "条消息",
     "user": "用户",
-    "assistant": "助手"
+    "assistant": "助手",
+    "emptyHint": "用 Claude、Cursor 或 Codex 聊一轮，记录会自动同步进来。"
   },
   "notes": {
     "listLoadFailed": "笔记列表没能加载：{0}",

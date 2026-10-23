@@ -1569,6 +1569,13 @@ a:focus-visible {
   min-height: 0;
 }
 
+/* 空态在这一栏里垂直居中，否则读起来像“页面没加载完” */
+.gm-vault-empty-wrap {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
 .gm-vault-list {
   overflow-y: auto;
 }
