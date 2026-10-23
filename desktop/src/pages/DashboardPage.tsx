@@ -373,7 +373,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   title={item.path}
                 >
                   <span className="gm-inst-list-title">{item.name}</span>
-                  <span className="gm-inst-list-time">{relativeTime(item.modified, t)}</span>
+                  <span className="gm-inst-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
                 </button>
               ))
             )}
@@ -415,11 +415,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           {/* 4c · 表格 */}
           <div className="gm-inst-table" role="table" aria-label={t("dashboard.recentActivity")}>
             <div className="gm-inst-table-head" role="row">
-              <span role="columnheader">{t("dashboard.tableTime")}</span>
-              <span role="columnheader">{t("dashboard.gaugeType")}</span>
-              <span role="columnheader">{t("dashboard.tableTitle")}</span>
-              <span role="columnheader">{t("dashboard.tableSource")}</span>
-              <span role="columnheader">{t("dashboard.gaugeState")}</span>
+              <span role="columnheader" data-col="time">{t("dashboard.tableTime")}</span>
+              <span role="columnheader" data-col="type">{t("dashboard.gaugeType")}</span>
+              <span role="columnheader" data-col="title">{t("dashboard.tableTitle")}</span>
+              <span role="columnheader" data-col="source">{t("dashboard.tableSource")}</span>
+              <span role="columnheader" data-col="state">{t("dashboard.gaugeState")}</span>
             </div>
             {displayedRecent.slice(0, 7).map((item) => (
               <button
@@ -429,13 +429,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 className="gm-inst-table-row"
                 onClick={() => openRecord(item)}
               >
-                <span role="cell" className="gm-inst-table-time">{relativeTime(item.modified, t)}</span>
-                <span role="cell" className="gm-inst-tag" data-kind={item.category}>
+                <span role="cell" data-col="time" className="gm-inst-table-time">{relativeTime(item.modified, t)}</span>
+                <span role="cell" data-col="type" className="gm-inst-tag" data-kind={item.category}>
                   {categoryLabel(item.category)}
                 </span>
-                <span role="cell" className="gm-inst-table-title" title={item.path}>{item.name}</span>
-                <span role="cell" className="gm-inst-table-source">{item.path.split("/")[0]}</span>
-                <span role="cell" className="gm-inst-table-state" data-state="synced">
+                <span role="cell" data-col="title" className="gm-inst-table-title" title={item.name}>{item.name}</span>
+                <span role="cell" data-col="source" className="gm-inst-table-source" title={item.path}>
+                  {item.path.split("/")[0]}
+                </span>
+                <span role="cell" data-col="state" className="gm-inst-table-state" data-state="synced">
                   {t("dashboard.synced")}
                 </span>
               </button>
