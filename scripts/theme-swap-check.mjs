@@ -430,8 +430,18 @@ async function checkSkin(browser, skin, opts) {
     const backFrames = await sampleFrames(page, opts, dir, "to-dark");
     // Park the pointer and drop focus: a lingering :hover / :focus-visible on the
     // switch is a state difference, not a skin regression.
+    // Record the interaction state before parking it, so every report says
+    // whether the comparison was taken with hover or focus still active.
+    const focusBeforeBlur = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const cls = typeof el.className === "string" ? el.className.split(/\s+/).slice(0, 2).join(".") : "";
+      return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}`;
+    });
+    let pointerParked = null;
     if (!opts.keepHover) {
       await page.mouse.move(2, 2);
+      pointerParked = { x: 2, y: 2 };
       await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
     }
     await page.waitForTimeout(opts.settleMs);
@@ -469,6 +479,7 @@ async function checkSkin(browser, skin, opts) {
       before: { file: beforeFile, sha256: sha(before) },
       after: { file: afterFile, sha256: sha(after) },
       control: { file: controlFile, ...noise },
+      interaction: { pointerParked, focusBeforeBlur, keepHover: opts.keepHover },
       focusedBox: focusRect,
       trip: {
         changedPixels: trip.changed,
@@ -551,7 +562,10 @@ async function main() {
         ? `往返通过（差异 ${result.trip.changedPixels}px / 容差 ${result.tolerancePixels}px，控制噪声 ${result.control.changed}px，最大通道差 ${result.trip.maxDelta}）`
         : `往返不一致（差异 ${result.trip.changedPixels}px / 容差 ${result.tolerancePixels}px，最大通道差 ${result.trip.maxDelta}）`;
       if (!result.roundTrip || result.blanks.length || result.pageErrors.length) failed = true;
+      const pointerNote = result.interaction.pointerParked ? "指针已移开" : "指针未移开（诊断模式）";
+      const focusNote = result.interaction.focusBeforeBlur ? `焦点 ${result.interaction.focusBeforeBlur}` : "无焦点";
       process.stdout.write(`  ${result.skin.padEnd(6)} ${tripNote} · ${blankNote}（${frameNote}，主色占比峰值 ${(result.worstDominant * 100).toFixed(1)}%）\n`);
+      process.stdout.write(`         ${pointerNote} · ${focusNote}\n`);
       for (const err of result.pageErrors) process.stdout.write(`         页面错误：${err}\n`);
     }
     process.stdout.write(`sampled frames + report: ${opts.out}\n`);
