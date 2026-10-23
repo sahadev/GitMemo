@@ -254,6 +254,11 @@
   --gm-canvas: #0e1012;
   --gm-edge-shadow: none;
   --gm-radius-card: 4px;
+  /* 图片预览叠在照片上，两套皮肤都用白字黑底，与皮肤无关 */
+  --gm-media-backdrop: #000000;
+  --gm-media-on: #ffffff;
+  --gm-media-control: rgba(255, 255, 255, 0.08);
+  --gm-media-control-hover: rgba(255, 255, 255, 0.16);
   --gm-radius-control: 4px;
   --gm-radius-panel: 6px;
   --gm-panel: #15181b;
@@ -355,6 +360,10 @@
   --gm-canvas: #ffffff;
   --gm-edge-shadow: inset 0 0 0 1px var(--gm-line-strong);
   --gm-radius-card: 0;
+  --gm-media-backdrop: #000000;
+  --gm-media-on: #ffffff;
+  --gm-media-control: rgba(255, 255, 255, 0.08);
+  --gm-media-control-hover: rgba(255, 255, 255, 0.16);
   --gm-radius-control: 0;
   --gm-radius-panel: 0;
   --gm-panel: #ffffff;
@@ -7085,7 +7094,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--gm-media-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7160,13 +7169,13 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--gm-media-control);
+  color: var(--gm-media-on);
   border: none;
   cursor: pointer;
 }
 .gm-clip-cleaner-nav:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--gm-media-control-hover);
 }
 .gm-clip-cleaner-nav:disabled {
   opacity: 0.3;
