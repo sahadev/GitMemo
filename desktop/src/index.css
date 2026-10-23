@@ -1040,7 +1040,8 @@ a:focus-visible {
 }
 
 .gm-import-thumb {
-  border: var(--gm-border-w) solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line);
+  border-radius: var(--gm-radius-control);
   object-fit: cover;
 }
 
