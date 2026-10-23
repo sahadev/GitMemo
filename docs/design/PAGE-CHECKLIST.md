@@ -23,12 +23,12 @@
 | 写死的圆角 | `rg -o 'border-radius: *[^;]+' desktop/src/index.css \| grep -v 'var('` | 7 行 `0`、1 行 `50%` | 合法（方角与圆形） |
 | 写死的行高（行首） | `rg -n '^\s*height: *[0-9]+px' desktop/src/index.css \| wc -l` | `14` | 全是图标框、进度条、开关、面板最大高这类组件常量；`height: 32px` 与 `36px` 均为 **0** |
 | 写死的行高（全量，含单行规则） | `rg -o 'height: *[0-9]+px' desktop/src/index.css \| sort \| uniq -c` | `44` 处，最高频 44px×4、22px×4、26px×3 | 同上，无 30/32/34/36px |
-| 组件里写死的色值 | `rg -n '#[0-9a-fA-F]{3,8}\|rgba?\(' desktop/src/index.css \| rg -v -- '--gm-'` | `17` 行 = 打印 11 + 图片预览 6 | 打印属豁免；图片预览 6 行待正式化 |
+| 组件里写死的色值 | `rg -n '#[0-9a-fA-F]{3,8}\|rgba?\(' desktop/src/index.css \| rg -v -- '--gm-'` | `13` 行 = 打印 11 + 预览遮罩 2 | 打印属豁免；预览那 2 条是照片上的渐变/实心遮罩，见下 |
 | 字号 / 内距 | `rg -n 'font-size: *[0-9]\|padding: *[0-9]px\|gap: *[0-9]px' desktop/src/index.css \| rg -v -- '--gm-'` | `7` 行 = 5 行 `em`（阅读面）+ 2 行 `pt`（打印） | 均合法，实际待迁移 **0** |
 
 口径（不写清这条，数字无法比较）：皮肤定义块（`:root` / `[data-theme]`）里的 hex 合法；打印块 `#gitmemo-print-root` 的 hex 与 `pt` 合法；阅读面的 `em` 合法；只有组件规则里写死的 px / hex 才算违规。
 
-结论：**皮肤层的值已经清干净**。真正剩下的只有图片预览那 6 行色值——它叠在照片上，两套皮肤都该是白字黑底，抽一个媒体遮罩变量即可正式化。
+结论：**皮肤层的值已经清干净**。图片预览的 6 处已正式化为四个媒体层变量（`--gm-media-backdrop` / `--gm-media-on` / `--gm-media-control` / `--gm-media-control-hover`，两套皮肤同值，因为叠在照片上）。只剩两条遮罩仍是字面量：`rgba(0,0,0,.6)` 与它的渐变版本——再补一个 `--gm-media-scrim` 就彻底清零。
 
 页面骨架不再是待办：那七个双栏浏览页本来就是「列表 + 详情」，不该长成仪表盘。
 
@@ -260,6 +260,6 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 | 面板圆角引用数 | `rg -c 'var\(--gm-radius-panel\)' desktop/src/index.css` | 16 | 上升 |
 | 列表行高引用数 | `rg -c 'var\(--gm-density-row\)' desktop/src/index.css` | 11 | 上升 |
 | 写死的 `1px solid` | `rg -c '1px solid' desktop/src/index.css` | 0 | 恒为 0 |
-| 组件里写死的色值 | 见 §0 第四条 | 17 行（11 打印豁免 + 6 预览） | 恒为 6 或更低 |
+| 组件里写死的色值 | 见 §0 第四条 | 13 行（11 打印豁免 + 2 预览遮罩） | 恒为 13 或更低 |
 
 用法：改完一页，跑一遍这七条，把数字记在提交说明里。数字不动就是没接上——比看截图可靠，因为截图看不出「这块颜色是变量还是写死的」。
