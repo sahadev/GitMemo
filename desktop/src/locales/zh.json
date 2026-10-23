@@ -61,7 +61,7 @@
   },
   "imports": {
     "title": "导入文件",
-    "empty": "拖拽 Markdown 文件到窗口即可导入",
+    "empty": "还没有导入",
     "selectOrDrop": "还没有导入记录。选中一个 Markdown 文件，或直接拖进窗口",
     "importMarkdown": "导入 Markdown 文件",
     "imported": "已导入 {0} 个文件",
@@ -69,7 +69,8 @@
     "importRejected": "{0} 未导入：当前大小 {1}，上限 {2}。",
     "noImportableFiles": "没有可导入的 Markdown 文件。",
     "deleted": "已删除导入文件",
-    "deleteConfirm": "删除这个导入文件？"
+    "deleteConfirm": "删除这个导入文件？",
+    "emptyHint": "拖拽 Markdown 文件到窗口，或用右上角按钮选择文件。"
   },
   "externalFiles": {
     "title": "外部文件",

@@ -10,11 +10,13 @@ import { FavoriteButton } from "../components/FavoriteButton";
 import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
+import { Badge } from "../components/base/Badge";
 import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { PageFrame } from "../components/layout/PageFrame";
 import {
   getDocumentTitle,
   getDocumentTitleForPath,
@@ -329,6 +331,22 @@ export default function ImportsPage({
   const detailVisible = showDetail;
   const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
+
+  // 列表为空时整屏空态，页头常驻（列表空不等于页面空）
+  if (!loading && files.length === 0) {
+    return (
+      <PageFrame column>
+        <PaneHeader icon={Download} title={t("imports.title")} actions={<Badge>{files.length}</Badge>} />
+        <EmptyState
+          icon={Download}
+          iconSize="empty-lg"
+          title={t("imports.empty")}
+          description={t("imports.emptyHint")}
+          full
+        />
+      </PageFrame>
+    );
+  }
 
   return (
     <FileWorkspace
