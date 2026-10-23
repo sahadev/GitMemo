@@ -60,6 +60,7 @@ function parseArgs(argv) {
     port: 5274,
     intervalMs: SAMPLE_INTERVAL_MS,
     durationMs: SAMPLE_DURATION_MS,
+    settleMs: 250,
     strict: false,
     help: false,
   };
@@ -90,6 +91,9 @@ function parseArgs(argv) {
         opts.port = Number(value());
         if (!Number.isInteger(opts.port)) throw new Error("--port must be an integer");
         break;
+      case "--settle":
+        opts.settleMs = Number(value());
+        break;
       case "--strict":
         opts.strict = true;
         break;
@@ -119,6 +123,8 @@ Options
   --port=<n>          dev server port                  (default: 5274)
   --strict            fail on any differing pixel (default: allow repaint noise
                       up to 0.02% of the screen, reported either way)
+  --settle=<ms>       wait after the last toggle before the closing shot
+                      (default: 250)
   --interval=<ms>     frame sampling interval          (default: 60)
   --duration=<ms>     how long to sample each toggle   (default: 900)
   -h, --help          show this help
@@ -382,7 +388,7 @@ async function checkSkin(browser, skin, opts) {
     // switch is a state difference, not a skin regression.
     await page.mouse.move(2, 2);
     await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(opts.settleMs);
 
     const after = await page.screenshot({ animations: "disabled", caret: "hide" });
     const afterFile = join(dir, "after.png");
