@@ -382,32 +382,6 @@ a:focus-visible {
   color: var(--text);
 }
 
-.gm-panel {
-  background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--gm-radius-md);
-  box-shadow: var(--gm-shadow-card);
-}
-
-.gm-panel-quiet {
-  background: var(--gm-color-bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--gm-radius-md);
-}
-
-.gm-card {
-  background: var(--gm-color-bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--gm-radius-lg);
-  box-shadow: var(--gm-shadow-card);
-}
-
-.gm-card-muted {
-  background: var(--gm-color-bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--gm-radius-lg);
-}
-
 .gm-page {
   background: var(--gm-color-bg-page);
   color: var(--text);
@@ -2744,7 +2718,7 @@ a:focus-visible {
   align-items: center;
   background: var(--gm-warning-soft);
   border-bottom: 1px solid var(--gm-warning-border);
-  color: var(--text-primary);
+  color: var(--text);
   display: flex;
   flex-shrink: 0;
   font-size: var(--gm-font-sm);
@@ -6817,7 +6791,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   background: var(--gm-color-bg-hover);
 }
 .gm-clip-cleaner-row:focus-visible {
-  outline: 2px solid var(--gm-color-accent, #4c8dff);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 .gm-clip-cleaner-row-name {

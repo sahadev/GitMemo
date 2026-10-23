@@ -52,3 +52,49 @@
 - 悬停位移、渐变、发光等手法：静态扫描只覆盖了白名单里的属性，视觉类手法需在第二轮逐页核对。
 
 工具与规则是同一份判据，规则改了要同步改 `scripts/audit_design_language.mjs` 里的白名单常量。
+
+---
+
+## 第二轮：四类问题的具体落点（按首屏观感排序）
+
+判据：`docs/design/LANGUAGE.md`（其附录已声明 DESIGN.md 数值过期），必要处标注 DESIGN.md 的角色规则。
+本节只追加，不改上文。
+
+### 1. 跨页面同一语义元素不一致
+
+1. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:552` → §1.4 页标题字重 720，`.gm-page-title` 实为 760，每个页面的第一行文字都不合规 → 760 改 720。
+2. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:567` → §1.4 区块标题是 `--gm-font-2xs`(11px)，`.gm-section-title` 用 12px，与正文 13px 只差 1px，层级塌成一片 → 降为 `--gm-font-2xs`。
+3. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:650` → §1.4 面板标题字重 650，`.gm-pane-header-title` 实为 720，所有分栏页表头都偏粗 → 改 650。
+4. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/pages/DashboardPage.tsx:494` → 同一页两种卡片标题：这张用 `.gm-card-title`（index.css:3114，13px/720），另外四张用 `.gm-section-title`（12px/650）→ 统一走区块标题。
+5. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:705` → §1.4 tab 文字应为 650，激活态实为 760，而另一套 tab 是 700（:771），同角色三档字重 → 全部收敛到 650。
+6. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:930` → §1.4 元信息应为 11px + `--gm-color-text-muted`，这里 12px + `--text-secondary`（:1309 同），Dashboard 时间 11px 但也用 `--text-secondary`（:5366）→ 时间统一 2xs + muted。
+7. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:4226` → §1.2 只允许 400/650/720，设置行标题实为 560；同页「plain 行」标题又降到 12px（:4284），同类行两种字号 → 650 + 同一字号。
+
+### 2. 间距阶梯外取值
+
+8. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:6851` → §2.2 只允许 0/2/4/8/12/16/24/32，clip cleaner 行 `padding: 10px 16px` 里的 10px 无 token → 换 `--gm-row-pad-y` / `--gm-row-pad-x`。
+9. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:6047` → §2.2 快速粘贴外壳 `padding: 80px 18px 18px`，三个值都没有 token → 上边距用 `--gm-section-gap-lg`，左右用 `--gm-page-pad-x`。
+10. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:3278` → §2.2 拿横向 token 当纵向用：`.gm-setup-sidebar` 写成 `var(--gm-card-pad-x) var(--gm-card-pad-x)`，:3963 同类问题 → 纵向改 `--gm-card-pad-y`。
+11. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:724` → 同一角色的过滤行，`.gm-segment-row` 内边距 `icon-text-gap / list-header-pad-x`，`.gm-compact-tab-row`（:729）只有 `icon-text-gap`，左右差一档 → 统一。
+
+### 3. 卡片嵌套与边框层数
+
+12. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:3064` → §6.7「边框 + 投影 + 彩色竖条」三件套：卡片 border（:3063）+ `--gm-shadow-card`（:3065），统计卡还叠左侧彩条（`.gm-dashboard-stat-rail`，:5293）→ 去投影、去彩条，只留 border。
+13. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:5259` → §2.1 同一网格里 span 必须统一，前 3 张卡 span 2（:5251），后 3 张 `span 3`，底行宽是上行的 1.5 倍 → 全部 span 2。
+14. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:1995` → §5.3 搜索结果应从卡片改为平面列表行，现在是背景+边框+`--gm-shadow-card` 的卡片 → 去背景/边框/投影，行内用 `--gm-list-row-pad-*`。
+15. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:4741` → §2.5 卡片套卡片：外层卡片带边框和底色，里面 `.gm-onboarding-item`（:4825）又各带 border + `--bg-card` → item 去边框与底色。
+16. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:5736` → 错误面板（边框 + 8px 圆角）内再嵌日志块（:5745，`--bg-inset` + 边框）→ 日志块去边框，靠底色分层。
+
+### 4. 手写 markup 复制了已有组件
+
+17. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/pages/DashboardPage.tsx:417` → `PageHeader`（components/AppHeaders.tsx:35）全仓零调用：Dashboard 手写 `<h1 class="gm-page-title">`，Settings 另造一份（components/domain/settings/SettingsComponents.tsx:44）→ 两处改走 `PageHeader`。
+18. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/components/domain/clipboard/ClipboardComponents.tsx:177` → 已有 `EmptyState`（components/base/EmptyState.tsx:12），这里手抄一份，:382 再抄一次 → 改用组件。
+19. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/pages/ClaudeConfigPage.tsx:145` → 已有 `PaneTabHeader`（NotesPage.tsx:309 在用），这里手写一套 tab，配套 `.gm-compact-tab-button`（:735）与 `.gm-pane-tab-button`（:669）几乎同款 → 改用 `PaneTabHeader`，删掉重复 CSS。
+20. `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:398` → `.gm-card` 与 `.gm-panel`（:385）零引用，真正的卡片由 `.gm-dashboard-card`（:3061）重写一遍 → 只留一套卡片类。
+
+### 本节未列入但已确认
+
+- `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/pages/DashboardPage.tsx:366` 错误态手写面板 + hero 图标（:370），同样应走 `EmptyState`（按首屏观感它只在无仓库时出现，排在 20 条之外）。
+- `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:1115` 选中态留白写死 58px，无 token。
+- `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:6768` clip cleaner 自建 header（标题 17px/600），未接 `--gm-pane-header-height` 与 `PaneHeader`。
+- `/Users/Zhuanz/Code/other/GitMemo-desktop/desktop/src/index.css:6948` 的 `64px 76px 76px` 属打印输出，按 §0.1 豁免（`#gitmemo-print-root`）。

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>GitMemo — 方向 C：纸面 / 印刷式</title>
+<style>
+  :root{
+    --paper:#f4efe6;
+    --paper-deep:#ece5d8;
+    --ink:#191512;
+    --ink-2:#4a4340;
+    --ink-3:#7d746c;
+    --rule:rgba(25,21,18,.16);
+    --rule-strong:rgba(25,21,18,.34);
+    --accent:#8c2f1e;
+    --serif:"Songti SC","Source Han Serif SC",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow-x:hidden}
+  .page{width:1440px;min-height:1400px;margin:0 auto;padding:60px 96px 72px;
+    display:flex;flex-direction:column}
+  /* ---------- 报头 ---------- */
+  .masthead{display:flex;align-items:flex-end;justify-content:space-between;
+    padding-bottom:18px;border-bottom:1px solid var(--rule-strong)}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .brand h1{font-family:var(--serif);font-size:34px;font-weight:600;letter-spacing:-.01em;line-height:1}
+  .brand .edition{font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .dateline{display:flex;gap:26px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .dateline b{color:var(--ink-2);font-weight:500}
+  /* ---------- 主线：左侧目录 + 右侧正文 ---------- */
+  .sheet{display:grid;grid-template-columns:224px 1fr;gap:52px;padding-top:26px;flex:1}
+  .rail{display:flex;flex-direction:column;gap:0}
+  .rail h2,.col h2{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}
+  .nav{list-style:none}
+  .nav li{display:flex;justify-content:space-between;align-items:baseline;
+    padding:7px 0;border-bottom:1px solid var(--rule);font-size:13.5px;color:var(--ink-2)}
+  .nav li span{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .nav li{min-width:0}
+  .nav li:first-child{white-space:nowrap}
+  .nav li.on{color:var(--ink);font-weight:600}
+  .nav li.on span{color:var(--accent);font-weight:600}
+  .state{margin-top:30px}
+  .state dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12px;color:var(--ink-2)}
+  .state dt{color:var(--ink-3)}
+  .state dd{text-align:right;font-family:var(--mono);font-size:11px}
+  .state dd.good{color:#2f6b46}
+  .state dd.warn{color:var(--accent)}
+  /* ---------- 正文 ---------- */
+  .body{display:flex;flex-direction:column;gap:44px;min-width:0}
+  .body > section:last-of-type{flex:1}
+  .lede{display:grid;grid-template-columns:1fr 320px;gap:56px;align-items:start}
+  .lede h3{font-family:var(--serif);font-size:40px;line-height:1.18;font-weight:600;
+    letter-spacing:-.015em;max-width:15em}
+  .lede p{margin-top:14px;font-size:13.5px;line-height:1.75;color:var(--ink-2);max-width:34em}
+  .quick{border-top:2px solid var(--ink);padding-top:12px}
+  .quick h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:10px}
+  .quick .line{border-bottom:1px solid var(--rule);height:26px;display:flex;align-items:center;
+    font-size:13px;color:var(--ink-3)}
+  .quick .line:last-of-type{border-bottom:1px solid var(--rule-strong)}
+  .quick .hint{margin-top:10px;font-size:11px;color:var(--ink-3);display:flex;justify-content:space-between}
+  kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--rule-strong);
+    border-bottom-width:2px;border-radius:3px;padding:1px 5px;color:var(--ink-2)}
+  /* ---------- 数字带 ---------- */
+  .figures{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule-strong);
+    border-bottom:1px solid var(--rule-strong)}
+  .fig{padding:16px 20px 18px;border-left:1px solid var(--rule)}
+  .fig:first-child{border-left:0;padding-left:0}
+  .fig .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3)}
+  .fig .v{font-family:var(--serif);font-size:38px;line-height:1.1;margin-top:6px;letter-spacing:-.02em}
+  .fig .v small{font-family:var(--sans);font-size:12px;color:var(--ink-3);margin-left:4px;letter-spacing:0}
+  .fig .d{font-size:11px;color:var(--ink-3);margin-top:4px}
+  /* ---------- 最近条目 ---------- */
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1px solid var(--rule-strong);padding-bottom:9px}
+  .section-head h3{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-2);font-weight:500}
+  .section-head a{font-size:11px;color:var(--accent);text-decoration:none;
+    border-bottom:1px solid rgba(140,47,30,.35);padding-bottom:1px}
+  .entries{list-style:none}
+  .entries li{display:grid;grid-template-columns:32px 44px 1fr 64px 60px;min-width:0;
+    align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid var(--rule)}
+  .entries li:hover{background:linear-gradient(90deg,rgba(25,21,18,.045),transparent 70%)}
+  .entries .no{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .entries .mark{font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .entries .t{font-size:14.5px;color:var(--ink);line-height:1.45;min-width:0;overflow-wrap:anywhere}
+  .entries .t em{font-style:normal;color:var(--ink-3);font-size:12.5px;margin-left:10px}
+  .entries .src{font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:.06em;white-space:nowrap;text-align:right}
+  .entries .when{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+    text-align:right;min-width:64px}
+  /* ---------- 本周新增 ---------- */
+  .week{display:grid;grid-template-columns:1fr 1fr;gap:56px}
+  .week h3{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--rule-strong);
+    padding-bottom:9px;margin-bottom:14px;font-weight:500}
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .bar{display:grid;grid-template-columns:38px 1fr 34px;align-items:center;gap:12px;
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .bar i{display:block;height:2px;background:var(--ink);opacity:.72}
+  .bar.off i{background:var(--rule-strong);opacity:1}
+  .bar b{font-weight:500;text-align:right;color:var(--ink-2)}
+  .todo{list-style:none}
+  .todo li{display:grid;grid-template-columns:14px 1fr auto;gap:12px;align-items:baseline;
+    padding:9px 0;border-bottom:1px solid var(--rule);font-size:13px;color:var(--ink-2)}
+  .todo li::before{content:"";width:9px;height:9px;border:1px solid var(--rule-strong);
+    display:block;margin-top:4px}
+  .todo li b{font-weight:400;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+  /* ---------- 页脚 ---------- */
+  .colophon{display:flex;justify-content:space-between;align-items:baseline;
+    margin-top:40px;padding-top:10px;border-top:1px solid var(--rule-strong);
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);
+    text-transform:uppercase}
+  .colophon .path{text-transform:none;letter-spacing:0;font-size:11px}
+
+  /* ---------- 窄屏（移动 390） ---------- */
+  @media (max-width: 900px){
+    .page{width:auto;min-height:0;padding:24px 20px 40px}
+    .masthead{flex-direction:column;align-items:flex-start;gap:8px}
+    .brand h1{font-size:26px}
+    .dateline{flex-wrap:wrap;gap:10px 18px;font-size:10px;width:100%}
+    .sheet{grid-template-columns:1fr;gap:26px;padding-top:18px}
+    .rail{order:2}
+    .nav{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
+    .state{margin-top:22px}
+    .body{order:1;gap:30px}
+    .lede{grid-template-columns:1fr;gap:24px}
+    .lede h3{font-size:25px;line-height:1.28}
+    .figures{grid-template-columns:1fr 1fr}
+    .fig{padding:14px 14px 14px}
+    .fig:nth-child(odd){border-left:0;padding-left:0}
+    .fig:nth-child(n+3){border-top:1px solid var(--rule)}
+    .fig .v{font-size:28px}
+    .entries li{grid-template-columns:28px 40px 1fr 52px;gap:10px;min-width:0}
+    .entries .src{display:none}
+    .entries .t em{display:block;margin:3px 0 0}
+    .week{grid-template-columns:1fr;gap:26px}
+    .colophon{flex-direction:column;gap:6px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="brand">
+      <h1>GitMemo</h1>
+      <span class="edition">本地笔记 · 第 159 期</span>
+    </div>
+    <div class="dateline">
+      <span><b>2026</b> 年 10 月 23 日 星期五</span>
+      <span>库 <b>~/gitmemo</b></span>
+      <span>最后索引 <b>2 分钟前</b></span>
+    </div>
+  </header>
+
+  <div class="sheet">
+
+    <aside class="rail">
+      <h2>目录</h2>
+      <ul class="nav">
+        <li class="on">总览 <span>01</span></li>
+        <li>笔记 <span>128</span></li>
+        <li>对话 <span>64</span></li>
+        <li>剪贴板 <span>31</span></li>
+        <li>导入 <span>12</span></li>
+        <li>收藏 <span>09</span></li>
+        <li>计划 <span>07</span></li>
+        <li>设置 <span>—</span></li>
+      </ul>
+
+      <div class="state">
+        <h2>同步</h2>
+        <dl>
+          <dt>远端</dt><dd>origin/main</dd>
+          <dt>状态</dt><dd class="good">已同步</dd>
+          <dt>待推送</dt><dd>0</dd>
+          <dt>未跟踪</dt><dd class="warn">3</dd>
+          <dt>仓库体积</dt><dd>18.4 MB</dd>
+        </dl>
+      </div>
+    </aside>
+
+    <main class="body">
+
+      <section class="lede">
+        <div>
+          <h3>三天前那条中断的条款草稿，今天可以接着写完。</h3>
+          <p>你在 10 月 20 日 17:42 存过一份未完成的草稿，引用了两份对话和一段剪贴板代码。它还在，没有被索引丢掉。</p>
+        </div>
+        <div class="quick">
+          <h4>快速记一行</h4>
+          <div class="line">粘贴链接、想法、命令……</div>
+          <div class="line"></div>
+          <div class="line"></div>
+          <div class="hint"><span>直接写入 收件箱/</span><span><kbd>⌘</kbd> <kbd>↵</kbd> 保存</span></div>
+        </div>
+      </section>
+
+      <section class="figures">
+        <div class="fig"><div class="k">条目总数</div><div class="v">1,281</div><div class="d">本周新增 46</div></div>
+        <div class="fig"><div class="k">对话</div><div class="v">64</div><div class="d">6 个工具来源</div></div>
+        <div class="fig"><div class="k">剪贴板</div><div class="v">31</div><div class="d">图片 9 张</div></div>
+        <div class="fig"><div class="k">未提交</div><div class="v">3</div><div class="d">最近 12 分钟</div></div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h3>最近条目</h3>
+          <a href="#">查看全部 1,281 条</a>
+        </div>
+        <ul class="entries">
+          <li>
+            <span class="no">01</span><span class="mark">对话</span>
+            <span class="t">Claude：把 roomlog 的抽取规则收敛成词表<em>4 个决定，2 个待决</em></span>
+            <span class="src">claude</span><span class="when">2 分钟前</span>
+          </li>
+          <li>
+            <span class="no">02</span><span class="mark">笔记</span>
+            <span class="t">合同第二版：付款节点与验收口径<em>未完成草稿</em></span>
+            <span class="src">manual</span><span class="when">17:42</span>
+          </li>
+          <li>
+            <span class="no">03</span><span class="mark">剪贴板</span>
+            <span class="t">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span>
+            <span class="src">终端</span><span class="when">16:08</span>
+          </li>
+          <li>
+            <span class="no">04</span><span class="mark">计划</span>
+            <span class="t">视觉改造三阶段：审计 → 改造 → 验收<em>5 个行动项</em></span>
+            <span class="src">plan</span><span class="when">15:31</span>
+          </li>
+          <li>
+            <span class="no">05</span><span class="mark">对话</span>
+            <span class="t">Codex：Tauri 打包签名失败的三种成因</span>
+            <span class="src">codex</span><span class="when">昨天</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="week">
+        <div>
+          <h3>本周新增 · 46</h3>
+          <div class="bars">
+            <div class="bar"><span>周一</span><i style="width:38%"></i><b>7</b></div>
+            <div class="bar"><span>周二</span><i style="width:62%"></i><b>11</b></div>
+            <div class="bar"><span>周三</span><i style="width:100%"></i><b>18</b></div>
+            <div class="bar off"><span>周四</span><i style="width:26%"></i><b>5</b></div>
+            <div class="bar off"><span>周五</span><i style="width:28%"></i><b>5</b></div>
+          </div>
+        </div>
+        <div>
+          <h3>待处理 · 3</h3>
+          <ul class="todo">
+            <li>合同草稿缺少验收条款<b>GITMEMO/收件箱</B></li>
+            <li>有 3 个文件未提交<b>12 分钟前</b></li>
+            <li>roomlog 计划待搬到正式目录<b>待定</b></li>
+          </ul>
+        </div>
+      </section>
+
+      <footer class="colophon">
+        <span class="path">~/gitmemo · main · 1,281 个文件 · 18.4 MB</span>
+        <span>GitMemo 1.0.159 · 本地优先</span>
+      </footer>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

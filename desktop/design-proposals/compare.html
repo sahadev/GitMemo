@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMemo 设计方向对照 · A / B / C</title>
+<style>
+  :root {
+    --bg: #14151a;
+    --surface: #1c1e24;
+    --surface-2: #23262e;
+    --line: #31353f;
+    --text: #eceef2;
+    --text-dim: #9aa0ac;
+    --text-faint: #6d737f;
+    --accent: #8fa4c8;
+    --warn: #b08a4a;
+    --canvas-w: 1440;
+    --canvas-h: 960;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ---------- top: criteria ---------- */
+  .top {
+    flex: none;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    padding: 12px 16px 10px;
+  }
+  .top h1 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0;
+    color: var(--text);
+  }
+  .top h1 span { color: var(--text-faint); font-weight: 400; }
+  .criteria {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 16px;
+  }
+  .criterion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .criterion .q {
+    color: var(--text-dim);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .criterion .q b { color: var(--text); font-weight: 650; }
+  .score { display: flex; gap: 2px; flex: none; }
+  .score button {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+  }
+  .score button[data-on="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #14151a;
+  }
+  .score button:hover { border-color: var(--text-faint); }
+
+  /* ---------- controls ---------- */
+  .bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .group { display: flex; gap: 2px; flex: none; }
+  .group[hidden] { display: none; }
+  .group > button {
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .group > button[data-on="true"] {
+    background: var(--surface-2);
+    border-color: var(--text-faint);
+    color: var(--text);
+  }
+  .sep { width: 1px; height: 18px; background: var(--line); flex: none; }
+  .slider { display: flex; align-items: center; gap: 6px; color: var(--text-dim); flex: none; }
+  .slider input { width: 120px; accent-color: var(--accent); }
+  .hint { color: var(--text-faint); margin-left: auto; white-space: nowrap; }
+  .bar[hidden], .slider[hidden], .hint[hidden] { display: none; }
+
+  /* ---------- stage ---------- */
+  .stage { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 24px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .slot { min-width: 0; }
+  .slot-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 0 2px 6px;
+    min-width: 0;
+  }
+  .slot-head .tag {
+    font-weight: 650;
+    color: var(--text);
+    flex: none;
+  }
+  .slot-head .name {
+    color: var(--text-faint);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    min-width: 0;
+    flex: 1;
+    padding: 1px 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    text-overflow: ellipsis;
+  }
+  .slot-head .name:hover { border-color: var(--line); }
+  .slot-head .name:focus { outline: none; border-color: var(--text-faint); background: var(--surface-2); }
+  .slot-head .act {
+    margin-left: auto;
+    flex: none;
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .slot-head .act:hover { color: var(--text); border-color: var(--text-faint); }
+
+  .viewport[data-pan="true"] { overflow-x: auto; }
+  .viewport {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .viewport .doc {
+    display: block;
+    width: 1440px;
+    height: 960px;
+    border: 0;
+    transform-origin: top left;
+    background: #fff;
+  }
+  .viewport .doc[data-img="1"] {
+    object-fit: cover;
+    object-position: top left;
+    background: var(--surface-2);
+  }
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px;
+    text-align: center;
+    color: var(--text-faint);
+    background: repeating-linear-gradient(
+      45deg, var(--surface-2) 0 10px, var(--surface) 10px 20px
+    );
+  }
+  .placeholder b { color: var(--text-dim); font-weight: 650; }
+  .placeholder code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    word-break: break-all;
+  }
+  .slot[data-missing="true"] .placeholder { display: flex; }
+  .slot[data-missing="true"] .doc { visibility: hidden; }
+
+  /* overlay mode */
+  .stack { position: relative; }
+  .stack .layer { position: absolute; inset: 0; }
+  .stack .layer:first-child { position: relative; }
+  .stack .layer[data-visible="false"] { visibility: hidden; }
+  .stack .layer .doc { width: 1440px; height: 960px; }
+  .stack .wrap { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    padding: 8px 2px 0;
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+  .legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 720px) {
+    .top { padding: 10px 12px 8px; }
+    .criteria { grid-template-columns: 1fr; gap: 6px; }
+    .criterion .q { white-space: normal; }
+    .bar { padding: 8px 12px; gap: 8px; flex-wrap: wrap; overflow-x: visible; }
+    .sep { display: none; }
+    .hint { display: none; }
+    .stage { padding: 8px 12px 20px; }
+    .grid { grid-template-columns: 1fr; gap: 16px; }
+    .slider input { width: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>GitMemo 设计方向对照 <span>· A 编辑部 / B 仪器面板 / C 纸面</span></h1>
+  <div class="criteria" id="criteria">
+    <div class="criterion" data-key="hierarchy">
+      <span class="q"><b>层级</b>：一眼能否看出主次</span>
+      <span class="score" role="group" aria-label="层级打分"></span>
+    </div>
+    <div class="criterion" data-key="density">
+      <span class="q"><b>密度</b>：是否适合每天用十次</span>
+      <span class="score" role="group" aria-label="密度打分"></span>
+    </div>
+    <div class="criterion" data-key="tone">
+      <span class="q"><b>气质</b>：专业工具还是营销页</span>
+      <span class="score" role="group" aria-label="气质打分"></span>
+    </div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="group" id="mode">
+    <button data-mode="grid" data-on="true">并排三列</button>
+    <button data-mode="single">单个满宽</button>
+    <button data-mode="overlay">叠图对比</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group" id="pick">
+    <button data-pick="0" data-on="true">A</button>
+    <button data-pick="1">B</button>
+    <button data-pick="2">C</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group" id="height">
+    <button data-height="first" data-on="true">首屏</button>
+    <button data-height="full">整页</button>
+  </div>
+  <div class="group" id="width">
+    <button data-canvas="1440" data-on="true">桌面 1440</button>
+    <button data-canvas="390">移动 390</button>
+  </div>
+  <div class="sep" id="sep-overlay" hidden></div>
+  <label class="slider" id="slider" hidden>
+    上层透明度
+    <input type="range" id="opacity" min="0" max="100" value="50">
+    <span id="opacity-val" style="width:3.5ch;display:inline-block">50%</span>
+  </label>
+  <div class="hint" id="hint">空白格＝该稿未交付，点格子右上「标记未交付」看路径 · 1/2/3 选稿 · S 切视图</div>
+</div>
+
+<main class="stage" id="stage">
+  <div class="grid" id="grid"></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var CANVAS_H = 960;
+  var MOBILE_H = 844;
+  var PROPOSALS = [
+    { tag: "A", label: "编辑部式", file: "A-editorial.html" },
+    { tag: "B", label: "仪器面板式", file: "B-instrument.html" },
+    { tag: "C", label: "纸面式", file: "C-paper.html" }
+  ];
+
+  // 最左的参照位：现有产品的实拍截图，不是设计稿。
+  var CURRENT = {
+    tag: "现在",
+    label: "当前线上版本",
+    file: "../.design-baseline/desktop-1440/dashboard.png"
+  };
+
+  var state = { mode: "grid", pick: 0, opacity: 50, canvas: 1440, height: "first" };
+  var NAME_KEY = "gitmemo.design-compare.files.v1";
+  var MISSING_KEY = "gitmemo.design-compare.missing.v1";
+  var missing = {};
+  try { missing = JSON.parse(localStorage.getItem(MISSING_KEY) || "{}") || {}; } catch (e) { missing = {}; }
+
+  function loadNames() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(NAME_KEY) || "[]");
+      if (Array.isArray(saved)) saved.forEach(function (v, i) {
+        if (typeof v === "string" && v.trim() && PROPOSALS[i]) PROPOSALS[i].file = v.trim();
+      });
+    } catch (e) { /* 忽略损坏的本地记录 */ }
+  }
+
+  function saveNames() {
+    try {
+      localStorage.setItem(NAME_KEY, JSON.stringify(PROPOSALS.map(function (p) { return p.file; })));
+    } catch (e) { /* 隐私模式下写不进去就算了 */ }
+  }
+
+  loadNames();
+
+  // 深链：#mode=single&pick=1&canvas=390&opacity=60
+  function readHash() {
+    var h = (location.hash || "").replace(/^#/, "");
+    if (!h) return;
+    h.split("&").forEach(function (kv) {
+      var i = kv.indexOf("=");
+      if (i < 0) return;
+      var k = kv.slice(0, i), v = kv.slice(i + 1);
+      if (k === "mode" && /^(grid|single|overlay)$/.test(v)) state.mode = v;
+      if (k === "pick" && /^[0-2]$/.test(v)) state.pick = Number(v);
+      if (k === "canvas" && /^(1440|390)$/.test(v)) state.canvas = Number(v);
+      if (k === "h" && /^(first|full)$/.test(v)) state.height = v;
+      if (k === "opacity" && /^\d+$/.test(v)) state.opacity = Math.min(100, Number(v));
+    });
+  }
+
+  function writeHash() {
+    var h = "mode=" + state.mode + "&pick=" + state.pick +
+      "&canvas=" + state.canvas + "&opacity=" + state.opacity +
+      "&h=" + state.height;
+    try { history.replaceState(null, "", "#" + h); } catch (e) { /* file:// 下个别浏览器只读 */ }
+  }
+
+  readHash();
+
+  var grid = document.getElementById("grid");
+  var stage = document.getElementById("stage");
+  var modeBar = document.getElementById("mode");
+  var pickBar = document.getElementById("pick");
+  var slider = document.getElementById("slider");
+  var sepOverlay = document.getElementById("sep-overlay");
+  var opacityInput = document.getElementById("opacity");
+  var opacityVal = document.getElementById("opacity-val");
+
+  function slotHead(p, i) {
+    var head = document.createElement("div");
+    head.className = "slot-head";
+    var tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = p.tag;
+    var name = document.createElement("input");
+    name.className = "name";
+    name.type = "text";
+    name.value = p.file;
+    name.setAttribute("aria-label", p.tag + " 稿文件名");
+    name.title = p.label + " · 可直接改文件名，改完回车";
+    name.addEventListener("change", function () {
+      var v = name.value.trim();
+      if (!v) { name.value = p.file; return; }
+      p.file = v;
+      saveNames();
+      var doc = name.closest(".slot").querySelector(".doc");
+      if (doc) doc.setAttribute("data", v);
+    });
+    var act = document.createElement("button");
+    act.className = "act";
+    act.type = "button";
+    act.textContent = "标记未交付";
+    act.title = "文件空白时点这里：标为占位并显示期望路径，再点一次恢复";
+    act.addEventListener("click", function () {
+      var slot = act.closest(".slot");
+      var nowMissing = slot.getAttribute("data-missing") === "true";
+      slot.setAttribute("data-missing", nowMissing ? "false" : "true");
+      if (nowMissing) delete missing[p.file];
+      else missing[p.file] = true;
+      try { localStorage.setItem(MISSING_KEY, JSON.stringify(missing)); } catch (e) {}
+    });
+    head.appendChild(tag);
+    head.appendChild(name);
+    head.appendChild(act);
+    return head;
+  }
+
+  function placeholder(p) {
+    var box = document.createElement("div");
+    box.className = "placeholder";
+    var b = document.createElement("b");
+    b.textContent = p.tag + " 稿未交付";
+    var code = document.createElement("code");
+    code.textContent = "desktop/design-proposals/" + p.file;
+    box.setAttribute("data-file", p.file);
+    var note = document.createElement("span");
+    note.textContent = "把稿放进该目录后刷新本页即可（文件名可在上方直接改）";
+    box.appendChild(b);
+    box.appendChild(code);
+    box.appendChild(note);
+    return box;
+  }
+
+  // 用 <object> 而不是 <iframe>：文件不存在时浏览器会渲染 object 内部的
+  // fallback 内容，于是「未交付」占位是真实出现的，不依赖跨源读取。
+  function makeFrame(p) {
+    var obj = document.createElement("object");
+    obj.className = "doc";
+    obj.setAttribute("data", p.file);
+    obj.setAttribute("type", "text/html");
+    obj.setAttribute("aria-label", p.label);
+    obj.style.width = state.canvas + "px";
+    obj.style.height = (state.canvas === 390 ? MOBILE_H : CANVAS_H) + "px";
+    obj.addEventListener("load", function () {
+      try {
+        var doc = obj.contentDocument;
+        if (doc && doc.body && doc.body.textContent.trim().length < 40) {
+          var slot = obj.closest(".slot");
+          if (slot) slot.setAttribute("data-missing", "true");
+        }
+      } catch (e) { /* 读不到就算已加载 */ }
+    });
+    return obj;
+  }
+
+  function clear() {
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+    grid.className = state.mode === "grid" ? "grid" : "grid grid-single";
+    grid.style.gridTemplateColumns =
+      state.mode === "grid" ? "" : "minmax(0, 1fr)";
+  }
+
+  function makeShot(p) {
+    var img = document.createElement("img");
+    img.className = "doc";
+    img.setAttribute("data-img", "1");
+    img.setAttribute("alt", p.label);
+    img.src = p.file;
+    img.style.width = state.canvas + "px";
+    img.style.height = "auto";
+    img.style.background = "#fff";
+    img.addEventListener("error", function () {
+      var slot = img.closest(".slot");
+      if (slot) slot.setAttribute("data-missing", "true");
+    });
+    return img;
+  }
+
+  function buildGrid() {
+    clear();
+    var curSlot = document.createElement("div");
+    curSlot.className = "slot";
+    var curHead = document.createElement("div");
+    curHead.className = "slot-head";
+    var curTag = document.createElement("span");
+    curTag.className = "tag";
+    curTag.textContent = CURRENT.tag;
+    var curName = document.createElement("span");
+    curName.className = "name";
+    curName.style.border = "0";
+    curName.style.padding = "0";
+    curName.style.background = "none";
+    curName.textContent = CURRENT.label;
+    curHead.appendChild(curTag);
+    curHead.appendChild(curName);
+    curSlot.appendChild(curHead);
+    var curVp = document.createElement("div");
+    curVp.className = "viewport";
+    curVp.appendChild(makeShot(CURRENT));
+    curSlot.appendChild(curVp);
+    grid.appendChild(curSlot);
+
+    PROPOSALS.forEach(function (p, i) {
+      var slot = document.createElement("div");
+      slot.className = "slot";
+      slot.appendChild(slotHead(p, i));
+      var vp = document.createElement("div");
+      vp.className = "viewport";
+      vp.appendChild(makeFrame(p));
+      vp.appendChild(placeholder(p));
+      if (missing[p.file]) slot.setAttribute("data-missing", "true");
+      slot.appendChild(vp);
+      grid.appendChild(slot);
+    });
+    layout();
+  }
+
+  function buildSingle() {
+    clear();
+    var p = PROPOSALS[state.pick];
+    var slot = document.createElement("div");
+    slot.className = "slot";
+    slot.appendChild(slotHead(p, state.pick));
+    var vp = document.createElement("div");
+    vp.className = "viewport";
+    vp.appendChild(makeFrame(p, 1));
+    vp.appendChild(placeholder(p));
+    slot.appendChild(vp);
+    grid.appendChild(slot);
+    layout();
+  }
+
+  function buildOverlay() {
+    clear();
+    var wrap = document.createElement("div");
+    wrap.className = "wrap";
+    var stack = document.createElement("div");
+    stack.className = "stack";
+
+    var base = document.createElement("div");
+    base.className = "layer";
+    var baseVp = document.createElement("div");
+    baseVp.className = "viewport";
+    baseVp.style.border = "0";
+    baseVp.style.borderRadius = "0";
+    baseVp.appendChild(makeShot(CURRENT));
+    base.appendChild(baseVp);
+    stack.appendChild(base);
+
+    var top = document.createElement("div");
+    top.className = "layer";
+    top.id = "overlay-top";
+    top.style.opacity = String(state.opacity / 100);
+    var topVp = document.createElement("div");
+    topVp.className = "viewport";
+    topVp.style.position = "absolute";
+    topVp.style.inset = "0";
+    topVp.style.border = "0";
+    topVp.style.borderRadius = "0";
+    var topP = PROPOSALS[state.pick];
+    topVp.appendChild(makeFrame(topP));
+    topVp.appendChild(placeholder(topP));
+    if (missing[topP.file]) top.style.opacity = "0";
+    top.appendChild(topVp);
+    stack.appendChild(top);
+
+    wrap.appendChild(stack);
+
+    var legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML =
+      '<span><i style="background:#8fa4c8"></i>底层：' + CURRENT.tag + " · " + CURRENT.label + "</span>" +
+      '<span><i style="background:#b08a4a"></i>上层：' + topP.tag + " · " + topP.label +
+      (missing[topP.file] ? "（未交付，已隐藏）" : " · 用滑块调透明度") + "</span>";
+
+    grid.appendChild(wrap);
+    grid.appendChild(legend);
+    layout();
+  }
+
+  function layout() {
+    var slots = grid.querySelectorAll(".viewport");
+    var cw = state.canvas;
+    var ch = state.canvas === 390 ? MOBILE_H : CANVAS_H;
+    for (var i = 0; i < slots.length; i++) {
+      var vp = slots[i];
+      var frame = vp.querySelector(".doc");
+      if (!frame) continue;
+      // 叠图模式的上层视口是绝对定位的，宽度取父级
+      var w = vp.clientWidth || (vp.parentElement && vp.parentElement.clientWidth) || cw;
+      var single = state.mode === "single";
+      var isImg = frame.tagName === "IMG";
+      // 截图只有桌面版：始终按 1440 宽渲染，再整体缩放，避免被压扁
+      var cwEff = isImg ? 1440 : cw;
+      var slotCh = ch;
+      if (isImg) {
+        slotCh = frame.naturalWidth
+          ? Math.round(frame.naturalHeight * cwEff / frame.naturalWidth)
+          : Math.round(cwEff * 900 / 1440);
+      }
+      var raw = w / cwEff;
+      var scale = Math.min(1, raw);
+      var pan = single && raw < 0.55;
+      if (pan) scale = 0.55;
+      vp.setAttribute("data-pan", pan ? "true" : "false");
+      frame.style.width = cwEff + "px";
+      if (isImg) frame.style.height = "auto";
+      else frame.style.height = slotCh + "px";
+      frame.style.transform = "scale(" + scale + ")";
+      var avail = window.innerHeight - vp.getBoundingClientRect().top - 40;
+      var visibleH = state.height === "full"
+        ? Math.max(240, Math.round(slotCh * scale))
+        : (single ? Math.max(360, avail)
+                  : Math.round(Math.min(slotCh * scale, window.innerHeight * 0.66)));
+      visibleH = Math.min(visibleH, Math.round(slotCh * scale));
+      vp.style.height = Math.round(visibleH) + "px";
+      if (!isImg) frame.style.height = Math.round(visibleH / scale) + "px";
+    }
+    // 并排时四格同高：取最小可视高度，避免截图（1440×900）与稿子（1440×960）高矮不齐
+    if (state.mode === "grid") {
+      var boxes = grid.querySelectorAll(".viewport");
+      var min = Infinity, i;
+      for (i = 0; i < boxes.length; i++) {
+        var hh = parseFloat(boxes[i].style.height);
+        if (hh > 0 && hh < min) min = hh;
+      }
+      if (isFinite(min)) {
+        for (i = 0; i < boxes.length; i++) boxes[i].style.height = Math.round(min) + "px";
+      }
+    }
+  }
+
+  function build() {
+    writeHash();
+    if (state.mode === "grid") buildGrid();
+    else if (state.mode === "single") buildSingle();
+    else buildOverlay();
+
+    modeBar.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("data-on", b.getAttribute("data-mode") === state.mode ? "true" : "false");
+    });
+    pickBar.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("data-on", Number(b.getAttribute("data-pick")) === state.pick ? "true" : "false");
+    });
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#height button"),
+      function (b) {
+        b.setAttribute("data-on", b.getAttribute("data-height") === state.height ? "true" : "false");
+      }
+    );
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#width button"),
+      function (b) {
+        b.setAttribute("data-on", Number(b.getAttribute("data-canvas")) === state.canvas ? "true" : "false");
+      }
+    );
+    opacityInput.value = String(state.opacity);
+    opacityVal.textContent = state.opacity + "%";
+    var isOverlay = state.mode === "overlay";
+    slider.hidden = !isOverlay;
+    sepOverlay.hidden = !isOverlay;
+    pickBar.hidden = false;
+  }
+
+  /* ---------- controls ---------- */
+  modeBar.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-mode]");
+    if (!b) return;
+    state.mode = b.getAttribute("data-mode");
+    build();
+  });
+
+  pickBar.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-pick]");
+    if (!b) return;
+    state.pick = Number(b.getAttribute("data-pick"));
+    build();
+  });
+
+  document.getElementById("height").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-height]");
+    if (!b) return;
+    state.height = b.getAttribute("data-height");
+    build();
+  });
+
+  document.getElementById("width").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-canvas]");
+    if (!b) return;
+    state.canvas = Number(b.getAttribute("data-canvas"));
+    Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
+      x.setAttribute("data-on", x === b ? "true" : "false");
+    });
+    build();
+  });
+
+  opacityInput.addEventListener("input", function () {
+    state.opacity = Number(opacityInput.value);
+    opacityVal.textContent = state.opacity + "%";
+    var top = document.getElementById("overlay-top");
+    if (top) top.style.opacity = String(state.opacity / 100);
+  });
+
+  window.addEventListener("keydown", function (e) {
+    if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+    var k = e.key.toLowerCase();
+    if (k === "1" || k === "2" || k === "3") {
+      state.pick = Number(k) - 1;
+      if (state.mode === "overlay") state.mode = "single";
+      build();
+    } else if (k === "s") {
+      state.mode = state.mode === "grid" ? "single" : state.mode === "single" ? "overlay" : "grid";
+      build();
+    }
+  });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(layout, 120);
+  });
+
+  /* ---------- criteria scoring ---------- */
+  var KEY = "gitmemo.design-compare.score.v1";
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  document.querySelectorAll(".criterion").forEach(function (row) {
+    var key = row.getAttribute("data-key");
+    var box = row.querySelector(".score");
+    for (var i = 1; i <= 5; i++) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = String(i);
+      b.setAttribute("aria-label", row.querySelector(".q").textContent + " " + i + " 分");
+      b.addEventListener("click", function (n) {
+        return function () {
+          saved[key] = n;
+          try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+          paintScore(box, n);
+        };
+      }(i));
+      box.appendChild(b);
+    }
+    paintScore(box, saved[key] || 0);
+  });
+
+  function paintScore(box, n) {
+    Array.prototype.forEach.call(box.children, function (b, idx) {
+      b.setAttribute("data-on", idx < n ? "true" : "false");
+    });
+  }
+
+  build();
+})();
+</script>
+</body>
+</html>
