@@ -45,7 +45,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..");
 const DESKTOP = join(REPO_ROOT, "desktop");
 
-const DEFAULT_WIDTHS = [1920, 1440, 1200, 768, 390];
+const DEFAULT_WIDTHS = [1920, 1440, 1200, 768, 720];
 const MULTI_WIDTH_PAGES = ["dashboard", "settings"];
 const VIEWPORT_HEIGHT = 900;
 
@@ -364,7 +364,7 @@ async function main() {
     const widths = multiWidth.includes(page.id) ? opts.widths : [opts.baseWidth];
     for (const width of widths) {
       if (minWindowWidth && width < minWindowWidth && !opts.includeUnreachable) {
-        // The desktop window cannot be this narrow; only a mobile runtime can.
+        // Below the desktop window minWidth; only a mobile runtime can be this narrow.
         unreachable.push({ page: page.id, width, minWindowWidth });
         continue;
       }
