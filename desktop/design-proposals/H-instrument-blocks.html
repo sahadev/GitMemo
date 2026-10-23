@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMemo — 方向 H：仪器大屏（色块分区）</title>
+<style>
+  /* ============================================================
+     方向 H · 仪器大屏
+     结构照搬 B-instrument-v1：图标栏 / 最近条目 / 报头 / 四格仪表 /
+     表格 / 命令式输入 / 待处理。只换视觉语言：
+     深灰底，色块分区，无细边框，块与块之间 12px 缝，超大数字。
+     单文件、无外部资源、无图片，1440×900 一屏。
+     ============================================================ */
+
+  :root{
+    --page:#141518;
+    --rail:#0b0c0e;
+    --list:#1a1c1f;
+    --list-head:#141619;
+    --main:#1f2125;
+    --block:#26292e;
+    --block-2:#2c3036;
+    --block-3:#22252a;
+    --accent:#3f6ff0;
+    --accent-soft:#1e2a3f;
+    --ink:#f0f1f3;
+    --ink-2:#a9afb7;
+    --ink-3:#737a83;
+    --warn:#e0a63c;
+    --ok:#43c07b;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--page);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+  button{font:inherit;color:inherit}
+
+  .app{
+    width:1440px;height:900px;margin:0 auto;
+    display:grid;
+    grid-template-columns:56px 296px minmax(0,1fr);
+    grid-template-rows:44px minmax(0,1fr);
+    gap:12px;padding:12px;
+    background:var(--page);
+  }
+
+  /* ---------- 顶栏：整条色块 ---------- */
+  .topbar{
+    grid-column:1 / -1;
+    display:flex;align-items:center;gap:14px;
+    padding:0 16px;
+    background:var(--block-3);
+    border-radius:6px;
+  }
+  .mark{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  .crumb{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .crumb b{color:var(--ink-2);font-weight:400}
+  .spacer{flex:1}
+  .stat{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .stat b{font-weight:500;color:var(--warn)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:block}
+  .chip{
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    padding:4px 9px;border-radius:4px;background:var(--accent-soft);color:#9db7ff;
+  }
+
+  /* ---------- 图标栏：一块最深的色块 ---------- */
+  .rail{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:10px 0;background:var(--rail);border-radius:6px;
+  }
+  .rail button{
+    width:40px;height:36px;border:0;cursor:pointer;
+    display:grid;place-items:center;border-radius:5px;
+    background:transparent;color:var(--ink-3);
+    font-family:var(--mono);font-size:9px;letter-spacing:.08em;
+  }
+  .rail button:hover{background:#15171b;color:var(--ink-2)}
+  .rail button[data-on="true"]{background:var(--accent);color:#fff}
+  .rail .rule{width:20px;height:1px;background:#202329;margin:6px 0}
+  .rail .me{margin-top:auto;width:28px;height:28px;border-radius:50%;
+    background:var(--block-2);display:grid;place-items:center;
+    font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+
+  /* ---------- 最近条目：一块中间调色块 ---------- */
+  .listcol{
+    display:flex;flex-direction:column;min-width:0;
+    background:var(--list);border-radius:6px;overflow:hidden;
+  }
+  .colhead{
+    display:flex;align-items:center;justify-content:space-between;
+    height:38px;padding:0 14px;background:var(--list-head);
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);
+  }
+  .colhead .n{color:var(--ink-2);letter-spacing:.04em}
+  .list{flex:1;overflow:hidden;padding:6px}
+  .row{
+    display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+    height:34px;padding:0 10px;border-radius:4px;cursor:pointer;
+    color:var(--ink-2);
+  }
+  .row:hover{background:#22252a;color:var(--ink)}
+  .row[data-on="true"]{background:var(--accent-soft);color:#e8eeff;box-shadow:inset 3px 0 0 var(--accent)}
+  .row .t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .tm{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .row[data-on="true"] .tm{color:#9db7ff}
+
+  /* ---------- 主区：一块浅一档的色块 ---------- */
+  .main{
+    min-width:0;display:flex;flex-direction:column;gap:12px;
+    padding:12px;background:var(--main);border-radius:6px;
+  }
+  .mainhead{
+    display:flex;align-items:center;justify-content:space-between;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);
+    padding:0 2px;
+  }
+  .mainhead .r{display:flex;gap:18px}
+  .mainhead b{color:var(--ink-2);font-weight:400;letter-spacing:.04em}
+
+  /* 报头 + 主标题：一块偏暖的色块 */
+  .banner{
+    background:#26292f;
+    border-radius:6px;padding:16px 18px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  }
+  .banner h1{font-size:22px;line-height:1.4;font-weight:600;letter-spacing:.01em}
+  .banner p{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+
+  /* ---------- 四格仪表：每格一块，大数字压左上 ---------- */
+  .gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .gauge{
+    position:relative;background:var(--block);border-radius:6px;
+    padding:16px 16px 14px;min-height:168px;
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .gauge .v{
+    font-family:var(--mono);font-size:58px;line-height:.92;letter-spacing:-.02em;
+  }
+  .gauge .k{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);
+  }
+  .gauge .d{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .gauge .d em{font-style:normal;color:#8fd3a9}
+  .gauge[data-tone="warn"] .v{color:var(--warn)}
+  .gauge[data-tone="warn"] .v{color:var(--warn)}
+
+  /* ---------- 表格：无边框，行块 + 当前行整块强调 ---------- */
+  .table{background:var(--block);border-radius:6px;overflow:hidden}
+  .thead,.trow{
+    display:grid;grid-template-columns:64px 76px minmax(0,1fr) 84px 64px;
+    align-items:center;gap:10px;padding:0 14px;
+  }
+  .thead{
+    height:30px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);background:#23262b;
+  }
+  .trow{height:40px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+  .trow:nth-child(even){background:#2a2d33}
+  .trow:hover{background:#31353c}
+  .trow[data-on="true"]{background:var(--accent);color:#fff}
+  .trow .time{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .trow .type{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-3)}
+  .trow .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow .src{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:right}
+  .trow .state{font-family:var(--mono);font-size:9.5px;text-align:right;color:var(--ink-3)}
+  .trow .state[data-s="new"]{color:#8fd3a9}
+  .trow .state[data-s="draft"]{color:var(--warn)}
+  .trow[data-on="true"] .time,
+  .trow[data-on="true"] .type,
+  .trow[data-on="true"] .src,
+  .trow[data-on="true"] .state{color:#dbe5ff}
+
+  /* ---------- 下半：命令式输入 + 待处理 ---------- */
+  .lower{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:12px;min-height:0;flex:1}
+
+  .panel{background:var(--block);border-radius:6px;display:flex;flex-direction:column;min-height:0}
+  .panel .ph{
+    display:flex;align-items:center;justify-content:space-between;
+    height:32px;padding:0 14px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);
+  }
+  .prompt{
+    height:66px;display:flex;align-items:center;gap:10px;
+    margin-top:auto;
+    padding:0 14px;background:#202329;
+    font-family:var(--mono);font-size:15px;
+  }
+  .why{
+    margin-bottom:auto;
+    padding:12px 14px 0;font-family:var(--mono);font-size:11px;
+    line-height:1.7;color:var(--ink-3);
+  }
+  .prompt .sigil{color:#7ba0ff;font-size:18px}
+  .prompt .hint{color:var(--ink-3)}
+  .prompt .caret{width:8px;height:18px;background:var(--accent)}
+  .keys{
+    display:flex;gap:16px;padding:10px 14px;
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    background:#23262b;border-radius:0 0 6px 6px;
+  }
+  kbd{
+    font-family:var(--mono);font-size:9.5px;color:var(--ink-2);
+    background:#2f333a;border-radius:3px;padding:2px 5px;margin-right:4px;
+  }
+
+  .todo{list-style:none;flex:1}
+  .todo li{
+    display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:center;
+    height:36px;padding:0 14px;font-size:12.5px;color:var(--ink-2);
+  }
+  .todo li:nth-child(odd){background:#2a2d33}
+  .todo li i{
+    width:10px;height:10px;border-radius:2px;background:#3a3f47;display:block;
+  }
+  .todo li b{font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--ink-3)}
+  .todo li[data-hot="true"] b{color:var(--warn)}
+
+  button:focus-visible,
+  .row:focus-visible,
+  .trow:focus-visible,
+  .prompt:focus-within{outline:2px solid #8fb0ff;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 顶栏：仓库与同步状态 -->
+  <header class="topbar">
+    <span class="mark">GitMemo</span>
+    <span class="crumb">repo/<b>~/gitmemo</b> · main</span>
+    <span class="stat"><i class="dot"></i>已同步 · 2 分钟前</span>
+    <span class="stat" style="color:var(--ink-3)">未推送 <b>3</b></span>
+    <span class="spacer"></span>
+    <span class="stat" style="color:var(--ink-3)">索引 1,281 条 · 18.4 MB</span>
+    <span class="chip">Cmd K</span>
+  </header>
+
+  <!-- 七块之一：图标导航 -->
+  <nav class="rail" aria-label="主导航">
+    <button data-on="true" title="总览">OVR</button>
+    <button title="笔记">NOTE</button>
+    <button title="对话">CHAT</button>
+    <button title="剪贴板">CLIP</button>
+    <button title="导入">IMPO</button>
+    <button title="收藏">FAV</button>
+    <div class="rule"></div>
+    <button title="设置">SET</button>
+    <div class="me" aria-hidden="true">Z</div>
+  </nav>
+
+  <!-- 七块之二：最近条目 -->
+  <section class="listcol" aria-label="最近条目">
+    <div class="colhead"><span>最近条目</span><span class="n">1,281</span></div>
+    <div class="list">
+      <div class="row" data-on="true"><span class="t">合同第二版：付款节点与验收口径</span><span class="tm">17:42</span></div>
+      <div class="row"><span class="t">Claude：把 roomlog 的抽取规则收敛成词表</span><span class="tm">16:58</span></div>
+      <div class="row"><span class="t">cargo test --manifest-path desktop/…</span><span class="tm">16:08</span></div>
+      <div class="row"><span class="t">视觉改造三阶段：审计 → 改造 → 验收</span><span class="tm">15:31</span></div>
+      <div class="row"><span class="t">Codex：Tauri 打包签名失败的三种成因</span><span class="tm">昨天</span></div>
+      <div class="row"><span class="t">awwwards.com/sites/format — 版式实验</span><span class="tm">昨天</span></div>
+      <div class="row"><span class="t">设计语言 V2：把允许清单改成封闭清单</span><span class="tm">10-21</span></div>
+      <div class="row"><span class="t">SQL：union_entitlement 月度汇总</span><span class="tm">10-20</span></div>
+      <div class="row"><span class="t">Obsidian 迁移：frontmatter 保留策略</span><span class="tm">10-20</span></div>
+      <div class="row"><span class="t">会议室白板：Q4 目标拆解</span><span class="tm">10-19</span></div>
+    </div>
+  </section>
+
+  <!-- 主区 -->
+  <main class="main">
+
+    <!-- 七块之三：报头与主标题 -->
+    <div class="mainhead">
+      <span>总览 / 今天</span>
+      <span class="r"><span>最后索引 <b>23:19</b></span><span>待提交 <b>3</b></span></span>
+    </div>
+
+    <section class="banner">
+      <h1>三天前那条中断的条款草稿，今天可以接着写完。</h1>
+      <p>10-20 17:42 · 引用 2 段对话、1 段剪贴板代码 · 未被索引丢弃</p>
+    </section>
+
+    <!-- 七块之四：四格仪表 -->
+    <section class="gauges" aria-label="统计">
+      <div class="gauge">
+        <div class="v">1,281</div>
+        <div class="k">条目总数</div>
+        <div class="d">本周 <em>+46</em></div>
+      </div>
+      <div class="gauge">
+        <div class="v">64</div>
+        <div class="k">对话</div>
+        <div class="d">6 个工具来源</div>
+      </div>
+      <div class="gauge">
+        <div class="v">31</div>
+        <div class="k">剪贴板</div>
+        <div class="d">图片 9 张</div>
+      </div>
+      <div class="gauge" data-tone="warn">
+        <div class="v">3</div>
+        <div class="k">未提交</div>
+        <div class="d">最近 12 分钟</div>
+      </div>
+    </section>
+
+    <!-- 七块之五：表格 -->
+    <section class="table" aria-label="条目明细">
+      <div class="thead"><span>时间</span><span>类型</span><span>标题</span><span>来源</span><span>状态</span></div>
+      <div class="trow" data-on="true"><span class="time">23:17</span><span class="type">对话</span><span class="title">Claude：把 roomlog 的抽取规则收敛成词表</span><span class="src">claude</span><span class="state">新增</span></div>
+      <div class="trow"><span class="time">17:42</span><span class="type">笔记</span><span class="title">合同第二版：付款节点与验收口径</span><span class="src">manual</span><span class="state" data-s="draft">草稿</span></div>
+      <div class="trow"><span class="time">16:08</span><span class="type">剪贴板</span><span class="title">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span><span class="src">终端</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">15:31</span><span class="type">计划</span><span class="title">视觉改造三阶段：审计 → 改造 → 验收</span><span class="src">plan</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">昨天</span><span class="type">对话</span><span class="title">Codex：Tauri 打包签名失败的三种成因</span><span class="src">codex</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">昨天</span><span class="type">剪贴板</span><span class="title">awwwards.com/sites/format — Obys × DES 版式实验</span><span class="src">浏览器</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">10-21</span><span class="type">笔记</span><span class="title">设计语言 V2：把允许清单改成封闭清单</span><span class="src">manual</span><span class="state">已同步</span></div>
+    </section>
+
+    <!-- 七块之六 / 之七：命令式输入 + 待处理 -->
+    <div class="lower">
+      <section class="panel" aria-label="快速记一行">
+        <div class="ph"><span>快速记一行</span><span>直接写入 收件箱/</span></div>
+        <div class="prompt">
+          <span class="sigil">›</span>
+          <span class="hint">写点什么…</span>
+          <span class="caret" aria-hidden="true"></span>
+        </div>
+        <div class="why">段落、链接、命令都可以，第一行会成为标题。</div>
+        <div class="keys">
+          <span><kbd>Cmd</kbd><kbd>Enter</kbd> 保存</span>
+          <span><kbd>Cmd</kbd><kbd>V</kbd> 从剪贴板取内容</span>
+          <span style="margin-left:auto">第一行会成为标题</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="待处理">
+        <div class="ph"><span>待处理</span><span>3</span></div>
+        <ul class="todo">
+          <li data-hot="true"><i></i><span>合同草稿缺少验收条款</span><b>收件箱</b></li>
+          <li><i></i><span>3 个文件未提交</span><b>12 分钟前</b></li>
+          <li><i></i><span>roomlog 计划待搬迁</span><b>待定</b></li>
+        </ul>
+        <div class="keys"><span>勾选后写入提交信息</span></div>
+      </section>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>
