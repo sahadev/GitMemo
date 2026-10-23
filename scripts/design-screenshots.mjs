@@ -452,6 +452,26 @@ function backendStub(viewport, opts) {
     const platform = { family: ${JSON.stringify(family)}, os: ${JSON.stringify(osName)} };
     const sampleStats = ${JSON.stringify(stats)};
     const sampleEmpty = ${opts.emptyState ? "true" : "false"};
+    const sampleSearch = [
+      { source_type: "conversation", title: "Claude：把 roomlog 的抽取规则收敛成词表", file_path: "~/.gitmemo/conversations/claude/roomlog-rules.md", snippet: "规则收敛成词表之后，抽取准确率从 82% 提到 94%，剩下 6% 是术语别名。", date: "2026-10-23T23:17:00Z" },
+      { source_type: "note", title: "合同第二版：付款节点与验收口径", file_path: "~/.gitmemo/notes/manual/contract-v2.md", snippet: "付款分三段：签约 30%、验收 50%、尾款 20%。验收口径以附录 B 为准。", date: "2026-10-23T17:42:00Z" },
+      { source_type: "clip", title: "cargo test --manifest-path desktop/src-tauri/Cargo.toml", file_path: "~/.gitmemo/clips/terminal/cargo-test.md", snippet: "cargo test --manifest-path desktop/src-tauri/Cargo.toml -- --nocapture", date: "2026-10-23T16:08:00Z" },
+      { source_type: "plan", title: "视觉改造三阶段：审计 → 改造 → 验收", file_path: "~/.gitmemo/plans/visual-overhaul.md", snippet: "1 审计基线；2 结构轨与取值轨并行；3 全站回归与截图差分。", date: "2026-10-23T15:31:00Z" },
+      { source_type: "conversation", title: "Codex：Tauri 打包签名失败的三种成因", file_path: "~/.gitmemo/conversations/codex/tauri-signing.md", snippet: "证书链缺失、entitlements 不匹配、时间戳服务器不可达。", date: "2026-10-22T20:10:00Z" },
+      { source_type: "clip", title: "awwwards.com/sites/format — Obys × DES 版式实验", file_path: "~/.gitmemo/clips/browser/awwwards-format.md", snippet: "FORMAT 用版式本身当叙事工具，网格显式可见。", date: "2026-10-22T11:05:00Z" },
+    ];
+    const noteEntry = (name, path, preview, hoursAgo, size) => ({
+      name, path, source_type: "note", modified: new Date(Date.now() - hoursAgo * 3600000).toISOString(),
+      size, preview, modifiedTs: Date.now() - hoursAgo * 3600000,
+    });
+    const sampleNotes = [
+      noteEntry("合同第二版：付款节点与验收口径", "notes/manual/contract-v2.md", "付款分三段：签约 30%、验收 50%、尾款 20%", 1, 4820),
+      noteEntry("视觉改造三阶段：审计 → 改造 → 验收", "notes/manual/visual-overhaul.md", "结构轨与取值轨并行，最后统一回归", 3, 3120),
+      noteEntry("设计语言 V2：把允许清单改成封闭清单", "notes/manual/design-language-v2.md", "允许清单只能收紧，不能扩张", 26, 6740),
+      noteEntry("Obsidian 迁移：frontmatter 保留策略", "notes/manual/obsidian-migration.md", "保留 aliases 与 tags，其余字段重建", 50, 2980),
+      noteEntry("roomlog 字段表", "notes/scratch/roomlog-fields.md", "speaker / intent / decision / open", 2, 920),
+      noteEntry("评审要点：层级与节奏", "notes/scratch/review-notes.md", "一屏三层响度；一个方向一条线", 5, 1180),
+    ];
     let nextId = 1;
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: (_event, id) => { delete window["_" + id]; },
@@ -461,7 +481,7 @@ function backendStub(viewport, opts) {
       transformCallback: (cb) => { const id = nextId++; window["_" + id] = cb; return id; },
       unregisterCallback: (id) => { delete window["_" + id]; },
       convertFileSrc: (p) => p,
-      invoke: (cmd) => {
+      invoke: (cmd, args) => {
         switch (cmd) {
           case "get_runtime_info":
           case "get_runtime_platform":
@@ -485,6 +505,15 @@ function backendStub(viewport, opts) {
               category: cat,
               modified: new Date(now - minsAgo * 60000).toISOString(),
             })));
+          }
+          case "search_all":
+            return Promise.resolve(sampleEmpty ? [] : sampleSearch);
+          case "list_files_page": {
+            const folder = String(args?.folder ?? "");
+            if (sampleEmpty || !folder.startsWith("notes/")) {
+              return Promise.resolve({ entries: [], total: 0, offset: 0, limit: 50, has_more: false });
+            }
+            return Promise.resolve({ entries: sampleNotes, total: sampleNotes.length, offset: 0, limit: 50, has_more: false });
           }
           case "frontend_loaded":
           case "plugin:event|unlisten":
@@ -619,6 +648,17 @@ async function navigateDesktop(page, route, labels, opts) {
 async function navigate(page, viewport, route, labels, opts) {
   if (opts.allPages) {
     const marker = await navigateDesktop(page, route, labels, opts);
+    // The search page starts empty by design; type a query so the flat result
+    // rows are actually rendered and the screenshots carry content.
+    if (route.id === "search") {
+      const input = page.locator(".gm-search-input");
+      if (await input.count()) {
+        await input.first().fill("claude");
+        await input.first().press("Enter");
+        await page.locator(".gm-search-result-card").first()
+          .waitFor({ state: "visible", timeout: opts.timeoutMs }).catch(() => {});
+      }
+    }
     await page.evaluate(() => document.fonts?.ready);
     await page.waitForTimeout(250);
     return marker;
