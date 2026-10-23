@@ -13,7 +13,8 @@
     "claudeConfig": "AI Config",
     "editorHome": "Local dirs",
     "externalFiles": "External Files",
-    "settings": "Settings"
+    "settings": "Settings",
+    "more": "More"
   },
   "editorHome": {
     "title": "Local Claude, Cursor & Codex",

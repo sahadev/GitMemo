@@ -13,7 +13,8 @@
     "claudeConfig": "AI 配置",
     "editorHome": "本机目录",
     "externalFiles": "外部文件",
-    "settings": "设置"
+    "settings": "设置",
+    "more": "更多"
   },
   "editorHome": {
     "title": "本机 Claude / Cursor / Codex",
