@@ -242,7 +242,17 @@ export default function PlansPage({
       <DetailPane>
         {!selectedFile ? (
           files.length > 0 ? (
+            files.length > 0 ? (
             <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.selectToView")} full />
+          ) : (
+            <EmptyState
+              icon={Lightbulb}
+              iconSize="empty-lg"
+              title={t("plans.empty")}
+              description={t("plans.emptyDesc")}
+              full
+            />
+          )
           ) : (
             <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.empty")} description={t("plans.emptyDesc")} full />
           )

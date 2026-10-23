@@ -325,7 +325,8 @@ export default function ImportsPage({
 
   const { showList, showDetail } = getFileWorkspacePaneState(isMobile, selectedFile);
   // 列表为空时不渲染详情栏：否则右侧是一整片空白，比重复提示更像坏了。
-  const detailVisible = showDetail && (files.length > 0 || Boolean(selectedFile));
+  // 空列表时右栏也要渲染：那里承载「为什么空 + 怎么开始」的引导。
+  const detailVisible = showDetail;
   const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
@@ -367,9 +368,7 @@ export default function ImportsPage({
             <ListPaneBody>
               {loading ? (
                 <Loading compact text={t("common.loading")} />
-              ) : files.length === 0 ? (
-                <EmptyState icon={Download} title={t("imports.empty")} />
-              ) : (
+              ) : files.length === 0 ? null : (
                 <>
                 {files.map((file) => {
                   const selected = selectedFile === file.path;
@@ -476,7 +475,9 @@ export default function ImportsPage({
             ) : (
               files.length > 0 ? (
                 <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />
-              ) : null
+              ) : (
+                <EmptyState icon={Download} title={t("imports.empty")} full />
+              )
             )}
           </DetailPane>
         )}

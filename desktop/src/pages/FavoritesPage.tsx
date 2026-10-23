@@ -194,9 +194,7 @@ export default function FavoritesPage({
       <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
           <Loading compact text={t("common.loading")} />
-        ) : favorites.length === 0 ? (
-          <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.empty")} full />
-        ) : favorites.map((item) => {
+        ) : favorites.length === 0 ? null : favorites.map((item) => {
           const active = selectedTargetId === item.target_id;
           const Icon = sourceIcon[item.source_type as keyof typeof sourceIcon] ?? sourceIcon.unknown;
           return (
@@ -256,7 +254,9 @@ export default function FavoritesPage({
       {!selectedTargetId ? (
         favorites.length > 0 ? (
           <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.selectToView")} full />
-        ) : null
+        ) : (
+          <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.empty")} full />
+        )
       ) : (
         <>
           <FileDetailToolbar
