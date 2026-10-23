@@ -54,7 +54,7 @@ const DEFAULT_OUT = join(DESKTOP, ".design-baseline");
 const MANIFEST = "manifest.json";
 
 const ROUTES = [
-  { id: "dashboard", navKey: "dashboard", marker: ".gm-dashboard-page" },
+  { id: "dashboard", navKey: "dashboard", marker: ".gm-dash-page" },
   { id: "search", navKey: "search", marker: ".gm-page-frame-column" },
   { id: "ai-records", navKey: "aiRecords", marker: ".gm-ai-records-page" },
   // notes and favorites share their root classes, so navigation state is the check
@@ -69,7 +69,7 @@ const ROUTES = [
  * `theme` runs are desktop-only, which is why mobile entries are absent here.
  */
 const PAGES = [
-  { id: "dashboard", nav: { kind: "sidebar", key: "dashboard" }, marker: ".gm-dashboard-page" },
+  { id: "dashboard", nav: { kind: "sidebar", key: "dashboard" }, marker: ".gm-dash-page" },
   { id: "search", nav: { kind: "sidebar", key: "search" }, marker: ".gm-page-frame-column" },
   { id: "ai-records", nav: { kind: "sidebar", key: "aiRecords" }, marker: ".gm-ai-records-page" },
   { id: "ai-records-plans", nav: { kind: "tab", page: "aiRecords", tab: "plans" }, marker: '.gm-split-pane[data-panel-key="plans"]' },
@@ -638,8 +638,8 @@ async function navigate(page, viewport, route, labels, opts) {
     } else if (route.id === "search") {
       // The mobile tab bar has no search entry; the dashboard header owns it.
       await page.locator(".gm-bottom-nav-item").first().click();
-      await page.waitForSelector(".gm-dashboard-page", { timeout: opts.timeoutMs });
-      const entry = page.locator(`.gm-dashboard-page button[title="${label}"]`);
+      await page.waitForSelector(".gm-dash-page", { timeout: opts.timeoutMs });
+      const entry = page.locator(`.gm-dash-page button[title="${label}"]`);
       if (!(await entry.count())) throw new Error(`dashboard header has no "${label}" entry`);
       await entry.first().click();
     } else {

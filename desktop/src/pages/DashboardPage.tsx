@@ -323,23 +323,23 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   ].filter(Boolean).slice(0, 3) as { label: string; meta: string }[];
 
   return (
-    <div className="gm-inst-dashboard" data-mobile={isMobile ? "true" : "false"} data-active={active ? "true" : "false"}>
+    <div className="gm-dash-page" data-mobile={isMobile ? "true" : "false"} data-active={active ? "true" : "false"}>
       {/* 1 · 身份栏 */}
-      <header className="gm-inst-identity">
-        <span className="gm-inst-identity-mark">{t("dashboard.title")}</span>
-        <span className="gm-inst-identity-path">{gitStatus?.sync_dir || t("dashboard.noRemote")}</span>
-        <span className="gm-inst-identity-status" data-tone={syncStatus.tone}>
+      <header className="gm-dash-header">
+        <span className="gm-dash-brand">{t("dashboard.title")}</span>
+        <span className="gm-dash-repo">{gitStatus?.sync_dir || t("dashboard.noRemote")}</span>
+        <span className="gm-dash-sync" data-tone={syncStatus.tone}>
           <AppIcon icon={Circle} size="dot" fill="currentColor" tone={syncStatus.tone === "success" ? "success" : "secondary"} />
           {syncStatusText}
         </span>
         {gitStatus && gitStatus.unpushed > 0 ? (
-          <span className="gm-inst-identity-unpushed">
+          <span className="gm-dash-unpushed">
             {t("dashboard.unpushed")}
             <b>{gitStatus.unpushed}</b>
           </span>
         ) : null}
-        <span className="gm-inst-identity-spacer" />
-        <span className="gm-inst-identity-count">
+        <span className="gm-dash-spacer" />
+        <span className="gm-dash-count">
           {stats ? t("dashboard.totalFiles", String(displayedFileCount)) : t("common.loading")}
         </span>
         {isMobile ? (
@@ -360,47 +360,47 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         />
       </header>
 
-      <div className="gm-inst-body">
+      <div className="gm-dash-body">
         {/* 3 · 最近条目 */}
-        <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
-          <div className="gm-inst-list-head">
+        <section className="gm-dash-list" aria-label={t("dashboard.recentActivity")}>
+          <div className="gm-dash-list-head">
             <span>{t("dashboard.recentActivity")}</span>
-            <span className="gm-inst-list-count">{displayedFileCount}</span>
+            <span className="gm-dash-list-count">{displayedFileCount}</span>
           </div>
-          <div className="gm-inst-list-rows">
+          <div className="gm-dash-list-rows">
             {isRecentActivityLoading ? (
               <Loading compact text={t("dashboard.startupLoadingActivity")} />
             ) : displayedRecent.length === 0 ? (
-              <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
+              <p className="gm-dash-list-empty">{t("dashboard.noActivity")}</p>
             ) : (
               displayedRecent.slice(0, 12).map((item) => (
                 <button
                   key={item.path}
                   type="button"
-                  className="gm-inst-list-row"
+                  className="gm-dash-list-row"
                   data-on={resumeItem?.path === item.path ? "true" : "false"}
                   onClick={() => openRecord(item)}
                   title={item.path}
                 >
-                  <span className="gm-inst-list-title">{item.name}</span>
-                  <span className="gm-inst-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
+                  <span className="gm-dash-list-title">{item.name}</span>
+                  <span className="gm-dash-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
                 </button>
               ))
             )}
           </div>
         </section>
 
-        <div className="gm-inst-main">
+        <div className="gm-dash-main">
           {/* 4a · 横幅 */}
-          <div className="gm-inst-banner" data-empty={showEmptyGuide ? "true" : "false"}>
-            <p className="gm-inst-banner-title">
+          <div className="gm-dash-banner" data-empty={showEmptyGuide ? "true" : "false"}>
+            <p className="gm-dash-banner-title">
               {showEmptyGuide
                 ? t("dashboard.emptyGuideTitle")
                 : resumeItem
                   ? t("dashboard.resumeLatest", resumeItem.name)
                   : t("dashboard.noActivity")}
             </p>
-            <p className="gm-inst-banner-meta">
+            <p className="gm-dash-banner-meta">
               {showEmptyGuide
                 ? (isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc"))
                 : formatAbsoluteTime(resumeItem?.modified || gitStatus?.last_commit_time || "")}
@@ -408,24 +408,24 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           </div>
 
           {/* 4b · 仪表带 */}
-          <div className="gm-inst-gauges">
+          <div className="gm-dash-figures">
             {gaugeCards.map((card) => (
-              <div className="gm-inst-gauge" key={card.id} data-level={String(card.level)}>
-                <span className="gm-inst-gauge-label">{card.label}</span>
-                <span className="gm-inst-gauge-value">
+              <div className="gm-dash-figure" key={card.id} data-level={String(card.level)}>
+                <span className="gm-dash-figure-label">{card.label}</span>
+                <span className="gm-dash-figure-value">
                   {isDashboardOverviewLoading || card.value === undefined
                     ? <Loading compact text={t("common.loading")} />
                     : card.value}
                 </span>
-                <span className="gm-inst-gauge-bar" aria-hidden="true" />
-                <span className="gm-inst-gauge-detail">{card.detail ?? "—"}</span>
+                <span className="gm-dash-figure-bar" aria-hidden="true" />
+                <span className="gm-dash-figure-detail">{card.detail ?? "—"}</span>
               </div>
             ))}
           </div>
 
           {/* 4c · 表格 */}
-          <div className="gm-inst-table" role="table" aria-label={t("dashboard.recentActivity")}>
-            <div className="gm-inst-table-head" role="row">
+          <div className="gm-dash-table" role="table" aria-label={t("dashboard.recentActivity")}>
+            <div className="gm-dash-table-head" role="row">
               <span role="columnheader" data-col="time">{t("dashboard.tableTime")}</span>
               <span role="columnheader" data-col="type">{t("dashboard.gaugeType")}</span>
               <span role="columnheader" data-col="title">{t("dashboard.tableTitle")}</span>
@@ -437,18 +437,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 key={item.path}
                 type="button"
                 role="row"
-                className="gm-inst-table-row"
+                className="gm-dash-table-row"
                 onClick={() => openRecord(item)}
               >
-                <span role="cell" data-col="time" className="gm-inst-table-time">{relativeTime(item.modified, t)}</span>
-                <span role="cell" data-col="type" className="gm-inst-tag" data-kind={item.category}>
+                <span role="cell" data-col="time" className="gm-dash-table-time">{relativeTime(item.modified, t)}</span>
+                <span role="cell" data-col="type" className="gm-dash-tag" data-kind={item.category}>
                   {categoryLabel(item.category)}
                 </span>
-                <span role="cell" data-col="title" className="gm-inst-table-title" title={item.name}>{item.name}</span>
-                <span role="cell" data-col="source" className="gm-inst-table-source" title={item.path}>
+                <span role="cell" data-col="title" className="gm-dash-table-title" title={item.name}>{item.name}</span>
+                <span role="cell" data-col="source" className="gm-dash-table-source" title={item.path}>
                   {item.path.split("/")[0]}
                 </span>
-                <span role="cell" data-col="state" className="gm-inst-table-state" data-state="synced">
+                <span role="cell" data-col="state" className="gm-dash-table-state" data-state="synced">
                   {t("dashboard.synced")}
                 </span>
               </button>
@@ -456,21 +456,21 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           </div>
 
           {/* 5 · 命令输入 + 待处理 */}
-          <div className="gm-inst-lower">
-            <section className="gm-inst-command">
-              <div className="gm-inst-command-head">
+          <div className="gm-dash-lower">
+            <section className="gm-dash-command">
+              <div className="gm-dash-command-head">
                 <span>{t("dashboard.quickNoteTitle")}</span>
                 {quickNotePath ? (
-                  <button type="button" className="gm-inst-command-open" onClick={openQuickNote}>
+                  <button type="button" className="gm-dash-command-open" onClick={openQuickNote}>
                     {t("dashboard.quickNoteOpen")}
                   </button>
                 ) : null}
               </div>
-              <div className="gm-inst-command-field">
-                <span className="gm-inst-command-sigil" aria-hidden="true">&gt;</span>
+              <div className="gm-dash-command-field">
+                <span className="gm-dash-command-sigil" aria-hidden="true">&gt;</span>
                 <textarea
                   ref={quickNoteTextareaRef}
-                  className="gm-inst-command-input"
+                  className="gm-dash-command-input"
                   value={quickNoteDraft}
                   placeholder={quickNotePlaceholder}
                   aria-label={t("dashboard.quickNoteTitle")}
@@ -480,34 +480,34 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
                   rows={2}
                 />
-                <span className="gm-inst-command-caret" aria-hidden="true" />
+                <span className="gm-dash-command-caret" aria-hidden="true" />
               </div>
-              <div className="gm-inst-command-keys">
+              <div className="gm-dash-command-keys">
                 <span>{quickNoteSaveLabel}</span>
                 <button
                   type="button"
-                  className="gm-inst-command-save"
+                  className="gm-dash-command-save"
                   disabled={quickNoteSaveDisabled}
                   onClick={() => void saveQuickNote()}
                 >
                   {quickNoteSaving ? t("dashboard.quickNoteSaving") : t("dashboard.quickNoteSave")}
                 </button>
-                <button type="button" className="gm-inst-command-new" onClick={startNewQuickNote}>
+                <button type="button" className="gm-dash-command-new" onClick={startNewQuickNote}>
                   {t("dashboard.quickNoteNew")}
                 </button>
               </div>
             </section>
 
-            <section className="gm-inst-todo">
-              <div className="gm-inst-todo-head">
+            <section className="gm-dash-todo">
+              <div className="gm-dash-todo-head">
                 <span>{t("dashboard.pendingTitle")}</span>
-                <span className="gm-inst-todo-count">{pendingItems.length}</span>
+                <span className="gm-dash-todo-count">{pendingItems.length}</span>
               </div>
-              <ul className="gm-inst-todo-rows">
+              <ul className="gm-dash-todo-rows">
                 {pendingItems.map((item) => (
-                  <li key={item.label} className="gm-inst-todo-row">
-                    <span className="gm-inst-todo-label">{item.label}</span>
-                    <span className="gm-inst-todo-meta">{item.meta}</span>
+                  <li key={item.label} className="gm-dash-todo-row">
+                    <span className="gm-dash-todo-label">{item.label}</span>
+                    <span className="gm-dash-todo-meta">{item.meta}</span>
                   </li>
                 ))}
               </ul>
