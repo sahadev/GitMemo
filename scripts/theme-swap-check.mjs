@@ -26,6 +26,8 @@
  *   (two captures of the same untouched state) is 0, because nothing is
  *   repainted. This is why the default gate tolerates <= 0.02% of the screen and
  *   why the report always prints the changed-pixel count next to the tolerance.
+ *   Focus outlines are excluded structurally: the closing comparison drops any
+ *   pixel inside the focused element's box (plus 3px) and reports the count.
  *   Do not "re-investigate" such a residue as a skin regression: focus rings and
  *   :hover were both ruled out with control runs (focus is blurred before the
  *   closing shot, and --keep-hover reproduces the same 1px/0px result). Use
@@ -295,7 +297,7 @@ function frameStats(buf) {
 }
 
 /** Per-pixel difference between two same-size PNG buffers. */
-function diffFrames(a, b, threshold = 2) {
+function diffFrames(a, b, threshold = 2, excludeRects = []) {
   const imgA = decodePng(a);
   const imgB = decodePng(b);
   if (imgA.width !== imgB.width || imgA.height !== imgB.height) {
@@ -305,6 +307,8 @@ function diffFrames(a, b, threshold = 2) {
   let maxDelta = 0;
   let minX = Infinity; let minY = Infinity; let maxX = -1; let maxY = -1;
   const { width, channels } = imgA;
+  let excluded = 0;
+  const inExcluded = (x, y) => excludeRects.some((box) => box && x >= box[0] && x < box[2] && y >= box[1] && y < box[3]);
   for (let i = 0; i < imgA.pixels.length; i += channels) {
     let delta = 0;
     for (let c = 0; c < 3; c += 1) {
@@ -313,10 +317,11 @@ function diffFrames(a, b, threshold = 2) {
     }
     if (delta > maxDelta) maxDelta = delta;
     if (delta > threshold) {
-      changed += 1;
       const pixel = i / channels;
       const x = pixel % width;
       const y = Math.floor(pixel / width);
+      if (inExcluded(x, y)) { excluded += 1; continue; }
+      changed += 1;
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;
@@ -324,7 +329,7 @@ function diffFrames(a, b, threshold = 2) {
     }
   }
   const box = maxX >= 0 ? [minX, minY, maxX + 1, maxY + 1] : null;
-  return { changed, ratio: changed / (imgA.width * imgA.height), maxDelta, box };
+  return { changed, excluded, ratio: changed / (imgA.width * imgA.height), maxDelta, box };
 }
 
 function sha(buf) {
@@ -435,7 +440,17 @@ async function checkSkin(browser, skin, opts) {
     const afterFile = join(dir, "after.png");
     writeFileSync(afterFile, after);
 
-    const trip = diffFrames(before, after);
+    // Belt and braces: if anything still has focus, its outline is a state
+    // marker, not a skin difference. Exclude that box and report how many
+    // pixels were skipped.
+    const focusRect = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return null;
+      return [Math.floor(r.left) - 3, Math.floor(r.top) - 3, Math.ceil(r.right) + 3, Math.ceil(r.bottom) + 3];
+    });
+    const trip = diffFrames(before, after, 2, focusRect ? [focusRect] : []);
     // Byte equality is the strict reading; in practice a repaint of the same
     // skin leaves a few antialiasing pixels different. Anything above the
     // control noise (doubled) or above 0.02% of the screen counts as a change.
@@ -454,8 +469,10 @@ async function checkSkin(browser, skin, opts) {
       before: { file: beforeFile, sha256: sha(before) },
       after: { file: afterFile, sha256: sha(after) },
       control: { file: controlFile, ...noise },
+      focusedBox: focusRect,
       trip: {
         changedPixels: trip.changed,
+        excludedPixels: trip.excluded,
         ratio: Number((trip.ratio * 100).toFixed(4)),
         maxDelta: trip.maxDelta,
         box: trip.box,
