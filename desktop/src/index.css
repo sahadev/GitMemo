@@ -263,6 +263,8 @@
   --gm-selected: rgba(90, 169, 255, 0.12);
   --gm-line: #242a30;
   --gm-line-strong: #616d78;
+  /* 区块之间的分隔线：比行线清楚一档，比控件边界弱 */
+  --gm-line-section: color-mix(in srgb, #616d78 50%, #15181b);
   --gm-text: #e7eaec;
   --gm-text-2: #a7b0b7;
   --gm-text-3: #7d8792;
@@ -370,6 +372,7 @@
   --gm-on-selected: #ffffff;
   --gm-line: rgba(11, 11, 12, 0.26);
   --gm-line-strong: #0b0b0c;
+  --gm-line-section: color-mix(in srgb, #0b0b0c 50%, #ffffff);
   --gm-text: #0b0b0c;
   --gm-text-2: #3d3d40;
   --gm-text-3: #5c646f;
@@ -4243,7 +4246,7 @@ a:focus-visible {
 .gm-settings-card {
   background: transparent;
   border: 0;
-  border-top: var(--gm-border-w) solid var(--gm-line);
+  border-top: var(--gm-border-w) solid var(--gm-line-section);
   border-radius: 0;
   padding: var(--gm-space-5) 0;
 }
