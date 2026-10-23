@@ -248,6 +248,60 @@
   --bg-danger: color-mix(in srgb, var(--red) 11%, transparent);
   --purple: var(--gm-color-purple);
   --pink: var(--gm-color-pink);
+
+  /* ============================================================
+     皮肤层（语义变量）：组件的取值点。
+     结构基准 = B 初版仪器面板；深色值直接取 B 初版实测值。
+     本轮只建立变量，不替换任何现存 token 的引用，
+     所以深色外观与改动前逐像素一致；后续改造再逐个把组件切过来。
+     浅色皮肤的值待定，见 [data-theme="light"] 的空壳。
+     ============================================================ */
+
+  /* 表面 */
+  --skin-canvas: #0e1012;
+  --skin-surface: #15181b;
+  --skin-surface-inset: #1a1e22;
+  --skin-surface-hover: #1a1e22;
+  --skin-surface-selected: #1c2530;
+
+  /* 文字 */
+  --skin-text: #e7eaec;
+  --skin-text-secondary: #a7b0b7;
+  --skin-text-tertiary: #6d777f;
+  --skin-text-disabled: color-mix(in srgb, #6d777f 55%, #0e1012);
+
+  /* 线条 */
+  --skin-line: #242a30;
+  --skin-line-strong: #2f373e;
+  --skin-line-divider: color-mix(in srgb, #242a30 70%, transparent);
+
+  /* 状态 */
+  --skin-success: #3fb950;
+  --skin-success-soft: color-mix(in srgb, #3fb950 16%, #15181b);
+  --skin-warning: #d29922;
+  --skin-warning-soft: color-mix(in srgb, #d29922 16%, #15181b);
+  --skin-danger: #f85149;
+  --skin-danger-soft: color-mix(in srgb, #f85149 16%, #15181b);
+
+  /* 强调 */
+  --skin-accent: #5aa9ff;
+  --skin-accent-hover: color-mix(in srgb, #5aa9ff 82%, #e7eaec);
+  --skin-accent-soft: color-mix(in srgb, #5aa9ff 16%, transparent);
+  --skin-on-accent: #08111c;
+
+  /* 圆角：1 小标记 2 控件/标签 3 面板 4 浮层 */
+  --skin-radius-1: 2px;
+  --skin-radius-2: 3px;
+  --skin-radius-3: 4px;
+  --skin-radius-4: 6px;
+
+  /* 密度 */
+  --skin-density-row: 32px;
+  --skin-density-row-compact: 30px;
+  --skin-density-header: 34px;
+  --skin-density-control: 34px;
+  --skin-density-pad-row: 12px;
+  --skin-density-pad-panel: 14px;
 }
 
 [data-theme="light"] {
@@ -310,6 +364,33 @@
   --gm-accent-border: rgba(47, 111, 228, 0.32);
   --purple: var(--gm-color-purple);
   --pink: var(--gm-color-pink);
+
+  /* 皮肤层空壳：等最终浅色取值再填，未定义前沿用深色（不会误把浅色当成定稿） */
+  /* --skin-canvas: ; */
+  /* --skin-surface: ; */
+  /* --skin-surface-inset: ; */
+  /* --skin-surface-hover: ; */
+  /* --skin-surface-selected: ; */
+  /* --skin-text: ; */
+  /* --skin-text-secondary: ; */
+  /* --skin-text-tertiary: ; */
+  /* --skin-text-disabled: ; */
+  /* --skin-line: ; */
+  /* --skin-line-strong: ; */
+  /* --skin-line-divider: ; */
+  /* --skin-success: ; */
+  /* --skin-success-soft: ; */
+  /* --skin-warning: ; */
+  /* --skin-warning-soft: ; */
+  /* --skin-danger: ; */
+  /* --skin-danger-soft: ; */
+  /* --skin-accent: ; */
+  /* --skin-accent-hover: ; */
+  /* --skin-accent-soft: ; */
+  /* --skin-on-accent: ; */
+  /* --skin-radius-1: ; --skin-radius-2: ; --skin-radius-3: ; --skin-radius-4: ; */
+  /* --skin-density-row: ; --skin-density-row-compact: ; --skin-density-header: ; */
+  /* --skin-density-control: ; --skin-density-pad-row: ; --skin-density-pad-panel: ; */
 }
 
 * {
