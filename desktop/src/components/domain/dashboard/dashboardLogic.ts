@@ -115,6 +115,10 @@ export function getDashboardDisplayedFileCount(stats: AppStats) {
   return stats.tracked_files ?? getDashboardContentFileCount(stats);
 }
 
+export function formatDashboardSizeKb(sizeKb: number) {
+  return sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`;
+}
+
 export function getDashboardDisplayedRepoSizeKb(stats: AppStats) {
   return stats.repository_size_kb ?? stats.total_size_kb;
 }

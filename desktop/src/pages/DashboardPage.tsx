@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -110,6 +110,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
   );
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
+  const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : 0;
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
 
   const loadStats = useCallback(async () => {
@@ -266,24 +267,33 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const quickNoteSaveDisabled = !canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving);
 
   const gaugeCards = [
-    { id: "total", label: t("dashboard.gaugeTotal"), value: displayedFileCount, level: 5 },
+    {
+      id: "total",
+      label: t("dashboard.gaugeTotal"),
+      value: displayedFileCount,
+      level: 5,
+      detail: stats ? formatDashboardSizeKb(displayedRepoSizeKb) : undefined,
+    },
     {
       id: "conversation",
       label: t("dashboard.conversations"),
       value: stats?.conversations,
       level: Math.min(5, Math.ceil((stats?.conversations ?? 0) / 40)),
+      detail: undefined,
     },
     {
       id: "clip",
       label: t("dashboard.clips"),
       value: stats?.clips,
       level: Math.min(5, Math.ceil((stats?.clips ?? 0) / 10)),
+      detail: undefined,
     },
     {
       id: "unpushed",
       label: t("dashboard.gaugeUnpushed"),
       value: gitStatus?.unpushed ?? 0,
       level: (gitStatus?.unpushed ?? 0) > 0 ? 1 : 0,
+      detail: gitStatus?.last_commit_time ? formatAbsoluteTime(gitStatus.last_commit_time) : undefined,
     },
   ];
 
@@ -408,6 +418,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     : card.value}
                 </span>
                 <span className="gm-inst-gauge-bar" aria-hidden="true" />
+                <span className="gm-inst-gauge-detail">{card.detail ?? "—"}</span>
               </div>
             ))}
           </div>
