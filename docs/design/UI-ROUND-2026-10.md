@@ -78,7 +78,7 @@ rg -n 'gm-empty-state|EmptyState' desktop/src --glob '*.tsx' -l
 状态：进行中。
 
 **4. 笔记页 Esc 关闭详情并回焦**
-已实现：`NotesPage.tsx` 304–325 行，捕获阶段监听、非编辑态 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行 `focus()`。
+已实现：`NotesPage.tsx` 里 Esc 的 `useEffect`（捕获阶段监听、非编辑态 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行 `focus()`。
 
 ```sh
 rg -n 'requestAnimationFrame|data-on="true"\]' desktop/src/pages/NotesPage.tsx

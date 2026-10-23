@@ -266,7 +266,7 @@ rg -n -B20 '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' desktop/src/index.css \
 
 ### 6.3 笔记页 Esc 回列表
 
-现状：已实现且已补焦点（`NotesPage.tsx` 第 304–325 行）：捕获阶段监听 Esc，非编辑态且非移动端时 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行调用 `focus()`。
+现状：已实现且已补焦点（`NotesPage.tsx` 里 Esc 的 `useEffect`）：捕获阶段监听 Esc，非编辑态且非移动端时 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行调用 `focus()`。
 判定：打开一条笔记 → Tab 到列表行 → Enter 打开 → Esc；此时按 ↑/↓ 应立即移动选中行，不需要再 Tab。
 状态：**已闭环**。若将来改了列表行的选中标记属性（不再是 `data-on`），这段选择器要同步改，否则焦点会静默落回 body。
 
