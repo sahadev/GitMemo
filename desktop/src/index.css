@@ -720,7 +720,7 @@ a:focus-visible {
 }
 
 .gm-pane-tab-header {
-  background: var(--gm-color-bg-elevated);
+  background: transparent;
   gap: var(--gm-toolbar-gap);
 }
 
