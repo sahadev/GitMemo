@@ -553,7 +553,7 @@ function main() {
     if (isTsx) tsxCount += 1;
     else cssCount += 1;
 
-    const exemptLines = isTsx ? null : computeExemptLines(text);
+    const exemptLines = isTsx || !opts.exempt ? null : computeExemptLines(text);
 
     if (isTsx) scanTsxFile(file, text, ladders, opts.only, loc, push);
     else scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines);
@@ -576,7 +576,8 @@ function main() {
   const countsRaw = Object.fromEntries(RULES.map((r) => [r, 0]));
   for (const v of violations) {
     countsRaw[v.rule] += 1;
-    if (!v.exempt) counts[v.rule] += 1;
+    // --no-exempt 看的是原始视图：豁免项也必须计入，否则参数只改了表头、没改数字
+    if (!v.exempt || !opts.exempt) counts[v.rule] += 1;
   }
   const effective = opts.exempt ? violations.filter((v) => !v.exempt) : violations;
   const exemptTotal = opts.exempt ? violations.length - effective.length : 0;
