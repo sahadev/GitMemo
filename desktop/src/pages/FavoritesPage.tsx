@@ -326,7 +326,7 @@ export default function FavoritesPage({
     </DetailPane>
   );
 
-  // 列表为空时整屏只显示空态：空的详情栏是负资产，不靠文案掩盖
+  // 列表为空时只保留页头与空态：空的详情栏是负资产，但页面身份与条数不能跟着消失
   if (!loading && favorites.length === 0) {
     // 页头常驻：列表为空不等于页面为空，用户仍要知道自己在哪、这页有多少条
     return (
