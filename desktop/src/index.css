@@ -409,6 +409,7 @@
   --gm-density-pad-row: 12px;
   --gm-density-pad-panel: 14px;
   --gm-size-value-min: 56px;
+  --gm-density-subheader: 28px;
 }
 
 * {
@@ -7383,7 +7384,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   color: var(--gm-text-3);
   font-family: var(--gm-font-mono);
   font-size: var(--gm-font-2xs);
-  height: 28px;
+  height: var(--gm-density-subheader);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -7471,7 +7472,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   flex: none;
   font-family: var(--gm-font-mono);
   font-size: var(--gm-font-2xs);
-  height: 28px;
+  height: var(--gm-density-subheader);
   justify-content: space-between;
   letter-spacing: 0.14em;
   padding: 0 var(--gm-space-4);
