@@ -1,0 +1,6 @@
+# 文档已规定、但 desktop/src/index.css 尚未定义的变量。
+# 落地后把对应行删掉；check-doc-tokens.mjs 会把它当「待新增」而不是「名字写错」。
+--gm-radius-control  # 皮肤级圆角：控件（浅 0 / 深 4px）
+--gm-radius-panel    # 皮肤级圆角：面板与弹层（浅 0 / 深 4px）
+--gm-radius-kbd      # 皮肤级圆角：键盘提示与复选框（浅 2 / 深 3px）
+--gm-accent-2        # 第二套皮肤（F）的辅助色，尚未进实现

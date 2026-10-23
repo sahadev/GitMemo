@@ -9,8 +9,8 @@ Token 取值见 `docs/design/SKIN-LIGHT.md`；结构变量见 `desktop/src/index
 | 变量 | 值 | 用在哪 |
 | --- | --- | --- |
 | `--gm-border-w` | 浅色 2px / 深色 1px | 所有可见边框、分区线、控件边界 |
-| `--gm-radius-control` | 浅色 0 / 深色 4px | 按钮、输入框、标签、选中块 |
-| `--gm-radius-panel` | 浅色 0 / 深色 4px | 面板、弹层 |
+| `--gm-radius-control`（待新增） | 浅色 0 / 深色 4px | 按钮、输入框、标签、选中块 |
+| `--gm-radius-panel`（待新增） | 浅色 0 / 深色 4px | 面板、弹层 |
 | `--gm-density-*` | row 32 / row-compact 30 / header 34 / control 34 | 行高、头高、控件高 |
 
 通用判定：
@@ -58,7 +58,7 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 
 ### 1.3 颜色来源
 
-允许：`--gm-canvas`、`--gm-panel`、`--gm-inset`、`--gm-hover`、`--gm-selected`、`--gm-on-selected`、`--gm-line`、`--gm-line-strong`、`--gm-text`、`--gm-text-2`、`--gm-text-3`、`--gm-accent`、`--gm-focus-ring`。
+允许：`--gm-canvas`、`--gm-panel`、`--gm-inset`、`--gm-hover`、`--gm-selected`、`--gm-on-selected`、`--gm-line`、`--gm-line-strong`、`--gm-text`、`--gm-text-2`、`--gm-text-3`、`--gm-accent`（焦点环也用它，当前没有独立的 `--gm-focus-ring`）。
 
 禁止：分类色、`--gm-tag-*`（笔记页没有类型标签）、任何字面量色值。
 
