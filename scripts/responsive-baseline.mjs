@@ -24,6 +24,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -48,6 +49,17 @@ const DEFAULT_WIDTHS = [1920, 1440, 1200, 768, 390];
 const MULTI_WIDTH_PAGES = ["dashboard", "settings"];
 const VIEWPORT_HEIGHT = 900;
 
+/** Smallest window the desktop shell can actually have (Tauri config). */
+function windowMinWidth() {
+  try {
+    const conf = JSON.parse(readFileSync(join(DESKTOP, "src-tauri", "tauri.conf.json"), "utf8"));
+    const width = conf?.app?.windows?.[0]?.minWidth;
+    return Number.isFinite(width) ? width : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------- arguments
 
 function parseArgs(argv) {
@@ -57,6 +69,7 @@ function parseArgs(argv) {
     skins: ["dark", "light"],
     pages: MULTI_WIDTH_PAGES,
     allPages: false,
+    listedOnly: false,
     baseWidth: 1440,
     url: null,
     port: 5275,
@@ -98,6 +111,9 @@ function parseArgs(argv) {
       case "--all-pages":
         opts.allPages = true;
         break;
+      case "--listed-only":
+        opts.listedOnly = true;
+        break;
       case "--url":
         opts.url = value().replace(/\/$/, "");
         break;
@@ -123,6 +139,7 @@ Options
   --skins=<list>      dark | light | dark,light        (default: both)
   --pages=<list>      pages that run at every width    (default: ${MULTI_WIDTH_PAGES.join(", ")})
   --all-pages         every page at every width
+  --listed-only       only run the pages given by --pages
   --out=<dir>         default desktop/.design-baseline/responsive
   --url=<url>         reuse a running dev server
   --port=<n>          dev server port                  (default: 5275)
@@ -334,10 +351,18 @@ async function main() {
   }
 
   const multiWidth = opts.allPages ? PAGES.map((p) => p.id) : opts.pages;
+  const minWindowWidth = windowMinWidth();
+  const unreachable = [];
   const cases = [];
-  for (const page of PAGES) {
+  const catalogue = opts.listedOnly ? PAGES.filter((page) => multiWidth.includes(page.id)) : PAGES;
+  for (const page of catalogue) {
     const widths = multiWidth.includes(page.id) ? opts.widths : [opts.baseWidth];
     for (const width of widths) {
+      if (minWindowWidth && width < minWindowWidth) {
+        // The desktop window cannot be this narrow; only a mobile runtime can.
+        unreachable.push({ page: page.id, width, minWindowWidth });
+        continue;
+      }
       for (const skin of opts.skins) cases.push({ page: page.id, width, skin });
     }
   }
@@ -431,6 +456,8 @@ async function main() {
     mkdirSync(opts.out, { recursive: true });
     writeFileSync(join(opts.out, "report.json"), `${JSON.stringify({
       generatedAt: new Date().toISOString(),
+      windowMinWidth: minWindowWidth,
+      unreachableWidths: unreachable,
       sourceFingerprint: { before: fingerprintBefore, after: fingerprintAfter, contaminated },
       widths: opts.widths,
       skins: opts.skins,
@@ -439,6 +466,10 @@ async function main() {
       failures,
     }, null, 2)}\n`);
 
+    if (unreachable.length) {
+      const widths = [...new Set(unreachable.map((c) => c.width))].join(", ");
+      process.stdout.write(`\n跳过不可达宽度 ${widths}：低于桌面窗口最小宽度 ${minWindowWidth}px（Tauri minWidth），桌面运行时不会出现。\n`);
+    }
     process.stdout.write("\n换肤布局对齐（同宽度下深/浅几何签名对比）\n");
     for (const row of layoutRows) {
       process.stdout.write(`  ${row.key.padEnd(20)} ${row.match ? "一致" : `不一致 ${row.a} ≠ ${row.b}`}\n`);

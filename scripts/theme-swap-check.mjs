@@ -27,7 +27,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { inflateSync } from "node:zlib";
@@ -132,6 +132,36 @@ Checks, per skin
 Note: frames are real screenshots; a flash shorter than the sampling interval
 can be missed. The effective interval is printed.
 `);
+}
+
+/** Hash of every file under desktop/src, so a concurrent edit can be detected. */
+function sourceFingerprint() {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const full = join(dir, entry.name);
+      const stat = statSync(full);
+      if (stat.isDirectory()) walk(full);
+      else files.push(`${full.slice(DESKTOP.length)}:${stat.size}:${Math.round(stat.mtimeMs)}`);
+    }
+  };
+  walk(join(DESKTOP, "src"));
+  return createHash("sha256").update(files.sort().join("|")).digest("hex").slice(0, 12);
+}
+
+async function gotoWithRetry(page, url, opts, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+      return;
+    } catch (err) {
+      const transient = /ERR_CONNECTION_REFUSED|ERR_EMPTY_RESPONSE|ERR_NETWORK_CHANGED/.test(err.message);
+      if (!transient || attempt === attempts) throw err;
+      // Another process in the shared checkout may be restarting the dev server.
+      await page.waitForTimeout(800);
+    }
+  }
 }
 
 // ------------------------------------------------------------- png decoding
@@ -320,7 +350,7 @@ async function checkSkin(browser, skin, opts) {
   page.on("pageerror", (err) => errors.push(String(err).split("\n")[0]));
 
   try {
-    await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    await gotoWithRetry(page, opts.url, opts);
     await page.waitForSelector(".gm-app-shell", { timeout: opts.timeoutMs });
     await openSettingsGeneral(page, opts);
     await page.evaluate(() => document.fonts?.ready);
@@ -417,6 +447,7 @@ async function main() {
       opts.url = server.url;
     }
 
+    const fingerprintBefore = sourceFingerprint();
     const { pw, version } = await resolvePlaywright();
     const { browser, fallback } = await launchChromium(pw.chromium);
     process.stdout.write(`playwright ${version}${fallback ? " (cached chromium)" : ""}; sampling every ${opts.intervalMs}ms\n`);
@@ -430,9 +461,15 @@ async function main() {
       await browser.close();
     }
 
+    const fingerprintAfter = sourceFingerprint();
+    const contaminated = fingerprintBefore !== fingerprintAfter;
+    if (contaminated) {
+      process.stderr.write(`\n警告：采集期间 desktop/src 被改动（${fingerprintBefore} → ${fingerprintAfter}），结果不可作为验收依据。\n`);
+    }
     mkdirSync(opts.out, { recursive: true });
     writeFileSync(join(opts.out, "report.json"), `${JSON.stringify({
       generatedAt: new Date().toISOString(),
+      sourceFingerprint: { before: fingerprintBefore, after: fingerprintAfter, contaminated },
       intervalMs: opts.intervalMs,
       durationMs: opts.durationMs,
       blankThreshold: { dominantShare: BLANK_DOMINANT, minUnique: BLANK_UNIQUE },
@@ -451,7 +488,7 @@ async function main() {
       for (const err of result.pageErrors) process.stdout.write(`         页面错误：${err}\n`);
     }
     process.stdout.write(`sampled frames + report: ${opts.out}\n`);
-    return failed ? 1 : 0;
+    return contaminated ? 2 : failed ? 1 : 0;
   } catch (err) {
     process.stderr.write(`theme-swap-check: ${err.message}\n`);
     return 2;
