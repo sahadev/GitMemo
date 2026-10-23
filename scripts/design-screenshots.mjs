@@ -88,6 +88,8 @@ const PAGES = [
 const VIEWPORTS = {
   desktop: { width: 1440, height: 900, family: "desktop", os: "macos", dir: "desktop-1440" },
   mobile: { width: 390, height: 844, family: "mobile", os: "android", dir: "mobile-390" },
+  // 真机形态的 390：宽度和平台一起变，--pages 模式也能拍手机布局
+  "mobile-390": { width: 390, height: 844, family: "mobile", os: "android", dir: "mobile-390" },
 };
 
 const FREEZE_CSS = `*, *::before, *::after {
@@ -143,8 +145,11 @@ function parseArgs(argv) {
         break;
       case "--viewport": {
         const list = value().split(",").map((s) => s.trim()).filter(Boolean);
-        for (const v of list) if (!VIEWPORTS[v]) throw new Error(`unknown viewport: ${v} (desktop, mobile)`);
+        for (const v of list) if (!VIEWPORTS[v]) {
+          throw new Error(`unknown viewport: ${v} (${Object.keys(VIEWPORTS).join(", ")})`);
+        }
         opts.viewports = list;
+        opts.viewportExplicit = true;
         break;
       }
       case "--routes": {
@@ -167,7 +172,8 @@ function parseArgs(argv) {
           opts.allPages = true;
           opts.routes = list;
         }
-        opts.viewports = ["desktop"];
+        // 显式给了 --viewport 就用它，否则 pages 模式默认只跑桌面
+        if (!opts.viewportExplicit) opts.viewports = ["desktop"];
         opts.themeDirs = true;
         break;
       }
@@ -645,9 +651,40 @@ async function navigateDesktop(page, route, labels, opts) {
   return marker;
 }
 
+/** pages 模式下的手机导航：点底部标签，等页面根节点可见。 */
+async function navigateMobile(page, route, labels, opts) {
+  const label = labels.nav[route.navKey];
+  const tab = page.locator(".gm-bottom-nav-item").filter({ hasText: label });
+  if (await tab.count()) {
+    await tab.first().click();
+  } else if (route.id === "search") {
+    await page.locator(".gm-bottom-nav-item").first().click();
+    await page.waitForSelector(".gm-dash-page", { timeout: opts.timeoutMs });
+    const entry = page.locator(`.gm-dash-page button[title="${label}"]`);
+    if (await entry.count()) await entry.first().click();
+  } else {
+    throw new Error(`no mobile navigation entry for page "${route.id}"`);
+  }
+  let marker = route.marker
+    ? page.locator('.gm-app-page-mount[data-active="true"]').locator(route.marker).first()
+    : null;
+  if (marker) {
+    // 手机端有的页面（如设置）挂在另一层容器里，避免死等同一挂载点
+    const scoped = await marker.waitFor({ state: "visible", timeout: 8000 }).then(() => true).catch(() => false);
+    if (!scoped) {
+      marker = page.locator(route.marker).first();
+      await marker.waitFor({ state: "visible", timeout: opts.timeoutMs });
+    }
+  }
+  return marker;
+}
+
 async function navigate(page, viewport, route, labels, opts) {
   if (opts.allPages) {
-    const marker = await navigateDesktop(page, route, labels, opts);
+    // 手机视口没有侧边栏：走底部导航，其余流程保持一致
+    const marker = VIEWPORTS[viewport].family === "mobile"
+      ? await navigateMobile(page, route, labels, opts)
+      : await navigateDesktop(page, route, labels, opts);
     // The search page starts empty by design; type a query so the flat result
     // rows are actually rendered and the screenshots carry content.
     if (route.id === "search") {
@@ -725,7 +762,12 @@ async function runCapture(opts) {
   try {
     for (const theme of opts.themes) {
       for (const viewport of opts.viewports) {
-        const dir = join(opts.out, opts.themeDirs ? theme : VIEWPORTS[viewport].dir);
+        const dir = join(
+          opts.out,
+          opts.themeDirs
+            ? (viewport === "desktop" ? theme : `${VIEWPORTS[viewport].dir}-${theme}`)
+            : VIEWPORTS[viewport].dir,
+        );
         mkdirSync(dir, { recursive: true });
         const { context, page, errors } = await openPage(browser, viewport, opts, theme);
         try {
@@ -741,7 +783,9 @@ async function runCapture(opts) {
               theme,
               width: VIEWPORTS[viewport].width,
               height: VIEWPORTS[viewport].height,
-              file: `${opts.themeDirs ? theme : VIEWPORTS[viewport].dir}/${route.id}.png`,
+              file: `${opts.themeDirs
+                ? (viewport === "desktop" ? theme : `${VIEWPORTS[viewport].dir}-${theme}`)
+                : VIEWPORTS[viewport].dir}/${route.id}.png`,
               sha256,
               bytes,
             });
