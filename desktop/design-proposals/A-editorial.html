@@ -9,275 +9,326 @@
     --ink:#15130f;
     --ink-2:#57514a;
     --ink-3:#8d867c;
-    --rule:rgba(21,19,15,.14);
-    --rule-2:rgba(21,19,15,.28);
+    --rule:rgba(21,19,15,.13);
+    --rule-2:rgba(21,19,15,.30);
     --accent:#a33b28;
     --serif:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif;
     --sans:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue",Arial,sans-serif;
     --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
-    --margin:120px;
-    --gutter:24px;
+    --pad:80px;
+    --nav:200px;
+    --gutter:72px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--paper);color:var(--ink);
     font-family:var(--sans);-webkit-font-smoothing:antialiased;
-    font-variant-numeric:tabular-nums;overflow-x:hidden}
-  body{display:block}
+    font-variant-numeric:tabular-nums}
+  .page{width:1440px;margin:0 auto;padding:0 var(--pad)}
 
-  .page{width:1440px;margin:0 auto;padding:0 var(--margin);
-    display:flex;flex-direction:column}
-
-  /* 十二栏 */
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);column-gap:var(--gutter)}
-
-  /* 微标签：全站唯一的“小字”层级，等宽 + 大字距 */
+  /* 微标签：全站唯一的“最小字”层级 */
   .label{font-family:var(--mono);font-size:11px;line-height:1.4;
-    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
-    font-weight:400}
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 
   /* ───────── 报头 ───────── */
-  .masthead{padding-top:56px}
-  .masthead .top-rule{height:1px;background:var(--ink);opacity:.55}
-  .masthead .row{display:flex;align-items:flex-start;justify-content:space-between;
-    gap:var(--gutter);padding:26px 0 22px}
-  .title-block{display:flex;flex-direction:column;gap:18px}
-  .title-block h1{font-family:var(--serif);font-size:64px;line-height:.98;
+  .masthead{padding-top:44px}
+  .masthead .top{height:1px;background:var(--ink);opacity:.6}
+  .masthead .row{display:flex;justify-content:space-between;align-items:flex-start;
+    gap:var(--gutter);padding:26px 0 26px}
+  .title-block{display:flex;flex-direction:column;gap:16px}
+  .title-block h1{font-family:var(--serif);font-size:64px;line-height:.96;
     font-weight:600;letter-spacing:.01em}
-  .title-block .sub{font-family:var(--serif);font-size:15px;line-height:1.7;
-    color:var(--ink-2);max-width:26em}
-  .repo{display:grid;grid-template-columns:auto auto;gap:6px 34px;
-    align-items:baseline;text-align:right}
-  .repo dt{grid-column:1}
-  .repo dd{grid-column:2;font-family:var(--mono);font-size:12px;
-    color:var(--ink-2);text-align:right;white-space:nowrap}
-  .repo dd.hot{color:var(--accent)}
+  .title-block .tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+  .sync{margin-left:auto;display:grid;grid-template-columns:auto auto;
+    gap:7px 30px;align-items:baseline;text-align:right;min-width:296px}
+  .sync dt{justify-self:end}
+  .sync dd{font-family:var(--mono);font-size:12px;color:var(--ink-2);
+    text-align:right;white-space:nowrap}
+  .sync dd.hot{color:var(--accent)}
   .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
     background:var(--ink);vertical-align:1px;margin-right:7px}
-  .dot.idle{background:var(--ink-3)}
 
-  /* ───────── 统计带：只靠上下两条线 + 留白分组 ───────── */
+  /* ───────── 两栏：目录 + 主体 ───────── */
+  .sheet{display:grid;grid-template-columns:var(--nav) 1fr;
+    column-gap:var(--gutter);padding-top:8px}
+
+  /* 目录：只靠留白分行，没有一条线 */
+  .nav h2{margin-bottom:20px}
+  .nav ul{list-style:none;display:flex;flex-direction:column;gap:19px}
+  .nav li{display:flex;justify-content:space-between;align-items:baseline;
+    gap:12px;font-family:var(--sans);font-size:14px;color:var(--ink-3);
+    position:relative;padding-left:0}
+  .nav li .c{font-family:var(--mono);font-size:11px;color:#a8a196}
+  .nav li.on{color:var(--ink);font-weight:600}
+  .nav li.on .c{color:var(--ink-2)}
+  .nav li.on::before{content:"";position:absolute;left:-16px;top:.35em;bottom:.25em;
+    width:2px;background:var(--accent)}
+
+  /* ───────── 主体 ───────── */
+  .body{min-width:0}
+
+  .lede{display:grid;grid-template-columns:1fr 300px;column-gap:44px;
+    align-items:end;padding-bottom:40px}
+  .lede h2{font-family:var(--serif);font-size:36px;line-height:1.32;
+    font-weight:600;letter-spacing:.005em;max-width:20em}
+  .lede p{font-family:var(--serif);font-size:15px;line-height:1.85;
+    color:var(--ink-2);margin-top:16px;max-width:30em}
+  .lede .stamp{text-align:right;display:flex;flex-direction:column;gap:8px;
+    padding-bottom:6px}
+  .lede .stamp .big{font-family:var(--sans);font-size:15px;color:var(--ink-2)}
+
+  /* 统计带：上下两条线，中间只有留白 */
   .band{border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule);
-    padding:34px 0 30px;margin-top:44px}
-  .stat{grid-column:span 3;display:flex;flex-direction:column;gap:14px}
-  .stat .n{font-family:var(--sans);font-size:88px;line-height:.86;
+    display:grid;grid-template-columns:repeat(4,1fr);column-gap:24px;
+    padding:30px 0 26px}
+  .stat{display:flex;flex-direction:column;gap:12px}
+  .stat .n{font-family:var(--sans);font-size:82px;line-height:.86;
     font-weight:600;letter-spacing:-.035em}
-  .stat .n small{font-size:22px;font-weight:500;letter-spacing:0;
-    color:var(--ink-3);margin-left:6px}
-  .stat .cap{display:flex;flex-direction:column;gap:5px}
+  .stat .n small{font-size:20px;font-weight:500;letter-spacing:0;
+    color:var(--ink-3);margin-left:5px}
+  .stat .cap{display:flex;flex-direction:column;gap:4px}
   .stat .cap em{font-style:normal;font-size:13px;color:var(--ink-2)}
   .stat .cap span{font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    letter-spacing:.03em}
+
+  .block{margin-top:56px}
+  .block-head{display:flex;align-items:baseline;justify-content:space-between;
+    gap:24px;padding-bottom:11px}
+  .block-head .r{font-family:var(--mono);font-size:11px;color:var(--ink-3);
     letter-spacing:.04em}
 
-  /* ───────── 区块骨架 ───────── */
-  .section{margin-top:72px}
-  .section-head{display:flex;align-items:baseline;justify-content:space-between;
-    gap:var(--gutter);padding-bottom:12px}
-  .section-head .count{font-family:var(--mono);font-size:11px;color:var(--ink-3);
-    letter-spacing:.04em}
-
-  /* ───────── 最近条目：横线成行，无底色无容器 ───────── */
+  /* 条目：横线成行，无底色无容器 */
   .list{border-top:1px solid var(--rule-2)}
-  .item{display:grid;grid-template-columns:96px 1fr auto;align-items:baseline;
-    column-gap:28px;padding:19px 0 18px;border-bottom:1px solid var(--rule);
-    position:relative;cursor:pointer;background:none;border-left:0;border-right:0;
-    text-align:left;width:100%;font:inherit;color:inherit}
-  .item::before{content:"";position:absolute;left:-20px;top:14px;bottom:13px;
+  .row{display:grid;grid-template-columns:22px 52px 1fr 68px 72px;
+    column-gap:16px;align-items:baseline;padding:15px 0 14px;
+    border-bottom:1px solid var(--rule);position:relative;
+    background:none;border-left:0;border-right:0;text-align:left;
+    width:100%;font:inherit;color:inherit;cursor:pointer}
+  .row::before{content:"";position:absolute;left:-16px;top:10px;bottom:9px;
     width:2px;background:transparent;transition:background .12s linear}
-  .item:hover::before{background:var(--rule-2)}
-  .item[aria-selected="true"]::before{background:var(--accent)}
-  .item .t{font-family:var(--mono);font-size:11px;color:var(--ink-3);
-    letter-spacing:.04em;white-space:nowrap}
-  .item .h{font-family:var(--serif);font-size:17px;line-height:1.45;
-    color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .item .k{font-family:var(--mono);font-size:11px;color:var(--ink-3);
-    letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-  .item:hover .h{text-decoration:underline;text-decoration-thickness:1px;
-    text-underline-offset:4px;text-decoration-color:var(--rule-2)}
-  .item:focus-visible{outline:2px solid var(--ink);outline-offset:6px}
-  .item[aria-selected="true"] .k{color:var(--accent)}
+  .row:hover::before{background:var(--rule-2)}
+  .row[aria-selected="true"]::before{background:var(--accent)}
+  .row:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+  .row .no{font-family:var(--mono);font-size:11px;color:#a8a196}
+  .row .mark{font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+  .row .t{font-family:var(--serif);font-size:17px;line-height:1.45;color:var(--ink);
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .t em{font-style:normal;font-size:13px;color:var(--ink-3);margin-left:10px}
+  .row .src{font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    color:var(--ink-3);text-align:right;white-space:nowrap}
+  .row .when{font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    text-align:right;white-space:nowrap}
+  .row[aria-selected="true"] .t{text-decoration:underline;
+    text-decoration-thickness:1px;text-underline-offset:5px;
+    text-decoration-color:var(--rule-2)}
 
-  /* ───────── 快速笔记：一块纸，没有框 ───────── */
-  .note{grid-column:1 / span 8;display:flex;flex-direction:column}
-  .note fieldset{border:0;border-top:1px solid var(--rule-2);
-    border-bottom:1px solid var(--rule);padding:22px 0 20px}
-  .note textarea{width:100%;border:0;background:transparent;resize:none;
-    font-family:var(--serif);font-size:22px;line-height:1.62;color:var(--ink);
-    min-height:132px;outline:none;display:block}
-  .note textarea::placeholder{color:#b5ada1}
-  .note .foot{display:flex;align-items:baseline;justify-content:space-between;
-    gap:20px;padding-top:14px}
-  .note .kbd{font-family:var(--mono);font-size:11px;color:var(--ink-3);
-    letter-spacing:.04em}
-  .note .kbd b{color:var(--ink-2);font-weight:500}
-  .note .save{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  /* 快速记一行：一条线就够 */
+  .quick{border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule);
+    padding-top:20px;padding-bottom:18px;margin-top:56px}
+  .quick input{width:100%;border:0;background:transparent;outline:none;
+    font-family:var(--serif);font-size:23px;line-height:1.5;color:var(--ink);
+    padding:6px 0 10px;display:block}
+  .quick input::placeholder{color:#b5ada1}
+  .quick .foot{display:flex;justify-content:space-between;align-items:baseline;
+    gap:20px}
+  .quick .hint{font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    letter-spacing:.03em}
+  .quick .save{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
     text-transform:uppercase;color:var(--accent);background:none;border:0;
-    cursor:pointer;padding:2px 0}
-  .note .save:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+    cursor:pointer;padding:0}
+  .quick input:focus-visible{outline:none}
+  .quick:focus-within{border-bottom-color:var(--ink)}
 
-  .aside{grid-column:10 / span 3;display:flex;flex-direction:column;gap:16px;
-    padding-top:2px}
-  .aside p{font-family:var(--serif);font-size:14px;line-height:1.85;color:var(--ink-2)}
-  .aside .rule{height:1px;background:var(--rule);margin:2px 0}
+  /* 待处理：编号 + 正文 + 标签，无框 */
+  .todo{display:grid;grid-template-columns:repeat(3,1fr);column-gap:32px;
+    padding-top:4px}
+  .todo .item{display:flex;flex-direction:column;gap:9px;
+    border-top:1px solid var(--rule);padding-top:13px}
+  .todo .item .h{display:flex;align-items:baseline;gap:9px}
+  .todo .item .h b{font-family:var(--mono);font-size:11px;font-weight:400;
+    color:var(--accent)}
+  .todo .item .h em{font-style:normal;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .todo .item p{font-family:var(--serif);font-size:15px;line-height:1.7;
+    color:var(--ink-2)}
 
-  /* ───────── 页脚 ───────── */
-  .foot-bar{margin-top:84px;padding-top:20px;padding-bottom:40px;display:flex;
-    justify-content:space-between;gap:var(--gutter);
-    border-top:1px solid var(--rule);align-items:baseline}
-  .foot-bar span{font-family:var(--mono);font-size:11px;color:var(--ink-3);
-    letter-spacing:.1em;text-transform:uppercase}
+  /* 页脚 */
+  .colophon{display:flex;justify-content:space-between;align-items:baseline;
+    gap:24px;margin-top:64px;padding:14px 0 44px;
+    border-top:1px solid var(--rule)}
+  .colophon span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .colophon .path{text-transform:none;letter-spacing:0;font-size:11.5px;
+    color:var(--ink-2)}
 
-  @media (max-width:1520px){
-    .page{width:100%;padding:0 64px 72px}
-    .title-block h1{font-size:52px}
-    .stat .n{font-size:64px}
-  }
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none!important;animation:none!important}
-  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<main class="page">
+<div class="page">
 
-  <!-- 报头 -->
+  <!-- 报头：一条黑线 + 大字 + 右侧同步状态 -->
   <header class="masthead">
-    <div class="top-rule"></div>
+    <div class="top"></div>
     <div class="row">
       <div class="title-block">
-        <h1>记忆库</h1>
-        <p class="sub">本机 Git 仓库里的一千二百八十四条记忆。抓取、索引、同步全部发生在本地。</p>
+        <div class="tag">本地笔记 · 第 159 期</div>
+        <h1>GitMemo</h1>
       </div>
-      <dl class="repo">
-        <dt class="label">仓库</dt>
-        <dd>~/Code/.gitmemo/repo</dd>
-        <dt class="label">分支</dt>
-        <dd>main</dd>
-        <dt class="label">远端</dt>
-        <dd>github.com/sahadev/gitmemo</dd>
-        <dt class="label">状态</dt>
-        <dd><span class="dot"></span>已同步 · 2 分钟前</dd>
-        <dt class="label">待推送</dt>
-        <dd class="hot">3 条</dd>
+      <dl class="sync">
+        <dt class="label">远端</dt><dd>origin/main</dd>
+        <dt class="label">状态</dt><dd><span class="dot"></span>已同步</dd>
+        <dt class="label">待推送</dt><dd>0</dd>
+        <dt class="label">未跟踪</dt><dd class="hot">3</dd>
+        <dt class="label">仓库体积</dt><dd>18.4 MB</dd>
+        <dt class="label">最后索引</dt><dd>2 分钟前</dd>
       </dl>
     </div>
   </header>
 
-  <!-- 统计带 -->
-  <section class="band" aria-label="统计">
-    <div class="grid">
-      <div class="stat">
-        <div class="n">1,284</div>
-        <div class="cap">
-          <em>条目总数</em>
-          <span>今日 +18</span>
-        </div>
-      </div>
-      <div class="stat">
-        <div class="n">317</div>
-        <div class="cap">
-          <em>笔记</em>
-          <span>最近 3 天 +9</span>
-        </div>
-      </div>
-      <div class="stat">
-        <div class="n">208</div>
-        <div class="cap">
-          <em>对话</em>
-          <span>Claude Code · Cursor</span>
-        </div>
-      </div>
-      <div class="stat">
-        <div class="n">42.6<small>MB</small></div>
-        <div class="cap">
-          <em>仓库体积</em>
-          <span>1,062 次提交</span>
-        </div>
-      </div>
-    </div>
-  </section>
+  <div class="sheet">
 
-  <!-- 最近条目 -->
-  <section class="section">
-    <div class="section-head">
-      <h2 class="label">最近条目</h2>
-      <div class="count">1,284 条中显示 5 条 · 按时间倒序</div>
-    </div>
-    <div class="list" role="listbox" aria-label="最近条目" tabindex="0">
-      <button class="item" role="option" aria-selected="true">
-        <span class="t">09:41</span>
-        <span class="h">Claude Code 会话：整理 union_sync 的表结构</span>
-        <span class="k">对话</span>
-      </button>
-      <button class="item" role="option" aria-selected="false">
-        <span class="t">昨天 22:18</span>
-        <span class="h">迁移批次表：十二批，按选择器族切分</span>
-        <span class="k">笔记</span>
-      </button>
-      <button class="item" role="option" aria-selected="false">
-        <span class="t">昨天 20:02</span>
-        <span class="h">awwwards.com/sites/format — Obys × DES 的版式实验</span>
-        <span class="k">剪贴</span>
-      </button>
-      <button class="item" role="option" aria-selected="false">
-        <span class="t">10-21</span>
-        <span class="h">设计语言 V2：把允许清单改成封闭清单</span>
-        <span class="k">笔记</span>
-      </button>
-      <button class="item" role="option" aria-selected="false">
-        <span class="t">10-20</span>
-        <span class="h">SQL：union_entitlement 月度汇总</span>
-        <span class="k">剪贴</span>
-      </button>
-    </div>
-  </section>
+    <!-- 侧栏导航：只有留白分行 -->
+    <nav class="nav">
+      <h2 class="label">目录</h2>
+      <ul>
+        <li class="on">总览 <span class="c">01</span></li>
+        <li>笔记 <span class="c">128</span></li>
+        <li>对话 <span class="c">64</span></li>
+        <li>剪贴板 <span class="c">31</span></li>
+        <li>导入 <span class="c">12</span></li>
+        <li>收藏 <span class="c">09</span></li>
+        <li>计划 <span class="c">07</span></li>
+        <li>设置 <span class="c">—</span></li>
+      </ul>
+    </nav>
 
-  <!-- 快速笔记 -->
-  <section class="section grid" aria-label="快速笔记">
-    <div class="note">
-      <h2 class="label" style="padding-bottom:12px">快速笔记</h2>
-      <fieldset>
-        <textarea rows="3" placeholder="记一条。写下的第一句话会成为标题。"></textarea>
-      </fieldset>
-      <div class="foot">
-        <div class="kbd"><b>⌘ ↵</b> 保存 · <b>⌘ ⇧ V</b> 从剪贴板取内容</div>
-        <button class="save" type="button">保存到 main</button>
-      </div>
-    </div>
-    <aside class="aside">
-      <h2 class="label">这周</h2>
-      <div class="rule"></div>
-      <p>七天里新增 62 条，其中 41 条来自剪贴板，14 条来自对话，7 条手写。</p>
-      <p>没有被打开过的条目 23 条。</p>
-      <div class="rule"></div>
-      <h2 class="label">索引</h2>
-      <div class="rule"></div>
-      <p>上次全量重建 10-19 上午 09:12，耗时 4.8 秒。</p>
-    </aside>
-  </section>
+    <main class="body">
 
-  <footer class="foot-bar">
-    <span>GitMemo · 本地优先</span>
-    <span>⌘K 搜索　⌘N 新建　⌘, 设置</span>
-    <span>v1.0.159</span>
-  </footer>
-</main>
+      <!-- 主标题一句 -->
+      <section class="lede">
+        <div>
+          <h2>三天前那条中断的条款草稿，<span style="white-space:nowrap">今天可以接着写完</span>。</h2>
+          <p>你在 10 月 20 日 17:42 存过一份未完成的草稿，引用了两份对话和一段剪贴板代码。它还在，没有被索引丢掉。</p>
+        </div>
+        <div class="stamp">
+          <span class="label">2026 年 10 月 23 日</span>
+          <span class="big">星期五 · 15:31</span>
+        </div>
+      </section>
 
-<details style="max-width:1440px;margin:0 auto 120px;padding:0 120px;
+      <!-- 四个统计数字 -->
+      <section class="band" aria-label="统计">
+        <div class="stat">
+          <div class="n">1,281</div>
+          <div class="cap"><em>条目总数</em><span>本周新增 46</span></div>
+        </div>
+        <div class="stat">
+          <div class="n">64</div>
+          <div class="cap"><em>对话</em><span>6 个工具来源</span></div>
+        </div>
+        <div class="stat">
+          <div class="n">31</div>
+          <div class="cap"><em>剪贴板</em><span>图片 9 张</span></div>
+        </div>
+        <div class="stat">
+          <div class="n">3</div>
+          <div class="cap"><em>未提交</em><span>最近 12 分钟</span></div>
+        </div>
+      </section>
+
+      <!-- 最近五条 -->
+      <section class="block">
+        <div class="block-head">
+          <h3 class="label">最近条目</h3>
+          <div class="r">1,281 条中显示 5 条 · 按时间倒序</div>
+        </div>
+        <div class="list" role="listbox" aria-label="最近条目" tabindex="0">
+          <button class="row" role="option" aria-selected="true">
+            <span class="no">01</span><span class="mark">对话</span>
+            <span class="t">Claude：把 roomlog 的抽取规则收敛成词表<em>4 个决定，2 个待决</em></span>
+            <span class="src">claude</span><span class="when">2 分钟前</span>
+          </button>
+          <button class="row" role="option" aria-selected="false">
+            <span class="no">02</span><span class="mark">笔记</span>
+            <span class="t">合同第二版：付款节点与验收口径<em>未完成草稿</em></span>
+            <span class="src">manual</span><span class="when">17:42</span>
+          </button>
+          <button class="row" role="option" aria-selected="false">
+            <span class="no">03</span><span class="mark">剪贴板</span>
+            <span class="t">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span>
+            <span class="src">终端</span><span class="when">16:08</span>
+          </button>
+          <button class="row" role="option" aria-selected="false">
+            <span class="no">04</span><span class="mark">计划</span>
+            <span class="t">视觉改造三阶段：审计 → 改造 → 验收<em>5 个行动项</em></span>
+            <span class="src">plan</span><span class="when">15:31</span>
+          </button>
+          <button class="row" role="option" aria-selected="false">
+            <span class="no">05</span><span class="mark">对话</span>
+            <span class="t">Codex：Tauri 打包签名失败的三种成因</span>
+            <span class="src">codex</span><span class="when">昨天</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 快速记一行 -->
+      <section class="quick">
+        <h3 class="label" style="margin-bottom:8px">快速记一行</h3>
+        <input type="text" placeholder="粘贴链接、想法、命令……">
+        <div class="foot">
+          <span class="hint">直接写入 收件箱/ · ⌘ ↵ 保存</span>
+          <button class="save" type="button">写入 main</button>
+        </div>
+      </section>
+
+      <!-- 待处理 -->
+      <section class="block">
+        <div class="block-head">
+          <h3 class="label">待处理 · 3</h3>
+          <div class="r">其中 1 项来自收件箱</div>
+        </div>
+        <div class="todo">
+          <div class="item">
+            <div class="h"><b>01</b><em>收件箱</em></div>
+            <p>合同草稿缺少验收条款，需要补一段可量化的口径。</p>
+          </div>
+          <div class="item">
+            <div class="h"><b>02</b><em>未提交</em></div>
+            <p>有 3 个文件未提交，最近一次改动在 12 分钟前。</p>
+          </div>
+          <div class="item">
+            <div class="h"><b>03</b><em>待定</em></div>
+            <p>roomlog 计划待从临时目录搬到正式位置。</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="colophon">
+        <span class="path">~/gitmemo · main · 1,281 个文件 · 18.4 MB</span>
+        <span>GitMemo 1.0.159</span>
+        <span>本地优先</span>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<details style="max-width:1440px;margin:0 auto 100px;padding:0 80px;
   font-family:-apple-system,'PingFang SC',sans-serif;color:#57514a">
   <summary style="cursor:pointer;font-size:13px;letter-spacing:.04em;
-    padding:14px 0;border-top:1px solid rgba(21,19,15,.14)">设计说明（不属于设计本身，点开看）</summary>
+    padding:14px 0;border-top:1px solid rgba(21,19,15,.13)">参考说明（不属于设计本身，点开看）</summary>
   <div style="font-size:13px;line-height:1.9;max-width:78ch">
-    <p><b>方向定位：</b>编辑部版式。层级靠字号落差与位置建立，容器一概不用；分隔只靠横线与留白，全页没有一条竖线。</p>
-    <p><b>参照（awwwards，本站当日榜单 https://www.awwwards.com/sites-of-the-day/feed/ 抓取）：</b></p>
-    <p>1. <b>FORMAT</b>（Obys × DES，https://www.awwwards.com/sites/format ，站点 https://format.obys.agency/）。借：整站只用一个字重（实测其样式表 22 条 font-weight 全是 400）、字号只三级（8 / 12 / 42 × 缩放变量）、大字号用负字距（-1.26～-2.76 单位随字号缩放）、画布不设 max-width。不借：全屏动效、光标的视觉中心、竖向整屏滚动。</p>
-    <p>2. <b>Signal-A Studio</b>（https://www.awwwards.com/sites/signal-a-studio ，站点 https://signal-a.studio）。借：左右留白用 5vw（1440 下 = 72px）、正文列 728px、内容区 940px、标签用 10–13px 等宽字、正文 13–19px 随断点升。不借：三字族混排（它同时用 Haas Grotesk / PP Editorial New / GT America Mono，这里只留两族）、Webflow 的入场位移。</p>
-    <p>3. <b>LPAS</b>（https://www.awwwards.com/sites/lpas ，站点 https://lpas.com/）。借：小标签用 0.07em 字距、正文 13–14px、字重只 300/400/600 三档、大标题用 clamp() 与视口绑定。不借：满幅 90rem 画布、图片主导的版面。</p>
-    <p>4. <b>Cartier — Le Chœur des Pierres</b>（https://www.awwwards.com/sites/cartier-le-choeur-des-pierres）。明确不借：3D 与沉浸式叙事、深色背景上的发光材质。这类手法与「一屏三层响度」直接冲突。</p>
-    <p><b>这里的具体数字：</b>画布 1440px，左右留白各 120px（比 Signal-A 的 5vw 更宽，为了中文行宽）。十二栏，栏距 24px，内容宽 1200px。页标题宋体 64px / 行高 0.98；统计数字 88px / 行高 0.86 / 字距 -0.035em（唯一用负字距的地方，且只在大数字上）；条目标题宋体 17px / 1.45；正文宋体 15px / 1.7；快速笔记输入 22px / 1.62；全站最小字 11px 等宽 + 0.14em 字距，只用于标签与时间。</p>
-    <p><b>字族只用两套：</b>宋体承担一切「读」的文字（标题、条目、笔记、说明），系统无衬线承担数字与界面动作，等宽只承担标签。没有外部字体，全部走系统已装字体。</p>
-    <p><b>线与留白的分工：</b>横线只用在三种地方——报头顶部一条（1px，55% 黑）、统计带上下两条（1px）、列表每行下沿一条（1px，14% 黑）。区间与区块之间一律 72px 纯留白，不加线、不加底色。全页没有卡片、没有阴影、没有圆角。</p>
-    <p><b>强调色只出现一次：</b>朱红 #a33b28，只标当前选中条目（左侧 2px 竖条 + 类型字变色）和「待推送 3 条」。其余全部黑白灰。</p>
-    <p><b>没做的事：</b>不做暗色版（编辑部版式在暗底上会变成终端感，那是另一个方向）；不做侧边导航（导航留到方向定了再谈）；不动 desktop/src 与 V2 文档。</p>
+    <p><b>方向定位：</b>编辑部版式。层级靠字号落差与位置建立，容器一概不用；分隔靠横线与留白，全页没有一条竖线。与 C（纸面 / 报头式）的区别：C 用报头 + 目录 + 正文三段与大量细线，A 只保留一条黑线与两组横线，其余全部靠留白，且把统计数字放到 82px 形成全页最响的一层。</p>
+    <p><b>参照（awwwards 当日榜单 RSS：https://www.awwwards.com/sites-of-the-day/feed/ ，读的是各家真实样式表）：</b></p>
+    <p>1. <b>FORMAT</b>（https://www.awwwards.com/sites/format ，站点 https://format.obys.agency/）。借：整站只用一个字重（实测 22 条 font-weight 全是 400）、字号只三级（8 / 12 / 42 乘缩放变量）、大字用负字距且随字号缩放、画布不设 max-width。不借：全屏动效、整屏竖向滚动、光标跟随。</p>
+    <p>2. <b>Signal-A Studio</b>（https://www.awwwards.com/sites/signal-a-studio ，站点 https://signal-a.studio）。借：左右留白 5vw（1440 下 72px）、正文列 728px、内容区 940px、标签 10–13px 等宽、正文 13–19px 随断点升。不借：三字族混排（它用 Haas Grotesk + PP Editorial New + GT America Mono），这里只留两族。</p>
+    <p>3. <b>LPAS</b>（https://www.awwwards.com/sites/lpas ，站点 https://lpas.com/）。借：小标签 0.07em 字距、正文 13–14px、字重只三档、大标题 clamp() 绑视口。不借：满幅 90rem 画布、图片主导的版面。</p>
+    <p>4. <b>Cartier — Le Chœur des Pierres</b>（https://www.awwwards.com/sites/cartier-le-choeur-des-pierres）。明确不借：3D 沉浸叙事、深底发光材质。</p>
+    <p><b>本稿数字：</b>画布 1440px，左右留白各 80px（比 Signal-A 的 5vw 宽一点），侧栏 200px，栏间 72px，主体 1008px。报头「GitMemo」宋体 64px / 行高 0.96；主标题宋体 36px / 1.32；统计数字 82px / 0.86 / 字距 -0.035em（全页唯一负字距）；条目标题宋体 17px / 1.45；快速输入宋体 23px；正文宋体 15px / 1.85；最小字 11px 等宽 + 0.14em 字距。</p>
+    <p><b>线与留白的分工：</b>横线四种用途——报头顶一条（1px，60% 黑）、统计带上下两条、列表每行下沿、快速记一行的上下沿、待处理每一项的顶沿。侧栏导航<b>没有任何线</b>，靠 19px 行距与灰/黑两色区分；区块之间 56px 纯留白。全页无卡片、无阴影、无圆角。</p>
+    <p><b>强调色只出现三次：</b>朱红 #a33b28，只用于当前导航项的左 2px 竖条、当前条目的左 2px 竖条、待处理编号与「写入 main」。</p>
   </div>
 </details>
 </body>
