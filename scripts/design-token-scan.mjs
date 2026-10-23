@@ -69,6 +69,7 @@ function parseArgs(argv) {
     maxDetail: Infinity,
     only: new Set(RULES),
     failOnViolations: true,
+    exempt: true,
   };
 
   for (const arg of argv) {
@@ -77,6 +78,7 @@ function parseArgs(argv) {
     if (arg === "--summary") { opts.detail = false; continue; }
     if (arg === "--json") { opts.json = true; opts.detail = true; continue; }
     if (arg === "--no-fail") { opts.failOnViolations = false; continue; }
+    if (arg === "--no-exempt") { opts.exempt = false; continue; }
     if (arg.startsWith("--root=")) { opts.root = resolve(process.cwd(), arg.slice(7)); continue; }
     if (arg.startsWith("--max-detail=")) {
       const n = Number(arg.slice(13));
@@ -108,6 +110,7 @@ Options
   --json              print a machine-readable report (implies --detail)
   --only=<rules>      comma-separated subset of: ${RULES.join(", ")}
   --root=<dir>        scan another directory (default: desktop/src)
+  --no-exempt         count print / reduced-motion blocks too (raw view)
   --no-fail           always exit 0 (report only, no CI gate)
   --summary           summary only (default)
   -h, --help          show this help
@@ -123,6 +126,14 @@ What counts as a violation
 
   Values expressed with var(), calc() or clamp() are treated as computed and
   are not flagged. Keywords (inherit, auto, ...) and percentages are allowed.
+
+  Exempt (counted separately, not part of the headline number):
+    @media print { ... }
+    @media (prefers-reduced-motion: reduce) { ... }
+    #gitmemo-print-root and .gitmemo-print-* blocks
+  Print output and reduced-motion overrides are supposed to win with
+  !important and literal pt/hex values; the docs treat them as an exempt zone.
+  Everything else, including a selector-specificity !important, still counts.
 
 Exit codes
   0 clean   1 violations found   2 bad invocation
@@ -213,7 +224,8 @@ function loadLadders(cssPath) {
 
 // ------------------------------------------------------------------ scanning
 
-function scanCssFile(file, text, ladders, enabled, loc, push) {
+function scanCssFile(file, text, ladders, enabled, loc, push, exemptLines) {
+  const isExemptAt = (lineNumber) => Boolean(exemptLines && exemptLines[lineNumber - 1]);
   const lines = text.split("\n");
   let offset = 0;
 
@@ -262,6 +274,8 @@ function scanCssFile(file, text, ladders, enabled, loc, push) {
 
       const isCustomProperty = prop.startsWith("--");
       const at = partStart + part.indexOf(":");
+      const position = loc(at);
+      const exempt = isExemptAt(position.line);
 
       if (enabled.has("font-size") && prop === "font-size") {
         const verdict = checkFontSizeValue(value, ladders.font);
@@ -269,7 +283,8 @@ function scanCssFile(file, text, ladders, enabled, loc, push) {
           push({
             rule: "font-size",
             file,
-            ...loc(at),
+            ...position,
+            exempt,
             value: verdict,
             snippet: snippetOf(text, partStart),
           });
@@ -281,7 +296,8 @@ function scanCssFile(file, text, ladders, enabled, loc, push) {
           push({
             rule: "spacing",
             file,
-            ...loc(at),
+            ...position,
+            exempt,
             value: `${verdict} (${prop})`,
             snippet: snippetOf(text, partStart),
           });
@@ -295,7 +311,8 @@ function scanCssFile(file, text, ladders, enabled, loc, push) {
           push({
             rule: "color",
             file,
-            ...loc(at),
+            ...position,
+            exempt,
             value: colour,
             snippet: snippetOf(text, partStart),
           });
@@ -406,11 +423,51 @@ function checkSpacingValue(rawValue, ladder, ctx = {}) {
   return out;
 }
 
+// --------------------------------------------------------------- exemptions
+
+function isExemptPrelude(prelude) {
+  return /^@media\b[^{]*\bprint\b/i.test(prelude)
+    || /^@media\b[^{]*prefers-reduced-motion\s*:\s*reduce/i.test(prelude)
+    || /#gitmemo-print-root|\.gitmemo-print-/.test(prelude);
+}
+
+/** Marks every line that sits inside a print or reduced-motion block. */
+function computeExemptLines(text) {
+  const lineCount = text.split("\n").length;
+  const flags = new Uint8Array(lineCount);
+  const stack = [];
+  let line = 0;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "\n") { line += 1; continue; }
+    if (ch === "{") {
+      const start = Math.max(
+        text.lastIndexOf("}", i),
+        text.lastIndexOf(";", i),
+        text.lastIndexOf("{", i - 1),
+      ) + 1;
+      const prelude = text.slice(start, i).trim();
+      const inherited = stack.length ? stack[stack.length - 1] : false;
+      const exempt = inherited || isExemptPrelude(prelude);
+      stack.push(exempt);
+      if (exempt) flags[line] = 1;
+    } else if (ch === "}") {
+      stack.pop();
+    } else if (stack.length && stack[stack.length - 1]) {
+      flags[line] = 1;
+    }
+  }
+  return flags;
+}
+
 // -------------------------------------------------------------------- report
 
 function printSummary(report, opts) {
   const byRule = report.counts;
-  const total = report.violations.length;
+  const rawByRule = report.countsRaw ?? report.counts;
+  const total = Object.values(byRule).reduce((sum, n) => sum + n, 0);
+  const rawTotal = Object.values(rawByRule).reduce((sum, n) => sum + n, 0);
   const out = [];
 
   out.push(`design-token-scan — ${report.rootLabel}`);
@@ -423,17 +480,29 @@ function printSummary(report, opts) {
   for (const rule of RULES) {
     if (!opts.only.has(rule)) continue;
     const count = byRule[rule] ?? 0;
-    out.push(`  ${rule.padEnd(10)} ${String(count).padStart(4)}  ${RULE_LABEL[rule]}`);
+    const raw = rawByRule[rule] ?? count;
+    const extra = opts.exempt && raw !== count ? `  (raw ${raw})` : "";
+    out.push(`  ${rule.padEnd(10)} ${String(count).padStart(4)}  ${RULE_LABEL[rule]}${extra}`);
   }
-  out.push(`  ${"total".padEnd(10)} ${String(total).padStart(4)}  ${total ? "violations — exit 1" : "clean — exit 0"}`);
+  out.push(`  ${"-".repeat(10)}`);
+  out.push(`  ${"raw".padEnd(10)} ${String(rawTotal).padStart(4)}  all matches`);
+  if (opts.exempt) {
+    out.push(`  ${"exempt".padEnd(10)} ${String(report.exemptTotal).padStart(4)}  @media print / reduced-motion / #gitmemo-print-root`);
+    out.push(`  ${"effective".padEnd(10)} ${String(total).padStart(4)}  ${total ? "violations — exit 1" : "clean — exit 0"}`);
+  } else {
+    out.push(`  ${"total".padEnd(10)} ${String(total).padStart(4)}  ${total ? "violations — exit 1" : "clean — exit 0"}`);
+  }
 
-  if (opts.detail && total) {
+  if (opts.detail && report.violations.length) {
     out.push("");
     const shown = Number.isFinite(opts.maxDetail) ? report.violations.slice(0, opts.maxDetail) : report.violations;
     for (const v of shown) {
-      out.push(`  ${v.path}:${v.line}:${v.column}  [${v.rule}] ${v.value}`);
+      const mark = v.exempt ? " [exempt]" : "";
+      out.push(`  ${v.path}:${v.line}:${v.column}  [${v.rule}]${mark} ${v.value}`);
     }
-    if (shown.length < total) out.push(`  … ${total - shown.length} more (raise --max-detail)`);
+    if (shown.length < report.violations.length) {
+      out.push(`  … ${report.violations.length - shown.length} more (raise --max-detail)`);
+    }
   }
 
   process.stdout.write(`${out.join("\n")}\n`);
@@ -484,17 +553,33 @@ function main() {
     if (isTsx) tsxCount += 1;
     else cssCount += 1;
 
+    const exemptLines = isTsx ? null : computeExemptLines(text);
+
     if (isTsx) scanTsxFile(file, text, ladders, opts.only, loc, push);
-    else scanCssFile(file, text, ladders, opts.only, loc, push);
+    else scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines);
 
     if (opts.only.has("important")) {
       for (const m of text.matchAll(/!\s*important/gi)) {
-        push({ rule: "important", file, ...loc(m.index), value: "!important", snippet: snippetOf(text, m.index) });
+        const position = loc(m.index);
+        push({
+          rule: "important",
+          file,
+          ...position,
+          exempt: Boolean(exemptLines && exemptLines[position.line - 1]),
+          value: "!important",
+          snippet: snippetOf(text, m.index),
+        });
       }
     }
   }
 
-  for (const v of violations) counts[v.rule] += 1;
+  const countsRaw = Object.fromEntries(RULES.map((r) => [r, 0]));
+  for (const v of violations) {
+    countsRaw[v.rule] += 1;
+    if (!v.exempt) counts[v.rule] += 1;
+  }
+  const effective = opts.exempt ? violations.filter((v) => !v.exempt) : violations;
+  const exemptTotal = opts.exempt ? violations.length - effective.length : 0;
   violations.sort((a, b) => (a.file === b.file
     ? a.line - b.line || a.column - b.column
     : a.file.localeCompare(b.file)));
@@ -511,6 +596,8 @@ function main() {
       sourceLabel: ladders.source ? displayPath(ladders.source, REPO_ROOT) : null,
     },
     counts,
+    countsRaw,
+    exemptTotal,
     violations: violations.map((v) => ({ ...v, path: displayPath(v.file, REPO_ROOT), file: undefined })),
   };
 
@@ -520,7 +607,7 @@ function main() {
     printSummary(report, opts);
   }
 
-  const hasViolations = violations.length > 0;
+  const hasViolations = effective.length > 0;
   process.exit(hasViolations && opts.failOnViolations ? 1 : 0);
 }
 
