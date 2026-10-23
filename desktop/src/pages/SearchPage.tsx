@@ -326,6 +326,8 @@ export default function SearchPage({
       if (query !== "") {
         event.preventDefault();
         setQuery("");
+        // Esc 的语义是「重新开始搜」，所以焦点要回到搜索框，否则下一次输入落到 body
+        inputRef.current?.focus();
       }
     };
     window.addEventListener("keydown", handleKeyDown, true);
