@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMemo — 方向 I：圆润气泡</title>
+<style>
+  :root{
+    --bg:#0c0e11;
+    --card:#171b20;
+    --card-2:#1d2228;
+    --card-3:#232a31;
+    --ink:#eef1f4;
+    --ink-2:#aeb7c0;
+    --ink-3:#6f7b86;
+    --accent:#6fb3ff;
+    --mint:#5fe0b0;
+    --lilac:#b79bff;
+    --amber:#ffc46b;
+    --r-xl:16px;
+    --r-lg:14px;
+    --r-md:12px;
+    --gap:12px;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,monospace;
+    --sans:-apple-system,"SF Pro Text","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow:hidden}
+  body{padding:var(--gap)}
+  .app{width:calc(1440px - var(--gap) * 2);height:calc(900px - var(--gap) * 2);
+    display:grid;grid-template-columns:64px 300px 1fr;grid-template-rows:48px 1fr;
+    gap:var(--gap)}
+
+  /* 1 · 顶栏 */
+  .topbar{grid-column:1 / -1;display:flex;align-items:center;gap:14px;
+    padding:0 16px;background:var(--card);border-radius:var(--r-xl)}
+  .topbar .mark{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+  .topbar .crumb{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .topbar .crumb b{color:var(--ink-2);font-weight:400}
+  .topbar .spacer{flex:1}
+  .stat{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(95,224,176,.14)}
+  .pill-warn{font-family:var(--mono);font-size:10px;color:#12161a;background:var(--amber);
+    border-radius:999px;padding:1px 7px}
+  .pill-key{font-family:var(--mono);font-size:10px;color:var(--accent);
+    background:rgba(111,179,255,.12);border-radius:999px;padding:3px 9px}
+
+  /* 2 · 图标栏 */
+  .rail{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;
+    background:var(--card);border-radius:var(--r-xl)}
+  .rail button{width:44px;height:38px;display:grid;place-items:center;border:0;cursor:pointer;
+    background:transparent;color:var(--ink-3);border-radius:var(--r-md);
+    font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+    transition:background .15s ease,color .15s ease,transform .15s ease}
+  .rail button:hover{background:var(--card-3);color:var(--ink-2);transform:translateY(-1px)}
+  .rail button[data-on="true"]{background:rgba(111,179,255,.14);color:var(--accent)}
+  .rail .sep{width:24px;height:1px;background:rgba(255,255,255,.06);margin:6px 0}
+
+  /* 3 · 最近条目 */
+  .listcol{display:flex;flex-direction:column;background:var(--card);border-radius:var(--r-xl);
+    overflow:hidden;min-width:0}
+  .colhead{height:40px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 14px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    color:var(--ink-3);text-transform:uppercase}
+  .colhead .n{color:var(--ink-2);background:rgba(255,255,255,.05);
+    border-radius:999px;padding:2px 8px}
+  .list{flex:1;overflow:hidden;padding:0 8px 8px;display:flex;flex-direction:column;gap:4px}
+  .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+    height:40px;padding:0 10px;border-radius:var(--r-md);cursor:pointer;
+    transition:background .15s ease,transform .15s ease}
+  .row:hover{background:var(--card-2);transform:translateY(-1px)}
+  .row[data-on="true"]{background:rgba(111,179,255,.12)}
+  .row .l{min-width:0}
+  .row .t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .tm{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .row[data-on="true"] .t{color:#fff}
+
+  /* 4-7 · 主区 */
+  .main{display:flex;flex-direction:column;gap:var(--gap);min-width:0;min-height:0}
+  .mainhead{height:22px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 6px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .mainhead .r{display:flex;gap:14px}
+  .mainhead .r b{color:var(--ink-2);font-weight:400}
+
+  .banner{background:linear-gradient(120deg,rgba(111,179,255,.16),rgba(183,155,255,.10));
+    border-radius:var(--r-xl);padding:14px 18px;display:flex;align-items:center;
+    justify-content:space-between;gap:20px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -24px 48px rgba(111,179,255,.06)}
+  .banner h1{font-size:16px;font-weight:600;letter-spacing:.01em}
+  .banner p{font-family:var(--mono);font-size:11px;color:var(--ink-2);white-space:nowrap;
+    background:rgba(12,14,17,.42);border-radius:999px;padding:5px 12px}
+
+  .gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
+  .gauge{background:var(--card);border-radius:var(--r-xl);padding:12px 16px 14px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -26px 40px rgba(111,179,255,.05)}
+  .gauge[data-tone="mint"]{box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -26px 40px rgba(95,224,176,.06)}
+  .gauge[data-tone="lilac"]{box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -26px 40px rgba(183,155,255,.07)}
+  .gauge[data-tone="amber"]{box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -26px 40px rgba(255,196,107,.07)}
+  .gauge .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .gauge .v{font-family:var(--mono);font-size:30px;line-height:1.1;margin-top:4px}
+  .gauge .bar{height:4px;background:rgba(255,255,255,.07);border-radius:999px;
+    margin-top:9px;overflow:hidden}
+  .gauge .bar span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+  .gauge .d{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:7px}
+
+  .table{background:var(--card);border-radius:var(--r-xl);padding:6px 8px 8px;
+    display:flex;flex-direction:column;min-height:0}
+  .thead,.trow{display:grid;grid-template-columns:62px 84px 1fr 78px 72px;
+    align-items:center;height:30px;padding:0 10px;gap:10px}
+  .thead{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-3);height:26px}
+  .trow{border-radius:var(--r-md);font-size:12.5px;cursor:pointer;
+    transition:background .15s ease,transform .15s ease}
+  .trow:hover{background:var(--card-2);transform:translateY(-1px)}
+  .trow .time{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;border-radius:999px;
+    padding:2px 8px;justify-self:start;white-space:nowrap}
+  .cap[data-kind="chat"]{color:#0e1418;background:var(--accent)}
+  .cap[data-kind="note"]{color:#0e1418;background:var(--mint)}
+  .cap[data-kind="clip"]{color:#0e1418;background:var(--amber)}
+  .cap[data-kind="plan"]{color:#0e1418;background:var(--lilac)}
+  .trow .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow .src{font-family:var(--mono);font-size:10px;color:var(--ink-3);text-align:right}
+  .trow .state{font-family:var(--mono);font-size:9.5px;text-align:right;color:var(--ink-3)}
+  .trow .state[data-s="new"]{color:var(--accent)}
+  .trow .state[data-s="draft"]{color:var(--amber)}
+
+  .lower{display:grid;grid-template-columns:1fr 340px;gap:var(--gap);flex:1;min-height:0}
+  .panel{background:var(--card);border-radius:var(--r-xl);display:flex;
+    flex-direction:column;min-height:0;padding:0 8px 8px}
+  .panel .ph{height:36px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-3)}
+  .shot{flex:1;padding:4px 8px 10px;font-family:var(--mono);font-size:12px;
+    line-height:1.7;color:var(--ink-2);display:flex;flex-direction:column;gap:14px}
+  .shot .why{color:var(--ink-3);font-size:11px}
+  .preview{flex:1;border-radius:var(--r-lg);background:rgba(255,255,255,.03);
+    padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+  .preview .pt{font-size:13px;color:var(--ink)}
+  .preview .pl{font-size:11.5px;color:var(--ink-3)}
+  .preview .pmeta{display:flex;gap:6px;margin-top:auto}
+  .chip{font-family:var(--mono);font-size:9.5px;color:var(--ink-2);
+    background:rgba(255,255,255,.06);border-radius:999px;padding:2px 8px}
+  .prompt{display:flex;flex-direction:column;gap:8px;background:var(--card-3);
+    border-radius:var(--r-lg);padding:12px 14px 13px;font-family:var(--mono);font-size:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -18px 32px rgba(111,179,255,.05)}
+  .prompt .line{display:flex;align-items:center;gap:9px}
+  .prompt .hint{color:var(--ink-3);font-size:10.5px;padding-left:2px}
+  .prompt .sigil{color:#0e1418;background:var(--mint);border-radius:999px;
+    padding:1px 7px;font-size:11px}
+  .prompt .ph2{color:var(--ink-3)}
+  .caret{width:7px;height:14px;border-radius:2px;background:var(--accent);
+    animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.caret{animation:none}}
+  .keys{display:flex;gap:10px;padding:8px 8px 0;font-family:var(--mono);
+    font-size:10px;color:var(--ink-3)}
+  kbd{border-radius:6px;padding:1px 5px;color:var(--ink-2);background:rgba(255,255,255,.07)}
+
+  .todo{list-style:none;display:flex;flex-direction:column;gap:4px;flex:1;min-height:0}
+  .todo li{display:grid;grid-template-columns:14px 1fr auto;gap:9px;align-items:center;
+    height:34px;padding:0 10px;border-radius:var(--r-md);font-size:12px;color:var(--ink-2);
+    transition:background .15s ease,transform .15s ease;cursor:pointer}
+  .todo li:hover{background:var(--card-2);transform:translateY(-1px)}
+  .todo li i{width:11px;height:11px;border-radius:4px;
+    background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .todo li b{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);font-weight:400}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 1 · 顶栏 -->
+  <header class="topbar">
+    <span class="mark">GitMemo</span>
+    <span class="crumb">repo/<b>~/gitmemo</b> · main</span>
+    <span class="stat"><span class="dot"></span>已同步 · 2 分钟前</span>
+    <span class="stat">未推送 <b class="pill-warn">3</b></span>
+    <span class="spacer"></span>
+    <span class="stat">索引 1,281 条 · 18.4 MB</span>
+    <span class="pill-key">Cmd K</span>
+  </header>
+
+  <!-- 2 · 图标栏 -->
+  <nav class="rail" aria-label="主导航">
+    <button data-on="true">OVR</button>
+    <button>NOTE</button>
+    <button>CHAT</button>
+    <button>CLIP</button>
+    <button>IMPO</button>
+    <button>FAV</button>
+    <div class="sep"></div>
+    <button>SET</button>
+  </nav>
+
+  <!-- 3 · 最近条目 -->
+  <section class="listcol">
+    <div class="colhead"><span>最近条目</span><span class="n">1,281</span></div>
+    <div class="list">
+      <div class="row" data-on="true"><div class="l"><span class="t">合同第二版：付款节点与验收口径</span></div><span class="tm">17:42</span></div>
+      <div class="row"><div class="l"><span class="t">Claude：把 roomlog 的抽取规则收敛成词表</span></div><span class="tm">16:58</span></div>
+      <div class="row"><div class="l"><span class="t">cargo test --manifest-path desktop/…</span></div><span class="tm">16:08</span></div>
+      <div class="row"><div class="l"><span class="t">视觉改造三阶段：审计 → 改造 → 验收</span></div><span class="tm">15:31</span></div>
+      <div class="row"><div class="l"><span class="t">Codex：Tauri 打包签名失败的三种成因</span></div><span class="tm">昨天</span></div>
+      <div class="row"><div class="l"><span class="t">awwwards.com/sites/format — 版式实验</span></div><span class="tm">昨天</span></div>
+      <div class="row"><div class="l"><span class="t">设计语言 V2：把允许清单改成封闭清单</span></div><span class="tm">10-21</span></div>
+      <div class="row"><div class="l"><span class="t">SQL：union_entitlement 月度汇总</span></div><span class="tm">10-20</span></div>
+      <div class="row"><div class="l"><span class="t">Obsidian 迁移：frontmatter 保留策略</span></div><span class="tm">10-20</span></div>
+      <div class="row"><div class="l"><span class="t">会议室白板：Q4 目标拆解</span></div><span class="tm">10-19</span></div>
+    </div>
+  </section>
+
+  <main class="main">
+    <div class="mainhead">
+      <span>总览 / 今天</span>
+      <span class="r"><span>最后索引 <b>23:19</b></span><span>待提交 <b>3</b></span></span>
+    </div>
+
+    <!-- 4 · 一句话状态 -->
+    <div class="banner">
+      <h1>三天前那条中断的条款草稿，今天可以接着写完。</h1>
+      <p>10-20 17:42 · 引用 2 段对话、1 段剪贴板代码</p>
+    </div>
+
+    <!-- 5 · 四格仪表带 -->
+    <div class="gauges">
+      <div class="gauge"><div class="k">条目总数</div><div class="v">1,281</div>
+        <div class="bar"><span style="width:72%"></span></div><div class="d">本周 +46</div></div>
+      <div class="gauge" data-tone="mint"><div class="k">对话</div><div class="v">64</div>
+        <div class="bar"><span style="width:41%;background:var(--mint)"></span></div><div class="d">6 个工具来源</div></div>
+      <div class="gauge" data-tone="amber"><div class="k">剪贴板</div><div class="v">31</div>
+        <div class="bar"><span style="width:26%;background:var(--amber)"></span></div><div class="d">图片 9 张</div></div>
+      <div class="gauge" data-tone="lilac"><div class="k">未提交</div><div class="v">3</div>
+        <div class="bar"><span style="width:9%;background:var(--lilac)"></span></div><div class="d">最近 12 分钟</div></div>
+    </div>
+
+    <!-- 6 · 表格 -->
+    <div class="table">
+      <div class="thead"><span>时间</span><span>类型</span><span>标题</span><span>来源</span><span>状态</span></div>
+      <div class="trow"><span class="time">23:17</span><span class="cap" data-kind="chat">对话</span><span class="title">Claude：把 roomlog 的抽取规则收敛成词表</span><span class="src">claude</span><span class="state" data-s="new">新增</span></div>
+      <div class="trow"><span class="time">17:42</span><span class="cap" data-kind="note">笔记</span><span class="title">合同第二版：付款节点与验收口径</span><span class="src">manual</span><span class="state" data-s="draft">草稿</span></div>
+      <div class="trow"><span class="time">16:08</span><span class="cap" data-kind="clip">剪贴板</span><span class="title">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span><span class="src">终端</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">15:31</span><span class="cap" data-kind="plan">计划</span><span class="title">视觉改造三阶段：审计 → 改造 → 验收</span><span class="src">plan</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">昨天</span><span class="cap" data-kind="chat">对话</span><span class="title">Codex：Tauri 打包签名失败的三种成因</span><span class="src">codex</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">昨天</span><span class="cap" data-kind="clip">剪贴板</span><span class="title">awwwards.com/sites/format — Obys × DES 版式实验</span><span class="src">浏览器</span><span class="state">已同步</span></div>
+      <div class="trow"><span class="time">10-21</span><span class="cap" data-kind="note">笔记</span><span class="title">设计语言 V2：把允许清单改成封闭清单</span><span class="src">manual</span><span class="state">已同步</span></div>
+    </div>
+
+    <div class="lower">
+      <!-- 7a · 命令式输入 -->
+      <div class="panel">
+        <div class="ph"><span>快速记一行</span><span>直接写入 收件箱/</span></div>
+        <div class="shot">
+          <div class="why">段落、链接、命令都可以，第一行会成为标题。</div>
+          <div class="preview">
+            <div class="pt">合同第二版：付款节点</div>
+            <div class="pl">今天把上次中断的地方接上，先补验收条款，再回填付款节点。</div>
+            <div class="pmeta"><span class="chip">收件箱/</span><span class="chip">未保存</span><span class="chip">14:42 开始</span></div>
+          </div>
+        </div>
+        <div class="prompt">
+          <div class="line"><span class="sigil">›</span><span class="ph2">写点什么…</span><span class="caret"></span></div>
+          <div class="hint">支持 #标签、[[双链]]、直接粘贴图片；第一行会成为标题</div>
+        </div>
+        <div class="keys"><span><kbd>Cmd</kbd><kbd>Enter</kbd> 保存</span><span><kbd>Cmd</kbd><kbd>V</kbd> 从剪贴板取内容</span></div>
+      </div>
+
+      <!-- 7b · 待处理 -->
+      <div class="panel">
+        <div class="ph"><span>待处理</span><span>3</span></div>
+        <ul class="todo">
+          <li><i></i><span>合同草稿缺少验收条款</span><b>收件箱</b></li>
+          <li><i></i><span>3 个文件未提交</span><b>12 分钟前</b></li>
+          <li><i></i><span>roomlog 计划待搬迁</span><b>待定</b></li>
+        </ul>
+        <div class="keys"><span>勾选后写入提交信息</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
