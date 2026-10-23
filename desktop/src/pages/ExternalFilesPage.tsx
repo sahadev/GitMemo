@@ -412,9 +412,7 @@ export default function ExternalFilesPage({
             />
             <ListPaneBody>
               {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
-              {!loading && entries.length === 0 ? (
-                <EmptyState compact title={t("externalFiles.empty")} />
-              ) : null}
+              
               {!loading && entries.map((entry) => {
                 const active = selectedFilePath === entry.file_path;
                 const title = getDocumentTitle(entry);
@@ -441,7 +439,9 @@ export default function ExternalFilesPage({
         )}
         right={
           !selectedEntry ? (
-            entries.length > 0 ? <EmptyState title={t("externalFiles.selectFile")} full /> : null
+            entries.length > 0
+              ? <EmptyState title={t("externalFiles.selectFile")} full />
+              : <EmptyState title={t("externalFiles.empty")} full />
           ) : (
             <DetailPane>
             <>

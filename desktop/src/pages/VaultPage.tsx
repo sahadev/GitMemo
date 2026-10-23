@@ -190,6 +190,7 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
           title={t("vault.title")}
           actions={(
             <>
+              <span className="gm-inst-list-count">{entries.length}</span>
               <Button variant="toolbar" icon={RefreshCw} title={t("common.refresh")} onClick={() => void loadVault()} />
               {unlocked ? (
                 <Button variant="toolbar" icon={Lock} title={t("vault.lock")} onClick={() => void lockVault()} />
@@ -198,6 +199,34 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
           )}
         />
 
+        {!vaultEnabled || !unlocked ? null : entries.length === 0 ? null : (
+          <div className="gm-vault-list">
+            {entries.map((entry) => {
+              const activeEntry = selectedEntry?.id === entry.id;
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className="gm-vault-entry"
+                  data-active={activeEntry ? "true" : "false"}
+                  onClick={() => {
+                    setSelectedId(entry.id);
+                    setDetail(null);
+                  }}
+                >
+                  <span className="gm-vault-entry-icon"><AppIcon icon={KeyRound} size="xs" /></span>
+                  <span className="gm-vault-entry-main">
+                    <span className="gm-vault-entry-title">{entry.title}</span>
+                    <span className="gm-vault-entry-meta">{kindLabel(entry.kind)} · {relativeTime(entry.updated_at)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="gm-vault-detail-pane">
         {!vaultEnabled ? (
           <div className="gm-vault-empty-wrap">
             <EmptyState icon={ShieldCheck} title={t("vault.disabled")} description={t("vault.disabledDesc")}>
@@ -233,35 +262,7 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
           <div className="gm-vault-empty-wrap">
             <EmptyState icon={KeyRound} title={t("vault.empty")} description={t("vault.emptyDesc")} />
           </div>
-        ) : (
-          <div className="gm-vault-list">
-            {entries.map((entry) => {
-              const activeEntry = selectedEntry?.id === entry.id;
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  className="gm-vault-entry"
-                  data-active={activeEntry ? "true" : "false"}
-                  onClick={() => {
-                    setSelectedId(entry.id);
-                    setDetail(null);
-                  }}
-                >
-                  <span className="gm-vault-entry-icon"><AppIcon icon={KeyRound} size="xs" /></span>
-                  <span className="gm-vault-entry-main">
-                    <span className="gm-vault-entry-title">{entry.title}</span>
-                    <span className="gm-vault-entry-meta">{kindLabel(entry.kind)} · {relativeTime(entry.updated_at)}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="gm-vault-detail-pane">
-        {!selectedEntry ? (
+        ) : !selectedEntry ? (
           entries.length > 0 ? <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full /> : null
         ) : !unlocked ? (
           <EmptyState icon={Lock} title={t("vault.lockedState")} description={t("vault.lockedStateDesc")} full />

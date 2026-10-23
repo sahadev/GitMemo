@@ -206,9 +206,7 @@ export default function PlansPage({
         <ListPaneBody mobileBottomPadding={isMobile}>
           {loading ? (
             <Loading compact text={t("common.loading")} />
-          ) : files.length === 0 ? (
-            <EmptyState icon={Lightbulb} title={t("plans.empty")} description={t("plans.emptyDesc")} />
-          ) : (
+          ) : files.length === 0 ? null : (
             <>
             {files.map((f) => {
               const selected = selectedFile === f.path;
@@ -245,7 +243,9 @@ export default function PlansPage({
         {!selectedFile ? (
           files.length > 0 ? (
             <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.selectToView")} full />
-          ) : null
+          ) : (
+            <EmptyState icon={Lightbulb} iconSize="empty-lg" title={t("plans.empty")} description={t("plans.emptyDesc")} full />
+          )
         ) : (
           <>
             <FileDetailToolbar
