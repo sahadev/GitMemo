@@ -169,11 +169,6 @@
   --gm-z-sticky: 10;
   --gm-z-bottom-nav: 30;
   --gm-z-overlay: 50;
-  --gm-radius-none: 0;
-  --gm-radius-xs: 2px;
-  --gm-radius-sm: 4px;
-  --gm-radius-md: 6px;
-  --gm-radius-lg: 8px;
   --gm-radius-pill: 999px;
   --gm-color-bg-canvas: var(--gm-canvas);
   --gm-color-bg-page: var(--gm-canvas);
@@ -3369,7 +3364,7 @@ a:focus-visible {
 .gm-setup-card {
   background: var(--bg-card);
   border: none;
-  border-radius: var(--gm-radius-none);
+  border-radius: 0;
   box-shadow: none;
   display: grid;
   grid-template-columns: var(--gm-size-setup-sidebar-width) minmax(0, 1fr);
