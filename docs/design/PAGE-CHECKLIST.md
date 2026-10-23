@@ -75,7 +75,7 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 
 禁止：分类色、`--gm-tag-*`（笔记页没有类型标签）、任何字面量色值。
 
-选中行判定：必须有 `background: var(--gm-selected)` 且文字用 `var(--gm-on-selected)`——浅色下选中行是墨底，文字若仍用 `--gm-text`（同为黑）会变成黑底黑字。
+选中行判定：`background: var(--gm-selected)` + 左侧 2px `var(--gm-accent)` 竖条，**文字色不变**（仍用 `--gm-text`）。`--gm-on-selected` 未接线，不得在组件里引用——把选中底改成近黑再指望它反白，就是黑底黑字。
 
 ### 1.4 窄屏
 
