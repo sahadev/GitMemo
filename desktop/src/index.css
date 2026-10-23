@@ -7457,12 +7457,16 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 /* 5 · 命令输入 + 待处理 */
 .gm-inst-lower {
   display: grid;
-  flex: 1;
+  flex: none;
   gap: var(--gm-space-4);
   grid-template-columns: minmax(0, 1fr) 336px;
   margin-top: var(--gm-space-4);
   min-height: 0;
 }
+.gm-inst-command {
+  min-height: 152px;
+}
+
 .gm-inst-command,
 .gm-inst-todo {
   border: var(--gm-border-w) solid var(--gm-line-strong);
