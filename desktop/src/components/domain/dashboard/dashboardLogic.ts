@@ -79,12 +79,37 @@ const DASHBOARD_CATEGORY_ROUTES: Record<DashboardContentCategory, DashboardCateg
   plan: { page: "ai-records", aiRecordsTab: "plans" },
 };
 
+// 后端回来的分类名不止一种写法：契约里是单数（conversation/manual/scratch/clip/plan），
+// 实际载荷里出现过复数与目录名（conversations / notes / clips / plans）。
+// 这里做一次归一，避免「标签显示原始键」以及更糟的「点对话跳到笔记」。
+const DASHBOARD_CATEGORY_ALIASES: Record<string, DashboardContentCategory> = {
+  conversation: "conversation",
+  conversations: "conversation",
+  manual: "manual",
+  manuals: "manual",
+  note: "manual",
+  notes: "manual",
+  scratch: "scratch",
+  scratches: "scratch",
+  scratch_notes: "scratch",
+  clip: "clip",
+  clips: "clip",
+  clipboard: "clip",
+  plan: "plan",
+  plans: "plan",
+};
+
+export function normalizeDashboardCategory(category: string): DashboardContentCategory | null {
+  if (!category) return null;
+  return DASHBOARD_CATEGORY_ALIASES[category.trim().toLowerCase()] ?? null;
+}
+
 export function isDashboardContentCategory(category: string): category is DashboardContentCategory {
-  return DASHBOARD_CONTENT_CATEGORIES.includes(category as DashboardContentCategory);
+  return normalizeDashboardCategory(category) !== null;
 }
 
 export function getDashboardContentCategory(category: string): DashboardContentCategory {
-  return isDashboardContentCategory(category) ? category : "scratch";
+  return normalizeDashboardCategory(category) ?? "scratch";
 }
 
 export function getDashboardCategoryRoute(category: string): DashboardCategoryRoute {

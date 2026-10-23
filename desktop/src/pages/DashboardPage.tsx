@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -306,8 +306,10 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     },
   ];
 
+  const categoryKind = (category: string) => getDashboardContentCategory(category);
+
   const categoryLabel = (category: string) => {
-    switch (category) {
+    switch (getDashboardContentCategory(category)) {
       case "conversation": return t("dashboard.typeConversation");
       case "manual": return t("dashboard.typeNote");
       case "scratch": return t("dashboard.typeScratch");
@@ -444,7 +446,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 onClick={() => openRecord(item)}
               >
                 <span role="cell" data-col="time" className="gm-inst-table-time gm-dash-table-time">{relativeTime(item.modified, t)}</span>
-                <span role="cell" data-col="type" className="gm-inst-tag gm-dash-tag" data-kind={item.category}>
+                <span role="cell" data-col="type" className="gm-inst-tag gm-dash-tag" data-kind={categoryKind(item.category)}>
                   {categoryLabel(item.category)}
                 </span>
                 <span role="cell" data-col="title" className="gm-inst-table-title gm-dash-table-title" title={item.name}>{item.name}</span>
