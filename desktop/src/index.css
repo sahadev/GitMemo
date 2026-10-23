@@ -4268,7 +4268,7 @@ a:focus-visible {
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: var(--gm-control-gap);
+  gap: var(--gm-space-3);
 }
 
 .gm-settings-stack {
@@ -4675,7 +4675,7 @@ a:focus-visible {
 .gm-settings-panel-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gm-control-gap);
+  gap: var(--gm-space-3);
   margin-top: var(--gm-space-3);
 }
 
@@ -5072,7 +5072,7 @@ a:focus-visible {
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: var(--gm-control-gap);
+  gap: var(--gm-space-3);
 }
 
 .gm-settings-modal-body {
