@@ -36,7 +36,7 @@
  * No dependencies, Node >= 20.
  */
 
-import { spawn, spawnSync } from "node:child_process";
+import { execSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync,
@@ -445,6 +445,17 @@ async function launchChromium(chromium) {
   }
 }
 
+/** Short HEAD plus a dirty flag, so a baseline can be tied to a revision. */
+function gitState() {
+  try {
+    const commit = execSync("git rev-parse --short HEAD", { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain -- desktop/src", { cwd: REPO_ROOT, encoding: "utf8" }).trim().length > 0;
+    return { commit, dirty };
+  } catch {
+    return { commit: null, dirty: null };
+  }
+}
+
 // ---------------------------------------------------------------- fixtureing
 
 function backendStub(viewport, opts) {
@@ -819,6 +830,7 @@ async function runCapture(opts) {
 
   const manifest = {
     generatedAt: startedAt,
+    git: gitState(),
     partial,
     tool: "scripts/design-screenshots.mjs",
     playwright: pwVersion,
