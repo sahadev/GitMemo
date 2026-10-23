@@ -4171,14 +4171,15 @@ a:focus-visible {
 }
 
 .gm-settings-card {
-  background: color-mix(in srgb, var(--bg-card) 94%, var(--bg) 6%);
-  border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
-  padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--gm-line);
+  border-radius: 0;
+  padding: var(--gm-space-5) 0;
 }
 
 .gm-settings-page[data-mobile="true"] .gm-settings-card {
-  padding: var(--gm-card-pad-y) var(--gm-card-pad-mobile);
+  padding: var(--gm-space-5) 0;
 }
 
 .gm-settings-card-spaced {
@@ -4238,13 +4239,14 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: 0;
   color: inherit;
   cursor: pointer;
   display: flex;
   gap: var(--gm-settings-row-icon-gap);
-  margin: 0 calc(-1 * var(--gm-space-3));
-  padding: var(--gm-space-2) var(--gm-space-3);
+  margin: 0;
+  min-height: var(--gm-density-header);
+  padding: var(--gm-space-2) 0;
   text-align: left;
 }
 
@@ -4266,7 +4268,9 @@ a:focus-visible {
   display: flex;
   gap: var(--gm-card-header-gap);
   justify-content: space-between;
+  min-height: var(--gm-density-header);
   min-width: 0;
+  padding: var(--gm-space-2) 0;
 }
 
 .gm-settings-page[data-mobile="true"] .gm-settings-row {
@@ -4333,12 +4337,13 @@ a:focus-visible {
 
 .gm-settings-plain-row {
   align-items: center;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--gm-line);
   display: flex;
   gap: var(--gm-card-header-gap);
   justify-content: space-between;
+  min-height: var(--gm-density-header);
   min-width: 0;
-  padding: var(--gm-row-pad-y-comfort) 0;
+  padding: var(--gm-space-2) 0;
 }
 
 .gm-settings-plain-row-copy {
@@ -4492,7 +4497,7 @@ a:focus-visible {
 
 .gm-settings-input {
   background: var(--bg);
-  border: 1px solid var(--accent);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   color: var(--text);
   font-size: var(--gm-font-xs);
@@ -4517,7 +4522,7 @@ a:focus-visible {
 .gm-settings-copy-value {
   align-items: center;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-md);
   color: var(--text-secondary);
   cursor: pointer;
@@ -4578,10 +4583,11 @@ a:focus-visible {
 .gm-settings-status[data-tone="muted"] { color: var(--text-secondary); }
 
 .gm-settings-info-panel {
-  background: var(--bg-hover);
-  border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
-  padding: var(--gm-card-header-gap) var(--gm-section-gap);
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--gm-line-strong);
+  border-radius: 0;
+  padding: var(--gm-space-3) var(--gm-space-4);
 }
 
 .gm-settings-info-panel[data-tone="default"] {
