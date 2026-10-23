@@ -75,7 +75,7 @@
   "externalFiles": {
     "title": "外部文件",
     "subtitle": "记录你从设备中打开过的文件，仅保存在本机索引中。",
-    "empty": "暂无外部文件",
+    "empty": "还没有外部文件",
     "selectFile": "通过 GitMemo 打开一个文件后，它会出现在这里",
     "openMarkdown": "打开 Markdown 文件",
     "localOnlyHint": "这个列表仅保存在当前设备，不会同步到 Git。",
@@ -103,7 +103,8 @@
     "clearAll": "全部清空",
     "clearAllConfirm": "将所有文件从外部文件列表中移除？",
     "clearMissingConfirm": "清除 {0} 个失效文件？记录会被移除，但磁盘上的文件不受影响。",
-    "cleared": "已清空外部文件列表"
+    "cleared": "已清空外部文件列表",
+    "emptyHint": "在设置里添加外部目录，文件会出现在这里。"
   },
   "favorites": {
     "title": "收藏",

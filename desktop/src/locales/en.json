@@ -103,7 +103,8 @@
     "clearAll": "Clear all",
     "clearAllConfirm": "Remove all files from the external files list?",
     "clearMissingConfirm": "Clear {0} missing file(s)? The records are removed; files on disk are not touched.",
-    "cleared": "Cleared external files list"
+    "cleared": "Cleared external files list",
+    "emptyHint": "Add an external folder in settings and its files will show up here."
   },
   "favorites": {
     "title": "Favorites",

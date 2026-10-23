@@ -19,6 +19,7 @@ import { shouldActivateMobileEditorChrome } from "../components/domain/app/appCh
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
+import { PageFrame } from "../components/layout/PageFrame";
 import { getDocumentTitle } from "../components/domain/files/fileWorkspaceLogic";
 import {
   canClearMissingExternalFiles,
@@ -367,6 +368,16 @@ export default function ExternalFilesPage({
     if (!filePath) return;
     void openExternalFile(filePath);
   }, [diskChangePending?.file_path, openExternalFile, selectedFilePath]);
+
+  // 列表为空时整屏空态，右栏不出现
+  if (!loading && entries.length === 0) {
+    return (
+      <PageFrame column>
+        <PaneHeader icon={FileSymlink} title={t("externalFiles.title")} actions={<Badge>{entries.length}</Badge>} />
+        <EmptyState icon={FileSymlink} iconSize="empty-lg" title={t("externalFiles.empty")} description={t("externalFiles.emptyHint")} full />
+      </PageFrame>
+    );
+  }
 
   return (
     <FileWorkspace
