@@ -129,6 +129,14 @@
     "syncToGit": "同步到 Git"
   },
   "dashboard": {
+    "gaugeTotal": "条目总数",
+    "gaugeUnpushed": "未提交",
+    "gaugeType": "类型",
+    "gaugeState": "状态",
+    "tableSource": "来源",
+    "resumeLatest": "接着写：{0}",
+    "pendingNoEditor": "还没检测到编辑器配置",
+    "pendingTitle": "待处理",
     "title": "仪表盘",
     "conversations": "对话",
     "manuals": "手册",

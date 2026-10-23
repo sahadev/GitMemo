@@ -129,6 +129,14 @@
     "syncToGit": "Sync to Git"
   },
   "dashboard": {
+    "gaugeTotal": "Total items",
+    "gaugeUnpushed": "Unpushed",
+    "gaugeType": "Type",
+    "gaugeState": "State",
+    "tableSource": "Source",
+    "resumeLatest": "Resume: {0}",
+    "pendingNoEditor": "No editor configured yet",
+    "pendingTitle": "Pending",
     "title": "Dashboard",
     "conversations": "Conversations",
     "manuals": "Manuals",

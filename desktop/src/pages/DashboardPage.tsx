@@ -1,90 +1,29 @@
-import { useEffect, useState, useCallback, useMemo, useRef, type KeyboardEvent } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { useI18n } from "../hooks/useI18n";
-import { useSync } from "../hooks/useSync";
-import { useAppStore } from "../hooks/useAppStore";
-import { useToast } from "../hooks/useToast";
-import { relativeTime, formatAbsoluteTime } from "../utils/time";
-import { Loading } from "../components/Loading";
-import { PageHeader } from "../components/AppHeaders";
-import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
-import { useFileWatcher } from "../hooks/useFileWatcher";
-import { usePlatformFlags } from "../hooks/usePlatform";
-import { useTimedCopy } from "../hooks/useTimedCopy";
-import { AppIcon, type AppIconTone } from "../components/base/AppIcon";
-import { Badge } from "../components/base/Badge";
-import { Button } from "../components/base/Button";
-import {
-  DashboardActivityRow,
-  DashboardQuickInfoRow,
-  DashboardQuickNotePanel,
-  DashboardStatCard,
-} from "../components/domain/dashboard/DashboardComponents";
-import {
-  MessageSquare, BookOpen, FileText, Clipboard,
-  HardDrive, GitBranch, GitCommit, RefreshCw, Zap, FolderOpen, Terminal, Lightbulb,
-  Activity, Circle, Search, Settings as SettingsIcon, Copy, X,
-} from "lucide-react";
-import { OnboardingChecklist } from "../components/OnboardingChecklist";
-import { CLI_INSTALL_COMMAND } from "../utils/cliInstall";
-import {
-  canOpenDashboardRecentItem,
-  canSaveDashboardQuickNote,
-  DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
-  formatDashboardText,
-  getCliStatusBadgeTone,
-  getCliStatusText,
-  getDashboardCategoryRoute,
-  getDashboardContentCategory,
-  getDashboardDisplayedFileCount,
-  getDashboardDisplayedRepoSizeKb,
-  getDashboardMobileSyncState,
-  getDashboardQuickNoteToggleText,
-  getDashboardSyncStatus,
-  getDashboardVisibleRecentItems,
-  hasDashboardConversations,
-  hasGitRemote,
-  isDashboardQuickNoteExpandedPreference,
-  isDashboardEditorConfigured,
-  shouldSaveDashboardQuickNoteFromKeyboard,
-  shouldInsertDashboardQuickNoteTemplate,
-  shouldInsertDashboardQuickNoteTab,
-  shouldScrollDashboardQuickNoteAfterExpand,
-  shouldShowCliCapabilityCard,
-  shouldShowDashboardEmptyGuide,
-  type AppStats,
-  type DashboardCategoryRoute,
-  type DashboardContentCategory,
-  type RecentItem,
-} from "../components/domain/dashboard/dashboardLogic";
+import {useEffect, useState, useCallback, useMemo, useRef, type KeyboardEvent} from "react";
+import {invoke} from "@tauri-apps/api/core";
+import {useI18n} from "../hooks/useI18n";
+import {useSync} from "../hooks/useSync";
+import {useAppStore} from "../hooks/useAppStore";
+import {useToast} from "../hooks/useToast";
+import {relativeTime, formatAbsoluteTime} from "../utils/time";
+import {Loading} from "../components/Loading";
+import {useRelativeTimeTick} from "../hooks/useRelativeTimeTick";
+import {useFileWatcher} from "../hooks/useFileWatcher";
+import {usePlatformFlags} from "../hooks/usePlatform";
+import {AppIcon} from "../components/base/AppIcon";
+import {Button} from "../components/base/Button";
+import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
-import { commitBrowseUrl } from "../utils/gitRemoteWeb";
-import { formatTitleWithShortcut } from "../utils/shortcuts";
-import { type NoteResult } from "../types/notes";
+import {formatTitleWithShortcut} from "../utils/shortcuts";
+import {type NoteResult} from "../types/notes";
 
-const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
-  conversation: { icon: MessageSquare, tone: "muted" },
-  manual: { icon: BookOpen, tone: "muted" },
-  scratch: { icon: FileText, tone: "muted" },
-  clip: { icon: Clipboard, tone: "muted" },
-  plan: { icon: Lightbulb, tone: "muted" },
-};
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
-const CLI_CARD_DISMISSED_KEY = "gitmemo-dashboard-cli-card-dismissed";
-const QUICK_NOTE_EXPANDED_KEY = "gitmemo-dashboard-quick-note-expanded";
 let dashboardStatsRequest: Promise<AppStats> | null = null;
 let dashboardRecentRequest: Promise<RecentItem[]> | null = null;
 
-function getCategoryVisual(category: string) {
-  return categoryVisuals[getDashboardContentCategory(category)];
-}
 
-const formatSize = (sizeKb: number) => (
-  sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`
-);
 
 interface DashboardCache {
   stats: AppStats | null;
@@ -103,17 +42,7 @@ function saveCache(c: DashboardCache) {
   try { sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(c)); } catch {}
 }
 
-function loadCliCardDismissed() {
-  try { return localStorage.getItem(CLI_CARD_DISMISSED_KEY) === "true"; } catch { return false; }
-}
 
-function loadQuickNoteExpanded() {
-  try {
-    return isDashboardQuickNoteExpandedPreference(localStorage.getItem(QUICK_NOTE_EXPANDED_KEY));
-  } catch {
-    return false;
-  }
-}
 
 function loadDashboardStatsOnce() {
   if (!dashboardStatsRequest) {
@@ -137,24 +66,17 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const { t } = useI18n();
   const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
-  const { isSyncing, isSuccess, isFailed, message: syncMessage, gitStatus, refreshGitStatus, triggerSync } = useSync();
+  const { isSyncing, isSuccess, isFailed, gitStatus, refreshGitStatus } = useSync();
   const {
     clipboardStatus: clipStatus,
     claudeEnabled,
     cursorEnabled,
     integrationStatusChecked,
-    cliStatus,
-    cliStatusChecked,
     setNotesTab,
     setAiRecordsTab,
     setPendingOpenPath,
   } = useAppStore();
   useRelativeTimeTick();
-  const navigateTo = useCallback(({ page, notesTab, aiRecordsTab }: DashboardCategoryRoute) => {
-    if (page === "notes" && notesTab) setNotesTab(notesTab);
-    if (page === "ai-records" && aiRecordsTab) setAiRecordsTab(aiRecordsTab);
-    onNavigate?.(page);
-  }, [onNavigate, setAiRecordsTab, setNotesTab]);
 
   const openRecord = useCallback((item: RecentItem) => {
     if (!canOpenDashboardRecentItem(isDesktop, item)) return;
@@ -165,26 +87,21 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     onNavigate?.(route.page);
   }, [isDesktop, onNavigate, setAiRecordsTab, setNotesTab, setPendingOpenPath]);
 
-
   const cached = loadCache();
   const [stats, setStats] = useState<AppStats | null>(cached?.stats ?? null);
   const [recent, setRecent] = useState<RecentItem[]>(cached?.recent ?? []);
   const [statsLoading, setStatsLoading] = useState(!cached?.stats);
   const [recentLoading, setRecentLoading] = useState(!cached?.recent);
   const [error, setError] = useState("");
-  const [cliCardDismissed, setCliCardDismissed] = useState(loadCliCardDismissed);
   const [quickNoteDraft, setQuickNoteDraft] = useState("");
   const [quickNotePath, setQuickNotePath] = useState<string | null>(null);
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
-  const [quickNoteExpanded, setQuickNoteExpanded] = useState(loadQuickNoteExpanded);
   const dashboardCacheRef = useRef<DashboardCache>({
     stats: cached?.stats ?? null,
     recent: cached?.recent ?? [],
   });
-  const quickNotePanelRef = useRef<HTMLElement>(null);
   const quickNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const quickNoteImeComposingRef = useRef(false);
-  const quickNoteShouldScrollOnExpandRef = useRef(false);
 
   // Derived state
   const quickNotePlaceholder = t("dashboard.quickNotePlaceholder");
@@ -192,26 +109,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     t("dashboard.quickNoteSave"),
     DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
   );
-  const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
-  const showCliCapabilityCard = shouldShowCliCapabilityCard(isDesktop, cliCardDismissed, cliStatusChecked, cliStatus);
-  const cliStatusText = formatDashboardText(getCliStatusText(cliStatus), t);
-  const cliStatusBadgeTone = getCliStatusBadgeTone(cliStatus);
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
-  const lastCommitBrowseUrl = useMemo(
-    () => commitBrowseUrl(gitStatus?.git_remote, gitStatus?.last_commit_id),
-    [gitStatus?.git_remote, gitStatus?.last_commit_id],
-  );
-  const { copyText: copyDashboardText } = useTimedCopy<boolean>({
-    successMessage: t("dashboard.cliCardCommandCopied"),
-    errorPrefix: "Error",
-  });
-  const copyCliInstallCommand = useCallback(() => {
-    return copyDashboardText(CLI_INSTALL_COMMAND, true);
-  }, [copyDashboardText]);
-  const dismissCliCard = useCallback(() => {
-    setCliCardDismissed(true);
-    try { localStorage.setItem(CLI_CARD_DISMISSED_KEY, "true"); } catch {}
-  }, []);
+  const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
 
   const loadStats = useCallback(async () => {
     if (!dashboardCacheRef.current.stats) setStatsLoading(true);
@@ -275,30 +174,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     window.requestAnimationFrame(() => quickNoteTextareaRef.current?.focus());
   }, [quickNoteSaving]);
 
-  const toggleQuickNoteExpanded = useCallback(() => {
-    setQuickNoteExpanded((current) => {
-      const next = !current;
-      try { localStorage.setItem(QUICK_NOTE_EXPANDED_KEY, String(next)); } catch {}
-      quickNoteShouldScrollOnExpandRef.current = next;
-      return next;
-    });
-  }, []);
 
-  useEffect(() => {
-    if (!shouldScrollDashboardQuickNoteAfterExpand(quickNoteExpanded, quickNoteShouldScrollOnExpandRef.current)) return;
-    quickNoteShouldScrollOnExpandRef.current = false;
-
-    const frameId = window.requestAnimationFrame(() => {
-      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-      quickNotePanelRef.current?.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "start",
-      });
-      quickNoteTextareaRef.current?.focus({ preventScroll: true });
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [quickNoteExpanded]);
 
   const openQuickNote = useCallback(() => {
     if (!quickNotePath || quickNoteSaving) return;
@@ -379,325 +255,253 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }
 
   const displayedFileCount = stats ? getDashboardDisplayedFileCount(stats) : 0;
-  const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : 0;
   const displayedRecent = getDashboardVisibleRecentItems(isDesktop, recent);
   const showEmptyGuide = stats ? shouldShowDashboardEmptyGuide(stats, displayedRecent) : false;
   const isDashboardOverviewLoading = statsLoading && !stats;
   const isRecentActivityLoading = recentLoading && displayedRecent.length === 0;
-  const isGitStatusLoading = !gitStatus;
 
-  const statCards = [
-    { category: "conversation" as const, label: t("dashboard.conversations"), value: stats?.conversations },
-    { category: "manual" as const, label: t("dashboard.manuals"), value: stats?.manuals },
-    { category: "scratch" as const, label: t("dashboard.scratchNotes"), value: stats?.scratch_notes },
-    { category: "clip" as const, label: t("dashboard.clips"), value: stats?.clips },
-    { category: "plan" as const, label: t("dashboard.plans"), value: stats?.plans },
-  ].map((card) => ({
-    ...card,
-    ...categoryVisuals[card.category],
-    ...getDashboardCategoryRoute(card.category),
-  }));
 
   const syncStatus = getDashboardSyncStatus(gitStatus);
   const syncStatusText = formatDashboardText(syncStatus.text, t);
-  const mobileSyncState = getDashboardMobileSyncState({
-    isSyncing,
-    syncMessage,
-    isFailed,
-    gitStatus,
-    syncStatus,
-  });
-  const mobileSyncText = formatDashboardText(mobileSyncState.text, t);
-  const mobileSyncActionText = formatDashboardText(mobileSyncState.actionText, t);
-  const quickNoteToggleText = formatDashboardText(getDashboardQuickNoteToggleText(quickNoteExpanded), t);
   const quickNoteSaveDisabled = !canSaveDashboardQuickNote(quickNoteDraft, quickNoteSaving);
 
+  const gaugeCards = [
+    { id: "total", label: t("dashboard.gaugeTotal"), value: displayedFileCount, level: 5 },
+    {
+      id: "conversation",
+      label: t("dashboard.conversations"),
+      value: stats?.conversations,
+      level: Math.min(5, Math.ceil((stats?.conversations ?? 0) / 40)),
+    },
+    {
+      id: "clip",
+      label: t("dashboard.clips"),
+      value: stats?.clips,
+      level: Math.min(5, Math.ceil((stats?.clips ?? 0) / 10)),
+    },
+    {
+      id: "unpushed",
+      label: t("dashboard.gaugeUnpushed"),
+      value: gitStatus?.unpushed ?? 0,
+      level: (gitStatus?.unpushed ?? 0) > 0 ? 1 : 0,
+    },
+  ];
+
+  const categoryLabel = (category: string) => {
+    switch (category) {
+      case "conversation": return t("dashboard.conversations");
+      case "manual": return t("dashboard.manuals");
+      case "scratch": return t("dashboard.scratchNotes");
+      case "clip": return t("dashboard.clips");
+      case "plan": return t("dashboard.plans");
+      default: return category;
+    }
+  };
+
+  const resumeItem = displayedRecent[0];
+  const pendingItems = [
+    gitStatus && gitStatus.unpushed > 0
+      ? { label: t("dashboard.unpushed"), meta: String(gitStatus.unpushed) }
+      : null,
+    clipStatus && !clipStatus.watching
+      ? { label: t("dashboard.clipboardInactive"), meta: t("nav.clipboard") }
+      : null,
+    !editorConfigured ? { label: t("dashboard.pendingNoEditor"), meta: t("nav.settings") } : null,
+    gitStatus?.last_commit_id
+      ? { label: t("dashboard.lastCommit"), meta: gitStatus.last_commit_id }
+      : null,
+  ].filter(Boolean).slice(0, 3) as { label: string; meta: string }[];
+
   return (
-    <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
-      <PageHeader
-        title={t("dashboard.title")}
-        actions={
-          <>
-            {isMobile && (
-              <Button
-                variant="toolbar"
-                onClick={() => onNavigate?.("search")}
-                title={t("nav.search")}
-                icon={Search}
-                iconSize="lg"
-              />
-            )}
-            <Button
-              variant="toolbar"
-              onClick={handleRefresh}
-              title={t("common.refresh")}
-              icon={RefreshCw}
-            />
-            {isDesktop && clipStatus && (
-              <div
-                className="gm-status-pill"
-                data-clickable="true"
-                data-tone={clipStatus.watching ? "success" : "muted"}
-                onClick={() => onNavigate?.("clipboard")}
-              >
-                <AppIcon
-                  icon={Circle}
-                  size="dot"
-                  fill="currentColor"
-                  tone={clipStatus.watching ? "success" : "secondary"}
-                />
-                <span className="gm-status-pill-text">
-                  {clipStatus.watching ? t("dashboard.clipboardActive") : t("dashboard.clipboardInactive")}
-                </span>
-              </div>
-            )}
-          </>
-        }
-      />
-
-      {isMobile && (
-        <div className="gm-dashboard-card gm-dashboard-mobile-sync">
-          <div className="gm-dashboard-mobile-sync-main">
-            <div className="gm-dashboard-mobile-sync-head">
-              <AppIcon icon={RefreshCw} size="xs" tone={mobileSyncState.tone} spin={isSyncing} />
-              <span className="gm-muted-text">{t("dashboard.syncStatus")}</span>
-            </div>
-            <p className="gm-dashboard-mobile-sync-value" data-tone={mobileSyncState.tone}>
-              {mobileSyncText}
-            </p>
-          </div>
+    <div className="gm-inst-dashboard" data-mobile={isMobile ? "true" : "false"} data-active={active ? "true" : "false"}>
+      {/* 1 · 身份栏 */}
+      <header className="gm-inst-identity">
+        <span className="gm-inst-identity-mark">{t("dashboard.title")}</span>
+        <span className="gm-inst-identity-path">{gitStatus?.sync_dir || t("dashboard.noRemote")}</span>
+        <span className="gm-inst-identity-status" data-tone={syncStatus.tone}>
+          <AppIcon icon={Circle} size="dot" fill="currentColor" tone={syncStatus.tone === "success" ? "success" : "secondary"} />
+          {syncStatusText}
+        </span>
+        {gitStatus && gitStatus.unpushed > 0 ? (
+          <span className="gm-inst-identity-unpushed">
+            {t("dashboard.unpushed")}
+            <b>{gitStatus.unpushed}</b>
+          </span>
+        ) : null}
+        <span className="gm-inst-identity-spacer" />
+        <span className="gm-inst-identity-count">
+          {stats ? t("dashboard.totalFiles", String(displayedFileCount)) : t("common.loading")}
+        </span>
+        {isMobile ? (
           <Button
-            variant={mobileSyncState.actionVariant}
-            disabled={mobileSyncState.actionDisabled}
-            onClick={() => void triggerSync()}
-            icon={RefreshCw}
-            iconSpin={isSyncing}
-          >
-            {mobileSyncActionText}
-          </Button>
-        </div>
-      )}
-
-      {/* Onboarding Checklist */}
-      {isDesktop && (
-        <OnboardingChecklist
-          onNavigate={(page) => onNavigate?.(page)}
-          hasConversations={stats ? hasDashboardConversations(stats) : false}
-          clipboardActive={clipStatus?.watching ?? false}
-          editorConfigured={editorConfigured}
+            variant="toolbar"
+            onClick={() => onNavigate?.("search")}
+            title={t("nav.search")}
+            icon={Search}
+            iconSize="lg"
+          />
+        ) : null}
+        <Button
+          variant="toolbar"
+          onClick={handleRefresh}
+          title={t("common.refresh")}
+          icon={RefreshCw}
+          iconSpin={isSyncing}
         />
-      )}
+      </header>
 
-      {showCliCapabilityCard && (
-        <div className="gm-dashboard-card gm-dashboard-cli-card">
-          <div className="gm-inline-cluster gm-inline-cluster-start">
-            <AppIcon icon={Terminal} size="md" tone="accent" />
-            <div className="gm-min-0">
-              <div className="gm-inline-cluster-wrap">
-                <p className="gm-card-title">{t("dashboard.cliCardTitle")}</p>
-                <Badge tone={cliStatusBadgeTone}>
-                  {cliStatusText}
-                </Badge>
+      <div className="gm-inst-body">
+        {/* 3 · 最近条目 */}
+        <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
+          <div className="gm-inst-list-head">
+            <span>{t("dashboard.recentActivity")}</span>
+            <span className="gm-inst-list-count">{displayedFileCount}</span>
+          </div>
+          <div className="gm-inst-list-rows">
+            {isRecentActivityLoading ? (
+              <Loading compact text={t("dashboard.startupLoadingActivity")} />
+            ) : displayedRecent.length === 0 ? (
+              <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
+            ) : (
+              displayedRecent.slice(0, 12).map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  className="gm-inst-list-row"
+                  data-on={resumeItem?.path === item.path ? "true" : "false"}
+                  onClick={() => openRecord(item)}
+                  title={item.path}
+                >
+                  <span className="gm-inst-list-title">{item.name}</span>
+                  <span className="gm-inst-list-time">{relativeTime(item.modified, t)}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+
+        <div className="gm-inst-main">
+          {/* 4a · 横幅 */}
+          <div className="gm-inst-banner" data-empty={showEmptyGuide ? "true" : "false"}>
+            <p className="gm-inst-banner-title">
+              {showEmptyGuide
+                ? t("dashboard.emptyGuideTitle")
+                : resumeItem
+                  ? t("dashboard.resumeLatest", resumeItem.name)
+                  : t("dashboard.noActivity")}
+            </p>
+            <p className="gm-inst-banner-meta">
+              {showEmptyGuide
+                ? (isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc"))
+                : formatAbsoluteTime(resumeItem?.modified || gitStatus?.last_commit_time || "")}
+            </p>
+          </div>
+
+          {/* 4b · 仪表带 */}
+          <div className="gm-inst-gauges">
+            {gaugeCards.map((card) => (
+              <div className="gm-inst-gauge" key={card.id} data-level={String(card.level)}>
+                <span className="gm-inst-gauge-label">{card.label}</span>
+                <span className="gm-inst-gauge-value">
+                  {isDashboardOverviewLoading || card.value === undefined
+                    ? <Loading compact text={t("common.loading")} />
+                    : card.value}
+                </span>
+                <span className="gm-inst-gauge-bar" aria-hidden="true" />
               </div>
-              <p className="gm-muted-text gm-dashboard-cli-desc">
-                {t("dashboard.cliCardDesc")}
-              </p>
+            ))}
+          </div>
+
+          {/* 4c · 表格 */}
+          <div className="gm-inst-table" role="table" aria-label={t("dashboard.recentActivity")}>
+            <div className="gm-inst-table-head" role="row">
+              <span role="columnheader">{t("dashboard.tableTime")}</span>
+              <span role="columnheader">{t("dashboard.gaugeType")}</span>
+              <span role="columnheader">{t("dashboard.tableTitle")}</span>
+              <span role="columnheader">{t("dashboard.tableSource")}</span>
+              <span role="columnheader">{t("dashboard.gaugeState")}</span>
             </div>
+            {displayedRecent.slice(0, 7).map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                role="row"
+                className="gm-inst-table-row"
+                onClick={() => openRecord(item)}
+              >
+                <span role="cell" className="gm-inst-table-time">{relativeTime(item.modified, t)}</span>
+                <span role="cell" className="gm-inst-tag" data-kind={item.category}>
+                  {categoryLabel(item.category)}
+                </span>
+                <span role="cell" className="gm-inst-table-title" title={item.path}>{item.name}</span>
+                <span role="cell" className="gm-inst-table-source">{item.path.split("/")[0]}</span>
+                <span role="cell" className="gm-inst-table-state" data-state="synced">
+                  {t("dashboard.synced")}
+                </span>
+              </button>
+            ))}
           </div>
-          <div className="gm-dashboard-cli-copy-actions">
-            <Button
-              variant="primary"
-              onClick={() => void copyCliInstallCommand()}
-              icon={Copy}
-            >
-              {t("dashboard.cliCardCopyInstallCommand")}
-            </Button>
-            <Button
-              variant="icon"
-              onClick={() => onNavigate?.("settings")}
-              title={t("nav.settings")}
-              icon={SettingsIcon}
-            />
-            <Button
-              variant="icon"
-              onClick={dismissCliCard}
-              title={t("dashboard.cliCardDismiss")}
-              aria-label={t("dashboard.cliCardDismiss")}
-              icon={X}
-            />
-          </div>
-        </div>
-      )}
 
-      {/* Stat Cards */}
-      <div className="gm-dashboard-stat-grid">
-        {statCards.map((card) => (
-            <DashboardStatCard
-              key={card.label}
-              icon={card.icon}
-              label={card.label}
-              value={card.value ?? <Loading compact text={t("common.loading")} />}
-              tone={card.tone}
-              loading={isDashboardOverviewLoading}
-              onClick={card.value === undefined ? undefined : () => navigateTo(card)}
-            />
-        ))}
-      </div>
-
-      {/* Empty state guide */}
-      {showEmptyGuide && (
-        <div className="gm-dashboard-empty-guide">
-          <p className="gm-dashboard-empty-title">{t("dashboard.emptyGuideTitle")}</p>
-          <p className="gm-dashboard-empty-copy">
-            {isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc")}
-          </p>
-        </div>
-      )}
-
-      {/* Git Info — only when remote is configured */}
-      <div className="gm-dashboard-git-grid">
-        {/* Sync Status */}
-        <div className="gm-dashboard-card">
-          <div className="gm-card-head">
-            <AppIcon icon={RefreshCw} size="xs" tone="secondary" />
-            <span className="gm-section-title">{t("dashboard.syncStatus")}</span>
-          </div>
-          {isGitStatusLoading ? (
-            <Loading compact text={t("dashboard.startupReadingRepository")} />
-          ) : hasGitRemote(gitStatus) ? (
-            <>
-              <p className="gm-dashboard-value">
-                <span className="gm-dashboard-value-status" data-tone={syncStatus.tone}>{syncStatusText}</span>
-              </p>
-              <p className="gm-dashboard-meta">
-                {formatAbsoluteTime(gitStatus?.checked_at || gitStatus?.last_commit_time || "")}
-              </p>
-            </>
-          ) : (
-            <p className="gm-dashboard-card-empty">{t("dashboard.noRemote")}</p>
-          )}
-        </div>
-
-        {/* Last Commit */}
-        <div className="gm-dashboard-card">
-          <div className="gm-card-head">
-            <AppIcon icon={GitCommit} size="xs" tone="secondary" />
-            <span className="gm-section-title">{t("dashboard.lastCommit")}</span>
-          </div>
-          {isGitStatusLoading ? (
-            <Loading compact text={t("dashboard.startupReadingRepository")} />
-          ) : lastCommitBrowseUrl && gitStatus?.last_commit_id ? (
-            <button
-              type="button"
-              title={t("dashboard.openCommitPage")}
-              onClick={() => void openUrl(lastCommitBrowseUrl)}
-              className="gm-dashboard-mono-link"
-            >
-              {gitStatus.last_commit_id}
-            </button>
-          ) : (
-            <p className="gm-dashboard-mono-value">
-              {gitStatus?.last_commit_id || "—"}
-            </p>
-          )}
-          {gitStatus?.last_commit_time ? (
-            <p className="gm-dashboard-meta">
-              {formatAbsoluteTime(gitStatus?.last_commit_time || "")}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Dashboard quick-note extension point: after git cards, before recent activity. */}
-      <DashboardQuickNotePanel
-        panelRef={quickNotePanelRef}
-        title={t("dashboard.quickNoteTitle")}
-        placeholder={quickNotePlaceholder}
-        expanded={quickNoteExpanded}
-        toggleLabel={quickNoteToggleText}
-        saveLabel={quickNoteSaveLabel}
-        savingLabel={t("dashboard.quickNoteSaving")}
-        newLabel={t("dashboard.quickNoteNew")}
-        openLabel={t("dashboard.quickNoteOpen")}
-        value={quickNoteDraft}
-        textareaRef={quickNoteTextareaRef}
-        saving={quickNoteSaving}
-        saveDisabled={quickNoteSaveDisabled}
-        canOpen={Boolean(quickNotePath)}
-        mobile={isMobile}
-        onChange={setQuickNoteDraft}
-        onToggle={toggleQuickNoteExpanded}
-        onSave={() => void saveQuickNote()}
-        onNew={startNewQuickNote}
-        onOpen={openQuickNote}
-        onKeyDown={handleQuickNoteKeyDown}
-        onCompositionStart={() => { quickNoteImeComposingRef.current = true; }}
-        onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
-      />
-
-      {/* Recent Activity — full width */}
-      <div className="gm-dashboard-card gm-dashboard-card-section">
-          <div className="gm-card-head">
-            <AppIcon icon={Activity} size="xs" tone="secondary" />
-            <span className="gm-section-title">{t("dashboard.recentActivity")}</span>
-          </div>
-          {isRecentActivityLoading ? (
-            <Loading compact text={t("dashboard.startupLoadingActivity")} />
-          ) : displayedRecent.length === 0 ? (
-            <p className="gm-dashboard-card-empty">
-              {t("dashboard.noActivity")}
-            </p>
-          ) : (
-            <div className="gm-dash-table" role="table" aria-label={t("dashboard.recentActivity")}>
-              <div className="gm-dash-thead" role="row">
-                <span>{t("dashboard.tableTime")}</span>
-                <span aria-hidden="true" />
-                <span>{t("dashboard.tableTitle")}</span>
-                <span>{t("dashboard.tablePath")}</span>
-              </div>
-              {displayedRecent.map((item) => {
-                const cfg = getCategoryVisual(item.category);
-                const parentPath = item.path.split("/").slice(0, -1).join("/");
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    role="row"
-                    className="gm-dash-trow"
-                    onClick={() => openRecord(item)}
-                  >
-                    <span className="gm-dash-cell-time">{relativeTime(item.modified, t)}</span>
-                    <AppIcon icon={cfg.icon} size="2xs" tone={cfg.tone} />
-                    <span className="gm-dash-cell-title">{item.name}</span>
-                    <span className="gm-dash-cell-path" title={item.path}>{parentPath}</span>
+          {/* 5 · 命令输入 + 待处理 */}
+          <div className="gm-inst-lower">
+            <section className="gm-inst-command">
+              <div className="gm-inst-command-head">
+                <span>{t("dashboard.quickNoteTitle")}</span>
+                {quickNotePath ? (
+                  <button type="button" className="gm-inst-command-open" onClick={openQuickNote}>
+                    {t("dashboard.quickNoteOpen")}
                   </button>
-                );
-              })}
-            </div>
-          )}
-      </div>
+                ) : null}
+              </div>
+              <div className="gm-inst-command-field">
+                <span className="gm-inst-command-sigil" aria-hidden="true">&gt;</span>
+                <textarea
+                  ref={quickNoteTextareaRef}
+                  className="gm-inst-command-input"
+                  value={quickNoteDraft}
+                  placeholder={quickNotePlaceholder}
+                  aria-label={t("dashboard.quickNoteTitle")}
+                  onChange={(event) => setQuickNoteDraft(event.target.value)}
+                  onKeyDown={handleQuickNoteKeyDown}
+                  onCompositionStart={() => { quickNoteImeComposingRef.current = true; }}
+                  onCompositionEnd={() => { quickNoteImeComposingRef.current = false; }}
+                  rows={2}
+                />
+                <span className="gm-inst-command-caret" aria-hidden="true" />
+              </div>
+              <div className="gm-inst-command-keys">
+                <span>{quickNoteSaveLabel}</span>
+                <button
+                  type="button"
+                  className="gm-inst-command-save"
+                  disabled={quickNoteSaveDisabled}
+                  onClick={() => void saveQuickNote()}
+                >
+                  {quickNoteSaving ? t("dashboard.quickNoteSaving") : t("dashboard.quickNoteSave")}
+                </button>
+                <button type="button" className="gm-inst-command-new" onClick={startNewQuickNote}>
+                  {t("dashboard.quickNoteNew")}
+                </button>
+              </div>
+            </section>
 
-      {/* Quick Info */}
-      <div className="gm-dashboard-quick-info">
-        <div className="gm-card-head">
-          <AppIcon icon={Zap} size="xs" tone="secondary" />
-          <span className="gm-section-title">{t("dashboard.quickInfo")}</span>
-        </div>
-        <div className="gm-dashboard-quick-grid">
-          <DashboardQuickInfoRow icon={FolderOpen}>{gitStatus?.sync_dir}</DashboardQuickInfoRow>
-          <DashboardQuickInfoRow icon={GitBranch} title={gitStatus?.git_remote}>
-            {gitStatus?.git_remote || t("dashboard.noRemote")}
-          </DashboardQuickInfoRow>
-          {isDesktop && (
-            <DashboardQuickInfoRow icon={Terminal}>CLI: gitmemo --help</DashboardQuickInfoRow>
-          )}
-          <DashboardQuickInfoRow icon={MessageSquare}>
-            {stats ? t("dashboard.totalFiles", String(displayedFileCount)) : t("common.loading")}
-          </DashboardQuickInfoRow>
-          <DashboardQuickInfoRow icon={HardDrive}>{stats ? formatSize(displayedRepoSizeKb) : t("common.loading")}</DashboardQuickInfoRow>
+            <section className="gm-inst-todo">
+              <div className="gm-inst-todo-head">
+                <span>{t("dashboard.pendingTitle")}</span>
+                <span className="gm-inst-todo-count">{pendingItems.length}</span>
+              </div>
+              <ul className="gm-inst-todo-rows">
+                {pendingItems.map((item) => (
+                  <li key={item.label} className="gm-inst-todo-row">
+                    <span className="gm-inst-todo-label">{item.label}</span>
+                    <span className="gm-inst-todo-meta">{item.meta}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
         </div>
       </div>
-      {isMobile && <div aria-hidden="true" className="gm-dashboard-mobile-spacer" />}
     </div>
   );
 }
