@@ -917,8 +917,13 @@ a:focus-visible {
 
 .gm-list-item {
   background: transparent;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
+  min-height: var(--gm-density-row);
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gm-list-item:active {
+  background: var(--gm-selected);
 }
 
 .gm-list-item:hover {
@@ -933,15 +938,20 @@ a:focus-visible {
 .gm-file-list-item {
   background: transparent;
   border: none;
-  border-bottom: var(--gm-border-w) solid var(--border);
-  border-left: var(--gm-size-card-rail) solid transparent;
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
+  border-left: 2px solid transparent;
   color: var(--text);
   cursor: pointer;
   display: block;
+  min-height: var(--gm-density-row);
   padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x);
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease;
   width: 100%;
+}
+
+.gm-file-list-item:active {
+  background: var(--gm-selected);
 }
 
 .gm-file-list-item[data-mobile="true"] {
