@@ -1,17 +1,19 @@
 # GitMemo 设计语言 V2
 
-状态：改造期唯一标准。
-效力：`docs/design/DESIGN.md` 降级为历史参考与问题清单，不再作为执行标准；`docs/design/LANGUAGE.md` 是 V1 校准稿，本文生效后作废。实现与之冲突时以本文为准。
+状态：改造期唯一标准（取值层已按「C 骨架 + A 报头」重定，替代初稿的双主题取值）。
+效力：`docs/design/DESIGN.md` 降级为历史参考与问题清单；`docs/design/LANGUAGE.md` 是 V1 校准稿，作废。实现与之冲突时以本文为准。§7 迁移映射表沿用，取值以本文 §2–§6 与附录 B 为准。
 范围：`desktop/src` 全部界面代码。
-数字约定：文中所有数值可直接写进 CSS。颜色写 hex，尺寸写 px，动效写 ms，缓动写 `cubic-bezier`。凡是本文件无法量化的形容词都不出现。
+数字约定：文中所有数值可直接写进 CSS。颜色写 hex 或 rgba，尺寸写 px，动效写 ms，缓动写 `cubic-bezier`。凡是本文件无法量化的形容词都不出现。
+
+**来源标注**（每张规格表最后一列）：`C 稿` = 取自 `desktop/design-proposals/C-paper.html` 的实测值；`A 稿` = 取自 `desktop/design-proposals/A-editorial.html` 的实测值；`主人指定` = 口头定死的约束；`新定` = 由前两者推导、原稿没有的值（每条都注明了推导依据）；`产品约束` = 由长时阅读、键盘操作等产品要求决定。
 
 ---
 
 ## 1 核心定位
 
-一句话：**像一张排得极准的技术手册页面——暖调纸面、等宽字、只有一条竖线和一种蓝在指路。**
+一句话：**一张暖白的纸，用宋体说话，用等宽的序号点数目，全页只有一种蓝在指位置。**
 
-不做成笔记软件的卡片墙，也不做成终端模拟器的荧光屏。信息密度按纸面手册给，视觉响度按工程文档压。
+骨架取 C 稿（纸面、细线、序号、表格带），报头结构取 A 稿（品牌名 + 一句人话主标题），但把 A 的 64px 收到 26px，密度按纸面给，不用深色终端感。
 
 ### 三条不可协商原则
 
@@ -26,7 +28,7 @@
 
 ### 长时阅读与键盘操作
 
-- 阅读面（Markdown、纪要、对话详情）用 `--gm-font-read`，字号 `--gm-fs-read`，行高 `--gm-lh-read`，行长上限 `66ch`。
+- 阅读面（Markdown、纪要、对话详情）用 `--gm-font-title`（宋体）+ `--gm-fs-read` 15px + `--gm-lh-read` 1.75，行长上限 `66ch`。
 - 所有可交互元素必须有可见焦点环：`2px` `--gm-focus-ring`，`outline-offset: 2px`。禁止用 `outline: none` 了事。
 - 焦点顺序跟随视觉顺序，不做跳位；打开面板后焦点进入面板第一个可交互元素，Esc 关闭并把焦点还给触发元素。
 - 所有列表必须能用 ↑ / ↓ 移动并同步滚动，当前项用 `--gm-selected` 底色表示。
@@ -35,291 +37,242 @@
 
 ## 2 色彩系统
 
-### 2.1 深色（默认）
+方向：C 稿的纸面骨架 + A 稿的报头结构；品牌蓝 #1f4fbf 由主人指定。
+本轮只出纸面一套主题；暗色主题不在本轮范围（标注见 §2.5）。
 
-| token | 值 | 用在哪 | 不用在哪 |
+### 2.1 取值（单一纸面主题）
+
+| token | 值 | 用在哪 | 不用在哪 | 来源 |
+| --- | --- | --- | --- | --- |
+| `--gm-canvas` | `#f4efe6` | 整页底、编辑器底 | 卡片（本轮无卡片） | C 稿实测 `--paper` |
+| `--gm-surface` | `#ece5d8` | 侧栏、列表面、统计带分隔行 | 整页底 | C 稿实测 `--paper-deep` |
+| `--gm-surface-raised` | `#f7f2e6` | 弹层、菜单、对话框（配 1px 线，不配投影） | 常驻面板 | 新定 |
+| `--gm-input-bg` | `#e9e1d2` | 代码块、日志块、只读输出 | 单行输入（输入框无底色，只有底线） | 新定 |
+| `--gm-hover` | `rgba(25, 21, 18, 0.04)` | 行悬停、可点区域悬停 | 静态分区 | C 稿实测（其条目悬停为同数量级微染） |
+| `--gm-selected` | `rgba(31, 79, 191, 0.08)` | 当前所在行、当前标签页 | 悬停 | 新定（主人指定的蓝） |
+| `--gm-line` | `rgba(25, 21, 18, 0.16)` | 分区横线、条目分隔、表头下沿 | 输入框底线 | C 稿实测 `--rule` |
+| `--gm-line-strong` | `#8a8174` | 输入框底线、复选框轮廓、可辨识控件边界 | 装饰分隔 | 新定（C 的 0.34 透明黑换算值，为过 3:1 加深） |
+| `--gm-scrim` | `rgba(25, 21, 18, 0.35)` | 对话框遮罩 | 其他用途 | 新定 |
+| `--gm-text` | `#191512` | 主标题、条目标题、正文主体 | 元信息 | C 稿实测 `--ink` |
+| `--gm-text-secondary` | `#4a4340` | 说明文字、未选中条目、标签 | 主标题 | C 稿实测 `--ink-2` |
+| `--gm-text-tertiary` | `#6c645c` | 时间、序号、计数、路径、占位符 | 可读正文 | C 稿实测 `--ink-3`（为过 4.5 加深） |
+| `--gm-text-disabled` | `#b8b0a4` | 禁用控件 | 任何可读内容 | 新定（禁用态不受 4.5 约束） |
+| `--gm-on-action` | `#f4efe6` | 墨色填充按钮与蓝色小徽标上的字 | 纸底文字 | 新定（取 canvas 值） |
+| `--gm-accent` | `#1f4fbf` | 当前所在、可点链接、聚焦环 | 填充按钮、大色块、图标身份色 | 主人指定 |
+| `--gm-accent-hover` | `#173d99` | 链接悬停 | 静态状态 | 新定（同色系加深） |
+| `--gm-action` | `#191512` | 主按钮填充（墨色，不是蓝色） | 文字颜色 | C 稿实测（其强调按钮为墨底） |
+| `--gm-action-hover` | `#2c2823` | 主按钮悬停 | 其他 | 新定 |
+| `--gm-action-pressed` | `#0d0b09` | 主按钮按下 | 其他 | 新定 |
+| `--gm-accent-tint` | `rgba(31, 79, 191, 0.06)` | 可点区域悬停微染、当前行外框内衬 | 正文底 | 主人指定的第三处强调用法 |
+| `--gm-focus-ring` | `#1f4fbf` | 2px 焦点环 | 静态边框 | 新定（复用 accent） |
+| `--gm-success` | `#2f6b46` | 已同步、成功结果 | 装饰 | C 稿实测 |
+| `--gm-success-tint` | `rgba(47, 107, 70, 0.08)` | 成功提示条底 | 正文底 | 新定 |
+| `--gm-warning` | `#8a5a12` | 未推送、待处理、提醒 | 装饰 | 新定（C 用 accent 表示警告，这里独立成琥珀） |
+| `--gm-warning-tint` | `rgba(138, 90, 18, 0.08)` | 警告提示条底 | 正文底 | 新定 |
+| `--gm-danger` | `#8c2f1e` | 危险动作文字、错误、删除确认 | 非危险场景 | C 稿实测 `--accent`（原稿的强调红降级为危险色） |
+| `--gm-danger-tint` | `rgba(140, 47, 30, 0.08)` | 错误提示条底 | 正文底 | 新定 |
+
+### 2.2 对比度实测
+
+用 WCAG 2.x 相对亮度公式对本节色值计算，数字是实算值。
+
+| 组合 | 纸上 | 纸面 (`--gm-surface`) | 下限 |
 | --- | --- | --- | --- |
-| `--gm-canvas` | `#14130F` | 应用底、页面底、编辑器底 | 卡片、输入框 |
-| `--gm-surface` | `#1B1A15` | 侧栏、列表栏、详情栏、卡片 | 页面整底 |
-| `--gm-surface-raised` | `#24221B` | 弹出菜单、悬浮层、对话框、拖拽预览 | 常驻面板 |
-| `--gm-input-bg` | `#100F0C` | 输入框、搜索框、代码块、终端输出 | 普通面板 |
-| `--gm-hover` | `#232119` | 行悬停、按钮悬停底、未选中的分段控件 | 大面积区块 |
-| `--gm-selected` | `#222A3F` | 选中行、选中标签页、当前导航项 | 悬停态 |
-| `--gm-line` | `#302E26` | 分栏竖线、列表行分隔、表头下横线 | 输入框边界 |
-| `--gm-line-strong` | `#6A6857` | 输入框静止边界、开关轨道、可辨识控件轮廓 | 装饰分隔 |
-| `--gm-text` | `#F2EFE6` | 页标题、面板标题、行标题、正文主体 | 元信息 |
-| `--gm-text-secondary` | `#C0BAAB` | 正文、摘要、未选中列表标题、说明文字 | 标题 |
-| `--gm-text-tertiary` | `#9C9686` | 时间戳、计数、占位符、路径、快捷键 | 可读正文 |
-| `--gm-text-disabled` | `#5E5A4C` | 禁用控件文字 | 任何可读内容 |
-| `--gm-on-accent` | `#FFFFFF` | 填充按钮文字、蓝底徽标文字 | 其他底色 |
-| `--gm-accent` | `#7C9CFF` | 链接文字、图标激活、选中描边、焦点环 | 大色块背景 |
-| `--gm-accent-hover` | `#96B0FF` | 链接与图标悬停 | 静态状态 |
-| `--gm-accent-fill` | `#3560DE` | 主按钮填充 | 文字颜色 |
-| `--gm-accent-fill-hover` | `#3E6BF0` | 主按钮悬停填充 | 文字颜色 |
-| `--gm-accent-fill-pressed` | `#2C51C4` | 主按钮按下填充 | 文字颜色 |
-| `--gm-accent-tint` | `#1E2438` | 选中行底色之外的蓝色浅底（提示条、标签底） | 正文底 |
-| `--gm-focus-ring` | `#7C9CFF` | 焦点环、当前输入框描边 | 静态边框 |
-| `--gm-success` | `#5BC98A` | 成功文字、成功图标、已同步状态 | 大面积填充 |
-| `--gm-success-tint` | `#17291F` | 成功提示条底色 | 正文底 |
-| `--gm-warning` | `#E3AD55` | 警告文字、未推送状态 | 大面积填充 |
-| `--gm-warning-tint` | `#2A2118` | 警告提示条底色 | 正文底 |
-| `--gm-danger` | `#F2806F` | 错误文字、危险动作文字 | 大面积填充 |
-| `--gm-danger-tint` | `#2C1A17` | 错误提示条底色、危险确认按钮底 | 正文底 |
-| `--gm-scrim` | `rgba(0, 0, 0, 0.60)` | 对话框遮罩 | 其他任何用途 |
+| 主文字 / 底 | 15.84 | 14.49 | 4.5 |
+| 次级文字 / 底 | 8.46 | 7.73 | 4.5 |
+| 三级文字 / 底 | 5.07 | 4.64 | 4.5 |
+| 强调蓝 / 底 | 6.26 | 5.72 | 4.5 |
+| 成功 / 底 | 5.54 | 5.06 | 4.5 |
+| 警告 / 底 | 5.16 | 4.72 | 4.5 |
+| 危险 / 底 | 7.22 | 6.60 | 4.5 |
+| 纸底字 / 墨色按钮 | 15.84 | — | 4.5 |
+| 控件边界 / 底 | 3.35 | 3.06 | 3.0 |
+| 分区线 / 底 | 1.55 | 1.42 | 无需（装饰） |
 
-### 2.2 浅色
+`--gm-line` 是装饰性分隔线，不承担可辨识信息；凡是「这条线用来判断控件边界」的地方必须用 `--gm-line-strong`。
 
-| token | 值 | 用在哪 | 不用在哪 |
+### 2.3 颜色使用规则
+
+1. **强调蓝只允许三处**：当前所在（导航项、选中行、当前标签页）、可点链接、悬停微染。除此之外任何蓝色都是违规。
+2. **主按钮不用蓝色**：墨色填充 + 纸底字。理由是蓝色在这套稿里是「定位信号」，不是「动作色」。
+3. 状态色只保留绿与琥珀；红只用于危险动作的文字、图标与确认按钮底色，不得用于区块背景。
+4. 分类、来源、Git 托管商一律单色：图标与文字都用 `--gm-text-tertiary`。本轮已删除奥运五色、category 五色、provider 五色。
+5. 禁止渐变（唯一例外：进度条由两种中性色构成）。
+6. 禁止用 `opacity` 表达层级；更弱的文字用 `--gm-text-tertiary`。
+7. 禁止 `color-mix()` 造色；所有颜色必须来自本节具名 token。
+8. 一屏非中性色上限两种：强调蓝 + 最多一种状态色。
+
+### 2.4 与旧值的关系
+
+| 项 | 旧（V2 初稿） | 现（纸面） | 来源 |
 | --- | --- | --- | --- |
-| `--gm-canvas` | `#F4F1E9` | 应用底、页面底、编辑器底 | 卡片、输入框 |
-| `--gm-surface` | `#FBF9F3` | 侧栏、列表栏、详情栏、卡片 | 页面整底 |
-| `--gm-surface-raised` | `#FFFFFF` | 弹出菜单、悬浮层、对话框 | 常驻面板 |
-| `--gm-input-bg` | `#EFEBE1` | 输入框、搜索框、代码块 | 普通面板 |
-| `--gm-hover` | `#EAE6DA` | 行悬停、按钮悬停底 | 大面积区块 |
-| `--gm-selected` | `#E7EDFB` | 选中行、选中标签页、当前导航项 | 悬停态 |
-| `--gm-line` | `#DAD4C7` | 分栏竖线、列表行分隔、表头下横线 | 输入框边界 |
-| `--gm-line-strong` | `#8A8879` | 输入框静止边界、开关轨道、控件轮廓 | 装饰分隔 |
-| `--gm-text` | `#191813` | 页标题、面板标题、行标题、正文主体 | 元信息 |
-| `--gm-text-secondary` | `#4F4C43` | 正文、摘要、说明文字 | 标题 |
-| `--gm-text-tertiary` | `#6A6659` | 时间戳、计数、占位符、路径、快捷键 | 可读正文 |
-| `--gm-text-disabled` | `#A5A091` | 禁用控件文字 | 任何可读内容 |
-| `--gm-on-accent` | `#FFFFFF` | 填充按钮文字、蓝底徽标文字 | 其他底色 |
-| `--gm-accent` | `#2A52C4` | 链接文字、图标激活、选中描边、焦点环 | 大色块背景 |
-| `--gm-accent-hover` | `#1F41A0` | 链接与图标悬停 | 静态状态 |
-| `--gm-accent-fill` | `#2F5AD0` | 主按钮填充 | 文字颜色 |
-| `--gm-accent-fill-hover` | `#2749B0` | 主按钮悬停填充 | 文字颜色 |
-| `--gm-accent-fill-pressed` | `#1F3C93` | 主按钮按下填充 | 文字颜色 |
-| `--gm-accent-tint` | `#E9EEFC` | 蓝色浅底（提示条、标签底） | 正文底 |
-| `--gm-focus-ring` | `#2A52C4` | 焦点环、当前输入框描边 | 静态边框 |
-| `--gm-success` | `#147349` | 成功文字、成功图标、已同步状态 | 大面积填充 |
-| `--gm-success-tint` | `#E4F1E9` | 成功提示条底色 | 正文底 |
-| `--gm-warning` | `#8A5A12` | 警告文字、未推送状态 | 大面积填充 |
-| `--gm-warning-tint` | `#F6EBDC` | 警告提示条底色 | 正文底 |
-| `--gm-danger` | `#B3342B` | 错误文字、危险动作文字 | 大面积填充 |
-| `--gm-danger-tint` | `#F7E4E1` | 错误提示条底色、危险确认按钮底 | 正文底 |
-| `--gm-scrim` | `rgba(20, 19, 15, 0.48)` | 对话框遮罩 | 其他任何用途 |
+| 底 | 深色 `#14130F` / 浅色 `#F4F1E9` 双主题 | 单一纸面 `#f4efe6` | C 稿 |
+| 强调 | `#7C9CFF` / `#2A52C4` 蓝紫 | `#1f4fbf` | 主人指定 |
+| 危险 | `#F2806F` / `#B3342B` | `#8c2f1e` | C 稿 |
+| 卡片层 | 有 `--gm-surface` 卡片 + 两级投影 | 无卡片、无投影，只有纸与线 | C 稿 |
 
-### 2.3 对比度实测
+### 2.5 暗色主题
 
-下表的数字是用 WCAG 2.x 相对亮度公式对本节色值计算的实测值，不是估算。
-
-| 组合 | 深色 | 浅色 | 下限 |
-| --- | --- | --- | --- |
-| 主文字 / 画布 | 16.17 | 15.75 | 4.5 |
-| 主文字 / 表面 | 15.16 | 16.88 | 4.5 |
-| 主文字 / 悬浮层 | 13.84 | 17.78 | 4.5 |
-| 次文字 / 画布 | 9.61 | 7.60 | 4.5 |
-| 次文字 / 表面 | 9.01 | 8.15 | 4.5 |
-| 次文字 / 悬停底 | 8.33 | 6.88 | 4.5 |
-| 次文字 / 选中底 | 7.38 | 7.32 | 4.5 |
-| 三级文字 / 画布 | 6.30 | 5.09 | 4.5 |
-| 三级文字 / 表面 | 5.91 | 5.45 | 4.5 |
-| 三级文字 / 输入底 | 6.50 | 4.82 | 4.5 |
-| 三级文字 / 选中底 | 4.84 | 4.90 | 4.5 |
-| 强调色文字 / 画布 | 7.13 | 6.00 | 4.5 |
-| 强调色文字 / 选中底 | 5.48 | 5.77 | 4.5 |
-| 白字 / 主按钮填充 | 5.41 | 6.01 | 4.5 |
-| 白字 / 主按钮悬停填充 | 4.60 | 7.88 | 4.5 |
-| 白字 / 主按钮按下填充 | 6.82 | 9.88 | 4.5 |
-| 成功 / 画布 | 9.00 | 5.20 | 4.5 |
-| 警告 / 画布 | 9.18 | 5.24 | 4.5 |
-| 危险 / 画布 | 7.16 | 5.40 | 4.5 |
-| 成功 / 成功底色 | 7.40 | 5.05 | 4.5 |
-| 警告 / 警告底色 | 7.81 | 5.02 | 4.5 |
-| 危险 / 危险底色 | 6.39 | 4.98 | 4.5 |
-| 控件边界 / 画布 | 3.30 | 3.17 | 3.0 |
-| 控件边界 / 表面 | 3.10 | 3.39 | 3.0 |
-| 控件边界 / 输入底 | 3.03 | 3.00 | 3.0 |
-| 分隔线 / 画布 | 1.37 | 1.31 | 无需 |
-
-`--gm-line` 是装饰性分隔线，不承担可辨识信息，不受 3:1 约束；凡是「这条线用来判断控件边界」的地方必须用 `--gm-line-strong`。
-
-### 2.4 颜色使用规则
-
-1. 一屏非中性色上限：`--gm-accent` 一族 + 最多一种状态色。出现两种状态色时，其中一种必须是图标或单行文字，不得是区块底色。
-2. 禁止渐变。`linear-gradient` 只允许出现在加载中的进度条上，且只能由两种中性色构成。
-3. 禁止用 `opacity` 表达层级。需要更弱的文字用 `--gm-text-tertiary`，需要更弱的线用 `--gm-line`。
-4. 禁止用 `color-mix()` 生成新颜色。所有颜色必须是本节的具名 token。
-5. 选中状态 = `--gm-selected` 底色 + `--gm-text` 文字 + 左侧 2px `--gm-accent` 竖条，三者取其二即可，不得再加投影或放大。
-6. 危险色只出现在危险动作的文字、图标、确认按钮底色上。禁止用红色作为区块背景，`--gm-danger-tint` 仅限提示条且高度不超过 48px。
-7. 分类、来源、Git 托管商一律单色：图标用 `--gm-text-tertiary`，文字用 `--gm-text-secondary`。不存在分类色。
-
----
+本轮不做。若后续要补，规则是：纸换成 `#1b1916`，墨换成 `#efe9dd`，线换成 `rgba(239,233,221,.18)`，强调蓝换成 `#7c9cff`（保证 6.0 以上对比度），其余关系不变。这段是备注，不是本轮实现范围。
 
 ## 3 排版系统
 
-### 3.1 字族
+### 3.1 字族三分工（照 A 稿结论，不许混用）
 
-| token | 值 | 用途 |
-| --- | --- | --- |
-| `--gm-font-ui` | `"JetBrains Mono", ui-monospace, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace` | 全部界面骨架：导航、按钮、列表、表单、状态、数字 |
-| `--gm-font-read` | `-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif` | Markdown 正文、纪要、对话内容等长时阅读面 |
+| token | 值 | 承载什么 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-font-title` | `"Songti SC", "Source Han Serif SC", "Noto Serif CJK SC", Georgia, serif` | 报头品牌名、页面主标题、统计数字、Markdown 标题 | A 稿实测（宋体担一切「读」的字） |
+| `--gm-font-ui` | `-apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif` | 导航、按钮、表单、条目正文、说明文字 | A 稿实测（无衬线担界面） |
+| `--gm-font-mono` | `"SF Mono", ui-monospace, Menlo, Consolas, monospace` | 标签、序号、时间、路径、命令、行内数字 | A 稿实测（等宽担标签与元信息） |
 
-只允许这两个字族。禁止引入付费字体、禁止从 CDN 加载第三方字体、禁止新增第三个字族。
+规则：
+- 一个元素只用一族。禁止「标题用宋体、其中英文部分用无衬线」这种混排。
+- 统计数字用宋体（大号指标）；行内数字（时间、计数、体积、百分比）用等宽并设 `font-variant-numeric: tabular-nums`。
+- 禁引入付费字体、禁 CDN 字体；三族都来自系统已装字体。
 
-### 3.2 界面阶梯（4 档）
+### 3.2 字号阶梯（7 档，含密度封顶）
 
-| token | 字号 | 行高 | 字重 | 用途 |
-| --- | --- | --- | --- | --- |
-| `--gm-fs-micro` | 11px | 1.45 | 600 | 徽标、计数、快捷键提示、状态胶囊文字、标签页小计数 |
-| `--gm-fs-ui` | 13px | 1.5 | 400 | 正文、列表行标题（配 600）、按钮文字（配 600）、表单值、菜单项 |
-| `--gm-fs-ui-lg` | 16px | 1.4 | 600 | 分栏面板标题、对话框标题、设置页分组标题 |
-| `--gm-fs-title` | 20px | 1.25 | 600 | 页标题、空态主标题 |
+| token | 字号 | 行高 | 字重 | 用在哪 | 来源 |
+| --- | --- | --- | --- | --- | --- |
+| `--gm-fs-brand` | 22px | 1.2 | 600 | 报头品牌名 | 新定（A 稿 64px，收到 C 的密度） |
+| `--gm-fs-title` | 26px | 1.35 | 600 | 页面主标题一句 | 新定（介于 A 的 36 与 C 的 40 之下，配合 22px 品牌名成两级报头） |
+| `--gm-fs-stat` | 30px | 1.1 | 600 | 统计带数字（封顶值） | 新定（C 稿 38px 下调，满足「统计数字 30px 封顶」） |
+| `--gm-fs-row` | 14.5px | 1.45 | 400 | 条目正文、列表行标题 | C 稿实测 `.entries .t` |
+| `--gm-fs-ui` | 13px | 1.6 | 400 | 界面文字、按钮、表单值、说明文字 | C 稿实测（其标注为 13.5，取整后与 A 的正文同级） |
+| `--gm-fs-micro` | 10.5px | 1.4 | 500 | 标签、序号、时间、来源、计数 | C 稿实测 `.entries .no` / `.when` |
+| `--gm-fs-read` | 15px | 1.75 | 400 | Markdown 正文、笔记正文、纪要 | 产品约束（长时阅读，低于此值阅读疲劳明显） |
 
-界面里只允许这四档。出现 12px、14px、15px、17px、18px、24px 均为违规。
-11px 只用于元信息，禁止承载可读正文；正文只能是 13px。
+封顶规则：任何数字不得超过 `--gm-fs-stat` 的 30px；任何正文不得低于 `--gm-fs-ui` 的 13px（`--gm-fs-micro` 只用于不可读正文的元信息）。
 
-### 3.3 阅读阶梯（4 档）
+阅读面标题：`#` 用 `--gm-fs-title`（26/600），`##` 20/600，`###` 17/600，行高一律 1.35；代码块用 `--gm-font-mono` 13px / 1.6。
 
-| token | 字号 | 行高 | 字重 | 用途 |
-| --- | --- | --- | --- | --- |
-| `--gm-fs-read` | 15px | 1.72 | 400 | Markdown 正文、笔记内容、纪要正文、对话内容 |
-| `--gm-fs-read-h3` | 17px | 1.35 | 600 | Markdown `###`、正文内的分节标题 |
-| `--gm-fs-read-h2` | 20px | 1.35 | 600 | Markdown `##` |
-| `--gm-fs-read-h1` | 26px | 1.25 | 600 | Markdown `#`、纪要文档标题 |
+### 3.3 字重与字距
 
-阅读面里的代码块用 `--gm-font-ui` + 13px + 行高 1.6；行内代码同正文 15px，只换字族不加字号。
+- 字重只有三档：`400`（正文与条目）、`500`（只用于等宽标签）、`600`（标题与统计数字）。禁止 300、700、800。
+- 字距：正文与标题一律 `0`。两处例外——等宽标签 `0.16em`（C 稿实测）、统计数字 `-0.02em`（C 稿实测 `.fig .v`）。除此之外出现 `letter-spacing` 即违规。
 
-### 3.4 字重与字距
+### 3.4 中英文混排
 
-- 字重只有 `400`（`--gm-fw-regular`）和 `600`（`--gm-fw-strong`）两个值。禁止 500、550、650、700、800。
-- 字距一律 `0`（`--gm-tracking`）。禁止负字距、禁止全大写英文标签、禁止 `letter-spacing` 出现在任何选择器里。
-- 层级靠字号、颜色、位置三者区分，不靠字重叠加。同一行里最多出现一个 600。
+- 中文用全角标点（，。：；「」），英文与代码用半角；同一行不混两套。
+- 中文与拉丁之间不加空格，由字体栈回落处理；不在字符串里手插空格。
+- 路径、分支名、commit hash、命令、时间戳一律等宽 + `white-space: nowrap` + `text-overflow: ellipsis`。
+- 数字与单位之间加半角空格：`18.4 MB`、`3 条`。
 
-### 3.5 中英文混排
+### 3.5 数字与对齐
 
-- 拉丁字母与数字走 `--gm-font-ui` 的等宽字形，中文回落 PingFang SC，回落由字体栈自动完成。
-- 禁止在字符串里手插空格来「平衡」中英文间距；间距由字体栈与 `0` 字距决定。
-- 中文标点用全角（，。：；「」），英文与代码标点用半角，同一行不混用两套。
-- 中文与拉丁之间不加空格；数字与单位之间加半角空格比，例如 `12 KB`、`3 天`。
-- 路径、分支名、commit hash、CLI 命令、时间戳一律等宽且不换行截断：`white-space: nowrap` + `text-overflow: ellipsis`。
+- 所有数字容器设 `font-variant-numeric: tabular-nums`，列宽固定，内容变化不跳动。
+- 表格与统计带的数值列右对齐；条目序号列宽度固定 22px（C 稿实测其序号列 32px，收窄后与 10.5px 等宽字匹配）。
+- 统计带四项等宽平铺，数字左对齐、标签在上，数字与标签之间 6px。
+- 时间格式：当天 `HH:MM`，跨天 `MM-DD`，相对时间只在 1 小时内使用（`2 分钟前`）。
 
-### 3.6 数字对齐
+### 3.6 行长
 
-- 所有数字容器设 `font-variant-numeric: tabular-nums`。
-- 表格与列表里的数值列右对齐；列宽固定，不随内容跳动。
-- 统计大数字左对齐，与标签左边缘对齐，不用等宽居中对齐。
-- 时间戳统一 `HH:MM`（当天）或 `MM-DD HH:MM`（跨天），两位补零，不显示秒。
-
-### 3.7 行长
-
-- 阅读面容器：`max-width: 66ch`。
-- 说明文字与表单帮助文字：`max-width: 72ch`。
-- 列表行标题单行截断，摘要最多两行（`-webkit-line-clamp: 2`）。
-- 禁止整段文字居中；禁止为「好看」缩短到 40ch 以下造成频繁换行。
-
----
+- 阅读面容器 `max-width: 66ch`（产品约束；按主栏 972px 与 15px 正文计，约 35 个汉字一行）。
+- 说明文字 `max-width: 62ch`。
+- 条目正文单行截断，摘要最多两行（`-webkit-line-clamp: 2`）。
+- 禁止居中正文；禁止为了「整齐」把正文压到 40ch 以下。
 
 ## 4 空间与形状
 
-### 4.1 间距阶梯（8 档）
+### 4.1 版心（照 C 稿骨架）
 
-| token | 值 | 用途 |
+| 项 | 值 | 来源 |
 | --- | --- | --- |
-| `--gm-sp-1` | 2px | 图标与角的微调、徽标内边距 |
-| `--gm-sp-2` | 4px | 标签与值的间距、同组按钮间距 |
-| `--gm-sp-3` | 8px | 图标与文字、行内元素、工具栏簇 |
-| `--gm-sp-4` | 12px | 行内边距、列表行水平内边距、紧凑卡片内边距 |
-| `--gm-sp-5` | 16px | 卡片内边距、面板内边距、表单行间距 |
-| `--gm-sp-6` | 24px | 页面左右留白、模块之间、阅读面内边距 |
-| `--gm-sp-7` | 32px | 页面上下留白、大区块分隔、空态内边距 |
-| `--gm-sp-8` | 48px | 单列整页布局的段落级分隔、设置页分组之间 |
+| 画布宽 | 1440px，居中，`width:1440px; margin:0 auto` | C 稿实测 |
+| 左右留白 | 96px | C 稿实测 `padding:60px 96px 72px` |
+| 上留白 | 60px | C 稿实测 |
+| 下留白 | 72px | C 稿实测 |
+| 侧栏宽 | 224px | C 稿实测 `.sheet` 第一列 |
+| 侧栏与主栏间距 | 52px | C 稿实测 |
+| 主栏宽 | 972px（1440 − 192 − 224 − 52） | C 稿实测推算 |
+| 内容列上限 | 无独立 max-width，主栏即上限 | C 稿实测（通栏排到主栏边） |
 
-只允许这 8 个值。禁止 6px、10px、14px、18px、20px、28px、40px、58px、80px。
+### 4.2 间距阶梯（8 档）
 
-### 4.2 圆角阶梯
+| token | 值 | 用途 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-sp-1` | 4px | 标签与值的间距、序号与文字 | C 稿实测（其 9px 行距收敛） |
+| `--gm-sp-2` | 8px | 图标与文字、徽标内边距 | C 稿实测 |
+| `--gm-sp-3` | 12px | 条目上下内边距、紧凑块内距 | C 稿实测（其 13px） |
+| `--gm-sp-4` | 16px | 统计带上下内距、表格单元格 | C 稿实测 |
+| `--gm-sp-5` | 24px | 区块内元素间距 | 新定 |
+| `--gm-sp-6` | 32px | 区块之间 | C 稿实测（其 40px 收敛） |
+| `--gm-sp-7` | 44px | 大区块之间（主栏各 section 的 `gap`） | C 稿实测 `.body{gap:44px}` |
+| `--gm-sp-8` | 56px | 报头与首个区块、页尾 | 新定（配合 26px 标题的呼吸） |
 
-| token | 值 | 用途 |
-| --- | --- | --- |
-| `--gm-r-0` | 0 | 分栏、页面区块、全宽行、贴边元素 |
-| `--gm-r-1` | 2px | 徽标、代码块、键盘提示 |
-| `--gm-r-2` | 4px | 按钮、输入框、卡片、列表选中块、菜单项 |
-| `--gm-r-3` | 8px | 对话框、弹出菜单、悬浮层 |
-| `--gm-r-pill` | 999px | 状态胶囊、圆点、开关 |
+禁止 6px、10px、14px、18px、20px、28px、40px、76px、80px 这类没有对应档位的值。C 稿自身的 9 / 13 / 14 / 26 / 30 / 40 / 60 / 72 全部按上表归并。
 
-三层圆角同时出现在一个视图里即违规（例如页面区块 0 + 卡片 4 + 弹层 8 已满，不得再出现 2px 徽标以外的第四级）。徽标用 2px 不计入。
+### 4.3 分区方式（本轮的核心手法）
 
-### 4.3 边框规则
+- **只用两种手段分区**：1px 横线与留白。没有卡片、没有底色块、没有投影、没有圆角容器。
+- 横线三种用途：区块上下沿（`--gm-line`）、条目之间（`--gm-line`）、表头下沿（`--gm-line`）。
+- 条目必须带序号（`01`…`05`），序号列固定 22px、等宽、`--gm-text-tertiary`。
+- 统计用**表格带**：四条数据等宽平铺，上下各一条线，中间不画竖线，靠 24px 列距分离。
+- 待处理用编号列表：`01/02/03` + 一句话 + 右侧标签，每条上方一条线。
+- 竖线只允许出现在侧栏与主栏之间——C 稿本身连这条也不画，本轮也不画。
 
-用线：
+### 4.4 圆角
 
-- 分栏之间（1px `--gm-line`，纵向，通栏）
-- 列表行之间（1px `--gm-line`，横向，从文字左边缘起，不贴容器边）
-- 表头下沿（1px `--gm-line`）
-- 输入框、开关、可选中的控件轮廓（1px `--gm-line-strong`）
-- 焦点环（2px `--gm-focus-ring`，`outline-offset: 2px`）
-- 选中行左侧标记（2px `--gm-accent`）
+| token | 值 | 用在哪 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-r-0` | 0 | 全部容器、按钮、输入、弹层 | C 稿实测（容器一律直角） |
+| `--gm-r-kbd` | 3px | 键盘提示、复选框 | C 稿实测 `border-radius:3px` |
 
-用留白：
+除键盘提示与复选框外，任何元素出现圆角即违规。胶囊、圆点状态指示器不再使用（改为等宽文字标签）。
 
-- 模块之间：`--gm-sp-6`
-- 卡片之间：`--gm-sp-5`
-- 卡片内元素：`--gm-sp-4`
-- 页面四边：左右 `--gm-sp-6`，上下 `--gm-sp-7`
+### 4.5 层高
 
-禁止：1px 线宽之外的值（0.5px、1.5px、2px 仅限焦点环与选中标记）；同一个盒子同时有 border 和 box-shadow；双层边框（容器和子元素各画一圈）。
+- 常驻界面**没有阴影**。弹层（菜单、对话框）用 `--gm-surface-raised` 底 + 1px `--gm-line-strong` 边 + 遮罩区隔，不用投影。
+- 禁止发光、禁止毛玻璃、禁止 `backdrop-filter`。
+- 唯一例外是系统原生对话框与系统级通知，不受本规范约束。
 
-### 4.4 层高（最多两级）
+### 4.6 结构尺寸
 
-| token | 值 | 用在哪 |
-| --- | --- | --- |
-| `--gm-shadow-1` | `0 4px 12px rgba(0, 0, 0, 0.28)` | 弹出菜单、下拉框、悬浮提示、拖拽预览 |
-| `--gm-shadow-2` | `0 24px 60px rgba(0, 0, 0, 0.45)` | 对话框、命令面板 |
+| token | 值 | 用途 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-h-row` | `min-height: 40px` | 列表行最小高度（单行） | 主人指定（一屏至少 6 条） |
+| `--gm-h-row-2` | `min-height: 56px` | 带两行摘要的行 | 新定（40 + 摘要一行 16） |
+| `--gm-h-nav` | `min-height: 24px` | 侧栏导航项 | C 稿实测（`padding:7px 0` + 13.5px 字号） |
+| `--gm-h-nav-gap` | 6px | 导航项之间 | C 稿实测 |
+| `--gm-w-sidebar` | 224px | 侧栏 | C 稿实测 |
+| `--gm-w-gutter` | 52px | 侧栏与主栏之间 | C 稿实测 |
+| `--gm-w-pad-x` | 96px | 页面左右留白 | C 稿实测 |
+| `--gm-w-scrollbar` | 6px | 滚动条 | 新定 |
+| `--gm-chart-max` | 40 | 柱状图单日上限（固定值，不按周内最大值自适应） | 主人指定 |
 
-浅色主题对应值：`--gm-shadow-1: 0 4px 12px rgba(60, 52, 35, 0.14)`，`--gm-shadow-2: 0 24px 60px rgba(60, 52, 35, 0.22)`。
+行高一律 `min-height`，不用 `height`；只有按钮、输入框、标签这类必须等高的控件才用固定 `height`。
 
-- 常驻面板与卡片默认 `box-shadow: none`，靠 `--gm-surface` 与 `--gm-line` 区分。
-- 禁止第三级阴影、禁止内阴影、禁止发光（带颜色的 shadow）。
+### 4.7 图标
 
-### 4.5 结构尺寸
+| token | 值 | 用途 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-icon-xs` | 12px | 行内微图标、关闭 | 新定 |
+| `--gm-icon-sm` | 14px | 条目、菜单、紧凑按钮 | C 稿实测（条目内图标量级） |
+| `--gm-icon-md` | 16px | 导航、工具栏、按钮 | C 稿实测 |
+| `--gm-icon-lg` | 20px | 区块头、设置项 | 新定 |
 
-| token | 值 | 用途 |
-| --- | --- | --- |
-| `--gm-w-sidebar` | 224px | 左侧主导航宽度 |
-| `--gm-w-rail` | 18px | 侧栏收起后的竖条 |
-| `--gm-w-pane-default` | 320px | 分栏列表默认宽度 |
-| `--gm-w-pane-min` | 260px | 分栏列表最小宽度 |
-| `--gm-w-pane-max` | 560px | 分栏列表最大宽度 |
-| `--gm-w-detail-min` | 320px | 详情栏最小宽度 |
-| `--gm-w-handle` | 1px | 分栏拖动线（热区 8px） |
-| `--gm-h-page-header` | 52px | 页面头高度（固定，不用 min-height） |
-| `--gm-h-pane-header` | 44px | 分栏头高度 |
-| `--gm-h-row` | 40px | 列表行最小高度（`min-height`） |
-| `--gm-h-row-comfort` | 44px | 触摸与移动端行最小高度 |
-| `--gm-h-row-comfort` | 44px | 触摸与移动端行高度 |
-| `--gm-h-control-sm` | 28px | 小按钮、图标按钮、紧凑输入 |
-| `--gm-h-control` | 32px | 默认按钮、输入框 |
-| `--gm-h-control-lg` | 36px | 主按钮、对话框动作按钮 |
-| `--gm-w-content-max` | 720px | 单列整页布局的内容宽度上限 |
-| `--gm-w-scrollbar` | 6px | 滚动条宽度 |
+- 图标库固定 `lucide-react`，`stroke-width: 1.5`，颜色只取 `--gm-text-tertiary` 或 `--gm-text`。
+- 分类图标靠形状区分，不用颜色（B3b 批的验收：整屏转灰度后分类信息不减少）。
+- 禁止 emoji 当图标，禁止插画，禁止图标底色。
 
-行高一律用 `min-height`，不用 `height`：列表行、导航项、卡片头都按内容自然长高，只有按钮、输入框、标签页这类必须等高的控件才使用固定 `height`。
+### 4.8 柱状图
 
-### 4.6 图标
-
-| token | 值 | 用途 |
-| --- | --- | --- |
-| `--gm-icon-xs` | 12px | 行内微图标、徽标内图标、关闭图标 |
-| `--gm-icon-sm` | 14px | 列表行图标、菜单项图标、紧凑按钮图标 |
-| `--gm-icon-md` | 16px | 工具栏图标、导航图标、按钮图标 |
-| `--gm-icon-lg` | 20px | 面板头图标、设置项图标 |
-| `--gm-icon-xl` | 24px | 空态图标、对话框头图标、步骤标记 |
-
-图标库固定为项目已有的 `lucide-react`，`stroke-width` 固定 `1.5`。禁止混入其他图标包，禁止用 emoji 当图标。
-
----
+- 固定标尺：单日上限 40 条，条宽 = `min(当日数 / 40, 1) × 100%`。
+- 不按周内最大值自适应：一周都只有 3 条时，条形仍然只占 7.5%，不用「拉满」制造虚假的活跃感。
+- 条高 2px，色 `--gm-text`（70% 透明）；未达标的日期用 `--gm-line-strong`。
+- 数值标在右端，等宽 10.5px，右对齐。
 
 ## 5 动效
 
 ### 5.1 参数
 
-| token | 值 | 用途 |
-| --- | --- | --- |
-| `--gm-dur-1` | 120ms | 状态变化：悬停、按下、选中、聚焦 |
-| `--gm-dur-2` | 180ms | 结构变化：面板展开收起、弹层进出、Toast 进出 |
-| `--gm-ease` | `cubic-bezier(0.2, 0, 0, 1)` | 唯一缓动曲线 |
+| token | 值 | 用途 | 来源 |
+| --- | --- | --- | --- |
+| `--gm-dur-1` | 120ms | 状态变化：悬停、按下、聚焦 | 新定（C 稿用 0.15s，收到 120ms 以匹配纸面质感） |
+| `--gm-dur-2` | 180ms | 结构变化：弹层进出、Toast 进出 | 新定 |
+| `--gm-ease` | `cubic-bezier(0.2, 0, 0, 1)` | 唯一缓动 | 新定 |
 
-只有这两个时长和这一条曲线。禁止 0.15s、0.2s、300ms、`ease`、`ease-in-out`、`linear`（加载旋转除外）、禁止自定义第四种曲线。
+只有这两个时长和这一条曲线。禁止 0.15s、0.3s、`ease`、`ease-in-out`、`linear`（加载旋转除外）。
 
 ### 5.2 允许动的属性
 
@@ -328,11 +281,13 @@
 | `background-color` | 是 | `--gm-dur-1` |
 | `border-color` | 是 | `--gm-dur-1` |
 | `color` | 是 | `--gm-dur-1` |
+| `text-decoration-color` | 是（链接下划线） | `--gm-dur-1` |
 | `opacity` | 是（仅弹层与 Toast 进出） | `--gm-dur-2` |
-| `transform` | 是（仅 `translateY(-2px)` 以内的弹层进出、`scale()` 0.98～1） | `--gm-dur-2` |
 | 其他所有属性 | 否 | — |
 
-禁止 `transition: all`；禁止过渡 `width`、`height`、`top`、`left`、`box-shadow`、`filter`；禁止位移超过 2px；禁止悬停放大；禁止列表逐项入场；禁止无限循环动画（唯一例外：加载旋转，`1s linear infinite`，用 `--gm-accent` 描边）。
+禁止 `transition: all`；禁止过渡 `width`、`height`、`top`、`left`、`box-shadow`、`filter`；禁止位移、缩放、悬停放大、逐项入场；禁止无限循环动画（唯一例外：加载旋转）。
+
+纸面方向上「动得越少越像印刷品」：条目悬停只换底色 4% 与文字色，不加位移、不加下划线滑入。
 
 ### 5.3 减少动效
 
@@ -344,7 +299,6 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  /* 加载指示器保留旋转，降为 2s 以减少频闪 */
   .gm-spinner {
     animation: gm-spin 2s linear infinite !important;
     animation-duration: 2s !important;
@@ -353,150 +307,128 @@
 }
 ```
 
-- 该块全局生效一次，写在 `index.css` 顶部，禁止组件内再写局部覆盖。
-- 降级后仍然保留：焦点环立即出现、选中底色立即切换、Toast 直接出现与消失（不做淡入）。
-- `.gm-spinner` 是全仓唯一的动画例外类名，其他任何类名不得写 `animation` 属性。
-
----
+- 全局生效一次，写在 `index.css` 顶部；禁止组件内再写局部覆盖。
+- `.gm-spinner` 是全仓唯一允许 `animation` 的类名。
+- 降级后仍然保留：焦点环立即出现、当前行底色立即切换。
 
 ## 6 组件语汇
 
-所有组件共用：`--gm-r-2` 圆角（除标注）、`--gm-font-ui` 字族、`transition: background-color var(--gm-dur-1) var(--gm-ease), border-color var(--gm-dur-1) var(--gm-ease), color var(--gm-dur-1) var(--gm-ease)`。
+所有组件共用：`--gm-r-0`（直角）、字族分工见 §3.1、`transition` 只含 `background-color` / `border-color` / `color`，时长 `--gm-dur-1`。
 
 ### 6.1 按钮
 
-| 类型 | 高度 | 水平内边距 | 字号/字重 | 默认 | 悬停 | 按下 | 焦点 | 禁用 | 加载 |
+| 类型 | 高度 | 水平内边距 | 字号/字重 | 默认 | 悬停 | 按下 | 焦点 | 禁用 | 来源 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 主 | 32px | 12px | 13/600 | 底 `--gm-accent-fill`，字 `--gm-on-accent` | 底 `--gm-accent-fill-hover` | 底 `--gm-accent-fill-pressed`，无位移 | `2px --gm-focus-ring`，offset 2 | 底 `--gm-surface-raised`，字 `--gm-text-disabled` | 左侧 12px 旋转图标，文字保留，宽度不变 |
-| 次 | 32px | 12px | 13/600 | 底透明，边 `--gm-line-strong`，字 `--gm-text` | 底 `--gm-hover` | 底 `--gm-hover`，边 `--gm-text-tertiary` | 同上 | 边 `--gm-line`，字 `--gm-text-disabled` | 同主 |
-| 幽灵 | 32px | 8px | 13/600 | 无底无边，字 `--gm-text-secondary` | 底 `--gm-hover`，字 `--gm-text` | 底 `--gm-hover`，字 `--gm-text` | 同上 | 字 `--gm-text-disabled` | 同主 |
-| 危险 | 32px | 12px | 13/600 | 底透明，边 `--gm-danger`，字 `--gm-danger` | 底 `--gm-danger-tint` | 底 `--gm-danger-tint`，边框与文字颜色不变 | 同上 | 边 `--gm-line`，字 `--gm-text-disabled` | 同主 |
+| 主（墨） | 30px | 14px | 13/400 | 底 `--gm-action`，字 `--gm-on-action` | 底 `--gm-action-hover` | 底 `--gm-action-pressed` | 2px `--gm-focus-ring`，offset 2 | 底 `--gm-surface`，字 `--gm-text-disabled` | C 稿（墨底动作按钮） |
+| 次 | 30px | 14px | 13/400 | 透明底，1px `--gm-line-strong` 边，字 `--gm-text` | 底 `--gm-hover` | 边 `--gm-text-secondary` | 同上 | 边 `--gm-line`，字 `--gm-text-disabled` | 新定 |
+| 文字 | 24px | 0 | 13/400 | 无底无边，字 `--gm-text-secondary` | 字 `--gm-accent`，下划线 1px | 字 `--gm-accent-hover` | 同上 | 字 `--gm-text-disabled` | C 稿（其 `查看全部` 链接） |
+| 危险 | 30px | 14px | 13/400 | 透明底，1px `--gm-danger` 边，字 `--gm-danger` | 底 `--gm-danger-tint` | 底 `--gm-danger-tint`，边不变 | 同上 | 边 `--gm-line`，字 `--gm-text-disabled` | 新定 |
 
-- 图标按钮：方 28px / 32px 两档，图标 16px，内边距 0，圆角 `--gm-r-2`。
-- 主按钮一屏最多一个；对话框里最多两个（取消 + 确认）。
-- 按钮文字不加粗到 700，不做全大写，不在文字后加箭头字符。
+- 图标按钮：24px 方，图标 14px，内边距 0，无圆角。
+- 主按钮一屏最多一个。按钮文字不做全大写、不加箭头字符、不加左侧图标（除危险确认）。
+- 加载中：文字保留、左侧 12px 旋转图标、宽度不变。
 
 ### 6.2 输入框
 
-| 项 | 值 |
-| --- | --- |
-| 高度 | 32px（单行）、`--gm-h-control-lg` 36px（对话框内） |
-| 水平内边距 | 8px |
-| 字号 | 13px / 400 |
-| 底色 | `--gm-input-bg` |
-| 边框 | 1px `--gm-line-strong` |
-| 圆角 | `--gm-r-2` |
-| 占位符 | `--gm-text-tertiary` |
-| 悬停 | 边框 `--gm-text-tertiary` |
-| 聚焦 | 边框 `--gm-focus-ring` + `2px` 焦点环，offset 0 |
-| 禁用 | 底色 `--gm-surface`，字 `--gm-text-disabled`，边框 `--gm-line` |
-| 错误 | 边框 `--gm-danger`，下方 11px `--gm-danger` 说明，高度增加 16px |
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 高度 | 30px（单行） | C 稿实测（其快速输入行 26px，加底线后取 30） |
+| 水平内边距 | 0 | C 稿实测（底线式输入无内距） |
+| 字号 | 13px / 400 / `--gm-font-ui` | C 稿实测 |
+| 底色 | 透明 | C 稿实测 |
+| 边框 | 只有底线 1px `--gm-line-strong` | C 稿实测 |
+| 圆角 | 0 | C 稿实测 |
+| 占位符 | `--gm-text-tertiary` | 新定 |
+| 悬停 | 底线 `--gm-text-tertiary` | 新定 |
+| 聚焦 | 底线 1px `--gm-accent` + 2px 焦点环（offset 2） | 新定（用主人指定的蓝） |
+| 禁用 | 底线 `--gm-line`，字 `--gm-text-disabled` | 新定 |
+| 错误 | 底线 `--gm-danger`，下方 10.5px `--gm-danger` 说明 | 新定 |
 
-多行输入框（笔记、快捷记录）：内边距 12px，最小高度 96px，`resize: vertical`，其余同上。
+多行输入（笔记、快捷记录）：无框，只有上下两条 `--gm-line`，内边距 12px 0，最小高度 96px，宋体 15px / 1.75（阅读字号，产品约束）。
 
-### 6.3 列表行
+### 6.3 列表行（带序号）
 
-| 项 | 值 |
-| --- | --- |
-| 高度 | `min-height: 40px`（`--gm-h-row`）；带摘要的行 `min-height: 56px`；触摸行 `min-height: 44px`（`--gm-h-row-comfort`）。禁止写 `height` |
-| 垂直内边距 | 8px（`--gm-sp-3`），内容垂直居中 |
-| 水平内边距 | 12px |
-| 结构 | 图标 14px（`--gm-icon-sm`）+ 标题 + 右侧元信息，间距 8px |
-| 标题 | 13px / 600 / `--gm-text`，单行截断 |
-| 摘要 | 13px / 400 / `--gm-text-secondary`，最多两行 |
-| 元信息 | 11px / 400 / `--gm-text-tertiary`，`tabular-nums`，右对齐 |
-| 分隔 | 下边 1px `--gm-line`，从文字左边缘起 |
-| 悬停 | 底 `--gm-hover` |
-| 选中 | 底 `--gm-selected` + 左侧 2px `--gm-accent` |
-| 焦点 | 2px `--gm-focus-ring` 内描边（`outline-offset: -2px`，避免被裁切） |
-| 禁用 | 字 `--gm-text-disabled`，无悬停变化 |
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 最小高度 | 40px（单行）、56px（带摘要）；`min-height`，禁止 `height` | 主人指定 |
+| 列结构 | 22px 序号 + 52px 类型 + 1fr 标题 + 68px 来源 + 76px 时间，列距 16px | C 稿实测（32/44/1fr/64/60 + gap 14） |
+| 序号 | 10.5px 等宽，`--gm-text-tertiary` | C 稿实测 |
+| 类型 | 10.5px 等宽，0.16em 字距，`--gm-text-tertiary` | C 稿实测 |
+| 标题 | 14.5px / 400 / `--gm-text`，单行截断 | C 稿实测 |
+| 摘要 | 13px / 400 / `--gm-text-secondary`，最多两行 | 新定（C 无摘要，A 有） |
+| 来源 / 时间 | 10.5px 等宽，`--gm-text-tertiary`，右对齐 | C 稿实测 |
+| 分隔 | 下沿 1px `--gm-line` | C 稿实测 |
+| 悬停 | 底 `--gm-hover`（4% 墨），文字不变 | C 稿实测（其悬停为微染） |
+| 当前 | 底 `--gm-accent-tint`（6% 蓝）+ 标题 600，左侧不画竖条 | 新定（强调蓝只标「当前所在」） |
+| 焦点 | 2px `--gm-focus-ring` 内描边（`outline-offset: -2px`） | 新定 |
 
-列表行不放卡片、不放投影、不放大图标。
+一屏至少 6 条：主栏可用高 ≥ 40×6 + 分隔线。
 
-单行行：标题一行 + 元信息一行（同一行右侧），`min-height: 40px`。
-带摘要行：标题一行 + 摘要最多两行，`min-height: 56px`，行高按内容自然长高，不得裁切。
-禁止对列表行写 `height` / `max-height` / `overflow: hidden` 来固定行高；摘要的两行截断只能靠 `-webkit-line-clamp: 2` 实现。
+### 6.4 统计带（替代卡片）
 
-### 6.4 卡片
-
-| 项 | 值 |
-| --- | --- |
-| 底色 | `--gm-surface` |
-| 边框 | 1px `--gm-line` |
-| 圆角 | `--gm-r-2` |
-| 内边距 | 16px |
-| 阴影 | 无 |
-| 标题 | 16px / 600 / `--gm-text`，与内容间距 12px |
-| 卡片间距 | 16px（同一网格 gap） |
-| 可点击卡片悬停 | 底 `--gm-surface-raised`，边框 `--gm-line-strong` |
-| 选中卡片 | 边框 `--gm-accent`，不加底色 |
-
-卡片只承载一个主题。一个卡片里出现两个同级标题即拆成两张。
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 结构 | 四等分平铺，上下各一条 1px `--gm-line-strong` | C 稿实测 `.figures` |
+| 单元格内距 | 上 16px、下 18px、右 20px（首格左 0） | C 稿实测 |
+| 数字 | 30px / 600 / 宋体 / `-0.02em` / `tabular-nums` | 新定（C 38px 封顶到 30） |
+| 标签 | 10.5px 等宽，0.16em 字距，在数字上方 | C 稿实测 |
+| 补充说明 | 10.5px 等宽，`--gm-text-tertiary`，在数字下方 | C 稿实测 |
+| 单位 | 13px 无衬线，跟在数字后，色 `--gm-text-tertiary` | 新定 |
+| 竖线 | 无 | 新定（C 有 1px 竖线，这里改为纯留白，呼应「一条竖线都不要」） |
 
 ### 6.5 导航
 
-| 项 | 值 |
-| --- | --- |
-| 侧栏宽 | 224px，底色 `--gm-surface`，右侧 1px `--gm-line` |
-| 导航项高度 | 32px |
-| 导航项内边距 | 水平 8px |
-| 导航项间距 | 4px（`--gm-sp-2`） |
-| 结构 | 图标 16px + 文字 13px / 400 |
-| 默认 | 字 `--gm-text-secondary`，图标 `--gm-text-tertiary` |
-| 悬停 | 底 `--gm-hover`，字 `--gm-text` |
-| 当前 | 底 `--gm-selected`，字 `--gm-text`，图标 `--gm-accent`，左侧 2px `--gm-accent` |
-| 分组标题 | 11px / 600 / `--gm-text-tertiary`，上间距 16px |
-| 移动端底栏 | 高 52px，底色 `--gm-surface`，上边 1px `--gm-line`，当前项图标与文字用 `--gm-accent` |
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 侧栏宽 | 224px，无底色（与页面同纸），右侧不画线 | C 稿实测（其侧栏无缝分隔） |
+| 分组标题 | 10.5px 等宽，0.16em 字距，`--gm-text-tertiary` | C 稿实测 |
+| 导航项 | 13px / 400，`--gm-text-secondary`，行距 6px，`min-height 24px` | C 稿实测 |
+| 计数 | 10.5px 等宽，`--gm-text-tertiary`，右对齐 | C 稿实测 |
+| 悬停 | 文字转 `--gm-text`，不加底色 | 新定（纸面上不加色块） |
+| 当前 | 文字 `--gm-accent` + 600，计数 `--gm-accent` | 新定（强调蓝只标「当前所在」） |
+| 移动端底栏 | 高 52px，上沿 1px `--gm-line`，当前项文字 `--gm-accent` | 新定 |
 
-导航里不出现彩色图标、不出现徽标超出三项、不出现文字换行。
+导航里不出现彩色图标、不出现徽标、不出现换行。
 
-### 6.6 徽标
+### 6.6 标签与小标记
 
-| 项 | 值 |
-| --- | --- |
-| 高度 | 18px |
-| 内边距 | 水平 6px |
-| 字号 | 11px / 600 |
-| 圆角 | `--gm-r-1` |
-| 中性 | 底 `--gm-surface-raised`，字 `--gm-text-secondary`，边 1px `--gm-line` |
-| 蓝色 | 底 `--gm-accent-tint`，字 `--gm-accent` |
-| 成功 | 底 `--gm-success-tint`，字 `--gm-success` |
-| 警告 | 底 `--gm-warning-tint`，字 `--gm-warning` |
-| 危险 | 底 `--gm-danger-tint`，字 `--gm-danger` |
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 尺寸 | 10.5px 等宽，0.16em 字距，全大写（仅拉丁） | C 稿实测 |
+| 颜色 | 中性 `--gm-text-tertiary`；状态用 `--gm-success` / `--gm-warning` / `--gm-danger` | C 稿实测 + 新定 |
+| 底与边 | 无 | 新定（取消胶囊底色） |
+| 位置 | 跟在标题后（`margin-left: 10px`）或列末右对齐 | C 稿实测 |
 
-一个视图里状态徽标最多两个。分类、来源、类型不得用徽标颜色区分，统一用中性徽标。
+一个视图里的状态色标签最多两个。分类、来源不得用颜色区分。
 
 ### 6.7 空态
 
-| 项 | 值 |
-| --- | --- |
-| 布局 | 垂直居中，最大宽度 320px |
-| 图标 | 24px（`--gm-icon-xl`），`--gm-text-tertiary` |
-| 主标题 | 13px / 600 / `--gm-text`，上间距 16px |
-| 说明 | 13px / 400 / `--gm-text-secondary`，上间距 4px，最多两行 |
-| 动作 | 次按钮或幽灵按钮，上间距 16px |
-| 内边距 | 32px |
-| 最小高度 | 180px |
-
-空态不放大图标、不加插画、不写感叹号。
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 结构 | 一行 13px `--gm-text-secondary` + 一个文字按钮，无图标、无插画 | 新定（C 无空态，按纸面语言推导） |
+| 内距 | 上下 `--gm-sp-7`（44px） | 新定 |
+| 宽度 | 不超过 40ch | 新定 |
 
 ### 6.8 标签页
 
-| 项 | 值 |
-| --- | --- |
-| 高度 | 32px |
-| 水平内边距 | 12px |
-| 字号 | 13px / 600 |
-| 默认 | 字 `--gm-text-secondary`，无底无边 |
-| 悬停 | 字 `--gm-text`，底 `--gm-hover` |
-| 当前 | 字 `--gm-text`，底 `--gm-selected`，下方 2px `--gm-accent` |
-| 计数 | 11px / 400 / `--gm-text-tertiary`，与标签间距 4px |
-| 焦点 | 2px `--gm-focus-ring`，offset -2px |
-| 分隔 | 标签条整体下方 1px `--gm-line` |
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 高度 | 30px | 新定 |
+| 字号 | 13px / 400 | C 稿实测（导航同级） |
+| 当前 | 文字 `--gm-text` + 600，下方 2px `--gm-accent` | 主人指定（当前所在用蓝） |
+| 非当前 | `--gm-text-tertiary`，悬停转 `--gm-text-secondary` | 新定 |
+| 分隔 | 整条下方 1px `--gm-line` | C 稿实测（表头下沿） |
 
-标签页不做胶囊按钮，不做圆角容器包住整组。
+不做胶囊式标签页，不做包住整组的圆角容器。
 
----
+### 6.9 待处理块
+
+| 项 | 值 | 来源 |
+| --- | --- | --- |
+| 结构 | 三列平铺（窄屏转单列），每列上方 1px `--gm-line` | C 稿实测 |
+| 编号 | 10.5px 等宽，`--gm-accent` | 新定（当前/待办的定位信号） |
+| 标签 | 10.5px 等宽，`--gm-text-tertiary` | C 稿实测 |
+| 正文 | 13px / 1.7 / `--gm-text-secondary` | C 稿实测（其 13px） |
 
 ## 7 迁移映射表
 
@@ -506,29 +438,29 @@
 
 | 旧 token | 新 |
 | --- | --- |
-| `--gm-font-mono` | `--gm-font-ui` |
-| `--gm-font-sans` | `--gm-font-read` |
-| `--gm-font-2xs`（11） | `--gm-fs-micro` |
-| `--gm-font-xs`（12） | `--gm-fs-micro`（11）；可读文字改 `--gm-fs-ui` |
-| `--gm-font-sm`（13） | `--gm-fs-ui` |
-| `--gm-font-md`（15） | 界面用 `--gm-fs-ui-lg`（16）；阅读正文用 `--gm-fs-read`（15） |
-| `--gm-font-lg`（17） | 面板/对话框标题 `--gm-fs-ui-lg`；Markdown `###` 用 `--gm-fs-read-h3` |
-| `--gm-font-xl`（20） | 页标题 `--gm-fs-title`；Markdown `##` 用 `--gm-fs-read-h2` |
-| `--gm-font-2xl`（24） | `--gm-fs-read-h1`（26）；统计大数字用 `--gm-fs-title`（20） |
+| `--gm-font-mono` | `--gm-font-mono`（值改为 SF Mono 栈） |
+| `--gm-font-sans` | `--gm-font-ui`（界面无衬线）；要读的长文改 `--gm-font-title`（宋体） |
+| `--gm-font-2xs`（11） | `--gm-fs-micro`（10.5） |
+| `--gm-font-xs`（12） | `--gm-fs-micro`（10.5）；可读文字改 `--gm-fs-ui`（13） |
+| `--gm-font-sm`（13） | `--gm-fs-ui`（13）；条目正文用 `--gm-fs-row`（14.5） |
+| `--gm-font-md`（15） | 阅读正文 `--gm-fs-read`（15）；不再有 15px 界面字 |
+| `--gm-font-lg`（17） | Markdown `###` 用 `--gm-font-title` 17px / 600 |
+| `--gm-font-xl`（20） | 报头品牌名 `--gm-fs-brand`（22）；Markdown `##` 用 20 |
+| `--gm-font-2xl`（24） | 页面主标题 `--gm-fs-title`（26）；统计数字 `--gm-fs-stat`（30） |
 | `--gm-leading-none` | 删除（图标与标记不设行高） |
-| `--gm-leading-tight` | `--gm-lh-title`（1.25） |
-| `--gm-leading-title` | `--gm-lh-title` |
-| `--gm-leading-heading` | `--gm-lh-read-head`（1.35） |
-| `--gm-leading-normal` | `--gm-lh-ui`（1.5） |
-| `--gm-leading-relaxed` | `--gm-lh-read`（1.72） |
-| `--gm-leading-reading` | `--gm-lh-read` |
+| `--gm-leading-tight` | `--gm-lh-micro`（1.4） |
+| `--gm-leading-title` | `--gm-lh-title`（1.35） |
+| `--gm-leading-heading` | `--gm-lh-row`（1.45） |
+| `--gm-leading-normal` | `--gm-lh-ui`（1.6） |
+| `--gm-leading-relaxed` | `--gm-lh-read`（1.75） |
+| `--gm-leading-reading` | `--gm-lh-read`（1.75） |
 | `--gm-leading-reading-mobile` | `--gm-lh-read`（移动端不再单独放大） |
 
 ### 7.2 间距
 
 | 旧 token | 新 |
 | --- | --- |
-| `--gm-space-0`（0） | `--gm-sp-0` |
+| `--gm-space-0`（0） | 删除（0 直接写 0） |
 | `--gm-space-1`（2） | `--gm-sp-1` |
 | `--gm-space-2`（4） | `--gm-sp-2` |
 | `--gm-space-3`（8） | `--gm-sp-3` |
@@ -550,7 +482,7 @@
 | `--gm-card-content-gap`（12） | `--gm-sp-4` |
 | `--gm-row-pad-x`（8） | `--gm-sp-3` |
 | `--gm-row-pad-y`（4） | 删除（行用固定高度 `--gm-h-row`） |
-| `--gm-row-pad-y-comfort`（8） | 删除（用 `--gm-h-row-comfort`） |
+| `--gm-row-pad-y-comfort`（8） | 删除（触摸行用 `--gm-h-row-comfort` 44） |
 | `--gm-row-gap`（8） | `--gm-sp-3` |
 | `--gm-icon-text-gap`（8） | `--gm-sp-3` |
 | `--gm-toolbar-gap`（8） | `--gm-sp-3` |
@@ -577,22 +509,22 @@
 
 | 旧 token | 新 |
 | --- | --- |
-| `--gm-control-height-xs`（28） | `--gm-h-control-sm` |
-| `--gm-control-height-sm`（32） | `--gm-h-control` |
-| `--gm-control-height-md`（34） | `--gm-h-control`（32） |
-| `--gm-control-height-lg`（36） | `--gm-h-control-lg` |
-| `--gm-control-height-xl`（38） | `--gm-h-control-lg`（36） |
+| `--gm-control-height-xs`（28） | `--gm-h-control`（30） |
+| `--gm-control-height-sm`（32） | `--gm-h-control`（30） |
+| `--gm-control-height-md`（34） | `--gm-h-control`（30） |
+| `--gm-control-height-lg`（36） | `--gm-h-control`（30） |
+| `--gm-control-height-xl`（38） | `--gm-h-control`（30） |
 | `--gm-pane-header-height`（50） | `--gm-h-pane-header`（44） |
 | `--gm-page-header-title-font` | `--gm-fs-title` |
 | `--gm-page-header-icon-size` | `--gm-icon-lg` |
-| `--gm-pane-header-title-font` | `--gm-fs-ui-lg` |
+| `--gm-pane-header-title-font` | `--gm-fs-row`（14.5） |
 | `--gm-pane-header-icon-size` | `--gm-icon-lg` |
 
 ### 7.4 图标
 
 | 旧 token | 新 |
 | --- | --- |
-| `--gm-icon-dot`（8） | 删除（圆点用 6px 固定值 + `--gm-r-pill`） |
+| `--gm-icon-dot`（8） | 删除（不再用圆点，状态改用等宽文字标签） |
 | `--gm-icon-2xs`（12） | `--gm-icon-xs` |
 | `--gm-icon-xs`（14） | `--gm-icon-sm` |
 | `--gm-icon-sm`（16） | `--gm-icon-md` |
@@ -609,21 +541,21 @@
 | 旧 token | 新 |
 | --- | --- |
 | `--gm-radius-none`（0） | `--gm-r-0` |
-| `--gm-radius-xs`（2） | `--gm-r-1` |
-| `--gm-radius-sm`（4） | `--gm-r-2` |
-| `--gm-radius-md`（6） | `--gm-r-2`（4） |
-| `--gm-radius-lg`（8） | `--gm-r-3` |
-| `--gm-radius-pill`（999） | `--gm-r-pill` |
+| `--gm-radius-xs`（2） | `--gm-r-0`（一律直角） |
+| `--gm-radius-sm`（4） | `--gm-r-0` |
+| `--gm-radius-md`（6） | `--gm-r-0` |
+| `--gm-radius-lg`（8） | `--gm-r-0` |
+| `--gm-radius-pill`（999） | 删除（不再使用胶囊；圆点改为等宽文字标签） |
 
 ### 7.6 阴影与遮罩
 
 | 旧 token | 新 |
 | --- | --- |
-| `--gm-shadow-card` | 删除（卡片不投影） |
-| `--gm-shadow-popover` | `--gm-shadow-1` |
-| `--gm-shadow-soft` | `--gm-shadow-1` |
-| `--gm-shadow-modal` | `--gm-shadow-2` |
-| `--gm-shadow-bottom` | `--gm-shadow-1` |
+| `--gm-shadow-card` | 删除（本轮没有卡片，也没有投影） |
+| `--gm-shadow-popover` | 删除（弹层用 1px 边 + `--gm-surface-raised` 底） |
+| `--gm-shadow-soft` | 删除 |
+| `--gm-shadow-modal` | 删除（对话框靠遮罩区隔） |
+| `--gm-shadow-bottom` | 删除 |
 | `--gm-shadow-bottom-soft` | 删除 |
 | `--gm-shadow-control` | 删除 |
 | `--gm-shadow-control-strong` | 删除 |
@@ -649,7 +581,7 @@
 | `--gm-color-text-primary` | `--gm-text` |
 | `--gm-color-text-secondary` | `--gm-text-secondary` |
 | `--gm-color-text-muted` | `--gm-text-tertiary` |
-| `--gm-color-text-inverse` | `--gm-on-accent` |
+| `--gm-color-text-inverse` | `--gm-on-action`（墨色按钮上的字） |
 | `--gm-color-border-subtle` | `--gm-line` |
 | `--gm-color-border-strong` | `--gm-line-strong` |
 | `--gm-color-brand` | `--gm-accent` |
@@ -659,7 +591,7 @@
 | `--gm-color-danger` | `--gm-danger` |
 | `--gm-color-purple` | 删除（无第七语义色） |
 | `--gm-color-pink` | 删除 |
-| `--gm-color-on-accent` | `--gm-on-accent` |
+| `--gm-color-on-accent` | `--gm-on-action` |
 | `--gm-color-muted-icon` | `--gm-text-tertiary` |
 | `--gm-accent-muted` | `--gm-accent-tint` |
 | `--gm-accent-soft` | `--gm-accent-tint` |
@@ -720,15 +652,15 @@
 | `--gm-size-divider`（1） | 删除（边框统一 1px 字面量） |
 | `--gm-size-setup-panel-max-width`（720） | `--gm-w-content-max` |
 | `--gm-size-drop-card-max-width`（720） | `--gm-w-content-max` |
-| `--gm-size-layout-toggle`（22） | `--gm-h-control-sm`（28） |
+| `--gm-size-layout-toggle`（22） | `--gm-h-control-sm`（24） |
 | `--gm-settings-row-icon-gap` | `--gm-sp-4` |
 | `--gm-size-settings-row-icon-offset` | 删除（图标列宽用 `--gm-sp-7`） |
 | `--gm-size-spinner-sm`（16） | `--gm-icon-md` |
-| `--gm-size-kbd-min-width`（18） | 删除（键盘提示用 `--gm-r-1` + 4px 内边距） |
+| `--gm-size-kbd-min-width`（18） | 删除（键盘提示用 `--gm-r-kbd` + 4px 内边距） |
 | `--gm-size-status-pill-min-height`（26） | 删除（状态胶囊固定 18px） |
 | `--gm-size-empty-state-min-height`（180） | 空态最小高度 180px 固定值 |
-| `--gm-size-find-input-min-height`（30） | `--gm-h-control`（32） |
-| `--gm-size-mobile-row-min-height`（44） | `--gm-h-row-comfort` |
+| `--gm-size-find-input-min-height`（30） | `--gm-h-control`（30） |
+| `--gm-size-mobile-row-min-height`（44） | `--gm-h-row-comfort`（44） |
 | `--gm-size-mobile-bottom-nav-height`（52） | 移动底栏 52px 固定值 |
 | `--gm-size-mobile-bottom-content-offset`（44） | 删除（改用 `52px + env(safe-area-inset-bottom)`） |
 | `--gm-size-mobile-dashboard-bottom-offset`（96） | 删除（同上） |
@@ -750,7 +682,7 @@
 | `--gm-size-menu-popover-min-width`（178） | 删除（弹层最小宽 200px 字面量） |
 | `--gm-offset-menu-popover-top`（38） | 删除（弹层位置由定位计算） |
 | `--gm-offset-floating-toast`（24） | `--gm-sp-6` |
-| `--gm-size-floating-toast-width`（440） | 删除（Toast 宽 320px，`--gm-r-3`） |
+| `--gm-size-floating-toast-width`（440） | 删除（Toast 宽 320px，直角） |
 | `--gm-size-floating-toast-gutter`（32） | `--gm-sp-7` |
 | `--gm-size-drop-result-list-max-height`（260） | 删除（列表最大高度 `40vh`） |
 | `--gm-size-error-log-max-height`（44vh） | 删除（日志最大高度 `40vh`） |
@@ -793,157 +725,159 @@
 
 ## 8 三屏示意
 
-响度排序用三个词：**最响 / 次之 / 最弱**。判定标准是纯灰化之后仍然成立的视觉权重，不看颜色。
+版心统一：画布 1440，左右留白 96，侧栏 224，栏间 52，主栏 972。三屏的差异只在主栏内部的组织方式。
 
 ### 8.1 仪表盘
 
-结构（从上到下，视觉顺序即读顺序）：
+结构（主栏自上而下）：
 
-1. 页面头：高 `--gm-h-page-header` 52px，左右留白 `--gm-sp-6`。标题 `--gm-fs-title`（20/600）左对齐，右侧放一个次按钮（刷新）与一个幽灵图标按钮（更多）。头下 1px `--gm-line`，通栏。
-2. 状态带：一行三格，宽 `--gm-w-content-max`（720px），格间距 `--gm-sp-5`。每格：标签 11/600 `--gm-text-tertiary` 在上，值 20/600 `--gm-text` 在下，行高 1.25，数字 `tabular-nums`。无边框、无底色、无图标；三格之间只留白。
-3. 最近条目列表：垂直列表，行高 `--gm-h-row` 40px，行内结构 图标 14px + 标题 13/600 + 时间 11/400 右对齐。行间 1px `--gm-line`。列表头上方留 `--gm-sp-7`。
-4. 页底留 `--gm-sp-7`。
+1. **报头**：品牌名 22/600 宋体 + 页面主标题 26/1.35/600，「三天前那条中断的条款草稿，今天可以接着写完。」+ 副说明 13/1.7。右上角是同步状态：五行等宽 10.5，右对齐。
+2. **统计带**：四等分，上下各一条 1px 线，数字 30/600 宋体，标签 10.5 等宽在上、补充说明 10.5 在下。四项之间只有 24px 列距，无竖线。
+3. **最近条目**：区块标题 10.5 等宽 + 右侧「1,281 条中显示 5 条」。五条带序号的行，行高 40，行间 1px 线，当前行 6% 蓝底。
+4. **快速记一行**：标题 10.5 等宽，输入区无框只有上下两条线，宋体 15px（阅读字号），右下角「写入 收件箱」文字按钮。
+5. **待处理 · 3**：三列平铺，每列上沿一条线，`01/02/03` 蓝色等宽编号 + 13px 说明。
 
-响度：**最响** = 页面标题（20/600 + 独占一行）；**次之** = 状态带三个 20px 数值（面积小但字号与标题同级，形成第二层）；**最弱** = 最近条目的标题与时间。
+响度：最响 = 主标题（26/600，全页唯一 26px）；次之 = 统计数字（30px，但只占四格、面积小）；最弱 = 条目序号、来源、时间（10.5 等宽）。统计数字字号大于主标题，靠面积小让它退到第二层——这是 C 骨架的特征，不用 A 的 82px。
 
-禁止：卡片墙、统计卡彩色竖条、分类彩色图标、卡片投影、图标配彩色底、把「最近条目」做成浮起的卡片。
+禁止：卡片、统计卡彩色竖条、分类彩色图标、投影、圆角容器、把「最近条目」做成浮起卡片。
 
 ### 8.2 笔记
 
-结构（左右分栏）：
+结构（侧栏 224 + 列表 320 + 详情 652）：
 
-1. 左栏：宽 `--gm-w-pane-default` 320px，底色 `--gm-surface`，右侧 1px `--gm-line`。栏头 44px，标题 16/600，右侧一个次按钮（新建）。
-2. 栏头下是输入区：不用卡片，直接置于列表上方，左右内边距 `--gm-sp-4`，标题输入框与正文输入框同字号 13/400，底色 `--gm-input-bg`，边框 1px `--gm-line-strong`，聚焦时边框变 `--gm-focus-ring`。输入区下沿 1px `--gm-line`。
-3. 列表：行高 40px，标题 13/600 `--gm-text`，摘要 13/400 `--gm-text-secondary` 单行截断，时间 11/400 `--gm-text-tertiary`。行间 1px `--gm-line`。选中行底 `--gm-selected` + 左侧 2px `--gm-accent`。
-4. 右栏：阅读面，用 `--gm-font-read` 15/400，行高 1.72，内边距 `--gm-sp-6`，内容最大宽 `66ch`。顶部工具栏 44px，标题 16/600，动作按「刷新 → 收藏 → 编辑 → 更多」排列，图标 16px。
+1. 列表栏与详情栏之间一条 1px `--gm-line`（全页唯一允许的竖线之一，仅在双栏时出现）。
+2. 列表头：10.5 等宽标题 + 右侧「新建」文字按钮，栏头高 44 + 底线 1px。
+3. 输入区：无卡片，直接位于列表上方；标题输入与正文输入同为 13/400，只有底线，聚焦底线转蓝。
+4. 列表行：序号 22 + 标题 14.5/400 + 时间 10.5 等宽右对齐，行高 40，行间 1px 线，当前行 6% 蓝底 + 标题 600。
+5. 详情栏：阅读面 15px/1.75 宋体，内距 24，正文 `max-width: 66ch`；顶部工具栏 44 高，标题 14.5/600（不放大到 26，因为主标题在报头）。
 
-响度：**最响** = 右栏正文首个标题（界面里唯一的 17px 以上阅读字重）；**次之** = 左栏当前选中行的标题（13/600 + `--gm-selected` 底）；**最弱** = 左栏时间戳与右栏页脚的元信息（11/400）。
+响度：最响 = 当前行的标题（600 + 蓝底）；次之 = 详情正文首段；最弱 = 时间、序号、来源。
 
-禁止：输入区做成带投影的独立卡片、左右两栏各自再包一层卡、选中行加缩放或加阴影、正文用等宽字体。
+禁止：输入区做成带投影的卡片、左右两栏各自再包卡、选中行加缩放或阴影、正文用等宽字体。
 
 ### 8.3 搜索
 
-结构（单列结果流，或分栏时结果在左）：
+结构（单列结果流，或双栏时结果在左）：
 
-1. 搜索框：高 32px，宽占满内容列，底色 `--gm-input-bg`，左侧 14px 放大镜图标 `--gm-text-tertiary`，占位符 13/400 `--gm-text-tertiary`，右侧显示当前范围的 11px 中性徽标。
-2. 结果计数：一行 11/400 `--gm-text-tertiary`，与搜索框间距 `--gm-sp-5`，写作「12 条结果 · 0.04 s」，数字 `tabular-nums`。
-3. 结果列表：每条的标题 13/600 `--gm-text`，摘要 13/400 `--gm-text-secondary` 最多两行，时间 11/400 `--gm-text-tertiary` 右对齐。行内边距 12px，行间 1px `--gm-line`。整条结果无底色、无边框、无投影。
-4. 命中关键词用 `--gm-text` + 600 加重，不加底纹、不改颜色。
-5. Enter 打开当前项，↑/↓ 移动，当前项 `--gm-selected` 底 + 左侧 2px `--gm-accent`。
+1. 搜索框：30 高，无框只有底线，左侧 14px 放大镜（`--gm-text-tertiary`），占位符 13/`--gm-text-tertiary`，聚焦底线转蓝。
+2. 结果计数：一行 10.5 等宽，写作「12 条结果 · 0.04 s」，与结果列表间距 24。
+3. 结果行：序号 + 类型 + 标题（14.5）+ 来源 + 时间，行高 40，行间 1px 线，无底色、无边框、无投影。
+4. 命中词：600 + `--gm-text`，不加底纹、不改颜色。
+5. 键盘：↑/↓ 移动，当前行 6% 蓝底 + 左侧不画竖条；Enter 打开。
 
-响度：**最响** = 搜索框内的输入文字（13/400 但位于唯一的高对比输入底上）；**次之** = 结果标题（13/600）；**最弱** = 结果摘要与时间。
+响度：最响 = 结果标题（14.5/600）；次之 = 摘要（13/400）；最弱 = 序号、时间、来源（10.5 等宽）。
 
-禁止：每条结果做成浮起卡片、结果计数用徽标、命中词用高亮黄底、结果列表加分组标题。
+禁止：每条结果做成卡片、结果计数用胶囊徽标、命中词用黄底高亮、结果分组标题堆叠。
 
----
+## 附录 A：与旧规范、与初稿的差异
 
-## 附录 A：与 V1 及旧规范的关键差异
-
-| 项 | 旧 | V2 |
-| --- | --- | --- |
-| 字号档位 | 11/12/13/15/17/20/24 七档混用 | 界面四档 11/13/16/20，阅读四档 15/17/20/26，两套分离 |
-| 字重 | 12 个值 | 2 个值（400/600） |
-| 字距 | 个别位置非 0 | 恒为 0 |
-| 分类色 | 奥运五色 + 5 个 category 色 + 5 个 provider 色 | 全部删除，分类单色 |
-| 阴影 | 11 个 | 2 个，卡片 0 |
-| 圆角 | 6 档含 6px | 4 档（0/2/4/8）+ 胶囊 |
-| 间距 | 8 档 + 6px/10px/14px/20px/28px 字面量 | 8 档（2/4/8/12/16/24/32/48） |
-| 行高 | 行高与内边距双重控制 | 固定行高 + 无垂直内边距 |
-| 动效 | 无 token，3 种时长 | 2 个时长 + 1 条曲线，全局降级 |
-| 阅读面 | 与界面共用字号阶梯 | 独立阶梯 + 66ch 行长 |
-
----
+| 项 | 旧规范（DESIGN.md） | V2 初稿（双主题） | 本轮（纸面） | 来源 |
+| --- | --- | --- | --- | --- |
+| 主题 | 深/浅两套 | 深/浅两套 | 只纸面一套 | C 稿 |
+| 字号 | 11/12/13/15/17/20/24 七档混用 | 界面四档 + 阅读四档 | 七档：22/26/30/14.5/13/10.5/15 | C 密度 + 30px 封顶 |
+| 字族 | 等宽为主 | 界面等宽 + 阅读无衬线 | 宋体 / 无衬线 / 等宽三分工 | A 稿 |
+| 字重 | 12 个值 | 400/600 | 400/500/600（500 只给等宽标签） | C 稿 |
+| 字距 | 个别位置非 0 | 恒为 0 | 只有两处：标签 0.16em、统计 -0.02em | C 稿 |
+| 强调色 | 蓝紫 | 蓝紫 | `#1f4fbf`，只标当前所在 / 链接 / 悬停微染 | 主人指定 |
+| 分类色 | 奥运五色 + category 5 + provider 5 | 全删 | 全删，且不许用图标底色替代 | A 稿结论 |
+| 卡片 | 大量卡片 | 保留卡片、两级投影 | 无卡片、无投影、无圆角容器 | C 稿 |
+| 阴影 | 11 个 | 2 个 | 0 个 | C 稿 |
+| 圆角 | 6 档 | 4 档 + 胶囊 | 只有 0 与 3px（键盘提示） | C 稿 |
+| 分区手段 | 卡片 + 线 + 留白 | 线 + 留白 + 底色 | 1px 线 + 留白，条目带序号 | C 稿 |
+| 统计 | 卡片墙 | 统计卡 | 表格带，30px 数字封顶 | C 稿骨架 + 主人封顶 |
+| 报头 | 20px 页标题 | 20px 页标题 + 面板头 | 品牌名 22 + 主标题 26 + 副说明 13 | A 结构 / 主人定尺寸 |
+| 行高控制 | 行高 + 内边距 | `min-height` | `min-height` 40/56，一屏 ≥6 条 | 主人指定 |
+| 图表 | 无规则 | 两色 | 固定上限 40/天，不按周内最大值自适应 | 主人指定 |
+| 动效 | 无 token | 2 时长 + 1 曲线 | 同初稿 | 新定 |
 
 ## 附录 B：完整 token 清单（可直接粘贴）
 
 本节是全文 token 的唯一取值来源。前文出现但本节未列的 token 名，视为文档错误。
+总数 88 个；上一版（深色/浅色双主题）的 89 个已作废，取值来源见各表「来源」列。
 
 ```css
-:root,
-[data-theme="dark"] {
-  color-scheme: dark;
+:root {
+  color-scheme: light;
 
-  /* 结构色 */
-  --gm-canvas: #14130F;
-  --gm-surface: #1B1A15;
-  --gm-surface-raised: #24221B;
-  --gm-input-bg: #100F0C;
-  --gm-hover: #232119;
-  --gm-selected: #222A3F;
-  --gm-line: #302E26;
-  --gm-line-strong: #6A6857;
-  --gm-scrim: rgba(0, 0, 0, 0.60);
+  /* 结构 — C 稿实测 */
+  --gm-canvas: #f4efe6;
+  --gm-surface: #ece5d8;
+  --gm-surface-raised: #f7f2e6;
+  --gm-input-bg: #e9e1d2;
+  --gm-hover: rgba(25, 21, 18, 0.04);
+  --gm-selected: rgba(31, 79, 191, 0.08);
+  --gm-line: rgba(25, 21, 18, 0.16);
+  --gm-line-strong: #8a8174;
+  --gm-scrim: rgba(25, 21, 18, 0.35);
 
-  /* 文字 */
-  --gm-text: #F2EFE6;
-  --gm-text-secondary: #C0BAAB;
-  --gm-text-tertiary: #9C9686;
-  --gm-text-disabled: #5E5A4C;
-  --gm-on-accent: #FFFFFF;
+  /* 文字 — C 稿实测 */
+  --gm-text: #191512;
+  --gm-text-secondary: #4a4340;
+  --gm-text-tertiary: #6c645c;
+  --gm-text-disabled: #b8b0a4;
+  --gm-on-action: #f4efe6;
 
-  /* 强调 */
-  --gm-accent: #7C9CFF;
-  --gm-accent-hover: #96B0FF;
-  --gm-accent-fill: #3560DE;
-  --gm-accent-fill-hover: #3E6BF0;
-  --gm-accent-fill-pressed: #2C51C4;
-  --gm-accent-tint: #1E2438;
-  --gm-focus-ring: #7C9CFF;
+  /* 强调 — 主人指定 #1f4fbf */
+  --gm-accent: #1f4fbf;
+  --gm-accent-hover: #173d99;
+  --gm-accent-tint: rgba(31, 79, 191, 0.06);
+  --gm-focus-ring: #1f4fbf;
+
+  /* 动作 — C 稿的墨底按钮 */
+  --gm-action: #191512;
+  --gm-action-hover: #2c2823;
+  --gm-action-pressed: #0d0b09;
 
   /* 状态 */
-  --gm-success: #5BC98A;
-  --gm-success-tint: #17291F;
-  --gm-warning: #E3AD55;
-  --gm-warning-tint: #2A2118;
-  --gm-danger: #F2806F;
-  --gm-danger-tint: #2C1A17;
+  --gm-success: #2f6b46;
+  --gm-success-tint: rgba(47, 107, 70, 0.08);
+  --gm-warning: #8a5a12;
+  --gm-warning-tint: rgba(138, 90, 18, 0.08);
+  --gm-danger: #8c2f1e;
+  --gm-danger-tint: rgba(140, 47, 30, 0.08);
 
-  /* 字体 */
-  --gm-font-ui: "JetBrains Mono", ui-monospace, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace;
-  --gm-font-read: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* 字族 — A 稿三分工 */
+  --gm-font-title: "Songti SC", "Source Han Serif SC", "Noto Serif CJK SC", Georgia, serif;
+  --gm-font-ui: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  --gm-font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
-  /* 字号 */
-  --gm-fs-micro: 11px;
+  /* 字号 — C 密度 + 30px 封顶 */
+  --gm-fs-brand: 22px;
+  --gm-fs-title: 26px;
+  --gm-fs-stat: 30px;
+  --gm-fs-row: 14.5px;
   --gm-fs-ui: 13px;
-  --gm-fs-ui-lg: 16px;
-  --gm-fs-title: 20px;
+  --gm-fs-micro: 10.5px;
   --gm-fs-read: 15px;
-  --gm-fs-read-h3: 17px;
-  --gm-fs-read-h2: 20px;
-  --gm-fs-read-h1: 26px;
 
-  /* 行高与字重 */
-  --gm-lh-micro: 1.45;
-  --gm-lh-ui: 1.5;
-  --gm-lh-ui-lg: 1.4;
-  --gm-lh-title: 1.25;
-  --gm-lh-read: 1.72;
-  --gm-lh-read-head: 1.35;
+  /* 行高 */
+  --gm-lh-micro: 1.4;
+  --gm-lh-title: 1.35;
+  --gm-lh-row: 1.45;
+  --gm-lh-ui: 1.6;
+  --gm-lh-read: 1.75;
+
+  /* 字重与字距 */
   --gm-fw-regular: 400;
+  --gm-fw-medium: 500;
   --gm-fw-strong: 600;
   --gm-tracking: 0;
+  --gm-tracking-label: 0.16em;
+  --gm-tracking-stat: -0.02em;
 
   /* 间距 */
-  --gm-sp-0: 0;
-  --gm-sp-1: 2px;
-  --gm-sp-2: 4px;
-  --gm-sp-3: 8px;
-  --gm-sp-4: 12px;
-  --gm-sp-5: 16px;
-  --gm-sp-6: 24px;
-  --gm-sp-7: 32px;
-  --gm-sp-8: 48px;
+  --gm-sp-1: 4px;
+  --gm-sp-2: 8px;
+  --gm-sp-3: 12px;
+  --gm-sp-4: 16px;
+  --gm-sp-5: 24px;
+  --gm-sp-6: 32px;
+  --gm-sp-7: 44px;
+  --gm-sp-8: 56px;
 
-  /* 圆角 */
+  /* 圆角 — 只有直角与键盘提示 */
   --gm-r-0: 0;
-  --gm-r-1: 2px;
-  --gm-r-2: 4px;
-  --gm-r-3: 8px;
-  --gm-r-pill: 999px;
-
-  /* 层高 */
-  --gm-shadow-1: 0 4px 12px rgba(0, 0, 0, 0.28);
-  --gm-shadow-2: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --gm-r-kbd: 3px;
 
   /* 动效 */
   --gm-dur-1: 120ms;
@@ -955,67 +889,32 @@
   --gm-icon-sm: 14px;
   --gm-icon-md: 16px;
   --gm-icon-lg: 20px;
-  --gm-icon-xl: 24px;
 
-  /* 结构尺寸 */
+  /* 结构尺寸 — C 骨架 */
   --gm-w-sidebar: 224px;
   --gm-w-rail: 18px;
+  --gm-w-gutter: 52px;
+  --gm-w-pad-x: 96px;
+  --gm-w-scrollbar: 6px;
   --gm-w-pane-default: 320px;
   --gm-w-pane-min: 260px;
   --gm-w-pane-max: 560px;
   --gm-w-detail-min: 320px;
   --gm-w-handle: 1px;
-  --gm-w-content-max: 720px;
-  --gm-w-scrollbar: 6px;
-  --gm-h-page-header: 52px;
-  --gm-h-pane-header: 44px;
+  --gm-w-content-max: 972px;
   --gm-h-row: 40px;
+  --gm-h-row-2: 56px;
   --gm-h-row-comfort: 44px;
-  --gm-h-control-sm: 28px;
-  --gm-h-control: 32px;
-  --gm-h-control-lg: 36px;
+  --gm-h-nav: 24px;
+  --gm-h-nav-gap: 6px;
+  --gm-h-control: 30px;
+  --gm-h-control-sm: 24px;
+  --gm-h-pane-header: 44px;
+  --gm-chart-max: 40;
 
   /* 层级 */
   --gm-z-sticky: 10;
   --gm-z-nav: 30;
   --gm-z-overlay: 50;
-}
-
-[data-theme="light"] {
-  color-scheme: light;
-
-  --gm-canvas: #F4F1E9;
-  --gm-surface: #FBF9F3;
-  --gm-surface-raised: #FFFFFF;
-  --gm-input-bg: #EFEBE1;
-  --gm-hover: #EAE6DA;
-  --gm-selected: #E7EDFB;
-  --gm-line: #DAD4C7;
-  --gm-line-strong: #8A8879;
-  --gm-scrim: rgba(20, 19, 15, 0.48);
-
-  --gm-text: #191813;
-  --gm-text-secondary: #4F4C43;
-  --gm-text-tertiary: #6A6659;
-  --gm-text-disabled: #A5A091;
-  --gm-on-accent: #FFFFFF;
-
-  --gm-accent: #2A52C4;
-  --gm-accent-hover: #1F41A0;
-  --gm-accent-fill: #2F5AD0;
-  --gm-accent-fill-hover: #2749B0;
-  --gm-accent-fill-pressed: #1F3C93;
-  --gm-accent-tint: #E9EEFC;
-  --gm-focus-ring: #2A52C4;
-
-  --gm-success: #147349;
-  --gm-success-tint: #E4F1E9;
-  --gm-warning: #8A5A12;
-  --gm-warning-tint: #F6EBDC;
-  --gm-danger: #B3342B;
-  --gm-danger-tint: #F7E4E1;
-
-  --gm-shadow-1: 0 4px 12px rgba(60, 52, 35, 0.14);
-  --gm-shadow-2: 0 24px 60px rgba(60, 52, 35, 0.22);
 }
 ```

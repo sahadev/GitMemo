@@ -2,7 +2,7 @@
 
 配套文档：`docs/design/DESIGN-V2.md`（唯一标准）。
 范围：`desktop/src/index.css` 与 `desktop/src/**/*.tsx` 里的 `var(--gm-*)` 引用。
-基线事实（实测，不是估计）：`index.css` 共 994 个顶层规则块、4979 行属性；共 249 个唯一声明的自定义属性 = 226 个 `--gm-*` + 17 个别名（`--bg` / `--text` / `--accent` 等）+ 6 个 `@theme` 的 radius。其中 239 个被规则引用，12 个声明了但从未被引用，2 个被引用却没声明（见 §4 陷阱 6）。目标：`--gm-*` 89 个，加 `@theme` 的 6 个 Tailwind radius（只取 4px 与 8px）。
+基线事实（实测，不是估计）：`index.css` 共 994 个顶层规则块、4979 行属性；共 249 个唯一声明的自定义属性 = 226 个 `--gm-*` + 17 个别名（`--bg` / `--text` / `--accent` 等）+ 6 个 `@theme` 的 radius。其中 239 个被规则引用，12 个声明了但从未被引用，2 个被引用却没声明（见 §4 陷阱 6）。目标：`--gm-*` 88 个（取值层已按「C 骨架 + A 报头」重定，原双主题的 89 个作废），加 `@theme` 的 6 个 Tailwind radius（只取 4px 与 8px）。
 
 ### 数字怎么来的（方法论，后续任何一批都要按这个口径复核）
 
@@ -15,7 +15,7 @@
 
 ## 0 批次原则
 
-1. **新 token 一次性落地，旧 token 分批判死。** 89 个新 token 全在 B1 建立；旧 token 的定义一直留到「最后一个引用它的批次」结束才删。这样每批单独构建都能过，不需要半成品中间态。
+1. **新 token 一次性落地，旧 token 分批判死。** 88 个新 token 全在 B1 建立；旧 token 的定义一直留到「最后一个引用它的批次」结束才删。这样每批单独构建都能过，不需要半成品中间态。
 2. **按选择器族切，不按行号切。** 文件里各族交织（`gm-button` 在 722 行和 6611 行各有一段），批次 = 按名字捞块，不是连续行区间。下表的块数与行数是实测归属。
 3. **每批一个本地提交，不推送**（本仓库 `AGENTS.md` 第 40 行的约定）。
 4. **批次内不夹带交互改动。** 迁移只改取值与规则写法，不改行为、不改 DOM 结构、不改文案。
@@ -49,7 +49,7 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 | 批次 | 范围（选择器族） | 块 | 行 | 退役 | 轨 | 依赖 | 可见变化 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B1 | token 层骨架（新增 89 个） | 5 | 319 | 0 | 结构 | — | 无 |
+| B1 | token 层骨架（新增 88 个） | 5 | 319 | 0 | 结构 | — | 无 |
 | B2 | 颜色值与别名层 | 5 | 319 | 11 | 取值 | B1 | 全站变色（唯一一次，单独 commit） |
 | B3 | 页面外壳与骨架 | 157 | 630 | 31 | 结构 | B2 | 页头变矮、分栏手柄、图标档位 |
 | B3b | 分类图标去色 | 5 | 5 | 9 | 结构 | B3 | 五个分类图标由彩色变单色 |
@@ -109,7 +109,7 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 轨：本批跨两轨。结构轨只做「别名层收拢为一层」这一件形式改动（把 17 个别名指向新 token 名，色值不变）；27 色 × 2 主题的真实色值属于取值轨，等方向定了再跑。
 
-改动：把 B1 里所有 `var(--旧)` 形式的别名值替换成 V2 实值（27 个颜色 × 2 主题），并把 `@theme` 的 6 个 Tailwind radius 变量收到 4 档（`--radius-sm: 4px`、`--radius-md: 4px`、`--radius-lg: 8px`、`--radius-xl: 8px`、`--radius-2xl: 8px`，`--radius-default: 4px` 保留）。别名层（`--bg`、`--text`、`--accent`、`--green` 等）改成指向新 token。
+改动：把 B1 里所有 `var(--旧)` 形式的别名值替换成纸面实值（27 个颜色，单主题；原双主题取值作废），并把 `@theme` 的 6 个 Tailwind radius 变量收到 4 档（`--radius-sm: 4px`、`--radius-md: 4px`、`--radius-lg: 8px`、`--radius-xl: 8px`、`--radius-2xl: 8px`，`--radius-default: 4px` 保留）。别名层（`--bg`、`--text`、`--accent`、`--green` 等）改成指向新 token。
 
 退役 11 个（只被 token 层自身引用的最底层色与移动端偏移）：
 
@@ -390,7 +390,7 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 ## B12 收尾与上限
 
-改动：删除最后 7 条无人引用的定义，把 `--gm-*` 锁到 89。
+改动：删除最后 7 条无人引用的定义，把 `--gm-*` 锁到 88。
 
 ```
 --gm-list-row-pad-y-compact --gm-size-split-pane-left-min --gm-size-split-pane-left-max
@@ -404,7 +404,7 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 ```sh
 # 1. token 数量（只数 --gm-*，不含 @theme 的 radius）
-rg -c '^\s+--gm-[a-z0-9-]+:' desktop/src/index.css   # 期望 89
+rg -c '^\s+--gm-[a-z0-9-]+:' desktop/src/index.css   # 期望 88
 
 # 2. 字面量归零（除 --gm-* 定义行与打印块）
 rg -n 'font-size:\s*[0-9]|border-radius:\s*[0-9]|gap:\s*[0-9]' desktop/src/index.css
