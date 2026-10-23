@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMemo — 方向 E：专业且年轻</title>
+<style>
+  :root{
+    --bg:#fbfbfd;
+    --side:#f5f6f9;
+    --surface:#ffffff;
+    --ink:#0e1020;
+    --ink-2:#3f4459;
+    --ink-3:#828aa1;
+    --line:#e6e8f0;
+    --line-2:#d8dbe7;
+    --accent:#4f46e5;
+    --accent-hover:#4338ca;
+    --accent-soft:#ececfd;
+    --ok:#0f9d63; --ok-soft:#e6f7ef;
+    --warn:#b45309; --warn-soft:#fdf2e2;
+    --pink:#a21caf; --pink-soft:#fbeafa;
+    --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+    --sans:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow-x:hidden}
+  .app{display:grid;grid-template-columns:236px 1fr;width:1440px;min-height:900px;margin:0 auto}
+
+  /* 侧栏 */
+  .side{background:var(--side);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column}
+  .brand{display:flex;align-items:center;gap:9px;padding:4px 8px 16px;font-size:14px;font-weight:700;letter-spacing:-.02em}
+  .brand i{width:20px;height:20px;border-radius:6px;background:var(--accent);display:block}
+  .side .lbl{font-size:11px;font-weight:600;color:var(--ink-3);padding:10px 8px 6px;letter-spacing:.02em}
+  .navitem{display:flex;align-items:center;gap:9px;height:32px;padding:0 8px;border-radius:var(--r-sm);
+    font-size:13px;color:var(--ink-2);cursor:pointer;text-decoration:none}
+  .navitem:hover{background:#eceef5;color:var(--ink)}
+  .navitem[data-on="true"]{background:var(--surface);color:var(--accent);font-weight:600;
+    box-shadow:0 1px 2px rgba(16,24,40,.06)}
+  .navitem .n{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .navitem svg{flex:none;color:var(--ink-3)}
+  .navitem[data-on="true"] svg{color:var(--accent)}
+  .navitem:hover svg{color:var(--ink-2)}
+  .side .push{flex:1}
+  .sidecard{margin-top:12px;padding:11px 12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-md)}
+  .sidecard .row{display:flex;align-items:center;justify-content:space-between;font-size:12px;
+    color:var(--ink-3);padding:3px 0}
+  .sidecard .row b{font-family:var(--mono);font-weight:500;color:var(--ink-2)}
+  .live{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ok);font-weight:600}
+  .live i{width:6px;height:6px;border-radius:50%;background:var(--ok);display:block}
+
+  /* 主区 */
+  .main{min-width:0;display:flex;flex-direction:column}
+  .bar{height:48px;display:flex;align-items:center;gap:12px;padding:0 24px;
+    border-bottom:1px solid var(--line);background:var(--surface)}
+  .bar .crumb{font-size:12.5px;color:var(--ink-3)}
+  .bar .crumb b{color:var(--ink);font-weight:600}
+  .bar .push{flex:1}
+  .search{display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;border:1px solid var(--line);
+    border-radius:var(--r-sm);background:var(--bg);font-size:12.5px;color:var(--ink-3);width:260px}
+  .search kbd{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+    border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
+  .btn{height:30px;padding:0 12px;border-radius:var(--r-sm);font-size:12.5px;font-weight:600;
+    border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-hover)}
+  .btn.ghost{background:var(--surface);border-color:var(--line-2);color:var(--ink-2)}
+  .btn.ghost:hover{border-color:var(--ink-3);color:var(--ink)}
+
+  .body{padding:24px 24px 32px;display:flex;flex-direction:column;gap:20px}
+
+  /* 问候 + 输入 */
+  .hello h1{font-size:22px;font-weight:700;letter-spacing:-.025em}
+  .hello p{margin-top:5px;font-size:13px;color:var(--ink-3)}
+  .capture{margin-top:14px;display:flex;align-items:center;gap:10px;height:44px;padding:0 8px 0 14px;
+    background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-md)}
+  .capture:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}
+  .capture .plus{width:18px;height:18px;border-radius:5px;background:var(--accent-soft);
+    color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+  .capture .ph{flex:1;font-size:13.5px;color:var(--ink-3)}
+  .capture .hint{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+
+  /* 数字带：一条线，不是四张卡 */
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line-2);
+    border-bottom:1px solid var(--line-2)}
+  .cell{padding:14px 18px 16px;border-left:1px solid var(--line)}
+  .cell:first-child{border-left:0;padding-left:0}
+  .cell .k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+  .cell .k i{width:7px;height:7px;border-radius:2px;display:block}
+  .cell .v{font-size:28px;font-weight:750;letter-spacing:-.03em;line-height:1.15;margin-top:6px}
+  .cell .d{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-family:var(--mono)}
+  .cell .d em{font-style:normal;color:var(--ok);font-weight:600}
+
+  /* 主体两栏 */
+  .cols{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+  .phead{display:flex;align-items:center;justify-content:space-between;height:42px;padding:0 16px;
+    border-bottom:1px solid var(--line)}
+  .phead h2{font-size:13px;font-weight:650}
+  .phead a{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600}
+  .list{list-style:none}
+  .list li{display:grid;grid-template-columns:74px 1fr auto;gap:12px;align-items:center;
+    height:40px;padding:0 16px;border-bottom:1px solid var(--line);cursor:pointer}
+  .list li:last-child{border-bottom:0}
+  .list li:hover{background:#f8f9fd}
+  .tag{font-size:10.5px;font-weight:650;letter-spacing:.02em;padding:3px 7px;border-radius:var(--r-pill);
+    text-align:center}
+  .t-chat{background:var(--accent-soft);color:var(--accent)}
+  .t-note{background:var(--warn-soft);color:var(--warn)}
+  .t-clip{background:var(--ok-soft);color:var(--ok)}
+  .t-plan{background:var(--pink-soft);color:var(--pink)}
+  .list .t{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .t em{font-style:normal;color:var(--ink-3);font-size:12px;margin-left:8px}
+  .list .when{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
+
+  .sidecol{display:flex;flex-direction:column;gap:20px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px}
+  .card h2{font-size:12.5px;font-weight:650;margin-bottom:10px;display:flex;justify-content:space-between}
+  .card h2 span{color:var(--ink-3);font-weight:500;font-family:var(--mono);font-size:11px}
+  .kv{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-2);
+    padding:6px 0}
+  .kv b{font-family:var(--mono);font-weight:500;color:var(--ink);font-size:12px}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:52px;margin-top:2px}
+  .bars i{flex:1;border-radius:4px 4px 2px 2px;background:var(--accent-soft);display:block}
+  .bars i.on{background:var(--accent)}
+  .bars-x{display:flex;gap:6px;margin-top:6px;font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
+  .bars-x span{flex:1;text-align:center}
+  .todo{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .todo li{display:flex;gap:9px;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+  .todo li i{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--line-2);flex:none;margin-top:1px}
+  .todo li:hover i{border-color:var(--accent)}
+
+  @media (max-width:900px){
+    .app{width:auto;grid-template-columns:1fr}
+    .side{display:none}
+    .bar{padding:0 14px;gap:8px}
+    .search{width:auto;flex:1}
+    .body{padding:16px 14px 28px;gap:16px}
+    .strip{grid-template-columns:1fr 1fr}
+    .cell:nth-child(3){border-left:0}
+    .cell:nth-child(n+3){border-top:1px solid var(--line)}
+    .cols{grid-template-columns:1fr}
+    .list li{grid-template-columns:64px 1fr auto;height:auto;padding:11px 14px;gap:9px}
+    .list .t{white-space:normal}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><i></i>GitMemo</div>
+
+    <div class="lbl">知识库</div>
+    <a class="navitem" data-on="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>总览</a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2" width="10" height="12" rx="1.6"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>笔记<span class="n">128</span></a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13.5 8.2c0 2.3-2.4 4.2-5.4 4.2-.6 0-1.2-.1-1.7-.2L3 13.5l1-2.4C3.2 10.3 2.5 9.3 2.5 8.2 2.5 5.9 4.9 4 7.9 4s5.6 1.9 5.6 4.2z"/></svg>对话<span class="n">64</span></a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="8" height="11" rx="1.4"/><path d="M6.5 3V2.2h3V3"/></svg>剪贴板<span class="n">31</span></a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5v7M5.2 6.8 8 9.6l2.8-2.8"/><path d="M3 11.5v1.2c0 .7.5 1.3 1.2 1.3h7.6c.7 0 1.2-.6 1.2-1.3v-1.2"/></svg>导入<span class="n">12</span></a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m8 2.8 1.6 3.3 3.6.5-2.6 2.6.6 3.6L8 11.1l-3.2 1.7.6-3.6L2.8 6.6l3.6-.5L8 2.8z"/></svg>收藏<span class="n">9</span></a>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 11.5c-.9-.8-1.5-2-1.5-3.2a3.5 3.5 0 1 1 7 0c0 1.2-.6 2.4-1.5 3.2"/><path d="M6.2 13h3.6"/></svg>计划<span class="n">7</span></a>
+
+    <div class="lbl">工作区</div>
+    <a class="navitem"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.1"/><path d="M8 2.4v1.3M8 12.3v1.3M2.4 8h1.3M12.3 8h1.3M4 4l.9.9M11.1 11.1l.9.9M12 4l-.9.9M4.9 11.1 4 12"/></svg>设置</a>
+
+    <div class="push"></div>
+    <div class="sidecard">
+      <div class="row"><span>同步</span><span class="live"><i></i>已同步</span></div>
+      <div class="row"><span>远端</span><b>origin/main</b></div>
+      <div class="row"><span>未推送</span><b>3</b></div>
+      <div class="row"><span>体积</span><b>18.4 MB</b></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="bar">
+      <span class="crumb">工作区 / <b>总览</b></span>
+      <span class="push"></span>
+      <span class="search">搜索条目、路径、代码<kbd>Cmd K</kbd></span>
+      <button class="btn ghost">导入</button>
+      <button class="btn primary">新笔记</button>
+    </div>
+
+    <div class="body">
+
+      <section class="hello">
+        <h1>下午好。三天前那条条款草稿还开着。</h1>
+        <p>10 月 20 日 17:42 存了半份，引用了两段对话和一段剪贴板代码，没被索引丢掉。</p>
+        <div class="capture">
+          <span class="plus">+</span>
+          <span class="ph">写点什么，或 Cmd V 粘一段——第一行会成为标题</span>
+          <span class="hint">Cmd Enter</span>
+          <button class="btn primary">存下</button>
+        </div>
+      </section>
+
+      <section class="strip">
+        <div class="cell">
+          <div class="k"><i style="background:var(--accent)"></i>条目总数</div>
+          <div class="v">1,281</div>
+          <div class="d"><em>+46</em> 本周</div>
+        </div>
+        <div class="cell">
+          <div class="k"><i style="background:#8b5cf6"></i>对话</div>
+          <div class="v">64</div>
+          <div class="d"><em>+6</em> 六个来源</div>
+        </div>
+        <div class="cell">
+          <div class="k"><i style="background:var(--ok)"></i>剪贴板</div>
+          <div class="v">31</div>
+          <div class="d">图片 9 张</div>
+        </div>
+        <div class="cell">
+          <div class="k"><i style="background:var(--warn)"></i>未提交</div>
+          <div class="v">3</div>
+          <div class="d">最近 12 分钟</div>
+        </div>
+      </section>
+
+      <div class="cols">
+        <section class="panel">
+          <div class="phead"><h2>最近条目</h2><a href="#">全部 1,281 条</a></div>
+          <ul class="list">
+            <li><span class="tag t-chat">对话</span><span class="t">Claude：把 roomlog 的抽取规则收敛成词表<em>4 个决定</em></span><span class="when">2 分钟前</span></li>
+            <li><span class="tag t-note">笔记</span><span class="t">合同第二版：付款节点与验收口径<em>未完成</em></span><span class="when">17:42</span></li>
+            <li><span class="tag t-clip">剪贴板</span><span class="t">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span><span class="when">16:08</span></li>
+            <li><span class="tag t-plan">计划</span><span class="t">视觉改造三阶段：审计 → 改造 → 验收<em>5 个行动项</em></span><span class="when">15:31</span></li>
+            <li><span class="tag t-chat">对话</span><span class="t">Codex：Tauri 打包签名失败的三种成因</span><span class="when">昨天</span></li>
+            <li><span class="tag t-clip">剪贴板</span><span class="t">awwwards.com/sites/format — Obys × DES 版式实验</span><span class="when">昨天</span></li>
+            <li><span class="tag t-note">笔记</span><span class="t">设计语言：把允许清单改成封闭清单</span><span class="when">10-21</span></li>
+            <li><span class="tag t-clip">剪贴板</span><span class="t">SQL：union_entitlement 月度汇总</span><span class="when">10-20</span></li>
+            <li><span class="tag t-note">笔记</span><span class="t">Obsidian 迁移：frontmatter 保留策略</span><span class="when">10-20</span></li>
+            <li><span class="tag t-plan">计划</span><span class="t">会议室白板：Q4 目标拆解<em>3 个负责人</em></span><span class="when">10-19</span></li>
+          </ul>
+        </section>
+
+        <div class="sidecol">
+          <div class="card">
+            <h2>本周新增<span>46</span></h2>
+            <div class="bars">
+              <i style="height:36%"></i><i style="height:58%"></i><i class="on" style="height:92%"></i>
+              <i style="height:24%"></i><i style="height:24%"></i><i style="height:42%"></i><i style="height:30%"></i>
+            </div>
+            <div class="bars-x"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          </div>
+
+          <div class="card">
+            <h2>继续上次<span>草稿</span></h2>
+            <div style="font-size:12.5px;color:var(--ink-2);line-height:1.6">合同第二版：付款节点与验收口径</div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn primary" style="height:28px;font-size:12px">接着写</button>
+              <button class="btn ghost" style="height:28px;font-size:12px">看上下文</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>待处理<span>3</span></h2>
+            <ul class="todo">
+              <li><i></i><span>合同草稿缺少验收条款</span></li>
+              <li><i></i><span>3 个文件未提交，最近改动 12 分钟前</span></li>
+              <li><i></i><span>roomlog 计划待搬到正式目录</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>
