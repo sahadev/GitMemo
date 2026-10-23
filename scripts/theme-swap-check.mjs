@@ -400,6 +400,14 @@ async function checkSkin(browser, skin, opts) {
 
     // Control: two shots of the same unchanged state. Whatever differs here is
     // repaint noise, not the skin swap.
+    //
+    // 判差值的顺序（先做对照，再看换肤）：
+    //   1. 不切换主题，同一状态连拍两张，差值必须为 0（或等于本文件定义的噪声阈值）。
+    //   2. 不为 0 说明测试环境在抖——异步加载、空态切换、字体回填、滚动条出现，
+    //      此时测出的任何差值都不能归因给皮肤。
+    //   3. 为 0 之后再切主题，差值才是「产品真的变了」的证据。
+    // 实际踩过的坑：某次报告 84px 位移，换成固定测试数据后降到 1px（深色）/ 0px（浅色），
+    // 根因是数据不稳定导致的空态切换，与动画、折叠状态都无关。
     await page.waitForTimeout(300);
     const control = await page.screenshot({ animations: "disabled", caret: "hide" });
     const controlFile = join(dir, "control.png");
