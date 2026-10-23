@@ -4,6 +4,15 @@
 范围：`desktop/src/index.css` 与 `desktop/src/**/*.tsx` 里的 `var(--gm-*)` 引用。
 基线事实（实测，不是估计）：`index.css` 共 994 个顶层规则块、4979 行属性；共 249 个唯一声明的自定义属性 = 226 个 `--gm-*` + 17 个别名（`--bg` / `--text` / `--accent` 等）+ 6 个 `@theme` 的 radius。其中 239 个被规则引用，12 个声明了但从未被引用，2 个被引用却没声明（见 §4 陷阱 6）。目标：`--gm-*` 89 个，加 `@theme` 的 6 个 Tailwind radius（只取 4px 与 8px）。
 
+### 数字怎么来的（方法论，后续任何一批都要按这个口径复核）
+
+1. **数块，不数感觉。** 用「顶层选择器到收尾大括号」解析一遍文件，得到 994 个规则块；每个块归属哪个批次由选择器前缀决定，所以「本批多少块」是可复算的，不是估的。
+2. **单行规则必须单独计。** 文件里有 69 条一行写完的规则（`.gm-icon-size-dot { … }` 这种），它们不以 `{` 结尾，按行号或按「缩进块」扫描都会整条漏掉。解析器必须同时认 `^选择器 { 属性 }$` 这种形态。
+3. **按 token 名搜，不按行号改。** 同一族的选择器在文件里分散（`gm-button` 在 722 行与 6611 行各有一段），按行号区间切一定会切碎。
+4. **区分「声明」与「引用」。** 只有出现在 `var(...)` 里的名字才需要迁移；token 层里声明、却没有任何规则引用的，属于收尾批要删的死定义，不要当成使用点处理。
+5. **幽灵变量要单列。** `--text-primary`（第 2747 行被引用、全文无定义，靠颜色继承凑巧生效）与 `--gm-icon-render-size`（写在单行规则里就地声明）这类名字不在 token 层，按「旧 token 映射」处理会出错，必须逐个点名。
+6. **退役判定按「最后引用」而不是「首次出现」。** 一个 token 只有在最后一个引用它的批次结束时才能删定义，否则后续批次会拿到空值、构建却照样通过——这是本表最容易出错的地方。
+
 ## 0 批次原则
 
 1. **新 token 一次性落地，旧 token 分批判死。** 89 个新 token 全在 B1 建立；旧 token 的定义一直留到「最后一个引用它的批次」结束才删。这样每批单独构建都能过，不需要半成品中间态。
@@ -18,6 +27,8 @@ npx tsc --noEmit && npx vite build
 ```
 
 6. **每批结束做三件事**：构建通过、本批退役 token 引用数归零、对应界面截图留档（`docs/design/` 之外的本地目录，不入库）。
+7. **B2 必须单独一个 commit**，不许与任何其它批混提。理由：它是唯一一次整站同时变样，评审只该发生一次，回滚只需一条 revert。
+8. **B2 的验收是 14 个页面的全量截图**，不是首屏：仪表盘、笔记、对话、剪贴板、计划、导入、外部文件、收藏、搜索、AI 记录、Claude 配置、仓库、设置、编辑器首页，两套主题各一轮（28 张）。缺一张不算过。
 
 提交信息模板：
 
@@ -32,22 +43,55 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 ## 1 总表
 
-| 批次 | 范围（选择器族） | 块 | 行 | 退役 | 依赖 | 可见变化 |
-| --- | --- | --- | --- | --- | --- | --- |
-| B1 | token 层骨架（新增 89 个） | 5 | 319 | 0 | — | 无 |
-| B2 | 颜色值与别名层 | 5 | 319 | 11 | B1 | 全站变色（唯一一次） |
-| B3 | 页面外壳与骨架 | 162 | 635 | 40 | B2 | 页边、侧栏、分栏、标题 |
-| B4 | 基础组件 | 92 | 448 | 16 | B2 | 按钮、输入、开关、菜单、徽标、空态 |
-| B5 | 列表与行 | 104 | 457 | 4 | B3 | 行高、列表头、选中态 |
-| B6 | 卡片与面板 | 79 | 408 | 9 | B3,B4 | 卡片去投影、仪表盘栅格 |
-| B7 | 剪贴板族 | 122 | 661 | 28 | B4,B5 | 剪贴板、剪贴清洁、快捷粘贴 |
-| B8 | 设置页 | 135 | 520 | 25 | B4,B5 | 设置各组、模态 |
-| B9 | 设置向导 | 134 | 578 | 27 | B4,B8 | 向导步骤、候选列表 |
-| B10 | 其余页面 | 88 | 453 | 36 | B4,B5 | 引导、隐私、仓库、拖拽导入 |
-| B11 | 阅读面与打印 | 73 | 500 | 43 | B3,B5 | Markdown、编辑器、打印 |
-| B12 | 收尾与上限 | — | — | 7 | 全部 | 无 |
+「轨」这一列是本文的核心分类，定义见 §1.1：
+**结构** = 改规则的形态（拆合、去层、换承载方式、改布局机制、增删视觉层）；
+**取值** = 只改数值或 token 名，规则形态不动。
+
+| 批次 | 范围（选择器族） | 块 | 行 | 退役 | 轨 | 依赖 | 可见变化 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| B1 | token 层骨架（新增 89 个） | 5 | 319 | 0 | 结构 | — | 无 |
+| B2 | 颜色值与别名层 | 5 | 319 | 11 | 取值 | B1 | 全站变色（唯一一次，单独 commit） |
+| B3 | 页面外壳与骨架 | 157 | 630 | 31 | 结构 | B2 | 页头变矮、分栏手柄、图标档位 |
+| B3b | 分类图标去色 | 5 | 5 | 9 | 结构 | B3 | 五个分类图标由彩色变单色 |
+| B4 | 基础组件 | 92 | 448 | 16 | 结构 + 取值 | B3 | 按钮四态、输入框边界、焦点环 |
+| B5 | 列表与行 | 104 | 457 | 4 | 结构 + 取值 | B3 | 行高机制、搜索结果变平面行 |
+| B6 | 卡片与面板 | 79 | 408 | 9 | 结构 | B3,B4 | 卡片去投影、仪表盘栅格统一 |
+| B7 | 剪贴板族 | 122 | 661 | 28 | 取值 | B4,B5 | 内边距与行高归一 |
+| B8 | 设置页 | 135 | 520 | 25 | 结构 | B4,B5 | 设置行三段对齐、模态去模糊 |
+| B9 | 设置向导 | 134 | 578 | 27 | 结构 | B4,B8 | 左栏取消、改单列 |
+| B10 | 其余页面 | 88 | 453 | 36 | 取值 | B4,B5 | 间距与圆角微调 |
+| B11 | 阅读面与打印 | 73 | 500 | 43 | 结构 | B3,B5 | 换字族分工、正文 15px、66ch 行长 |
+| B12 | 收尾与上限 | — | — | 7 | 结构 | 全部 | 无 |
 
 合计 994 块、4979 行（token 层 5 块在 B1、B2 各处理一次，只计一遍）。每批的退役名单是该批结束后「引用数归零」的那一批 token，逐批累加即覆盖全部旧名字；`@theme` 的 6 个 Tailwind radius 变量保留，但只取 4px 与 8px 两值。
+
+### 1.1 两条轨：方向定了以后只跑结构轨
+
+方向未定之前，取值可能整体作废，但形态问题不会作废。所以把迁移拆成两条互不阻塞的轨：
+
+**轨 1（结构轨，现在就能跑）**：只改规则形态，一律继续引用**现有的 token 名**。跑完页面该有的层级、密度、平面化都到位，颜色仍是旧色。任何一批都能单独构建、单独回滚。
+
+**轨 2（取值轨，方向定后跑）**：换数值、换 token 名、删旧定义。它能机械执行，不需要设计判断。
+
+规则：结构轨期间不许改名（改名会把「形态错」和「名字错」两种问题混在一起）；取值轨期间不许改形态。两轨都做完，等价于本文 13 批（B1–B12 加 B3b）的全量迁移。
+
+| 批次 | 轨 1 要做的结构项 | 轨 2 才做的取值项 |
+| --- | --- | --- |
+| B1 | 建立新 token 层，值先别名到现有 token | — |
+| B2 | 别名层收拢为一层（形式变化） | 27 色 × 2 主题的真实色值 |
+| B3 | 页头改固定 52→44 高；分栏手柄由 4px 视觉线改为 1px 线 + 8px 热区；图标由 11 档并到 5 档（改选哪个尺寸类） | 留白 24/16、标题 16px、图标像素值 |
+| B3b | 删 5 条 `.gm-icon-tone-olympic-*` 规则，`DashboardPage` 五个 tone 改 `muted`，去掉颜色承担分类 | — |
+| B4 | 按钮四态矩阵重写；输入框加静止边界 + 2px 焦点环；空态改单图标 + 两行文字；加全局 `prefers-reduced-motion` 块；删无限摆动动画 | 高度 32/28/36、圆角 4、徽标 18 |
+| B5 | 行高由内边距堆高改为 `min-height`；搜索结果由卡片改整宽行；列表头改固定高；选中态改底色 + 左竖条 | 40/56/44、水平内边距 12、字号 13 |
+| B6 | 卡片去掉投影层；统计格统一 span；去掉左侧彩色 rail | 24px 间距、16px 内边距 |
+| B7 | 仅一处：移动端底部固定条改 `env(safe-area-inset-bottom)` | 10/14/18/40/76/80 → 8 档；行高 |
+| B8 | 设置行改三段对齐；删除输入框固定宽度约束改占满列；模态去背景模糊 | 520/720 宽、48px 分组间距 |
+| B9 | 取消左栏 280/300 宽，改单列 | 720 内容宽、20px 标题 |
+| B10 | — | 间距与圆角 |
+| B11 | 字族分工（界面等宽 / 阅读系统无衬线）；正文阶由 13 换到 15；行长 66ch；代码块换字族；删 420px 最小高 | 26/20/17 三档标题 |
+| B12 | 删除 7 条死定义 | — |
+
+结论：方向定下来以后，**能立刻跑的是 B1、B2（形式部分）、B3、B3b、B4、B5、B6、B8、B9、B11、B12**；B7、B10 几乎纯取值，可以整批押后；B4、B5 里混的取值项等取值轨再补。
 
 ---
 
@@ -63,6 +107,8 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 ## B2 颜色值与别名层
 
+轨：本批跨两轨。结构轨只做「别名层收拢为一层」这一件形式改动（把 17 个别名指向新 token 名，色值不变）；27 色 × 2 主题的真实色值属于取值轨，等方向定了再跑。
+
 改动：把 B1 里所有 `var(--旧)` 形式的别名值替换成 V2 实值（27 个颜色 × 2 主题），并把 `@theme` 的 6 个 Tailwind radius 变量收到 4 档（`--radius-sm: 4px`、`--radius-md: 4px`、`--radius-lg: 8px`、`--radius-xl: 8px`、`--radius-2xl: 8px`，`--radius-default: 4px` 保留）。别名层（`--bg`、`--text`、`--accent`、`--green` 等）改成指向新 token。
 
 退役 11 个（只被 token 层自身引用的最底层色与移动端偏移）：
@@ -75,13 +121,18 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 
 可见变化：整站底色从偏绿灰变成暖灰，正文与层级文字的对比度整体提高（主文字 16.17:1、次级 9.61:1、三级 6.30:1）。这是唯一一次「整站同时变样」的批次。
 
-验收：两套主题各截 6 个页面；用取色器核对 `--gm-canvas`、`--gm-surface`、`--gm-text` 三个值；`--gm-color-pink` 等 11 个 token 引用数归零。
+验收（两条都要过）：
+
+1. **14 个页面 × 2 套主题 = 28 张全量截图**，逐个与改动前比对：仪表盘、笔记、对话、剪贴板、计划、导入、外部文件、收藏、搜索、AI 记录、Claude 配置、仓库、设置、编辑器首页。只截首屏不算过。
+2. 用取色器核对 `--gm-canvas`、`--gm-surface`、`--gm-text` 三个值；`--gm-color-pink` 等 11 个 token 引用数归零。
+
+提交要求：**单独一个 commit**，不与任何其它批混提；提交说明里附 28 张截图所在目录。
 
 风险：视觉全站变化，且此时字号、间距还是旧值，画面会「配色新、排版旧」。这是预期中间态，不要在 B2 顺手调版式。
 
 ## B3 页面外壳与骨架
 
-范围：`gm-page`、`gm-app`、`gm-layout`、`gm-sidebar`、`gm-bottom`（移动底栏）、`gm-pane`、`gm-split`、`gm-toolbar`、`gm-icon`、`gm-section`、`gm-muted`、`gm-min`、`gm-selectable`、`gm-inline`，以及 `body` / `*` / `#root` / `button` / `select` / `a:focus-visible` / `textarea:focus` / 滚动条 / `@media (max-width: 860px)` / `html[data-mobile]`。共 162 块。
+范围：`gm-page`、`gm-app`、`gm-layout`、`gm-sidebar`、`gm-bottom`（移动底栏）、`gm-pane`、`gm-split`、`gm-toolbar`、`gm-icon`、`gm-section`、`gm-muted`、`gm-min`、`gm-selectable`、`gm-inline`，以及 `body` / `*` / `#root` / `button` / `select` / `a:focus-visible` / `textarea:focus` / 滚动条 / `@media (max-width: 860px)` / `html[data-mobile]`。共 157 块（图标类规则里的 5 条 tone 规则已划到 B3b）。
 
 改动：
 
@@ -89,30 +140,50 @@ refactor(design): migrate <批次名> to DESIGN-V2 tokens
 - 侧栏与分栏：`--gm-size-sidebar-width` → `--gm-w-sidebar`，`--gm-size-split-pane-left-*` → `--gm-w-pane-*`，手柄 4px → `--gm-w-handle`（1px 线 + 8px 热区）。
 - 页头/分栏头：`--gm-pane-header-height`（50）→ `--gm-h-pane-header`（44）；标题字号 `--gm-font-sm` → `--gm-fs-ui-lg`（16）；图标统一 `--gm-icon-lg`。
 - 图标族：`--gm-icon-2xs/xs/md/result/empty` 收敛到 `--gm-icon-xs/sm/md/lg/xl` 五档（`gm-icon-size-*` 七个单行规则一并改）。
-- 分类图标：`.gm-icon-tone-olympic-*` 五条规则删除，所有调用点改 `tone="muted"`；`gm-icon-tone-*` 里 category 与 provider 的颜色分支删除。
+- 分类图标去色不放在本批，见 B3b（用户可感知的产品变化单独成批，抱怨时能定位到具体哪一步）。
 - 字重：本批出现的 760 / 700 → 600 或 720 合并为 600。
 - `--gm-sync-shimmer-bg`（渐变）删除，同步中改用旋转图标。
 
-退役 40 个：
+退役 31 个：
 
 ```
---bg-danger --gm-category-gray --gm-category-teal --gm-color-muted-icon --gm-empty-icon-color
---gm-find-bar-app-left --gm-icon-2xs --gm-icon-empty --gm-icon-md --gm-icon-render-size
---gm-icon-result --gm-icon-sm --gm-icon-xs --gm-nav-item-pad-x --gm-nav-item-pad-y
---gm-nav-stack-gap --gm-offset-split-handle-hover --gm-olympic-black --gm-olympic-blue
---gm-olympic-green --gm-olympic-red --gm-olympic-yellow --gm-page-header-icon-size
---gm-page-header-title-font --gm-pane-header-height --gm-pane-header-icon-size
---gm-pane-header-title-font --gm-size-layout-toggle --gm-size-scrollbar
---gm-size-sidebar-collapsed-width --gm-size-sidebar-width --gm-size-split-collapsed-rail-width
---gm-size-split-handle-hover-width --gm-size-split-handle-line-width --gm-size-split-handle-width
---gm-size-split-pane-left-default --gm-sync-shimmer-bg --gm-z-bottom-nav --pink --purple
+--bg-danger --gm-color-muted-icon --gm-empty-icon-color --gm-find-bar-app-left
+--gm-icon-2xs --gm-icon-empty --gm-icon-md --gm-icon-render-size --gm-icon-result
+--gm-icon-sm --gm-icon-xs --gm-nav-item-pad-x --gm-nav-item-pad-y --gm-nav-stack-gap
+--gm-offset-split-handle-hover --gm-page-header-icon-size --gm-page-header-title-font
+--gm-pane-header-height --gm-pane-header-icon-size --gm-pane-header-title-font
+--gm-size-layout-toggle --gm-size-scrollbar --gm-size-sidebar-collapsed-width
+--gm-size-sidebar-width --gm-size-split-collapsed-rail-width
+--gm-size-split-handle-hover-width --gm-size-split-handle-line-width
+--gm-size-split-handle-width --gm-size-split-pane-left-default --gm-sync-shimmer-bg
+--gm-z-bottom-nav
 ```
 
-可见变化：页头矮 8px（52→44），侧栏不变宽但内边距变紧，所有分类图标变灰，图标尺寸从 11 档收到 5 档，页边留白左右 24 / 上下 16。
+可见变化：页头矮 8px（52→44），侧栏内边距变紧，图标尺寸从 11 档收到 5 档，页边留白左右 24 / 上下 16。分类图标仍是彩色，等 B3b。
 
-验收：构建通过；侧栏、页头、分栏手柄可拖动且热区宽度 8px；分类图标全部单色；40 个 token 引用数归零。
+验收：构建通过；侧栏、页头、分栏手柄可拖动且热区宽度 8px；31 个 token 引用数归零。
 
 风险：手柄从 4px 视觉线改成 1px 线 + 8px 热区，拖拽命中范围要在四种布局下试一遍（单栏、双栏、收起侧栏、移动端）。
+
+## B3b 分类图标去色
+
+插在 B3 之后、B4 之前。单独成批的理由：用户直接感知的产品变化，混在页面外壳里出了抱怨分不清是哪一步导致的。
+
+范围：`.gm-icon-tone-olympic-*` 五条单行规则（799–803 行）与 `DashboardPage.tsx` 里五个 `tone="olympic-*"` 调用点，加上 `gm-icon-tone-*` 里 category / provider 的颜色分支。共 5 块。
+
+改动：
+
+- 五条 tone 规则删除；`DashboardPage` 的 `categoryVisuals` 五处 `tone` 改 `"muted"`。
+- 分类身份改由图标形状 + 文字标签承担（图标本来就不同：MessageSquare / BookOpen / FileText / Clipboard / Lightbulb）。
+- 其余 tone（accent / success / warning / danger）保留，它们表达状态，不表达分类。
+
+退役 9 个：`--gm-olympic-blue` `--gm-olympic-yellow` `--gm-olympic-black` `--gm-olympic-green` `--gm-olympic-red` `--gm-category-gray` `--gm-category-teal` `--pink` `--purple`。
+
+可见变化：仪表盘与各列表里的分类图标从五种颜色变成同一种灰；同一屏上的彩色种类从最多五种降到零（状态除外）。
+
+验收：构建通过；仪表盘、笔记、对话、剪贴板、计划五个页面的分类图标全部单色；把整屏截图转灰度，分类信息不减少任何一项（形状与文字仍可区分）；9 个 token 引用数归零。
+
+风险：这是本轮唯一「功能没变但用户会立刻发现」的改动。回退成本一条 revert，建议单独放行、单独告知产品。
 
 ## B4 基础组件
 
@@ -352,14 +423,24 @@ rg -n 'cubic-bezier' desktop/src/index.css | rg -v '0\.2, 0, 0, 1'
 
 ## 2 批次之间的依赖与顺序约束
 
-- B2 必须紧接 B1，且必须在 B3 之前：颜色先定，后面的间距与字号改动才有稳定参照。
-- B3 → B5 → B4 之间没有强依赖，但 B4（组件）改的是按钮与输入框，B5（列表）改的是行，两者都碰 `--gm-control-height-*`，按 B3 → B4 → B5 顺序做可以避免同一 token 被两个批次同时改。
-- B7、B8、B9、B10、B11 之间互相独立，可以并行派给人，但共用 B4 的组件规格，必须在 B4 之后。
+- B1 必须最先：新 token 层是所有后续批次的名字来源。
+- B2 必须紧接 B1，且必须在 B3 之前：颜色先定，后面的间距与字号改动才有稳定参照。B2 单独 commit、单独评审、单独回滚。
+- **B3b 必须紧跟 B3**：它只动图标 tone，独立于其它一切；放早了会和 B3 的图标档位改动互相干扰，放晚了会混进 B4 的组件改动里，导致「图标变灰」这条产品变化说不清归属。
+- B4（按钮与输入框）与 B5（列表与行）都碰 `--gm-control-height-*`，按 B3 → B3b → B4 → B5 顺序做，避免同一 token 被两批同时改。
+- B7、B8、B9、B10、B11 互相独立，可以并行派人，但共用 B4 的组件规格，必须在 B4 之后。
 - B12 只能最后做。
+
+### 方向未定时的执行顺序（只跑结构轨）
+
+B1 → B3 → B3b → B4（结构项）→ B5（结构项）→ B6 → B8 → B9 → B11。
+
+B2、B7、B10 与 B4/B5 里的取值项一律押后到方向落定，理由与做法见 §1.1。押后不影响构建：结构轨里所有改动继续引用现有 token 名，颜色和数值都还是旧的。
 
 ## 3 回滚
 
 每批一个本地提交，回滚即 `git revert <commit>`。除 B2 外，任何一批单独 revert 都不会让其它批次的引用失效（因为旧 token 直到最后一个引用批次才删）。
+
+B2 的单独提交是硬要求：它一次改掉全站颜色，和别的批混在一起就没法判断「画面变了」是哪一步造成的，回滚也会连带撤掉无关改动。
 
 ## 4 已知陷阱
 
@@ -369,3 +450,4 @@ rg -n 'cubic-bezier' desktop/src/index.css | rg -v '0\.2, 0, 0, 1'
 4. **Tailwind `@theme`**：`rounded-md` 等工具类读的是 `--radius-md`，改这组变量会影响 TSX 里的类名效果，改完要搜一遍 `rounded-`。
 5. **打印块豁免**：`#gitmemo-print-root` 保持 `pt` 与 `letter-spacing`，不要被「字面量归零」的检查命令顺手改掉。
 6. **幽灵变量**：`--text-primary` 与 `--gm-icon-render-size` 是被引用但不在 token 层声明的两个名字（后者在单行规则里就地声明，前者根本没有定义）。改到它们的规则时不要当成「旧 token 映射」处理，直接换成 `--gm-text` 与新字号 token。
+7. **两轨并行时的命名混乱**：结构轨不许改名、取值轨不许改形态。若发现某批必须两件一起改（例如 B5 的行高机制依赖新的高度 token），把改名推到该批最后一小步并单独标注，不要夹在中间。
