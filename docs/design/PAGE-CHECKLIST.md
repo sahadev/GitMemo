@@ -245,3 +245,21 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 未确认的一点：`closeDetail()` 之后**焦点是否回到当前行**。当前实现只关闭详情，没有显式 `focus()` 列表项。
 判定：打开一条笔记 → 按 Tab 聚焦列表行 → Enter 打开 → Esc；此时按 ↑/↓ 应立即移动选中行。若不能，需要在 `closeDetail()` 后对 `[data-on="true"]` 的行调用 `focus()`。
 状态：**功能已闭环，焦点待核对**。
+
+---
+
+## 7 体检指标（每推平一页看这里）
+
+这些是「有没有真接上皮肤」的正向指标。推平一页后应当**上升**；推平了却不动，说明那一页根本没接变量，只是看起来换了色。
+
+| 指标 | 命令 | 当前值（2026-10-24 01:15） | 期望方向 |
+| --- | --- | --- | --- |
+| 边框变量引用数 | `rg -c 'var\(--gm-border-w\)' desktop/src/index.css` | 133 | 上升（新增组件都要边框） |
+| 皮肤色变量引用数 | `rg -o 'var\(--gm-(canvas\|panel\|inset\|hover\|selected\|line\|text\|accent\|success\|warning\|danger\|tag-[a-z]+\|scrim)[a-z0-9-]*\)' desktop/src/index.css \| wc -l` | 180 | 上升 |
+| 控件圆角引用数 | `rg -c 'var\(--gm-radius-control\)' desktop/src/index.css` | 71 | 上升（圆角迁移未完，见 §6） |
+| 面板圆角引用数 | `rg -c 'var\(--gm-radius-panel\)' desktop/src/index.css` | 16 | 上升 |
+| 列表行高引用数 | `rg -c 'var\(--gm-density-row\)' desktop/src/index.css` | 11 | 上升 |
+| 写死的 `1px solid` | `rg -c '1px solid' desktop/src/index.css` | 0 | 恒为 0 |
+| 组件里写死的色值 | 见 §0 第四条 | 17 行（11 打印豁免 + 6 预览） | 恒为 6 或更低 |
+
+用法：改完一页，跑一遍这七条，把数字记在提交说明里。数字不动就是没接上——比看截图可靠，因为截图看不出「这块颜色是变量还是写死的」。
