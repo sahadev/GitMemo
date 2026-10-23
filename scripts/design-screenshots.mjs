@@ -654,7 +654,7 @@ async function navigateDesktop(page, route, labels, opts) {
 /** pages 模式下的手机导航：点底部标签，等页面根节点可见。 */
 async function navigateMobile(page, route, labels, opts) {
   const label = labels.nav[route.navKey];
-  const tab = page.locator(".gm-bottom-nav-item").filter({ hasText: label });
+  const tab = page.locator(".gm-bottom-nav-item:visible").filter({ hasText: label });
   if (await tab.count()) {
     await tab.first().click();
   } else if (route.id === "search") {
