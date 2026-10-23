@@ -131,9 +131,10 @@
     .brand h1{font-size:26px}
     .dateline{flex-wrap:wrap;gap:10px 18px;font-size:10px;width:100%}
     .sheet{grid-template-columns:1fr;gap:26px;padding-top:18px}
-    .rail{order:0;display:grid;grid-template-columns:auto auto;gap:0 18px;align-items:start}
-    .rail .state{margin-top:0}
+    .rail{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+    .rail h2{grid-column:1 / -1}
     .nav{display:grid;grid-template-columns:1fr;column-gap:0}
+    .rail .state{grid-column:1 / -1;margin-top:18px}
     .nav{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
     .state{margin-top:22px}
     .body{order:1;gap:28px}
