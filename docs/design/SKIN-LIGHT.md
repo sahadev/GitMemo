@@ -312,7 +312,12 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 - 浅色块的 `--gm-border-w` 是 `1px`，与深色一致，符合 §3.5（两套同宽）。
 - 圆角已拆成皮肤级变量：`--gm-radius-control`（0 / 4px）、`--gm-radius-panel`（0 / 6px）、`--gm-radius-card`（0 / 4px），与 §1.4 一致。`--gm-r-1..4` 仍保留给尚未迁移的旧规则。
 
-圆角迁移未完成：`--gm-radius-card/control/panel` 已存在且卡片在用，但其他元素仍在引用共用的 `--gm-r-*`。这是待办，不阻塞。
+圆角迁移接近完成。实测（2026-10-24，`rg -c 'var\(--gm-radius-(control|panel|card)\)' desktop/src/index.css`）：
+
+- 皮肤级圆角 89 处引用：`--gm-radius-control` 71、`--gm-radius-panel` 17、`--gm-radius-card` 1。
+- 旧名还剩 16 处待核：`--gm-radius-pill` 13（头像、圆点、胶囊，多半该永久保留）、`--gm-radius-none` 1、`--gm-r-1` 2（网格名，需确认是否该并到 control）。
+
+判定口径：`--gm-radius-sm/md/lg/xs` 已清零；剩下的是 pill 与网格名，逐条确认归属即可，不阻塞。
 
 ---
 
