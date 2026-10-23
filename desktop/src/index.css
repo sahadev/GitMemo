@@ -7388,7 +7388,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   align-items: center;
   display: grid;
   gap: var(--gm-space-4);
-  grid-template-columns: 64px 78px minmax(0, 1fr) 84px 72px;
+  grid-template-columns: 64px 96px minmax(0, 1fr) 84px 72px;
   padding: 0 var(--gm-space-4);
 }
 .gm-inst-table-head {

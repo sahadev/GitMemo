@@ -192,7 +192,7 @@
     "quickNoteCollapse": "折起快记",
     "quickNoteSaved": "已保存：{0}",
     "quickNoteContentRequired": "先写一点内容",
-    "quickNotePlaceholder": "---\ntitle: 主题，例如「今天的产品想法」\ntags: [idea, todo]\nsource: dashboard\n---\n\n记点什么...",
+    "quickNotePlaceholder": "记点什么，第一行会成为标题（Cmd/Ctrl+S 保存）",
     "tableTime": "时间",
     "tableTitle": "标题",
     "tablePath": "位置"
