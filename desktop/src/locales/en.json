@@ -237,7 +237,8 @@
     "edit": "Edit",
     "save": "Save",
     "noteDeleted": "Note deleted",
-    "deleteConfirm": "Delete this note?"
+    "deleteConfirm": "Delete this note?",
+    "send": "Save"
   },
   "clipboard": {
     "title": "Clipboard",

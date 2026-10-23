@@ -237,7 +237,8 @@
     "edit": "编辑",
     "save": "保存",
     "noteDeleted": "笔记已删除",
-    "deleteConfirm": "确定删除此笔记？"
+    "deleteConfirm": "确定删除此笔记？",
+    "send": "保存"
   },
   "clipboard": {
     "title": "剪贴板",

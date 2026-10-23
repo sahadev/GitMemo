@@ -345,6 +345,7 @@ export default function NotesPage({
           title={manualTitle}
           onTitleChange={setManualTitle}
           titlePlaceholder={t("notes.placeholderTitle")}
+          sendLabel={t("notes.send")}
           note={noteDraft}
           onNoteChange={setNoteDraft}
           notePlaceholder={t(getNotePlaceholderKey(activeTab))}

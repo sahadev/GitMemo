@@ -23,6 +23,8 @@ interface NoteComposerProps {
   onCompositionStart?: (event: CompositionEvent<HTMLTextAreaElement>) => void;
   onCompositionEnd?: (event: CompositionEvent<HTMLTextAreaElement>) => void;
   onSubmit: () => void;
+  /** 无障碍名称：图标按钮没有文字，读屏需要一个名字 */
+  sendLabel?: string;
 }
 
 export function NoteComposer({
@@ -45,6 +47,7 @@ export function NoteComposer({
   onCompositionStart,
   onCompositionEnd,
   onSubmit,
+  sendLabel,
 }: NoteComposerProps) {
   const hasNote = Boolean(note.trim());
 
@@ -71,6 +74,7 @@ export function NoteComposer({
           onCompositionStart={onCompositionStart}
           onCompositionEnd={onCompositionEnd}
           placeholder={notePlaceholder}
+          aria-label={notePlaceholder}
           rows={rows}
           className="gm-note-textarea"
           data-mobile={mobile ? "true" : "false"}
@@ -78,6 +82,7 @@ export function NoteComposer({
         <button
           type="button"
           onClick={onSubmit}
+          aria-label={sendLabel ?? "Send"}
           disabled={disabled}
           className="gm-note-send-button"
           data-active={hasNote ? "true" : "false"}
