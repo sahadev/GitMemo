@@ -18,6 +18,20 @@
  * A one-frame flash shorter than the sampling interval can be missed; the
  * interval is printed with the result so the coverage is explicit.
  *
+ * Known limitation — sub-pixel text antialiasing:
+ *   A round trip can leave a handful of pixels different inside text areas even
+ *   when nothing moved. They are low-density (a few dozen to a few hundred
+ *   pixels), sit inside one bounding box, and carry a high per-channel delta
+ *   because glyph edges get re-rasterised on a fresh paint. The control shot
+ *   (two captures of the same untouched state) is 0, because nothing is
+ *   repainted. This is why the default gate tolerates <= 0.02% of the screen and
+ *   why the report always prints the changed-pixel count next to the tolerance.
+ *   Do not "re-investigate" such a residue as a skin regression: focus rings and
+ *   :hover were both ruled out with control runs (focus is blurred before the
+ *   closing shot, and --keep-hover reproduces the same 1px/0px result). Use
+ *   --strict only when the question is literally "byte-identical", and compare
+ *   the geometry signature when the question is "did anything move".
+ *
  * Usage
  *   node scripts/theme-swap-check.mjs
  *   node scripts/theme-swap-check.mjs --skins=dark --out=/tmp/swap
@@ -61,6 +75,7 @@ function parseArgs(argv) {
     intervalMs: SAMPLE_INTERVAL_MS,
     durationMs: SAMPLE_DURATION_MS,
     settleMs: 250,
+    keepHover: false,
     strict: false,
     help: false,
   };
@@ -90,6 +105,9 @@ function parseArgs(argv) {
       case "--port":
         opts.port = Number(value());
         if (!Number.isInteger(opts.port)) throw new Error("--port must be an integer");
+        break;
+      case "--keep-hover":
+        opts.keepHover = true;
         break;
       case "--settle":
         opts.settleMs = Number(value());
@@ -123,6 +141,7 @@ Options
   --port=<n>          dev server port                  (default: 5274)
   --strict            fail on any differing pixel (default: allow repaint noise
                       up to 0.02% of the screen, reported either way)
+  --keep-hover        diagnostic: leave the pointer and focus on the switch
   --settle=<ms>       wait after the last toggle before the closing shot
                       (default: 250)
   --interval=<ms>     frame sampling interval          (default: 60)
@@ -360,7 +379,7 @@ async function checkSkin(browser, skin, opts) {
     await page.waitForSelector(".gm-app-shell", { timeout: opts.timeoutMs });
     await openSettingsGeneral(page, opts);
     await page.evaluate(() => document.fonts?.ready);
-    await page.mouse.move(2, 2);
+    if (!opts.keepHover) await page.mouse.move(2, 2);
     await page.waitForTimeout(250);
 
     const before = await page.screenshot({ animations: "disabled", caret: "hide" });
@@ -386,8 +405,10 @@ async function checkSkin(browser, skin, opts) {
     const backFrames = await sampleFrames(page, opts, dir, "to-dark");
     // Park the pointer and drop focus: a lingering :hover / :focus-visible on the
     // switch is a state difference, not a skin regression.
-    await page.mouse.move(2, 2);
-    await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
+    if (!opts.keepHover) {
+      await page.mouse.move(2, 2);
+      await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
+    }
     await page.waitForTimeout(opts.settleMs);
 
     const after = await page.screenshot({ animations: "disabled", caret: "hide" });
