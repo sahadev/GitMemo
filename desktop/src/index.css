@@ -7332,7 +7332,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   border-top: 0;
   display: grid;
   flex: none;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-top: var(--gm-space-4);
 }
 .gm-inst-gauge {

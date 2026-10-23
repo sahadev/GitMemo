@@ -291,6 +291,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       detail: undefined,
     },
     {
+      id: "notes",
+      label: t("dashboard.manuals"),
+      value: stats?.manuals,
+      level: Math.min(5, Math.ceil((stats?.manuals ?? 0) / 40)),
+      detail: undefined,
+    },
+    {
       id: "clip",
       label: t("dashboard.clips"),
       value: stats?.clips,
@@ -298,11 +305,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       detail: undefined,
     },
     {
-      id: "unpushed",
-      label: t("dashboard.gaugeUnpushed"),
-      value: gitStatus?.unpushed ?? 0,
-      level: (gitStatus?.unpushed ?? 0) > 0 ? 1 : 0,
-      detail: gitStatus?.last_commit_time ? formatAbsoluteTime(gitStatus.last_commit_time) : undefined,
+      id: "plans",
+      label: t("dashboard.plans"),
+      value: stats?.plans,
+      level: Math.min(5, Math.ceil((stats?.plans ?? 0) / 2)),
+      detail: undefined,
     },
   ];
 
