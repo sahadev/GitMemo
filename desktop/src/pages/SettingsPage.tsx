@@ -263,6 +263,11 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
   };
 
   const clearSyncLogs = async () => {
+    const confirmed = await ask(t("settings.clearSyncLogsConfirm"), {
+      title: t("common.confirm"),
+      kind: "warning",
+    });
+    if (!confirmed) return;
     setClearingSyncLogs(true);
     try {
       await invoke<string>("clear_sync_logs");

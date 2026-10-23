@@ -1,8 +1,10 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode, RefObject } from "react";
+import { useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, Check, ChevronRight, Copy, RefreshCw, X } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
 import { PageHeader } from "../../AppHeaders";
+import { useModalA11y } from "../../../hooks/useModalA11y";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
 import { useTimedIconSpin } from "../../base/useTimedIconSpin";
@@ -547,6 +549,9 @@ interface SettingsModalProps extends ChildrenProps {
 }
 
 export function SettingsModal({ children, onBackdropClick, width = "md", className }: SettingsModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalA11y(modalRef, onBackdropClick);
+
   return (
     <div
       className="gm-settings-modal-backdrop"
@@ -554,7 +559,14 @@ export function SettingsModal({ children, onBackdropClick, width = "md", classNa
         if (e.target === e.currentTarget) onBackdropClick();
       }}
     >
-      <div className={cx("gm-settings-modal", className)} data-width={width}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className={cx("gm-settings-modal", className)}
+        data-width={width}
+      >
         {children}
       </div>
     </div>

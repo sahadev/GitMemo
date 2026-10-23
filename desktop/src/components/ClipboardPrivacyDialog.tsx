@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useI18n } from "../hooks/useI18n";
+import { useModalA11y } from "../hooks/useModalA11y";
 import { Shield, X, Check } from "lucide-react";
 import { AppIcon } from "./base/AppIcon";
 import { Button } from "./base/Button";
@@ -22,6 +23,8 @@ export function ClipboardPrivacyDialog({
   onCancel: () => void;
 }) {
   const { t } = useI18n();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalA11y(dialogRef, onCancel);
 
   return (
     <div
@@ -29,6 +32,11 @@ export function ClipboardPrivacyDialog({
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("privacy.title")}
+        tabIndex={-1}
         onClick={e => e.stopPropagation()}
         className="gm-privacy-dialog"
       >

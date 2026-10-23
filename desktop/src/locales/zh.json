@@ -100,6 +100,7 @@
     "clearedMissing": "已清除 {0} 个失效文件",
     "clearAll": "全部清空",
     "clearAllConfirm": "将所有文件从外部文件列表中移除？",
+    "clearMissingConfirm": "清除 {0} 个失效文件？记录会被移除，但磁盘上的文件不受影响。",
     "cleared": "已清空外部文件列表"
   },
   "favorites": {
@@ -335,6 +336,7 @@
     "openSyncLogs": "查看",
     "copySyncLogs": "复制全部",
     "clearSyncLogs": "清空",
+    "clearSyncLogsConfirm": "清空同步日志？已记录的失败原因会被删除。",
     "syncLogsEmpty": "暂无同步失败日志",
     "syncLogsCleared": "同步日志已清空",
     "syncLogsCopied": "同步日志已复制",

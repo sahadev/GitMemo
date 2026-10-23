@@ -321,6 +321,11 @@ export default function ExternalFilesPage({
 
   const handleClearMissing = useCallback(async () => {
     if (!canClearMissingExternalFiles(missingCount, clearingMissing)) return;
+    const confirmed = await ask(t("externalFiles.clearMissingConfirm", String(missingCount)), {
+      title: t("common.confirm"),
+      kind: "warning",
+    });
+    if (!confirmed) return;
     setClearingMissing(true);
     try {
       const next = await invoke<ExternalFileEntry[]>("clear_missing_external_files");

@@ -100,6 +100,7 @@
     "clearedMissing": "Cleared {0} missing files",
     "clearAll": "Clear all",
     "clearAllConfirm": "Remove all files from the external files list?",
+    "clearMissingConfirm": "Clear {0} missing file(s)? The records are removed; files on disk are not touched.",
     "cleared": "Cleared external files list"
   },
   "favorites": {
@@ -335,6 +336,7 @@
     "openSyncLogs": "View",
     "copySyncLogs": "Copy all",
     "clearSyncLogs": "Clear",
+    "clearSyncLogsConfirm": "Clear the sync logs? The recorded failure reasons will be deleted.",
     "syncLogsEmpty": "No sync failure logs",
     "syncLogsCleared": "Sync logs cleared",
     "syncLogsCopied": "Sync logs copied",
