@@ -31,11 +31,7 @@ export type AppIconTone =
   | "yellow"
   | "gray"
   | "teal"
-  | "olympic-blue"
-  | "olympic-yellow"
-  | "olympic-black"
-  | "olympic-green"
-  | "olympic-red";
+;
 
 interface AppIconProps {
   icon: LucideIcon;

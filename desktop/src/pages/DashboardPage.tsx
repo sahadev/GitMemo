@@ -64,11 +64,11 @@ import { formatTitleWithShortcut } from "../utils/shortcuts";
 import { type NoteResult } from "../types/notes";
 
 const categoryVisuals: Record<DashboardContentCategory, { icon: typeof MessageSquare; tone: AppIconTone }> = {
-  conversation: { icon: MessageSquare, tone: "olympic-blue" },
-  manual: { icon: BookOpen, tone: "olympic-yellow" },
-  scratch: { icon: FileText, tone: "olympic-black" },
-  clip: { icon: Clipboard, tone: "olympic-green" },
-  plan: { icon: Lightbulb, tone: "olympic-red" },
+  conversation: { icon: MessageSquare, tone: "muted" },
+  manual: { icon: BookOpen, tone: "muted" },
+  scratch: { icon: FileText, tone: "muted" },
+  clip: { icon: Clipboard, tone: "muted" },
+  plan: { icon: Lightbulb, tone: "muted" },
 };
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
