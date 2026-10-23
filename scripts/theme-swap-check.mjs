@@ -50,8 +50,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { inflateSync } from "node:zlib";
 
 import {
+  PAGES,
   backendStub,
   launchChromium,
+  loadLabels,
+  navigate,
   resolvePlaywright,
   startDevServer,
   stopDevServer,
@@ -79,6 +82,7 @@ function parseArgs(argv) {
     durationMs: SAMPLE_DURATION_MS,
     settleMs: 250,
     keepHover: false,
+    stateCheck: false,
     strict: false,
     help: false,
   };
@@ -108,6 +112,9 @@ function parseArgs(argv) {
       case "--port":
         opts.port = Number(value());
         if (!Number.isInteger(opts.port)) throw new Error("--port must be an integer");
+        break;
+      case "--state-check":
+        opts.stateCheck = true;
         break;
       case "--keep-hover":
         opts.keepHover = true;
@@ -144,6 +151,8 @@ Options
   --port=<n>          dev server port                  (default: 5274)
   --strict            fail on any differing pixel (default: allow repaint noise
                       up to 0.02% of the screen, reported either way)
+  --state-check       also type a sentinel into the dashboard command box and
+                      verify the text and the DOM node survive a skin toggle
   --keep-hover        diagnostic: leave the pointer and focus on the switch
   --settle=<ms>       wait after the last toggle before the closing shot
                       (default: 250)
@@ -369,6 +378,36 @@ async function sampleFrames(page, opts, dir, label) {
   return frames;
 }
 
+/**
+ * Sentinel + DOM marker: typing proves values survive, marking the node proves
+ * it was not rebuilt. Either half alone can be explained away.
+ */
+async function checkStatePersistence(page, labels, opts) {
+  const dash = PAGES.find((p) => p.id === "dashboard");
+  const settings = PAGES.find((p) => p.id === "settings");
+  await navigate(page, "desktop", dash, labels, { ...opts, allPages: true });
+  await page.waitForTimeout(400);
+  const input = page.locator(".gm-dash-command-input, .gm-inst-command-input").first();
+  if (!(await input.count())) return { skipped: "no command input on dashboard" };
+  const sentinel = "SWAP-STATE-SENTINEL";
+  await input.fill(sentinel);
+  await input.evaluate((el) => { el.dataset.swapProbe = "alive"; });
+
+  await navigate(page, "desktop", settings, labels, { ...opts, allPages: true });
+  const general = page.locator(".gm-settings-page").getByText("General", { exact: true }).first();
+  if (await general.count()) { await general.click(); await page.waitForTimeout(200); }
+  await page.locator(".gm-settings-row").filter({ hasText: "Appearance" }).locator(".gm-switch").first().click();
+  await page.waitForTimeout(400);
+
+  await navigate(page, "desktop", dash, labels, { ...opts, allPages: true });
+  await page.waitForTimeout(400);
+  const after = page.locator(".gm-dash-command-input, .gm-inst-command-input").first();
+  const value = await after.inputValue();
+  const marker = await after.evaluate((el) => el.dataset.swapProbe ?? null);
+
+  return { sentinel, value, marker, valueKept: value === sentinel, nodeKept: marker === "alive" };
+}
+
 async function checkSkin(browser, skin, opts) {
   const dir = join(opts.out, skin);
   mkdirSync(dir, { recursive: true });
@@ -467,6 +506,8 @@ async function checkSkin(browser, skin, opts) {
     const tolerance = Math.max(noise.changed * 2, Math.round(VIEWPORT.width * VIEWPORT.height * 0.0002));
     const roundTrip = opts.strict ? trip.changed === 0 : trip.changed <= tolerance;
 
+    const stateCheck = opts.stateCheck ? await checkStatePersistence(page, loadLabels("en"), opts) : null;
+
     const frames = [...toggleFrames, ...backFrames];
     const blanks = frames.filter((frame) => frame.blank);
     const worstDominant = Math.max(...frames.map((frame) => frame.dominantShare));
@@ -480,6 +521,7 @@ async function checkSkin(browser, skin, opts) {
       after: { file: afterFile, sha256: sha(after) },
       control: { file: controlFile, ...noise },
       interaction: { pointerParked, focusBeforeBlur, keepHover: opts.keepHover },
+      stateCheck,
       focusedBox: focusRect,
       trip: {
         changedPixels: trip.changed,
@@ -566,6 +608,10 @@ async function main() {
       const focusNote = result.interaction.focusBeforeBlur ? `焦点 ${result.interaction.focusBeforeBlur}` : "无焦点";
       process.stdout.write(`  ${result.skin.padEnd(6)} ${tripNote} · ${blankNote}（${frameNote}，主色占比峰值 ${(result.worstDominant * 100).toFixed(1)}%）\n`);
       process.stdout.write(`         ${pointerNote} · ${focusNote}\n`);
+      if (result.stateCheck && !result.stateCheck.skipped) {
+        const sc = result.stateCheck;
+        process.stdout.write(`         状态保持：文本 ${sc.valueKept ? "保留" : "丢失"} · DOM 节点 ${sc.nodeKept ? "未重建" : "被重建"}\n`);
+      }
       for (const err of result.pageErrors) process.stdout.write(`         页面错误：${err}\n`);
     }
     process.stdout.write(`sampled frames + report: ${opts.out}\n`);
