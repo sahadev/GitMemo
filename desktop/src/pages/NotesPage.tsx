@@ -14,7 +14,6 @@ import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import type { EditorHandle, EditorPasteEvent } from "../components/domain/editor/editorTypes";
-import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import {
   getFileWorkspacePaneState,
@@ -36,7 +35,7 @@ import {
   isManualNotesTab,
   shouldShowNoteComposerHelper,
 } from "../components/domain/notes/notesLogic";
-import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
+import { DetailPane, ListPane } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { relativeTime } from "../utils/time";
@@ -301,6 +300,22 @@ export default function NotesPage({
     cancelEdit,
   });
 
+  // Esc 从阅读区回到列表；编辑态下交给编辑器自己处理（它有自己的取消逻辑）。
+  useEffect(() => {
+    if (!active || isMobile || !selectedFile || editing) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      // 用捕获阶段：正文区自己也会处理 Esc（退出某种展示态），
+      // 这里要保证「先回到列表」这件主要的动作一定发生。
+      event.preventDefault();
+      closeDetail();
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [active, isMobile, selectedFile, editing, closeDetail]);
+
   return (
     <FileWorkspace
         panelKey="notes"
@@ -356,7 +371,7 @@ export default function NotesPage({
         />
 
         {/* File list */}
-        <ListPaneBody mobileBottomPadding={isMobile}>
+        <div className="gm-inst-list-rows gm-dash-list-rows">
           {loading ? (
             <Loading compact text={t("notes.loading")} />
           ) : files.length === 0 ? (
@@ -371,15 +386,19 @@ export default function NotesPage({
               const title = getNoteListItemTitle(file);
               const selected = selectedFile === file.path;
               return (
-              <FileListItem
+              <button
                 key={file.path}
                 ref={(el) => registerItemRef(file.path, el)}
+                type="button"
+                className="gm-inst-list-row"
+                data-on={selected ? "true" : "false"}
+                data-selected={selected ? "true" : "false"}
                 onClick={() => openFile(file.path)}
-                active={selected}
-                mobile={isMobile}
-                title={title}
-                subtitle={relativeTime(file.modified, t)}
-              />
+                title={typeof title === "string" ? title : undefined}
+              >
+                <span className="gm-inst-list-title">{title}</span>
+                <span className="gm-inst-list-time" data-col="time">{relativeTime(file.modified, t)}</span>
+              </button>
               );
             })}
             {hasMore && (
@@ -394,7 +413,7 @@ export default function NotesPage({
             )}
             </>
           )}
-        </ListPaneBody>
+        </div>
       </ListPane>
       )}
 
