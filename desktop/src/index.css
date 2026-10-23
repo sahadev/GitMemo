@@ -2276,6 +2276,21 @@ a:focus-visible {
   font-size: var(--gm-font-xs);
 }
 
+/* 页面局部兜底：只占出错那块，和列表同宽，四边留白但不抢注意力 */
+.gm-empty-state.gm-error-inline {
+  align-items: center;
+  border: var(--gm-border-w) solid var(--gm-danger-border);
+  border-radius: var(--gm-radius-panel);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-space-3);
+  justify-content: center;
+  margin: var(--gm-space-4);
+  padding: var(--gm-space-6) var(--gm-space-4);
+  text-align: center;
+}
+
 .gm-status-pill {
   align-items: center;
   background: var(--gm-color-bg-inset);
