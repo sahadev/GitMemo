@@ -126,6 +126,7 @@ export default function NotesPage({
   }, [activeTab]);
   const {
     files,
+    loadError,
     loading,
     loadingMore,
     hasMore,
@@ -311,6 +312,11 @@ export default function NotesPage({
       // 这里要保证「先回到列表」这件主要的动作一定发生。
       event.preventDefault();
       closeDetail();
+      // 焦点回到当前行：否则 Esc 之后焦点落在 body 上，方向键要重新 Tab 一圈才回来。
+      window.requestAnimationFrame(() => {
+        const row = document.querySelector<HTMLElement>('[data-on="true"]');
+        row?.focus();
+      });
     };
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
@@ -373,7 +379,14 @@ export default function NotesPage({
 
         {/* File list */}
         <div className="gm-inst-list-rows gm-dash-list-rows">
-          {loading ? (
+          {loadError ? (
+            <div className="gm-inst-list-error" role="alert">
+              <span className="gm-inst-list-error-text">{t("notes.listLoadFailed", loadError)}</span>
+              <button type="button" className="gm-toolbar-button" onClick={() => void loadFiles(true)}>
+                {t("common.retry")}
+              </button>
+            </div>
+          ) : loading ? (
             <div className="gm-inst-list-skeleton" aria-hidden="true">
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="gm-inst-list-row" data-skeleton="true">
