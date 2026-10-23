@@ -254,6 +254,7 @@
   --gm-media-on: #ffffff;
   --gm-media-control: rgba(255, 255, 255, 0.08);
   --gm-media-control-hover: rgba(255, 255, 255, 0.16);
+  --gm-media-scrim: rgba(0, 0, 0, 0.6);
   --gm-radius-control: 4px;
   --gm-radius-panel: 6px;
   --gm-panel: #15181b;
@@ -359,6 +360,7 @@
   --gm-media-on: #ffffff;
   --gm-media-control: rgba(255, 255, 255, 0.08);
   --gm-media-control-hover: rgba(255, 255, 255, 0.16);
+  --gm-media-scrim: rgba(0, 0, 0, 0.6);
   --gm-radius-control: 0;
   --gm-radius-panel: 0;
   --gm-panel: #ffffff;
@@ -7065,7 +7067,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   gap: var(--gm-space-4);
   padding: var(--gm-space-4) var(--gm-space-5);
   z-index: 2;
-  background: linear-gradient(rgba(0, 0, 0, 0.6), transparent);
+  background: linear-gradient(var(--gm-media-scrim), transparent);
 }
 
 .gm-clip-cleaner-preview-meta {
@@ -7153,7 +7155,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: flex;
   gap: var(--gm-space-5);
   padding: var(--gm-space-3) var(--gm-space-5);
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--gm-media-scrim);
   border-radius: var(--gm-radius-panel);
   color: var(--gm-color-text-muted);
   font-size: var(--gm-font-xs);
