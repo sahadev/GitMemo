@@ -44,7 +44,7 @@ import { useFileEditorState } from "../hooks/useFileEditorState";
 import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { useTimedCopy } from "../hooks/useTimedCopy";
 import { useListKeyboardNavigation } from "../hooks/useListNavigation";
-import { formatShortcut, isShortcutEditableTarget, withDefaultShortcuts } from "../utils/shortcuts";
+import {formatShortcut, withDefaultShortcuts} from "../utils/shortcuts";
 import { writeTextWithClipboardWatchPaused } from "../utils/clipboard";
 import { replaceMarkdownBody, stripMarkdownFrontmatter } from "../utils/markdown";
 
@@ -310,17 +310,27 @@ export default function SearchPage({
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, [closeDetail, entryTrigger, isMobile]);
 
+  // Esc 的两级行为：有详情时先退回列表；没有详情时清空关键词。
+  // 注册在捕获阶段，避免被正文区的 Esc 处理吃掉。
   useEffect(() => {
-    if (!active || isMobile || !selectedFile || editing) return;
+    if (!active || isMobile || editing) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.key !== "Escape") return;
-      if (isShortcutEditableTarget(event.target) && event.target !== inputRef.current) return;
-      event.preventDefault();
-      closeDetail();
+      if (event.key !== "Escape") return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (selectedFile) {
+        event.preventDefault();
+        closeDetail();
+        return;
+      }
+      if (query !== "") {
+        event.preventDefault();
+        setQuery("");
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, closeDetail, editing, isMobile, selectedFile]);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [active, closeDetail, editing, isMobile, query, selectedFile]);
 
   useMobileDetailBackHandler({
     isMobile,
