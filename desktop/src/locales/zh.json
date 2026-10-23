@@ -129,6 +129,7 @@
     "syncToGit": "同步到 Git"
   },
   "dashboard": {
+    "listLoadFailed": "列表没能加载：{0}",
     "tableEmpty": "暂无条目——写一条笔记，或浏览其他页面。",
     "quickNoteInsertTemplate": "插入模板",
     "typeConversation": "对话",
@@ -217,6 +218,7 @@
     "assistant": "助手"
   },
   "notes": {
+    "listLoadFailed": "笔记列表没能加载：{0}",
     "scratch": "便签",
     "manual": "文档",
     "plans": "计划",
@@ -500,6 +502,7 @@
     "importFailed": "导入失败"
   },
   "common": {
+    "retry": "重试",
     "error": "错误",
     "start": "开始",
     "stop": "停止",

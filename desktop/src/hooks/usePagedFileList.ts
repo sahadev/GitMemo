@@ -24,6 +24,8 @@ export function usePagedFileList<T extends { path: string }>({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [totalFiles, setTotalFiles] = useState(0);
+  /** 最近一次分页请求的错误信息；有值时就地显示重试，不交给页面级错误边界。 */
+  const [loadError, setLoadError] = useState<string | null>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const filesLengthRef = useRef(0);
   const loadInFlight = useRef<Promise<void> | null>(null);
@@ -43,6 +45,7 @@ export function usePagedFileList<T extends { path: string }>({
     setTotalFiles(0);
     setLoading(true);
     setLoadingMore(false);
+    setLoadError(null);
   }, [loadPage]);
 
   const loadFiles = useCallback((reset = true) => {
@@ -64,12 +67,14 @@ export function usePagedFileList<T extends { path: string }>({
         // 一旦 state 不是数组，整个应用会落到全局 ErrorBoundary（不是单页降级）。
         const entries = Array.isArray(page?.entries) ? page.entries : [];
         setFiles((prev) => reset ? entries : [...prev, ...entries]);
+        setLoadError(null);
         setHasMore(Boolean(page?.has_more));
         setTotalFiles(typeof page?.total === "number" ? page.total : entries.length);
         onPageLoaded?.(page, reset);
       } catch (e) {
         if (generation === loadGenerationRef.current && requestId === latestRequestRef.current) {
           console.error(e);
+          setLoadError(e instanceof Error ? e.message : String(e));
         }
       } finally {
         if (generation === loadGenerationRef.current && requestId === latestRequestRef.current) {
@@ -104,6 +109,7 @@ export function usePagedFileList<T extends { path: string }>({
 
   return {
     files,
+    loadError,
     setFiles,
     loading,
     setLoading,

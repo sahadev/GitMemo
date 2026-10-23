@@ -129,6 +129,7 @@
     "syncToGit": "Sync to Git"
   },
   "dashboard": {
+    "listLoadFailed": "Could not load the list: {0}",
     "tableEmpty": "No entries yet — write a note, or browse another page.",
     "quickNoteInsertTemplate": "Insert template",
     "typeConversation": "Chat",
@@ -217,6 +218,7 @@
     "assistant": "Assistant"
   },
   "notes": {
+    "listLoadFailed": "Could not load notes: {0}",
     "scratch": "Scratch",
     "manual": "Docs",
     "plans": "Plans",
@@ -500,6 +502,7 @@
     "importFailed": "Import failed"
   },
   "common": {
+    "retry": "Retry",
     "error": "Error",
     "start": "Start",
     "stop": "Stop",

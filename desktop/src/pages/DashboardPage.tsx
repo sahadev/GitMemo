@@ -100,6 +100,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [statsLoading, setStatsLoading] = useState(!cached?.stats);
   const [recentLoading, setRecentLoading] = useState(!cached?.recent);
   const [error, setError] = useState("");
+  const [recentError, setRecentError] = useState<string | null>(null);
   const [quickNoteDraft, setQuickNoteDraft] = useState("");
   const [quickNotePath, setQuickNotePath] = useState<string | null>(null);
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
@@ -140,10 +141,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       const r = await loadDashboardRecentOnce();
       const list = Array.isArray(r) ? r : [];
       setRecent(list);
+      setRecentError(null);
       dashboardCacheRef.current = { ...dashboardCacheRef.current, recent: list };
       saveCache(dashboardCacheRef.current);
-    } catch {
+    } catch (e) {
+      // 列表数据失败不交给页面级错误边界：结构还能用，就地给一条可重试的提示。
       setRecent([]);
+      setRecentError(e instanceof Error ? e.message : String(e));
     } finally {
       setRecentLoading(false);
     }
@@ -452,7 +456,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               <span role="columnheader" data-col="source">{t("dashboard.tableSource")}</span>
               <span role="columnheader" data-col="state">{t("dashboard.gaugeState")}</span>
             </div>
-            {displayedRecent.length === 0 ? (
+            {recentError ? (
+              <div className="gm-inst-list-error" role="alert">
+                <span className="gm-inst-list-error-text">{t("dashboard.listLoadFailed", recentError)}</span>
+                <button type="button" className="gm-toolbar-button" onClick={() => void loadRecent()}>
+                  {t("common.retry")}
+                </button>
+              </div>
+            ) : null}
+            {!recentError && displayedRecent.length === 0 ? (
               <p className="gm-muted-text gm-inst-table-empty">{t("dashboard.tableEmpty")}</p>
             ) : null}
             {displayedRecent.slice(0, 7).map((item) => (
