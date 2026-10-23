@@ -253,6 +253,7 @@
      组件尚未引用这一层，所以深色外观与改动前逐像素一致。 */
   --gm-canvas: #0e1012;
   --gm-edge-shadow: none;
+  --gm-radius-card: 4px;
   --gm-panel: #15181b;
   --gm-inset: #1a1e22;
   --gm-hover: rgba(255, 255, 255, 0.04);
@@ -351,6 +352,7 @@
      反白留给组件改造那一批。 */
   --gm-canvas: #ffffff;
   --gm-edge-shadow: inset 0 0 0 1px var(--gm-line-strong);
+  --gm-radius-card: 0;
   --gm-panel: #ffffff;
   --gm-inset: #f5f5f2;
   --gm-hover: #f5f5f2;
@@ -3118,7 +3120,7 @@ a:focus-visible {
 .gm-dashboard-card {
   background: var(--gm-color-bg-surface);
   border: 1px solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-card);
   box-shadow: var(--gm-edge-shadow);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
@@ -7435,14 +7437,21 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   font-weight: 650;
   justify-self: start;
   letter-spacing: 0.06em;
+  max-width: 100%;
+  overflow: hidden;
   padding: var(--gm-space-1) var(--gm-space-2);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.gm-inst-tag[data-kind="conversation"] { background: var(--gm-tag-chat); }
-.gm-inst-tag[data-kind="manual"] { background: var(--gm-tag-note); }
+.gm-inst-tag[data-kind="conversation"],
+.gm-inst-tag[data-kind="conversations"] { background: var(--gm-tag-chat); }
+.gm-inst-tag[data-kind="manual"],
+.gm-inst-tag[data-kind="notes"],
 .gm-inst-tag[data-kind="scratch"] { background: var(--gm-tag-note); }
-.gm-inst-tag[data-kind="clip"] { background: var(--gm-tag-clip); }
-.gm-inst-tag[data-kind="plan"] { background: var(--gm-tag-plan); color: var(--gm-on-tag-plan); }
+.gm-inst-tag[data-kind="clip"],
+.gm-inst-tag[data-kind="clips"] { background: var(--gm-tag-clip); }
+.gm-inst-tag[data-kind="plan"],
+.gm-inst-tag[data-kind="plans"] { background: var(--gm-tag-plan); color: var(--gm-on-tag-plan); }
 
 /* 5 · 命令输入 + 待处理 */
 .gm-inst-lower {
