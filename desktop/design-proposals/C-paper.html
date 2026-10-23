@@ -20,7 +20,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--paper);color:var(--ink);font-family:var(--sans);
     -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow-x:hidden}
-  .page{width:1440px;min-height:1400px;margin:0 auto;padding:60px 96px 72px;
+  .page{width:1440px;margin:0 auto;padding:56px 96px 40px;
     display:flex;flex-direction:column}
   /* ---------- 报头 ---------- */
   .masthead{display:flex;align-items:flex-end;justify-content:space-between;
@@ -54,11 +54,14 @@
   /* ---------- 正文 ---------- */
   .body{display:flex;flex-direction:column;gap:44px;min-width:0}
   .body > section:last-of-type{flex:1}
-  .lede{display:grid;grid-template-columns:1fr 320px;gap:56px;align-items:start}
-  .lede h3{font-family:var(--serif);font-size:40px;line-height:1.18;font-weight:600;
-    letter-spacing:-.015em;max-width:15em}
+  .lede{display:block}
+  .lede h3{font-family:var(--serif);font-size:34px;line-height:1.22;font-weight:600;
+    letter-spacing:-.015em;max-width:22em}
   .lede p{margin-top:14px;font-size:13.5px;line-height:1.75;color:var(--ink-2);max-width:34em}
   .quick{border-top:2px solid var(--ink);padding-top:12px}
+  .quick-band{display:grid;grid-template-columns:1fr;gap:0}
+  .quick-band .line{height:30px;font-size:13.5px}
+  .quick-band .hint{margin-top:8px}
   .quick h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--ink-3);font-weight:400;margin-bottom:10px}
   .quick .line{border-bottom:1px solid var(--rule);height:26px;display:flex;align-items:center;
@@ -116,7 +119,7 @@
   .todo li b{font-weight:400;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
   /* ---------- 页脚 ---------- */
   .colophon{display:flex;justify-content:space-between;align-items:baseline;
-    margin-top:40px;padding-top:10px;border-top:1px solid var(--rule-strong);
+    margin-top:32px;padding-top:10px;border-top:1px solid var(--rule-strong);
     font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);
     text-transform:uppercase}
   .colophon .path{text-transform:none;letter-spacing:0;font-size:11px}
@@ -128,10 +131,12 @@
     .brand h1{font-size:26px}
     .dateline{flex-wrap:wrap;gap:10px 18px;font-size:10px;width:100%}
     .sheet{grid-template-columns:1fr;gap:26px;padding-top:18px}
-    .rail{order:2}
+    .rail{order:0;display:grid;grid-template-columns:auto auto;gap:0 18px;align-items:start}
+    .rail .state{margin-top:0}
+    .nav{display:grid;grid-template-columns:1fr;column-gap:0}
     .nav{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
     .state{margin-top:22px}
-    .body{order:1;gap:30px}
+    .body{order:1;gap:28px}
     .lede{grid-template-columns:1fr;gap:24px}
     .lede h3{font-size:25px;line-height:1.28}
     .figures{grid-template-columns:1fr 1fr}
@@ -192,17 +197,8 @@
     <main class="body">
 
       <section class="lede">
-        <div>
-          <h3>三天前那条中断的条款草稿，今天可以接着写完。</h3>
-          <p>你在 10 月 20 日 17:42 存过一份未完成的草稿，引用了两份对话和一段剪贴板代码。它还在，没有被索引丢掉。</p>
-        </div>
-        <div class="quick">
-          <h4>快速记一行</h4>
-          <div class="line">粘贴链接、想法、命令……</div>
-          <div class="line"></div>
-          <div class="line"></div>
-          <div class="hint"><span>直接写入 收件箱/</span><span><kbd>⌘</kbd> <kbd>↵</kbd> 保存</span></div>
-        </div>
+        <h3>三天前那条中断的条款草稿，今天可以接着写完。</h3>
+        <p>你在 10 月 20 日 17:42 存过一份未完成的草稿，引用了两份对话和一段剪贴板代码。它还在，没有被索引丢掉。</p>
       </section>
 
       <section class="figures">
@@ -210,6 +206,13 @@
         <div class="fig"><div class="k">对话</div><div class="v">64</div><div class="d">6 个工具来源</div></div>
         <div class="fig"><div class="k">剪贴板</div><div class="v">31</div><div class="d">图片 9 张</div></div>
         <div class="fig"><div class="k">未提交</div><div class="v">3</div><div class="d">最近 12 分钟</div></div>
+      </section>
+
+      <section class="quick quick-band">
+        <h4>快速记一行</h4>
+        <div class="line">粘贴链接、想法、命令……</div>
+        <div class="line"></div>
+        <div class="hint"><span>直接写入 收件箱/</span><span><kbd>Cmd</kbd> <kbd>Enter</kbd> 保存 · <kbd>Cmd</kbd> <kbd>V</kbd> 取剪贴板</span></div>
       </section>
 
       <section>
