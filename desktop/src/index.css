@@ -2837,8 +2837,8 @@ a:focus-visible {
 
 .gm-file-detail-toolbar {
   align-items: center;
-  background: var(--gm-color-bg-surface);
-  border-bottom: var(--gm-border-w) solid var(--border);
+  background: var(--gm-panel);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-toolbar-gap);
