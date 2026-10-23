@@ -648,19 +648,29 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               {t("dashboard.noActivity")}
             </p>
           ) : (
-            <div className="gm-dashboard-activity-list">
+            <div className="gm-dash-table" role="table" aria-label={t("dashboard.recentActivity")}>
+              <div className="gm-dash-thead" role="row">
+                <span>{t("dashboard.tableTime")}</span>
+                <span aria-hidden="true" />
+                <span>{t("dashboard.tableTitle")}</span>
+                <span>{t("dashboard.tablePath")}</span>
+              </div>
               {displayedRecent.map((item) => {
                 const cfg = getCategoryVisual(item.category);
+                const parentPath = item.path.split("/").slice(0, -1).join("/");
                 return (
-                  <DashboardActivityRow
+                  <button
                     key={item.path}
+                    type="button"
+                    role="row"
+                    className="gm-dash-trow"
                     onClick={() => openRecord(item)}
-                    icon={cfg.icon}
-                    tone={cfg.tone}
-                    title={item.name}
-                    time={relativeTime(item.modified, t)}
-                    mobile={isMobile}
-                  />
+                  >
+                    <span className="gm-dash-cell-time">{relativeTime(item.modified, t)}</span>
+                    <AppIcon icon={cfg.icon} size="2xs" tone={cfg.tone} />
+                    <span className="gm-dash-cell-title">{item.name}</span>
+                    <span className="gm-dash-cell-path" title={item.path}>{parentPath}</span>
+                  </button>
                 );
               })}
             </div>

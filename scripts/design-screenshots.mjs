@@ -45,7 +45,7 @@ import http from "node:http";
 import { createRequire } from "node:module";
 import os from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..");
@@ -451,6 +451,7 @@ function backendStub(viewport, opts) {
   return `(() => {
     const platform = { family: ${JSON.stringify(family)}, os: ${JSON.stringify(osName)} };
     const sampleStats = ${JSON.stringify(stats)};
+    const sampleEmpty = ${opts.emptyState ? "true" : "false"};
     let nextId = 1;
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
       unregisterListener: (_event, id) => { delete window["_" + id]; },
@@ -467,8 +468,24 @@ function backendStub(viewport, opts) {
             return Promise.resolve(platform);
           case "get_stats":
             return Promise.resolve(sampleStats);
-          case "get_recent_activity":
-            return Promise.resolve([]);
+          case "get_recent_activity": {
+            if (sampleEmpty) return Promise.resolve([]);
+            const now = Date.now();
+            const sample = [
+              ["Claude：把 roomlog 的抽取规则收敛成词表", "conversations", "claude", 2],
+              ["合同第二版：付款节点与验收口径", "notes", "manual", 62],
+              ["cargo test --manifest-path desktop/src-tauri/Cargo.toml", "clips", "terminal", 168],
+              ["视觉改造三阶段：审计 → 改造 → 验收", "plans", "plan", 221],
+              ["Codex：Tauri 打包签名失败的三种成因", "conversations", "codex", 1500],
+              ["awwwards.com/sites/format — Obys × DES 版式实验", "clips", "browser", 1560],
+            ];
+            return Promise.resolve(sample.map(([name, cat, src, minsAgo], i) => ({
+              name,
+              path: '~/.gitmemo/' + cat + '/' + src + '/' + name.slice(0, 12).replace(/[\s:：]/g, '-') + '.md',
+              category: cat,
+              modified: new Date(now - minsAgo * 60000).toISOString(),
+            })));
+          }
           case "frontend_loaded":
           case "plugin:event|unlisten":
             return Promise.resolve(null);
@@ -573,6 +590,9 @@ async function navigateDesktop(page, route, labels, opts) {
   } else if (nav.kind === "tab") {
     await clickSidebar(page, labels.nav[nav.page], opts);
     const tab = page.getByRole("button", { name: labels.nav[nav.tab], exact: true });
+    // The tab strip mounts with the page, so give it a moment instead of
+    // querying in the same tick as the navigation click.
+    await tab.first().waitFor({ state: "visible", timeout: opts.timeoutMs }).catch(() => {});
     if (!(await tab.count())) throw new Error(`no "${labels.nav[nav.tab]}" tab`);
     await tab.first().click();
   } else if (nav.kind === "settings-editor") {
@@ -795,5 +815,20 @@ async function main() {
   }
 }
 
-main().then((code) => { process.exit(code); });
+export {
+  startDevServer,
+  stopDevServer,
+  resolvePlaywright,
+  launchChromium,
+  backendStub,
+  loadLabels,
+  navigate,
+  VIEWPORTS,
+  PAGES,
+  ROUTES,
+};
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().then((code) => { process.exit(code); });
+}
 
