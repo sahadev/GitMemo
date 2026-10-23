@@ -375,15 +375,11 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
       </div>
 
       <ListPaneBody>
-        {!rootOk ? (
-          <EmptyState compact title={rootPath} description={t("editorHome.missingDir")} />
-        ) : listLoading ? (
+        {!rootOk ? null : listLoading ? (
           <Loading compact text={t("dashboard.loading")} />
         ) : listError ? (
           <p className="gm-error-inline">{listError}</p>
-        ) : entries.length === 0 ? (
-          <EmptyState compact title={leftEmptyText} />
-        ) : (
+        ) : entries.length === 0 ? null : (
           entries.map((entry) => {
             const sel = selectedEntryKey === entry.rel_path;
             return (
@@ -413,11 +409,17 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
   const detail = (
     <DetailPane>
       {!selectedFileRel ? (
-        <EmptyState
-          title={t(getEditorSelectTitleKey(root))}
-          description={t("editorHome.editableWarning")}
-          full
-        />
+        !rootOk ? (
+          <EmptyState title={rootPath} description={t("editorHome.missingDir")} full />
+        ) : entries.length === 0 ? (
+          <EmptyState title={leftEmptyText} full />
+        ) : (
+          <EmptyState
+            title={t(getEditorSelectTitleKey(root))}
+            description={t("editorHome.editableWarning")}
+            full
+          />
+        )
       ) : (
         <>
           <FileDetailToolbar
