@@ -241,10 +241,9 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 
 ### 6.3 笔记页 Esc 回列表
 
-现状：已实现（`NotesPage.tsx` 第 302–317 行，捕获阶段监听 Esc，非编辑态且非移动端时 `closeDetail()`）。
-未确认的一点：`closeDetail()` 之后**焦点是否回到当前行**。当前实现只关闭详情，没有显式 `focus()` 列表项。
-判定：打开一条笔记 → 按 Tab 聚焦列表行 → Enter 打开 → Esc；此时按 ↑/↓ 应立即移动选中行。若不能，需要在 `closeDetail()` 后对 `[data-on="true"]` 的行调用 `focus()`。
-状态：**功能已闭环，焦点待核对**。
+现状：已实现且已补焦点（`NotesPage.tsx` 第 304–325 行）：捕获阶段监听 Esc，非编辑态且非移动端时 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行调用 `focus()`。
+判定：打开一条笔记 → Tab 到列表行 → Enter 打开 → Esc；此时按 ↑/↓ 应立即移动选中行，不需要再 Tab。
+状态：**已闭环**。若将来改了列表行的选中标记属性（不再是 `data-on`），这段选择器要同步改，否则焦点会静默落回 body。
 
 ---
 
