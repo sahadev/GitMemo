@@ -129,6 +129,7 @@
     "syncToGit": "同步到 Git"
   },
   "dashboard": {
+    "quickNoteInsertTemplate": "插入模板",
     "typeConversation": "对话",
     "typeNote": "笔记",
     "typeClip": "剪贴板",

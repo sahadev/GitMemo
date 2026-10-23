@@ -129,6 +129,7 @@
     "syncToGit": "Sync to Git"
   },
   "dashboard": {
+    "quickNoteInsertTemplate": "Insert template",
     "typeConversation": "Chat",
     "typeNote": "Note",
     "typeClip": "Clip",

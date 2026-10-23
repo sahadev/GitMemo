@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -192,28 +192,29 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     onNavigate?.("notes");
   }, [onNavigate, quickNotePath, quickNoteSaving, setNotesTab, setPendingOpenPath]);
 
+  const insertQuickNoteTemplate = useCallback(() => {
+    setQuickNoteDraft(quickNotePlaceholder);
+    window.requestAnimationFrame(() => {
+      const textarea = quickNoteTextareaRef.current;
+      textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
+      textarea?.focus();
+    });
+  }, [quickNotePlaceholder]);
+
   const handleQuickNoteKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     const ev = e.nativeEvent;
     const isComposing = quickNoteImeComposingRef.current || ev.isComposing || ev.keyCode === 229;
     const hasModifierKey = e.shiftKey || e.altKey || e.metaKey || e.ctrlKey;
 
-    if (shouldInsertDashboardQuickNoteTemplate(e.key, quickNoteDraft, hasModifierKey, isComposing)) {
+    // Tab 不再用来插入制表符或整块模板：命令框在页面里是要能用 Tab 走开的，
+    // 之前 Tab 被吃掉，键盘用户会被困在这个输入框里。模板改成显式按钮。
+    if (e.key === "Escape" && !hasModifierKey && !isComposing) {
       e.preventDefault();
-      setQuickNoteDraft(quickNotePlaceholder);
-      window.requestAnimationFrame(() => {
-        const textarea = quickNoteTextareaRef.current;
-        textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
-      });
-      return;
-    }
-
-    if (shouldInsertDashboardQuickNoteTab(e.key, hasModifierKey, isComposing)) {
-      e.preventDefault();
-      const textarea = e.currentTarget;
-      const selectionStart = textarea.selectionStart;
-      const selectionEnd = textarea.selectionEnd;
-      textarea.setRangeText("\t", selectionStart, selectionEnd, "end");
-      setQuickNoteDraft(textarea.value);
+      if (quickNoteDraft !== "") {
+        setQuickNoteDraft("");
+      } else {
+        e.currentTarget.blur();
+      }
       return;
     }
 
@@ -493,6 +494,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   onClick={() => void saveQuickNote()}
                 >
                   {quickNoteSaving ? t("dashboard.quickNoteSaving") : t("dashboard.quickNoteSave")}
+                </button>
+                <button
+                  type="button"
+                  className="gm-inst-command-template gm-dash-command-template"
+                  onClick={insertQuickNoteTemplate}
+                  disabled={quickNoteDraft !== ""}
+                >
+                  {t("dashboard.quickNoteInsertTemplate")}
                 </button>
                 <button type="button" className="gm-inst-command-new gm-dash-command-new" onClick={startNewQuickNote}>
                   {t("dashboard.quickNoteNew")}

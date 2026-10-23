@@ -37,6 +37,7 @@ export function SearchInput({
           onKeyDown={onKeyDown}
           enterKeyHint="search"
           placeholder={placeholder}
+          aria-label={placeholder}
           className="gm-search-input"
         />
       </div>

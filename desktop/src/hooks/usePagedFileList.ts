@@ -60,9 +60,12 @@ export function usePagedFileList<T extends { path: string }>({
       try {
         const page = await loadPage(reset ? 0 : filesLengthRef.current, pageSize);
         if (generation !== loadGenerationRef.current || requestId !== latestRequestRef.current) return;
-        setFiles((prev) => reset ? page.entries : [...prev, ...page.entries]);
-        setHasMore(page.has_more);
-        setTotalFiles(page.total);
+        // 分页接口若返回残缺对象，宁可当空页也不要让 undefined 进 state：
+        // 一旦 state 不是数组，整个应用会落到全局 ErrorBoundary（不是单页降级）。
+        const entries = Array.isArray(page?.entries) ? page.entries : [];
+        setFiles((prev) => reset ? entries : [...prev, ...entries]);
+        setHasMore(Boolean(page?.has_more));
+        setTotalFiles(typeof page?.total === "number" ? page.total : entries.length);
         onPageLoaded?.(page, reset);
       } catch (e) {
         if (generation === loadGenerationRef.current && requestId === latestRequestRef.current) {
