@@ -4802,6 +4802,7 @@ a:focus-visible {
 }
 
 .gm-version-update-dot {
+  /* 状态点描边 2px：与画布同色的一圈留白，不是焦点环 */
   background: var(--red);
   border-radius: var(--gm-radius-pill);
   box-shadow: 0 0 0 2px var(--bg-card);
@@ -4979,6 +4980,7 @@ a:focus-visible {
 }
 
 .gm-onboarding-check {
+  /* 完成勾选块 22px：图标框尺寸，属组件常量 */
   align-items: center;
   background: transparent;
   border: 2px solid var(--gm-line);
