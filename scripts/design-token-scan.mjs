@@ -42,12 +42,20 @@ const TOKEN_CSS = join(REPO_ROOT, "desktop", "src", "index.css");
 const FONT_FALLBACK = [11, 12, 13, 15, 17, 20, 24];
 const SPACE_FALLBACK = [0, 2, 4, 8, 12, 16, 24, 32];
 
-const RULES = ["font-size", "spacing", "color", "important"];
+const RULES = ["font-size", "spacing", "color", "tsx-color", "important"];
 const RULE_LABEL = {
   "font-size": "off-ladder font size",
   spacing: "off-ladder spacing",
-  color: "hard-coded colour",
+  color: "hard-coded colour (index.css)",
+  "tsx-color": "hard-coded colour (.tsx)",
   important: "!important",
+};
+const RULE_LAYER = {
+  "font-size": "structure",
+  spacing: "structure",
+  important: "structure",
+  color: "skin",
+  "tsx-color": "skin",
 };
 
 const CSS_FONT_SIZE_KEYWORDS = new Set([
@@ -120,9 +128,15 @@ What counts as a violation
               text-[13px] arbitrary values and inline fontSize: 13
   spacing     margin/padding/gap literals not on the --gm-space-* ladder;
               also Tailwind p-[13px] / m-[7px] / gap-[10px] and inline styles
-  color       #hex / rgb() / hsl() written outside a custom-property
-              definition (tokens live in index.css; components must not)
+  color       #hex / rgb() / hsl() in index.css outside a custom-property
+              definition (token definitions are where colours belong)
+  tsx-color   any #hex / rgb() / hsl() in a .tsx file, hard failure: the
+              light skin can only work if components take colours from vars
   important   every !important
+
+  The report is split into two layers:
+    structure   font-size, spacing, !important
+    skin        color (index.css), tsx-color (components)
 
   Values expressed with var(), calc() or clamp() are treated as computed and
   are not flagged. Keywords (inherit, auto, ...) and percentages are allowed.
@@ -363,9 +377,9 @@ function scanTsxFile(file, text, ladders, enabled, loc, push) {
     }
   }
 
-  if (enabled.has("color")) {
+  if (enabled.has("color") || enabled.has("tsx-color")) {
     const colourRe = /(?<!url\()#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\([^)]*\)/g;
-    for (const m of text.matchAll(colourRe)) pushAt(m.index, "color", m[0]);
+    for (const m of text.matchAll(colourRe)) pushAt(m.index, "tsx-color", m[0]);
   }
 }
 
@@ -477,13 +491,26 @@ function printSummary(report, opts) {
     + `${report.ladders.sourceLabel ? ` (${report.ladders.sourceLabel})` : " (fallback)"}`,
   );
   out.push("");
-  for (const rule of RULES) {
-    if (!opts.only.has(rule)) continue;
-    const count = byRule[rule] ?? 0;
-    const raw = rawByRule[rule] ?? count;
-    const extra = opts.exempt && raw !== count ? `  (raw ${raw})` : "";
-    out.push(`  ${rule.padEnd(10)} ${String(count).padStart(4)}  ${RULE_LABEL[rule]}${extra}`);
+
+  const groups = [
+    { id: "structure", label: "结构层" },
+    { id: "skin", label: "皮肤层" },
+  ];
+  for (const group of groups) {
+    const rules = RULES.filter((rule) => RULE_LAYER[rule] === group.id && opts.only.has(rule));
+    if (!rules.length) continue;
+    out.push(`  ${group.label}`);
+    let subtotal = 0;
+    for (const rule of rules) {
+      const count = byRule[rule] ?? 0;
+      const raw = rawByRule[rule] ?? count;
+      subtotal += count;
+      const extra = opts.exempt && raw !== count ? `  (raw ${raw})` : "";
+      out.push(`    ${rule.padEnd(12)} ${String(count).padStart(4)}  ${RULE_LABEL[rule]}${extra}`);
+    }
+    out.push(`    ${"subtotal".padEnd(12)} ${String(subtotal).padStart(4)}`);
   }
+
   out.push(`  ${"-".repeat(10)}`);
   out.push(`  ${"raw".padEnd(10)} ${String(rawTotal).padStart(4)}  all matches`);
   if (opts.exempt) {
