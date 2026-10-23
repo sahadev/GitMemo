@@ -349,6 +349,7 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 input,
@@ -3139,10 +3140,19 @@ a:focus-visible {
   border-color: var(--accent-hover);
 }
 
+.gm-button-primary:active:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 .gm-button-secondary {
   background: var(--gm-color-bg-elevated);
   border: 1px solid var(--border);
   color: var(--accent);
+}
+
+.gm-button-secondary:active:not(:disabled) {
+  background: var(--gm-color-bg-selected);
 }
 
 .gm-button-secondary:hover:not(:disabled) {
@@ -3153,6 +3163,10 @@ a:focus-visible {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
+}
+
+.gm-button-ghost:active:not(:disabled) {
+  background: var(--bg-hover);
 }
 
 .gm-button-ghost:hover:not(:disabled) {
@@ -6303,10 +6317,15 @@ a:focus-visible {
 }
 
 /* Textarea focus */
-textarea:focus, input:focus {
-  outline: none;
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+textarea:focus,
+textarea:focus-visible,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 0;
 }
 
 /* Markdown content and code blocks should be selectable */
