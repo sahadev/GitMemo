@@ -790,6 +790,22 @@ a:focus-visible {
   animation: spin 1s linear infinite;
 }
 
+/* 按下态：可点行与紧凑按钮统一换背景，不做位移或缩放 */
+.gm-file-list-item:active,
+.gm-vault-entry:active,
+.gm-search-result-card:active,
+.gm-list-item:active,
+.gm-menu-item:active,
+.gm-clip-cleaner-row:active,
+.gm-dashboard-stat-card:active,
+.gm-dashboard-card-button:active,
+.gm-toolbar-button:active,
+.gm-icon-button:active,
+.gm-bottom-nav-item:active,
+.gm-sidebar-nav-item:active {
+  background: var(--gm-color-bg-hover);
+}
+
 .gm-toolbar-button {
   align-items: center;
   background: transparent;
@@ -1135,11 +1151,7 @@ a:focus-visible {
   width: 44px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gm-clipboard-back-to-top {
-    transition: none;
-  }
-}
+
 
 .gm-clipboard-list-loading {
   align-items: center;
@@ -5112,7 +5124,6 @@ a:focus-visible {
 }
 
 .gm-dashboard-quick-note-hand {
-  animation: gm-dashboard-quick-note-hand-nudge 1200ms ease-in-out infinite both;
   color: var(--accent);
   display: inline-flex;
   flex-shrink: 0;
@@ -5120,19 +5131,6 @@ a:focus-visible {
   font-weight: 760;
   line-height: var(--gm-leading-none);
   transform-origin: center;
-}
-
-@keyframes gm-dashboard-quick-note-hand-nudge {
-  0%,
-  100% {
-    opacity: 0.74;
-    transform: translateX(2px);
-  }
-
-  50% {
-    opacity: 1;
-    transform: translateX(-6px);
-  }
 }
 
 .gm-dashboard-quick-note-chevron {
@@ -5501,10 +5499,12 @@ a:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gm-dashboard-quick-note-hand {
-    animation: none;
-    opacity: 0.9;
-    transform: none;
+  *,
+  *::before,
+  *::after {
+    animation-name: none !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
