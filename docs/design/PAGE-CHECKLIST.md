@@ -2,6 +2,10 @@
 
 用途：改笔记、搜索、剪贴板、设置页的人，逐条对，对不上就是没改完。
 每条都写成可判定的句子。不含设计理念。
+
+## 先看这个数字
+
+全仓当前未迁移的字面量：**字面量线/圆角/高度 127 处、色值 18 处、字号与内距 7 处**（共 152 处，`rg` 实跑得出）。四页改完只消掉其中一部分，剩余都在尚未迁移的页面里——迁移远没结束，别按「快完了」估工作量。计数命令见 §0。
 Token 取值见 `docs/design/SKIN-LIGHT.md`；结构变量见 `desktop/src/index.css` 的「结构参数」块。
 
 ## 0 三页共用的四个变量
@@ -20,7 +24,7 @@ Token 取值见 `docs/design/SKIN-LIGHT.md`；结构变量见 `desktop/src/index
 - 出现 `height: 32px|34px` 即违规，必须写 `var(--gm-density-row)` 或 `var(--gm-density-header)`。
 - 出现 `#` 开头色值或 `rgba(` 即违规，除非在 `:root` / `[data-theme]` 皮肤块内。
 
-自查命令（在这四页的规则段上必须为空；全仓当前基数：字面量线/圆角/高度 127 处、色值 18 处、字号与内距 7 处，分布在尚未迁移的页面）：
+自查命令（在这四页的规则段上必须为空）：
 
 ```sh
 rg -n '1px solid|border-radius: *[0-9]|height: *(30|32|34|36)px' desktop/src/index.css

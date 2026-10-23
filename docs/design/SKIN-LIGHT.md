@@ -63,12 +63,14 @@
 | --- | --- | --- | --- |
 | `--gm-border-w` | `2px` | `1px` | 容器、输入框、面板边 |
 | `--gm-radius-control` | `0` | `4px` | 按钮、输入框、标签、行选中块 |
-| `--gm-radius-panel` | `0` | `4px` | 面板、卡片式分区、弹层 |
-| `--gm-radius-kbd` | `2px` | `3px` | 键盘提示、复选框 |
+| `--gm-radius-panel` | `0` | `6px` | 面板、弹层 |
+| `--gm-radius-card` | `0` | `4px` | 卡片式分区（本轮多数页面已不用卡片） |
+
+键盘提示与复选框用 `--gm-radius-control`，不单独开变量。
 
 浅色的 0 圆角与 2px 硬边要一起出现才有印刷页的方正感；只改其中一个会变成「圆角的白底深色界面」。
 
-**上表三个圆角变量当前在 `desktop/src/index.css` 里还不存在**（现状仍是共用的 `--gm-r-1..4` = 2/3/4/6px）。落地前不得在组件里引用它们——引用了不会报错，只会静默失效。落地步骤见附录 B「现状核对」。
+上表四个变量已在 `desktop/src/index.css` 落地（深色块 256–258 行、浅色块 357–359 行），可直接引用。
 
 ---
 
@@ -256,8 +258,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
   --gm-tag-clip:#007a52; --gm-tag-plan:#ffc53d;
   --gm-on-tag:#ffffff;
   --gm-border-w:2px;
-  /* 待新增：index.css 尚未定义，见附录 B 现状核对 */
-  --gm-radius-control:0; --gm-radius-panel:0; --gm-radius-kbd:2px;
+  --gm-radius-control:0; --gm-radius-panel:0; --gm-radius-card:0;
 }
 
 [data-theme="dark"] {        /* 深色 = B 现值 + §2.4 修正 */
@@ -276,8 +277,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
   --gm-tag-clip:#58d68d; --gm-tag-plan:#ffc53d;
   --gm-on-tag:#0b0b0c;
   --gm-border-w:1px;
-  /* 待新增：index.css 尚未定义，见附录 B 现状核对 */
-  --gm-radius-control:4px; --gm-radius-panel:4px; --gm-radius-kbd:3px;
+  --gm-radius-control:4px; --gm-radius-panel:6px; --gm-radius-card:4px;
 }
 ```
 
@@ -287,6 +287,6 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 
 - 深色块的 `--gm-text-3` 已是 `#7d8792`、`--gm-line-strong` 已是 `#616d78`，与 §2.4 一致。
 - 浅色块的 `--gm-border-w` 目前仍是 `1px`，按 §1.4 要改成 `2px`。
-- 圆角现在写在共用结构块里（`--gm-r-1..4` = 2/3/4/6px），按 §1.4 要拆成三个皮肤级变量 `--gm-radius-control` / `--gm-radius-panel` / `--gm-radius-kbd`，浅色取 0/0/2，深色取 4/4/3。
+- 圆角已拆成皮肤级变量：`--gm-radius-control`（0 / 4px）、`--gm-radius-panel`（0 / 6px）、`--gm-radius-card`（0 / 4px），与 §1.4 一致。`--gm-r-1..4` 仍保留给尚未迁移的旧规则。
 
 以上三处不改，换肤只能换色，气质换不过去。
