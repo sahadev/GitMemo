@@ -272,6 +272,15 @@
   --gm-danger: #f85149;
   --gm-danger-tint: rgba(248, 81, 73, 0.12);
   --gm-scrim: rgba(0, 0, 0, 0.55);
+  --gm-on-selected: #e7eaec;
+
+  /* 类型标签四色（G 语言）：身份色，不表状态 */
+  --gm-tag-chat: #7c9cff;
+  --gm-tag-note: #ff8a70;
+  --gm-tag-clip: #58d68d;
+  --gm-tag-plan: #ffc53d;
+  --gm-on-tag: #0b0b0c;
+  --gm-border-w: 1px;
 }
 
 [data-theme="light"] {
@@ -335,28 +344,39 @@
   --purple: var(--gm-color-purple);
   --pink: var(--gm-color-pink);
 
-  /* 皮肤层浅色：同一组 token，深浅镜像；只含颜色，不含圆角/密度 */
-  --gm-canvas: #f6f7f9;
+  /* 皮肤层浅色：G 稿语言（docs/design/SKIN-LIGHT.md §1）
+     选中态按文档是反白，但现有组件在选中行里各自设了文字色，
+     直接把 --gm-selected 设成纯黑会得到黑底黑字；先给蓝色淡底，
+     反白留给组件改造那一批。 */
+  --gm-canvas: #ffffff;
   --gm-panel: #ffffff;
-  --gm-inset: #edeff3;
-  --gm-hover: #f1f3f7;
-  --gm-selected: #e8f0fb;
-  --gm-line: #dfe3ea;
-  --gm-line-strong: #7d8794;
-  --gm-text: #12141a;
-  --gm-text-2: #4a525d;
-  --gm-text-3: #636c78;
-  --gm-accent: #0b62c4;
-  --gm-accent-hover: #0a55ab;
-  --gm-accent-fill: #0b62c4;
+  --gm-inset: #f5f5f2;
+  --gm-hover: #f5f5f2;
+  --gm-selected: color-mix(in srgb, var(--gm-accent) 12%, var(--gm-panel));
+  --gm-on-selected: #ffffff;
+  --gm-line: rgba(11, 11, 12, 0.26);
+  --gm-line-strong: #0b0b0c;
+  --gm-text: #0b0b0c;
+  --gm-text-2: #3d3d40;
+  --gm-text-3: #6b6b6b;
+  --gm-accent: #1f3bff;
+  --gm-accent-hover: #152ed6;
+  --gm-accent-fill: #1f3bff;
   --gm-on-accent: #ffffff;
-  --gm-success: #127447;
-  --gm-success-tint: rgba(18, 116, 71, 0.10);
+  --gm-success: #007a52;
+  --gm-success-tint: rgba(0, 122, 82, 0.10);
   --gm-warning: #8a5a00;
   --gm-warning-tint: rgba(138, 90, 0, 0.10);
   --gm-danger: #c2291f;
   --gm-danger-tint: rgba(194, 41, 31, 0.10);
-  --gm-scrim: rgba(18, 20, 26, 0.32);
+  --gm-scrim: rgba(11, 11, 12, 0.32);
+  --gm-tag-chat: #1f3bff;
+  --gm-tag-note: #d92d10;
+  --gm-tag-clip: #007a52;
+  --gm-tag-plan: #ffc53d;
+  --gm-on-tag: #ffffff;
+  --gm-on-tag-plan: #0b0b0c;
+  --gm-border-w: 2px;
 }
 
 /* 结构参数：两套皮肤共用，皮肤块里只出现颜色（SKIN-LIGHT §4） */
