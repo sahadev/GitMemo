@@ -381,7 +381,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           </div>
           <div className="gm-inst-list-rows">
             {isRecentActivityLoading ? (
-              <Loading compact text={t("dashboard.startupLoadingActivity")} />
+              <div className="gm-inst-list-skeleton" aria-hidden="true">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="gm-inst-list-row" data-skeleton="true">
+                    <span className="gm-inst-list-title" />
+                    <span className="gm-inst-list-time" data-col="time" />
+                  </div>
+                ))}
+              </div>
             ) : displayedRecent.length === 0 ? (
               <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
             ) : (
@@ -444,6 +451,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               <span role="columnheader" data-col="source">{t("dashboard.tableSource")}</span>
               <span role="columnheader" data-col="state">{t("dashboard.gaugeState")}</span>
             </div>
+            {displayedRecent.length === 0 ? (
+              <p className="gm-muted-text gm-inst-table-empty">{t("dashboard.tableEmpty")}</p>
+            ) : null}
             {displayedRecent.slice(0, 7).map((item) => (
               <button
                 key={item.path}

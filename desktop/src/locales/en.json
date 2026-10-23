@@ -129,6 +129,7 @@
     "syncToGit": "Sync to Git"
   },
   "dashboard": {
+    "tableEmpty": "No entries yet — write a note, or browse another page.",
     "quickNoteInsertTemplate": "Insert template",
     "typeConversation": "Chat",
     "typeNote": "Note",
@@ -169,7 +170,7 @@
     "recentActivity": "Recent Activity",
     "clipboardActive": "Clipboard Active",
     "clipboardInactive": "Clipboard Paused",
-    "noActivity": "No activity yet",
+    "noActivity": "Nothing here yet. Write one in the command box below, or let your Claude / Cursor conversations land here.",
     "viewAll": "View all",
     "emptyGuideTitle": "Start building your knowledge base",
     "emptyGuideDesc": "Write a note or chat with Claude Code / Cursor / Codex — content will appear here automatically.",

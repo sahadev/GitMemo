@@ -68,7 +68,11 @@ export function SearchResults({
   }, [active, compact, selectedFile]);
 
   const content = loading ? (
-    <p className="gm-muted-text">{t("search.searching")}</p>
+    <div aria-hidden="true" aria-label={t("search.searching")}>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="gm-search-result-card" data-skeleton="true" />
+      ))}
+    </div>
   ) : !searched ? (
     <EmptyState
       icon={Search}

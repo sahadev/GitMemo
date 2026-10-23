@@ -373,7 +373,14 @@ export default function NotesPage({
         {/* File list */}
         <div className="gm-inst-list-rows gm-dash-list-rows">
           {loading ? (
-            <Loading compact text={t("notes.loading")} />
+            <div className="gm-inst-list-skeleton" aria-hidden="true">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="gm-inst-list-row" data-skeleton="true">
+                  <span className="gm-inst-list-title" />
+                  <span className="gm-inst-list-time" data-col="time" />
+                </div>
+              ))}
+            </div>
           ) : files.length === 0 ? (
             <EmptyState
               icon={FileText}
