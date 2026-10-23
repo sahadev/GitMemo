@@ -7388,7 +7388,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   align-items: center;
   display: grid;
   gap: var(--gm-space-4);
-  grid-template-columns: 64px 96px minmax(0, 1fr) 84px 72px;
+  grid-template-columns: 64px 96px minmax(0, 1fr) 72px;
   padding: 0 var(--gm-space-4);
 }
 .gm-inst-table-head {
@@ -7427,8 +7427,9 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   white-space: nowrap;
 }
 .gm-inst-table-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gm-inst-table-source,
 .gm-inst-table-state { text-align: right; }
+.gm-inst-table-head [data-col="source"],
+.gm-inst-table-source { display: none; }
 .gm-inst-tag {
   border-radius: var(--gm-r-1);
   color: var(--gm-on-tag);
