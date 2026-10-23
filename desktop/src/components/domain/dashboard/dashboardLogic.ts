@@ -129,7 +129,8 @@ export function getDashboardDisplayedRepoSizeKb(stats: AppStats) {
   return stats.repository_size_kb ?? stats.total_size_kb;
 }
 
-export function getDashboardVisibleRecentItems(isDesktop: boolean, recent: RecentItem[]) {
+export function getDashboardVisibleRecentItems(isDesktop: boolean, recent: RecentItem[] | null | undefined) {
+  if (!Array.isArray(recent)) return [];
   if (isDashboardDesktopPlatform(isDesktop)) return recent;
   return recent.filter((item) => canOpenDashboardRecentItem(isDesktop, item));
 }

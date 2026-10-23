@@ -34,7 +34,14 @@ function loadCache(): DashboardCache | null {
   try {
     const raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as DashboardCache;
+    const parsed = JSON.parse(raw) as Partial<DashboardCache> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    // 缓存可能来自旧版本或被别的代码改过：形状不对就当没有缓存，
+    // 否则会把非数组塞进 state，首屏直接 crash 到 ErrorBoundary。
+    const stats = parsed.stats && typeof parsed.stats === "object" ? parsed.stats : null;
+    const recent = Array.isArray(parsed.recent) ? parsed.recent : null;
+    if (!stats && !recent) return null;
+    return { stats, recent: recent ?? [] };
   } catch { return null; }
 }
 
@@ -128,11 +135,12 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, []);
 
   const loadRecent = useCallback(async () => {
-    if (dashboardCacheRef.current.recent.length === 0) setRecentLoading(true);
+    if (!Array.isArray(dashboardCacheRef.current.recent) || dashboardCacheRef.current.recent.length === 0) setRecentLoading(true);
     try {
       const r = await loadDashboardRecentOnce();
-      setRecent(r);
-      dashboardCacheRef.current = { ...dashboardCacheRef.current, recent: r };
+      const list = Array.isArray(r) ? r : [];
+      setRecent(list);
+      dashboardCacheRef.current = { ...dashboardCacheRef.current, recent: list };
       saveCache(dashboardCacheRef.current);
     } catch {
       setRecent([]);
@@ -256,7 +264,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }
 
   const displayedFileCount = stats ? getDashboardDisplayedFileCount(stats) : 0;
-  const displayedRecent = getDashboardVisibleRecentItems(isDesktop, recent);
+  const displayedRecent = getDashboardVisibleRecentItems(isDesktop, Array.isArray(recent) ? recent : []);
   const showEmptyGuide = stats ? shouldShowDashboardEmptyGuide(stats, displayedRecent) : false;
   const isDashboardOverviewLoading = statsLoading && !stats;
   const isRecentActivityLoading = recentLoading && displayedRecent.length === 0;
