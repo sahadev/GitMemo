@@ -70,6 +70,7 @@ function parseArgs(argv) {
     pages: MULTI_WIDTH_PAGES,
     allPages: false,
     listedOnly: false,
+    includeUnreachable: false,
     baseWidth: 1440,
     url: null,
     port: 5275,
@@ -114,6 +115,9 @@ function parseArgs(argv) {
       case "--listed-only":
         opts.listedOnly = true;
         break;
+      case "--include-unreachable":
+        opts.includeUnreachable = true;
+        break;
       case "--url":
         opts.url = value().replace(/\/$/, "");
         break;
@@ -140,6 +144,7 @@ Options
   --pages=<list>      pages that run at every width    (default: ${MULTI_WIDTH_PAGES.join(", ")})
   --all-pages         every page at every width
   --listed-only       only run the pages given by --pages
+  --include-unreachable  also measure widths below the window minWidth
   --out=<dir>         default desktop/.design-baseline/responsive
   --url=<url>         reuse a running dev server
   --port=<n>          dev server port                  (default: 5275)
@@ -358,7 +363,7 @@ async function main() {
   for (const page of catalogue) {
     const widths = multiWidth.includes(page.id) ? opts.widths : [opts.baseWidth];
     for (const width of widths) {
-      if (minWindowWidth && width < minWindowWidth) {
+      if (minWindowWidth && width < minWindowWidth && !opts.includeUnreachable) {
         // The desktop window cannot be this narrow; only a mobile runtime can.
         unreachable.push({ page: page.id, width, minWindowWidth });
         continue;
