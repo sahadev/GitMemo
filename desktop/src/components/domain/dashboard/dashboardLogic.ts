@@ -115,7 +115,13 @@ export function getDashboardDisplayedFileCount(stats: AppStats) {
   return stats.tracked_files ?? getDashboardContentFileCount(stats);
 }
 
-export function formatDashboardSizeKb(sizeKb: number) {
+export function formatDashboardCount(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("en-US");
+}
+
+export function formatDashboardSizeKb(sizeKb: number | null | undefined) {
+  if (typeof sizeKb !== "number" || !Number.isFinite(sizeKb)) return "—";
   return sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb.toFixed(1)} KB`;
 }
 

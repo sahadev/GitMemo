@@ -129,6 +129,11 @@
     "syncToGit": "同步到 Git"
   },
   "dashboard": {
+    "typeConversation": "对话",
+    "typeNote": "笔记",
+    "typeClip": "剪贴板",
+    "typePlan": "计划",
+    "typeScratch": "便签",
     "gaugeTotal": "条目总数",
     "gaugeUnpushed": "未提交",
     "gaugeType": "类型",

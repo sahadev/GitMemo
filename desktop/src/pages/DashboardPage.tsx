@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldInsertDashboardQuickNoteTemplate, shouldInsertDashboardQuickNoteTab, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -110,7 +110,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT,
   );
   const watchedFolders = useMemo(() => ["conversations", "notes", "clips", "plans"], []);
-  const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : 0;
+  const displayedRepoSizeKb = stats ? getDashboardDisplayedRepoSizeKb(stats) : undefined;
   const editorConfigured = isDashboardEditorConfigured(isDesktop, integrationStatusChecked, claudeEnabled, cursorEnabled);
 
   const loadStats = useCallback(async () => {
@@ -299,11 +299,11 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   const categoryLabel = (category: string) => {
     switch (category) {
-      case "conversation": return t("dashboard.conversations");
-      case "manual": return t("dashboard.manuals");
-      case "scratch": return t("dashboard.scratchNotes");
-      case "clip": return t("dashboard.clips");
-      case "plan": return t("dashboard.plans");
+      case "conversation": return t("dashboard.typeConversation");
+      case "manual": return t("dashboard.typeNote");
+      case "scratch": return t("dashboard.typeScratch");
+      case "clip": return t("dashboard.typeClip");
+      case "plan": return t("dashboard.typePlan");
       default: return category;
     }
   };
@@ -332,15 +332,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           <AppIcon icon={Circle} size="dot" fill="currentColor" tone={syncStatus.tone === "success" ? "success" : "secondary"} />
           {syncStatusText}
         </span>
-        {gitStatus && gitStatus.unpushed > 0 ? (
-          <span className="gm-inst-identity-unpushed">
-            {t("dashboard.unpushed")}
-            <b>{gitStatus.unpushed}</b>
-          </span>
-        ) : null}
         <span className="gm-inst-identity-spacer" />
         <span className="gm-inst-identity-count">
-          {stats ? t("dashboard.totalFiles", String(displayedFileCount)) : t("common.loading")}
+          {stats ? t("dashboard.totalFiles", formatDashboardCount(displayedFileCount)) : t("common.loading")}
         </span>
         {isMobile ? (
           <Button
@@ -365,7 +359,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
           <div className="gm-inst-list-head">
             <span>{t("dashboard.recentActivity")}</span>
-            <span className="gm-inst-list-count">{displayedFileCount}</span>
+            <span className="gm-inst-list-count">{formatDashboardCount(displayedFileCount)}</span>
           </div>
           <div className="gm-inst-list-rows">
             {isRecentActivityLoading ? (
@@ -415,7 +409,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 <span className="gm-inst-gauge-value">
                   {isDashboardOverviewLoading || card.value === undefined
                     ? <Loading compact text={t("common.loading")} />
-                    : card.value}
+                    : formatDashboardCount(card.value)}
                 </span>
                 <span className="gm-inst-gauge-bar" aria-hidden="true" />
                 <span className="gm-inst-gauge-detail">{card.detail ?? "—"}</span>
@@ -501,7 +495,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             <section className="gm-inst-todo">
               <div className="gm-inst-todo-head">
                 <span>{t("dashboard.pendingTitle")}</span>
-                <span className="gm-inst-todo-count">{pendingItems.length}</span>
+                <span className="gm-inst-todo-count">{formatDashboardCount(pendingItems.length)}</span>
               </div>
               <ul className="gm-inst-todo-rows">
                 {pendingItems.map((item) => (

@@ -129,6 +129,11 @@
     "syncToGit": "Sync to Git"
   },
   "dashboard": {
+    "typeConversation": "Chat",
+    "typeNote": "Note",
+    "typeClip": "Clip",
+    "typePlan": "Plan",
+    "typeScratch": "Scratch",
     "gaugeTotal": "Total items",
     "gaugeUnpushed": "Unpushed",
     "gaugeType": "Type",
