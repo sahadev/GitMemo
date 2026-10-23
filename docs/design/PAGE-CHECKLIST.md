@@ -205,3 +205,28 @@ rg -n 'font-size: *[0-9]|padding: *[0-9]px|gap: *[0-9]px' desktop/src/index.css 
 1. 换肤时布局零位移：在 1440×900 与 390×844 下分别截图，切深浅两套，两两比对的元素坐标必须完全一致。
 2. 一行内不得同时出现两种线宽：`var(--gm-border-w)` 与 `1px` 混用即违规。
 3. 任何页面不得出现未在 §0 与各页「允许」清单内的变量。
+
+---
+
+## 6 协作复核项（写在这一轮结束时，逐条带现状）
+
+上一轮提的三条问题，写在这里给正在改的人收工时自查。现状是本次复核的实测，不是当初的观察。
+
+### 6.1 `.gm-inst-list-row` 的边框
+
+现状：已改为 `border-bottom: var(--gm-border-w) solid var(--gm-line)`，不再是字面量 `1px`。
+判定：`rg -n 'inst-list-row' -A12 desktop/src/index.css | rg 'border'` 应全部为 `var(--gm-border-w)`。
+状态：**已闭环**，收工前再跑一次即可。
+
+### 6.2 设置块的尺寸字面量
+
+现状：从 56 处降到 11 处，剩下的都不是颜色与行高，而是组件常量——`outline-offset: 2px/-3px`、`width: 1px`（分隔线）、`max-height: 220px`（日志区）、`min-width: 56px`（复制按钮）、`height/width: 8px|4px|22px`（状态点与滑块）。
+判定：`awk '/^\.gm-settings/,/^@media/' desktop/src/index.css | grep -E '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' | grep -v 'var('` 应只剩上述常量。
+状态：**颜色与行高已闭环**；组件常量允许保留，但不要在新增规则里继续写。
+
+### 6.3 笔记页 Esc 回列表
+
+现状：已实现（`NotesPage.tsx` 第 302–317 行，捕获阶段监听 Esc，非编辑态且非移动端时 `closeDetail()`）。
+未确认的一点：`closeDetail()` 之后**焦点是否回到当前行**。当前实现只关闭详情，没有显式 `focus()` 列表项。
+判定：打开一条笔记 → 按 Tab 聚焦列表行 → Enter 打开 → Esc；此时按 ↑/↓ 应立即移动选中行。若不能，需要在 `closeDetail()` 后对 `[data-on="true"]` 的行调用 `focus()`。
+状态：**功能已闭环，焦点待核对**。
