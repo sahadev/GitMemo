@@ -23,6 +23,7 @@
  * Exit codes: 0 clean, 1 findings, 2 setup failure.
  */
 
+import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import http from "node:http";
@@ -180,6 +181,17 @@ function sourceFingerprint() {
   };
   walk(join(DESKTOP, "src"));
   return createHash("sha256").update(files.sort().join("|")).digest("hex").slice(0, 12);
+}
+
+/** Short HEAD plus a dirty flag, so a report can be tied to a revision. */
+function gitState() {
+  try {
+    const commit = execSync("git rev-parse --short HEAD", { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain -- desktop/src", { cwd: REPO_ROOT, encoding: "utf8" }).trim().length > 0;
+    return { commit, dirty };
+  } catch {
+    return { commit: null, dirty: null };
+  }
 }
 
 // ------------------------------------------------------------------ measure
@@ -382,6 +394,8 @@ async function main() {
       process.stdout.write(`starting vite dev server on port ${opts.port}…\n`);
       await bootServer();
     }
+    const revision = gitState();
+    process.stdout.write(`revision ${revision.commit ?? "unknown"}${revision.dirty ? " (desktop/src dirty)" : ""}\n`);
     const labels = loadLabels(opts.locale ?? "en");
     const { pw } = await resolvePlaywright();
     const { browser } = await launchChromium(pw.chromium);
@@ -464,6 +478,7 @@ async function main() {
       windowMinWidth: minWindowWidth,
       unreachableWidths: unreachable,
       sourceFingerprint: { before: fingerprintBefore, after: fingerprintAfter, contaminated },
+      git: gitState(),
       widths: opts.widths,
       skins: opts.skins,
       results: results.map(({ geometry, ...rest }) => rest),

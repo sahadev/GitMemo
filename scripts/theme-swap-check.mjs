@@ -40,6 +40,7 @@
  * Exit codes: 0 all skins clean, 1 regression found, 2 setup failure.
  */
 
+import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -186,6 +187,17 @@ async function gotoWithRetry(page, url, opts, attempts = 3) {
       // Another process in the shared checkout may be restarting the dev server.
       await page.waitForTimeout(800);
     }
+  }
+}
+
+/** Short HEAD plus a dirty flag, so a report can be tied to a revision. */
+function gitState() {
+  try {
+    const commit = execSync("git rev-parse --short HEAD", { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const dirty = execSync("git status --porcelain -- desktop/src", { cwd: REPO_ROOT, encoding: "utf8" }).trim().length > 0;
+    return { commit, dirty };
+  } catch {
+    return { commit: null, dirty: null };
   }
 }
 
@@ -474,6 +486,8 @@ async function main() {
       opts.url = server.url;
     }
 
+    const revision = gitState();
+    process.stdout.write(`revision ${revision.commit ?? "unknown"}${revision.dirty ? " (desktop/src dirty)" : ""}\n`);
     const fingerprintBefore = sourceFingerprint();
     const { pw, version } = await resolvePlaywright();
     const { browser, fallback } = await launchChromium(pw.chromium);
@@ -497,6 +511,7 @@ async function main() {
     writeFileSync(join(opts.out, "report.json"), `${JSON.stringify({
       generatedAt: new Date().toISOString(),
       sourceFingerprint: { before: fingerprintBefore, after: fingerprintAfter, contaminated },
+      git: gitState(),
       intervalMs: opts.intervalMs,
       durationMs: opts.durationMs,
       blankThreshold: { dominantShare: BLANK_DOMINANT, minUnique: BLANK_UNIQUE },
