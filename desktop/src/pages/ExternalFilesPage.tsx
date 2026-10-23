@@ -441,7 +441,7 @@ export default function ExternalFilesPage({
         )}
         right={
           !selectedEntry ? (
-            <EmptyState title={t("externalFiles.selectFile")} full />
+            entries.length > 0 ? <EmptyState title={t("externalFiles.selectFile")} full /> : null
           ) : (
             <DetailPane>
             <>

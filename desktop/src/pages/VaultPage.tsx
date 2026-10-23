@@ -262,7 +262,7 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
 
       <section className="gm-vault-detail-pane">
         {!selectedEntry ? (
-          <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full />
+          entries.length > 0 ? <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full /> : null
         ) : !unlocked ? (
           <EmptyState icon={Lock} title={t("vault.lockedState")} description={t("vault.lockedStateDesc")} full />
         ) : (
