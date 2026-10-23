@@ -10,27 +10,27 @@
 
 | 语义 | token | 浅色 | 深色（B 现值） | 用在哪 |
 | --- | --- | --- | --- | --- |
-| 画布 | `--skin-canvas` | `#f6f7f9` | `#0e1012` | 主区底、页面底 |
-| 面板 | `--skin-panel` | `#ffffff` | `#15181b` | 列表栏、卡片式分区、顶栏 |
-| 内嵌 | `--skin-inset` | `#edeff3` | `#1a1e22` | 输入框、表头、代码块、次级条带 |
-| 悬停 | `--skin-hover` | `#f1f3f7` | `rgba(255,255,255,.04)` | 行悬停、按钮悬停 |
-| 选中 | `--skin-selected` | `#e8f0fb` | `rgba(90,169,255,.12)` | 当前行、当前导航项 |
-| 线（装饰） | `--skin-line` | `#dfe3ea` | `#242a30` | 分区线、行分隔 |
-| 线（控件边界） | `--skin-line-strong` | `#7d8794` | `#616d78`（已修正，见 §2.3） | 输入框边界、复选框、可聚焦控件轮廓 |
-| 主文字 | `--skin-text` | `#12141a` | `#e7eaec` | 标题、行标题、正文主体 |
-| 次文字 | `--skin-text-2` | `#4a525d` | `#a7b0b7` | 正文、说明、未选中标题 |
-| 三级文字 | `--skin-text-3` | `#636c78` | `#7d8792`（已修正，见 §2.3） | 时间、序号、来源、计数、占位符 |
-| 强调 | `--skin-accent` | `#0b62c4` | `#5aa9ff` | 当前所在、可点链接、聚焦环 |
-| 强调悬停 | `--skin-accent-hover` | `#0a55ab` | `#7dbaff` | 链接与图标悬停 |
-| 强调填充 | `--skin-accent-fill` | `#0b62c4` | `#5aa9ff` | 主按钮底、选中态实心标记 |
-| 反白文字 | `--skin-on-accent` | `#ffffff` | `#0b1015` | 强调填充上的字 |
-| 成功 | `--skin-success` | `#127447` | `#3fb950` | 已同步、成功结果 |
-| 成功浅底 | `--skin-success-tint` | `rgba(18,116,71,.10)` | `rgba(63,185,80,.12)` | 成功提示条 |
-| 警告 | `--skin-warning` | `#8a5a00` | `#d29922` | 未推送、待处理 |
-| 警告浅底 | `--skin-warning-tint` | `rgba(138,90,0,.10)` | `rgba(210,153,34,.12)` | 警告提示条 |
-| 危险 | `--skin-danger` | `#c2291f` | `#f85149` | 删除、错误、危险确认 |
-| 危险浅底 | `--skin-danger-tint` | `rgba(194,41,31,.10)` | `rgba(248,81,73,.12)` | 错误提示条 |
-| 遮罩 | `--skin-scrim` | `rgba(18,20,26,.32)` | `rgba(0,0,0,.55)` | 对话框遮罩 |
+| 画布 | `--gm-canvas` | `#f6f7f9` | `#0e1012` | 主区底、页面底 |
+| 面板 | `--gm-panel` | `#ffffff` | `#15181b` | 列表栏、卡片式分区、顶栏 |
+| 内嵌 | `--gm-inset` | `#edeff3` | `#1a1e22` | 输入框、表头、代码块、次级条带 |
+| 悬停 | `--gm-hover` | `#f1f3f7` | `rgba(255,255,255,.04)` | 行悬停、按钮悬停 |
+| 选中 | `--gm-selected` | `#e8f0fb` | `rgba(90,169,255,.12)` | 当前行、当前导航项 |
+| 线（装饰） | `--gm-line` | `#dfe3ea` | `#242a30` | 分区线、行分隔 |
+| 线（控件边界） | `--gm-line-strong` | `#7d8794` | `#616d78`（已修正，见 §2.3） | 输入框边界、复选框、可聚焦控件轮廓 |
+| 主文字 | `--gm-text` | `#12141a` | `#e7eaec` | 标题、行标题、正文主体 |
+| 次文字 | `--gm-text-2` | `#4a525d` | `#a7b0b7` | 正文、说明、未选中标题 |
+| 三级文字 | `--gm-text-3` | `#636c78` | `#7d8792`（已修正，见 §2.3） | 时间、序号、来源、计数、占位符 |
+| 强调 | `--gm-accent` | `#0b62c4` | `#5aa9ff` | 当前所在、可点链接、聚焦环 |
+| 强调悬停 | `--gm-accent-hover` | `#0a55ab` | `#7dbaff` | 链接与图标悬停 |
+| 强调填充 | `--gm-accent-fill` | `#0b62c4` | `#5aa9ff` | 主按钮底、选中态实心标记 |
+| 反白文字 | `--gm-on-accent` | `#ffffff` | `#0b1015` | 强调填充上的字 |
+| 成功 | `--gm-success` | `#127447` | `#3fb950` | 已同步、成功结果 |
+| 成功浅底 | `--gm-success-tint` | `rgba(18,116,71,.10)` | `rgba(63,185,80,.12)` | 成功提示条 |
+| 警告 | `--gm-warning` | `#8a5a00` | `#d29922` | 未推送、待处理 |
+| 警告浅底 | `--gm-warning-tint` | `rgba(138,90,0,.10)` | `rgba(210,153,34,.12)` | 警告提示条 |
+| 危险 | `--gm-danger` | `#c2291f` | `#f85149` | 删除、错误、危险确认 |
+| 危险浅底 | `--gm-danger-tint` | `rgba(194,41,31,.10)` | `rgba(248,81,73,.12)` | 错误提示条 |
+| 遮罩 | `--gm-scrim` | `rgba(18,20,26,.32)` | `rgba(0,0,0,.55)` | 对话框遮罩 |
 
 十四组语义色，浅深一一对应，token 名不变。
 
@@ -68,15 +68,15 @@
 | 危险 `#f85149` | 5.69 | 5.32 | 5.00 |
 | 控件边界 `#2f373e` | **1.58** | **1.47** | **—** |
 
-### 2.3 交给 2 号的执行项（深色皮肤的两处修正）
+### 2.3 深色皮肤的两处修正（已落地）
 
-B 自己的深色值有两处不达标，不是审美问题，是看不清。下面两条可以直接抄，不需要再判断。
+B 自己的深色值曾有两处不达标，不是审美问题，是看不清。两条已在 `desktop/src/index.css` 落地，现值与下表一致；此处保留记录，避免有人照旧值改回去。
 
 **执行项 1：三级文字**
 
 | 项 | 内容 |
 | --- | --- |
-| 变量 | `[data-theme="dark"]` 里的 `--skin-text-3` |
+| 变量 | `[data-theme="dark"]` 里的 `--gm-text-3` |
 | 现值 | `#6d777f` |
 | 改为 | `#7d8792` |
 | 改后对比度 | 画布 5.22 / 面板 4.88 / 内嵌 4.59 |
@@ -86,13 +86,13 @@ B 自己的深色值有两处不达标，不是审美问题，是看不清。下
 
 | 项 | 内容 |
 | --- | --- |
-| 变量 | `[data-theme="dark"]` 里的 `--skin-line-strong` |
+| 变量 | `[data-theme="dark"]` 里的 `--gm-line-strong` |
 | 现值 | `#2f373e` |
 | 改为 | `#616d78` |
 | 改后对比度 | 画布 3.60 / 面板 3.37 / 内嵌 3.17 |
 | 原因 | 现值 1.58 / 1.47，远低于 3.0。深色下输入框等于没有边界，只能靠光标位置猜 |
 
-两条都只改深色块，浅色块不动。改完深色深浅两套的三级文字与控件边界处在同一水平，换肤不会有「切到浅色突然清楚」的落差。
+两条都只改了深色块，浅色块未动。现在两套皮肤的三级文字与控件边界处在同一水平，换肤不会有「切到浅色突然清楚」的落差。
 
 对照参考：同为深色仪器面板的 F 稿，三级文字 `#76809a` 实测 4.95 / 4.66、强调 `#7c5cff` 实测 4.50，两条线都过。说明深色本身做得到，是这两处取值偏了。
 
@@ -121,7 +121,7 @@ B 自己的深色值有两处不达标，不是审美问题，是看不清。下
 
 浅色下画布 `#f6f7f9` 与面板 `#ffffff` 的明度比只有 1.05，靠底色差分区会看起来像「没画干净」的脏边。
 
-结论：面板与画布之间**一律画 1px `--skin-line`**，不靠底色差、不靠投影。深色同理（B 现值画布/面板比 1.07，也是靠线）。
+结论：面板与画布之间**一律画 1px `--gm-line`**，不靠底色差、不靠投影。深色同理（B 现值画布/面板比 1.07，也是靠线）。
 
 ### 3.4 不许变的部分
 
@@ -148,7 +148,7 @@ B 自己的深色值有两处不达标，不是审美问题，是看不清。下
 
 **不能。** 一句话理由：圆角与密度是结构参数，皮肤只换颜色——让它们随皮肤浮动，等于一套皮肤就是另一个产品，换肤会改变用户已经形成的点击与扫读肌肉记忆。
 
-落地口径：两套皮肤共用同一份 `--gm-r-*`、`--gm-sp-*`、字号与行高；皮肤文件里只允许出现颜色变量，出现任何非颜色变量即视为皮肤越界。
+落地口径：两套皮肤共用同一份 `--gm-r-1..4`、`--gm-density-*`、字号与行高（实现见 `desktop/src/index.css` 的「结构参数」块）；皮肤块里只允许出现颜色变量，出现任何非颜色变量即视为皮肤越界。
 
 ---
 
@@ -158,24 +158,24 @@ B 自己的深色值有两处不达标，不是审美问题，是看不清。下
 
 | 语义 | token | F 稿深色（实测） | 浅色孪生（按 §3.1 规则推导） |
 | --- | --- | --- | --- |
-| 画布 | `--skin-canvas` | `#0a0c13` | `#f7f7fb` |
-| 面板 | `--skin-panel` | `#11141e` | `#ffffff` |
-| 内嵌 | `--skin-inset` | `#171b28` | `#eeeff6` |
-| 悬停 | `--skin-hover` | `rgba(255,255,255,.05)` | `#f2f2f9` |
-| 选中 | `--skin-selected` | `rgba(124,92,255,.16)` | `#ece9fd` |
-| 线 | `--skin-line` | `rgba(255,255,255,.07)` | `#e2e2ec` |
-| 线强 | `--skin-line-strong` | `rgba(255,255,255,.13)` | `#7a7791` |
-| 主文字 | `--skin-text` | `#e9ecf7` | `#12121c` |
-| 次文字 | `--skin-text-2` | `#9aa3bb` | `#4a4b60` |
-| 三级文字 | `--skin-text-3` | `#76809a` | `#63647a` |
-| 强调 | `--skin-accent` | `#7c5cff` | `#5b34d6` |
-| 强调悬停 | `--skin-accent-hover` | `#9a80ff` | `#4f2bbd` |
-| 强调填充 | `--skin-accent-fill` | `#7c5cff` | `#5b34d6` |
-| 反白文字 | `--skin-on-accent` | `#0b0c12` | `#ffffff` |
-| 成功 | `--skin-success` | `#3ddc9a` | `#127447` |
-| 警告 | `--skin-warning` | `#f0b429` | `#8a5a00` |
-| 危险 | `--skin-danger` | `#f85149` | `#c2291f` |
-| 辅助色 | `--skin-accent-2` | `#22d3ee` | `#0b7285` |
+| 画布 | `--gm-canvas` | `#0a0c13` | `#f7f7fb` |
+| 面板 | `--gm-panel` | `#11141e` | `#ffffff` |
+| 内嵌 | `--gm-inset` | `#171b28` | `#eeeff6` |
+| 悬停 | `--gm-hover` | `rgba(255,255,255,.05)` | `#f2f2f9` |
+| 选中 | `--gm-selected` | `rgba(124,92,255,.16)` | `#ece9fd` |
+| 线 | `--gm-line` | `rgba(255,255,255,.07)` | `#e2e2ec` |
+| 线强 | `--gm-line-strong` | `rgba(255,255,255,.13)` | `#7a7791` |
+| 主文字 | `--gm-text` | `#e9ecf7` | `#12121c` |
+| 次文字 | `--gm-text-2` | `#9aa3bb` | `#4a4b60` |
+| 三级文字 | `--gm-text-3` | `#76809a` | `#63647a` |
+| 强调 | `--gm-accent` | `#7c5cff` | `#5b34d6` |
+| 强调悬停 | `--gm-accent-hover` | `#9a80ff` | `#4f2bbd` |
+| 强调填充 | `--gm-accent-fill` | `#7c5cff` | `#5b34d6` |
+| 反白文字 | `--gm-on-accent` | `#0b0c12` | `#ffffff` |
+| 成功 | `--gm-success` | `#3ddc9a` | `#127447` |
+| 警告 | `--gm-warning` | `#f0b429` | `#8a5a00` |
+| 危险 | `--gm-danger` | `#f85149` | `#c2291f` |
+| 辅助色 | `--gm-accent-2` | `#22d3ee` | `#0b7285` |
 
 F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；浅色孪生按同色相压明度推导，强调 `#5b34d6` 实测 6.76 / 6.28，白字 7.22；三级文字 `#63647a` 实测 5.41 / 5.04；线强 `#7a7791` 实测 4.03 / 4.31 / 3.76；辅助色 `#0b7285` 实测 5.23。
 
@@ -185,29 +185,29 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 
 ```css
 :root {                      /* 浅色 = 默认 */
-  --skin-canvas:#f6f7f9; --skin-panel:#ffffff; --skin-inset:#edeff3;
-  --skin-hover:#f1f3f7;  --skin-selected:#e8f0fb;
-  --skin-line:#dfe3ea;   --skin-line-strong:#7d8794;
-  --skin-text:#12141a;   --skin-text-2:#4a525d; --skin-text-3:#636c78;
-  --skin-accent:#0b62c4; --skin-accent-hover:#0a55ab; --skin-accent-fill:#0b62c4;
-  --skin-on-accent:#ffffff;
-  --skin-success:#127447; --skin-success-tint:rgba(18,116,71,.10);
-  --skin-warning:#8a5a00; --skin-warning-tint:rgba(138,90,0,.10);
-  --skin-danger:#c2291f;  --skin-danger-tint:rgba(194,41,31,.10);
-  --skin-scrim:rgba(18,20,26,.32);
+  --gm-canvas:#f6f7f9; --gm-panel:#ffffff; --gm-inset:#edeff3;
+  --gm-hover:#f1f3f7;  --gm-selected:#e8f0fb;
+  --gm-line:#dfe3ea;   --gm-line-strong:#7d8794;
+  --gm-text:#12141a;   --gm-text-2:#4a525d; --gm-text-3:#636c78;
+  --gm-accent:#0b62c4; --gm-accent-hover:#0a55ab; --gm-accent-fill:#0b62c4;
+  --gm-on-accent:#ffffff;
+  --gm-success:#127447; --gm-success-tint:rgba(18,116,71,.10);
+  --gm-warning:#8a5a00; --gm-warning-tint:rgba(138,90,0,.10);
+  --gm-danger:#c2291f;  --gm-danger-tint:rgba(194,41,31,.10);
+  --gm-scrim:rgba(18,20,26,.32);
 }
 
 [data-theme="dark"] {        /* 深色 = B 现值，已按 §2.3 修正两处 */
-  --skin-canvas:#0e1012; --skin-panel:#15181b; --skin-inset:#1a1e22;
-  --skin-hover:rgba(255,255,255,.04); --skin-selected:rgba(90,169,255,.12);
-  --skin-line:#242a30;   --skin-line-strong:#616d78;
-  --skin-text:#e7eaec;   --skin-text-2:#a7b0b7; --skin-text-3:#7d8792;
-  --skin-accent:#5aa9ff; --skin-accent-hover:#7dbaff; --skin-accent-fill:#5aa9ff;
-  --skin-on-accent:#0b1015;
-  --skin-success:#3fb950; --skin-success-tint:rgba(63,185,80,.12);
-  --skin-warning:#d29922; --skin-warning-tint:rgba(210,153,34,.12);
-  --skin-danger:#f85149;  --skin-danger-tint:rgba(248,81,73,.12);
-  --skin-scrim:rgba(0,0,0,.55);
+  --gm-canvas:#0e1012; --gm-panel:#15181b; --gm-inset:#1a1e22;
+  --gm-hover:rgba(255,255,255,.04); --gm-selected:rgba(90,169,255,.12);
+  --gm-line:#242a30;   --gm-line-strong:#616d78;
+  --gm-text:#e7eaec;   --gm-text-2:#a7b0b7; --gm-text-3:#7d8792;
+  --gm-accent:#5aa9ff; --gm-accent-hover:#7dbaff; --gm-accent-fill:#5aa9ff;
+  --gm-on-accent:#0b1015;
+  --gm-success:#3fb950; --gm-success-tint:rgba(63,185,80,.12);
+  --gm-warning:#d29922; --gm-warning-tint:rgba(210,153,34,.12);
+  --gm-danger:#f85149;  --gm-danger-tint:rgba(248,81,73,.12);
+  --gm-scrim:rgba(0,0,0,.55);
 }
 ```
 
