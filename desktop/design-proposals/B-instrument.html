@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMemo — 方向 B：仪器面板</title>
+<style>
+  /* ============================================================
+     方向 B · 仪器面板（instrument panel）
+     1440 定宽，单文件，无外部资源、无图片、无构建。
+     网格 12 列 / 沟槽 24px / 页边 24px / 侧栏 224px
+     间距 4 / 8 / 12 / 16 / 24 / 32 / 48
+     字号 10 / 11 / 12 / 13 / 15 / 20 / 30
+     线 1px，圆角 2px，无阴影
+     ============================================================ */
+
+  :root {
+    --fs-10: 10px;
+    --fs-11: 11px;
+    --fs-12: 12px;
+    --fs-13: 13px;
+    --fs-15: 15px;
+    --fs-20: 20px;
+    --fs-30: 30px;
+
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+
+    --bg: #0c0e0c;
+    --panel: #121512;
+    --panel-2: #151915;
+    --line: #262b25;
+    --line-2: #1c211c;
+    --text: #e9e7df;
+    --text-2: #a7aea2;
+    --text-3: #6f7a6d;
+    --green: #4fbf7f;
+    --amber: #d9a441;
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, "Cascadia Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 224px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    min-height: 884px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+
+  /* ---------------- 侧栏 ---------------- */
+
+  .side {
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: var(--sp-5) 0 var(--sp-4);
+    background: #0f120f;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: 0 var(--sp-5) var(--sp-5);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mark {
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--text-2);
+    position: relative;
+    flex: none;
+  }
+  .mark::after { content: ""; position: absolute; inset: 3px; background: var(--text); }
+
+  .brand-name {
+    font-family: var(--mono);
+    font-size: var(--fs-13);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .brand-sub {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+  }
+
+  .nav { padding: var(--sp-4) 0; }
+
+  .nav-item {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--sp-3);
+    height: 36px;
+    padding: 0 var(--sp-5) 0 var(--sp-4);
+    color: var(--text-2);
+    font-size: var(--fs-12);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+  }
+  .nav-item .idx {
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+  }
+  .nav-item .count {
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .nav-item:hover { color: var(--text); }
+  .nav-item[data-active="true"] {
+    color: var(--text);
+    background: #151915;
+    border-left-color: var(--text);
+  }
+  .nav-item[data-active="true"] .idx { color: var(--text-2); }
+  .nav-item:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+
+  .side-foot { margin-top: auto; padding: 0 var(--sp-4); }
+
+  .sync-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    color: var(--text-2);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .sync-btn:hover { color: var(--text); border-color: var(--text-3); }
+  .sync-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  .sync-btn .dot { width: 6px; height: 6px; background: var(--green); display: block; }
+
+  .side-version {
+    margin-top: var(--sp-3);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    line-height: 1.7;
+    padding: 0 var(--sp-1);
+  }
+
+  /* ---------------- 主区 ---------------- */
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: var(--sp-5);
+    position: relative;
+  }
+
+  /* 左侧刻度尺：8px 小刻度、24px 长刻度 */
+  .main::before {
+    content: "";
+    position: absolute;
+    left: var(--sp-1);
+    top: var(--sp-5);
+    bottom: var(--sp-5);
+    width: 10px;
+    background:
+      repeating-linear-gradient(to bottom, var(--line-2) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 24px);
+    background-size: 5px 100%, 10px 100%;
+    background-repeat: no-repeat;
+  }
+
+  .page-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--sp-6);
+    align-items: start;
+    padding: 0 0 var(--sp-5);
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: var(--sp-3);
+  }
+  .eyebrow .bar { width: 16px; height: 1px; background: var(--line); display: block; }
+
+  h1 {
+    margin: 0;
+    font-size: var(--fs-20);
+    line-height: 1.45;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    max-width: 40ch;
+  }
+
+  .lede {
+    margin: var(--sp-3) 0 0;
+    font-size: var(--fs-13);
+    line-height: 1.75;
+    color: var(--text-2);
+    max-width: 62ch;
+  }
+
+  .head-meta {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    line-height: 1.9;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    padding-top: var(--sp-1);
+  }
+  .head-meta b { font-weight: 400; color: var(--text-2); }
+
+  /* ---------------- 四格读数 ---------------- */
+
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .readout {
+    padding: var(--sp-3) var(--sp-5);
+    border-left: 1px solid var(--line);
+  }
+  .readout:first-child { border-left: 0; }
+
+  .readout-label {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .readout-label b { font-weight: 400; color: var(--text-2); letter-spacing: 0.06em; }
+
+  .readout-value {
+    margin-top: var(--sp-2);
+    font-family: var(--mono);
+    font-size: var(--fs-30);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .readout-foot {
+    margin-top: var(--sp-1);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout-foot .up { color: var(--green); }
+
+  /* ---------------- 主体两栏 ---------------- */
+
+  .body {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--sp-5);
+    padding-top: var(--sp-5);
+    flex: 1;
+    align-content: start;
+  }
+
+  .col-main { grid-column: span 7; min-width: 0; }
+  .col-rail { grid-column: span 5; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5); }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-3);
+  }
+  .sec-index {
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.12em;
+  }
+  .sec-title {
+    margin: 0;
+    font-size: var(--fs-13);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .sec-meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 最近五条 */
+  .table { border-top: 1px solid var(--line); }
+
+  .tr {
+    display: grid;
+    grid-template-columns: 72px 44px minmax(0, 1fr) 76px 64px;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-2);
+    border-bottom: 1px solid var(--line-2);
+    min-height: 44px;
+    font-size: var(--fs-12);
+  }
+  .tr:hover { background: var(--panel-2); }
+
+  .th {
+    min-height: 32px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .t-time, .t-src { font-family: var(--mono); font-size: var(--fs-11); color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .t-src { color: var(--text-3); }
+  .t-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t-status { font-family: var(--mono); font-size: var(--fs-10); color: var(--text-3); letter-spacing: 0.06em; }
+  .t-status.new { color: var(--green); }
+  .t-status.draft { color: var(--amber); }
+
+  .code {
+    justify-self: start;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 0 var(--sp-1);
+    line-height: 16px;
+    text-transform: uppercase;
+  }
+
+  .table-foot {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding-top: var(--sp-3);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+  }
+  .table-foot a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .table-foot a:hover { color: var(--text); border-color: var(--text-3); }
+
+  /* 面板 */
+  .panel { border: 1px solid var(--line); background: var(--panel-2); }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head .sec-title { font-size: var(--fs-12); }
+
+  /* 快速记一行 */
+  .quick-sec { margin-top: var(--sp-5); }
+  .quick { padding: 0; }
+
+  .quick-input {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: var(--sp-3);
+    background: transparent;
+  }
+  .quick-input .prompt { font-family: var(--mono); font-size: var(--fs-12); color: var(--text-3); }
+  .quick-input input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: var(--fs-13);
+  }
+  .quick-input input::placeholder { color: var(--text-3); }
+  .quick-input:focus-within { border-color: var(--text-3); }
+
+  .quick-foot {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-top: var(--sp-3);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+  }
+  .quick-foot .keys { color: var(--text-2); font-family: var(--sans); }
+  .quick-foot .save {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--text);
+    border-radius: 2px;
+    padding: var(--sp-1) var(--sp-3);
+    line-height: 20px;
+  }
+
+  /* 同步状态 */
+  .kv { font-size: var(--fs-12); }
+  .kv > div {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    padding: var(--sp-2) var(--sp-4);
+    border-bottom: 1px solid var(--line-2);
+  }
+  .kv > div:last-child { border-bottom: 0; }
+  .kv .k {
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .kv .v { font-family: var(--mono); font-size: var(--fs-11); color: var(--text); font-variant-numeric: tabular-nums; }
+  .kv .v.ok { color: var(--green); }
+  .kv .v.mute { color: var(--text-2); }
+
+  /* 待处理 */
+  .todo { list-style: none; margin: 0; padding: 0; }
+
+  .todo li {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: var(--sp-3);
+    align-items: baseline;
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--line-2);
+  }
+  .todo li:last-child { border-bottom: 0; }
+
+  .box {
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--text-3);
+    border-radius: 1px;
+    position: relative;
+    top: 1px;
+  }
+
+  .todo-title { display: block; font-size: var(--fs-12); color: var(--text); line-height: 1.5; }
+  .todo-meta {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .todo-when {
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    color: var(--amber);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .todo-when.mute { color: var(--text-3); }
+
+  /* ---------------- 状态栏 ---------------- */
+
+  .statusbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+    height: 32px;
+    padding: 0 var(--sp-5);
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    background: #0f120f;
+  }
+  .statusbar b { font-weight: 400; color: var(--text-2); }
+  .statusbar .ok { color: var(--green); }
+  .statusbar .right { margin-left: auto; display: flex; gap: var(--sp-5); }
+
+  /* ============================================================
+     说明区（位于 1440 面板之外，不参与三稿对比）
+     ============================================================ */
+
+  .doc {
+    width: 960px;
+    margin: var(--sp-7) auto 0;
+    padding: var(--sp-6) 0 var(--sp-7);
+    border-top: 1px solid var(--line);
+    color: var(--text-2);
+    font-size: var(--fs-13);
+    line-height: 1.8;
+  }
+  .doc h2 {
+    font-size: var(--fs-20);
+    color: var(--text);
+    font-weight: 500;
+    margin: 0 0 var(--sp-3);
+    letter-spacing: 0.02em;
+  }
+  .doc h3 {
+    font-family: var(--mono);
+    font-size: var(--fs-11);
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: var(--sp-6) 0 var(--sp-3);
+  }
+  .doc p { margin: 0 0 var(--sp-3); }
+  .doc a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .doc a:hover { border-color: var(--text-3); }
+  .doc ul { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); }
+  .doc li { margin-bottom: var(--sp-2); }
+  .doc code {
+    font-family: var(--mono);
+    font-size: var(--fs-11);
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line-2);
+    border-radius: 2px;
+    padding: 0 4px;
+  }
+  .doc table { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: var(--mono); font-size: var(--fs-11); margin: var(--sp-3) 0 var(--sp-5); }
+  .doc col.c1 { width: 120px; }
+  .doc col.c2 { width: 392px; }
+  .doc th, .doc td { border: 1px solid var(--line); padding: var(--sp-2) var(--sp-3); text-align: left; vertical-align: top; }
+  .doc th { color: var(--text-3); font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; font-size: var(--fs-10); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- 侧栏导航 -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <div class="brand-name">GitMemo</div>
+        <span class="brand-sub">LOCAL / ~/gitmemo</span>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="主导航">
+      <a class="nav-item" href="#" data-active="true"><span class="idx">01</span><span>总览</span><span class="count">1,281</span></a>
+      <a class="nav-item" href="#"><span class="idx">02</span><span>笔记</span><span class="count">128</span></a>
+      <a class="nav-item" href="#"><span class="idx">03</span><span>对话</span><span class="count">64</span></a>
+      <a class="nav-item" href="#"><span class="idx">04</span><span>剪贴板</span><span class="count">31</span></a>
+      <a class="nav-item" href="#"><span class="idx">05</span><span>导入</span><span class="count">12</span></a>
+      <a class="nav-item" href="#"><span class="idx">06</span><span>收藏</span><span class="count">09</span></a>
+      <a class="nav-item" href="#"><span class="idx">07</span><span>计划</span><span class="count">07</span></a>
+      <a class="nav-item" href="#"><span class="idx">08</span><span>设置</span><span class="count">—</span></a>
+    </nav>
+
+    <div class="side-foot">
+      <button class="sync-btn" type="button">
+        <span>同步到 Git</span>
+        <i class="dot" aria-hidden="true"></i>
+      </button>
+      <div class="side-version">
+        GitMemo 1.0.159<br>
+        本地优先 · 只读预览
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="main">
+
+    <!-- 主标题 -->
+    <header class="page-head">
+      <div>
+        <div class="eyebrow"><span class="bar" aria-hidden="true"></span>总览 / 今天</div>
+        <h1>三天前那条中断的条款草稿，今天可以接着写完。</h1>
+        <p class="lede">你在 10 月 20 日 17:42 存过一份未完成的草稿，引用了两份对话和一段剪贴板代码。它还在，没有被索引丢掉。</p>
+      </div>
+      <div class="head-meta">
+        最后索引 <b>2 分钟前</b><br>
+        索引条目 <b>1,281</b><br>
+        仓库体积 <b>18.4 MB</b>
+      </div>
+    </header>
+
+    <!-- 四格读数 -->
+    <section class="readouts" aria-label="统计">
+      <div class="readout">
+        <div class="readout-label"><b>ALL</b> 条目总数</div>
+        <div class="readout-value">1,281</div>
+        <div class="readout-foot"><span class="up">+46</span> 本周新增</div>
+      </div>
+      <div class="readout">
+        <div class="readout-label"><b>CV</b> 对话</div>
+        <div class="readout-value">64</div>
+        <div class="readout-foot">6 个工具来源</div>
+      </div>
+      <div class="readout">
+        <div class="readout-label"><b>CL</b> 剪贴板</div>
+        <div class="readout-value">31</div>
+        <div class="readout-foot">图片 9 张</div>
+      </div>
+      <div class="readout">
+        <div class="readout-label"><b>UC</b> 未提交</div>
+        <div class="readout-value">3</div>
+        <div class="readout-foot">最近 12 分钟</div>
+      </div>
+    </section>
+
+    <section class="body">
+
+      <!-- 最近五条 -->
+      <div class="col-main">
+        <div class="sec-head">
+          <span class="sec-index">02</span>
+          <h2 class="sec-title">最近条目</h2>
+          <span class="sec-meta">1,281 条中显示 5 条 · 按时间倒序</span>
+        </div>
+
+        <div class="table" role="table" aria-label="最近条目">
+          <div class="tr th" role="row">
+            <span role="columnheader">时间</span>
+            <span role="columnheader">类型</span>
+            <span role="columnheader">标题</span>
+            <span role="columnheader">来源</span>
+            <span role="columnheader" style="text-align:right">状态</span>
+          </div>
+
+          <div class="tr" role="row">
+            <span class="t-time" role="cell">2 分钟前</span>
+            <span class="code" role="cell">CV</span>
+            <span class="t-title" role="cell">Claude：把 roomlog 的抽取规则收敛成词表</span>
+            <span class="t-src" role="cell">claude</span>
+            <span class="t-status new" role="cell" style="text-align:right">新增</span>
+          </div>
+
+          <div class="tr" role="row">
+            <span class="t-time" role="cell">17:42</span>
+            <span class="code" role="cell">MN</span>
+            <span class="t-title" role="cell">合同第二版：付款节点与验收口径</span>
+            <span class="t-src" role="cell">manual</span>
+            <span class="t-status draft" role="cell" style="text-align:right">草稿</span>
+          </div>
+
+          <div class="tr" role="row">
+            <span class="t-time" role="cell">16:08</span>
+            <span class="code" role="cell">CL</span>
+            <span class="t-title" role="cell">cargo test --manifest-path desktop/src-tauri/Cargo.toml</span>
+            <span class="t-src" role="cell">终端</span>
+            <span class="t-status" role="cell" style="text-align:right">已同步</span>
+          </div>
+
+          <div class="tr" role="row">
+            <span class="t-time" role="cell">15:31</span>
+            <span class="code" role="cell">PL</span>
+            <span class="t-title" role="cell">视觉改造三阶段：审计 → 改造 → 验收</span>
+            <span class="t-src" role="cell">plan</span>
+            <span class="t-status" role="cell" style="text-align:right">已同步</span>
+          </div>
+
+          <div class="tr" role="row">
+            <span class="t-time" role="cell">昨天</span>
+            <span class="code" role="cell">CV</span>
+            <span class="t-title" role="cell">Codex：Tauri 打包签名失败的三种成因</span>
+            <span class="t-src" role="cell">codex</span>
+            <span class="t-status" role="cell" style="text-align:right">已同步</span>
+          </div>
+        </div>
+
+        <div class="table-foot">
+          <span>显示 5 条</span>
+          <span>·</span>
+          <a href="#">查看全部 1,281 条</a>
+        </div>
+
+        <!-- 快速记一行 -->
+        <section class="quick-sec" aria-label="快速记一行">
+          <div class="sec-head">
+            <span class="sec-index">03</span>
+            <h2 class="sec-title">快速记一行</h2>
+            <span class="sec-meta">直接写入 收件箱/</span>
+          </div>
+          <div class="quick">
+            <div class="quick-input">
+              <span class="prompt" aria-hidden="true">›</span>
+              <input type="text" placeholder="粘贴链接、想法、命令……" aria-label="快速记一行">
+            </div>
+            <div class="quick-foot">
+              <span>第一行会成为标题</span>
+              <span class="keys">⌘ ↵</span>
+              <span class="save">保存</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 右栏 -->
+      <div class="col-rail">
+
+        <!-- 同步状态 -->
+        <section class="panel" aria-label="同步状态">
+          <div class="panel-head">
+            <span class="sec-index">04</span>
+            <h2 class="sec-title">同步状态</h2>
+            <span class="sec-meta">origin/main</span>
+          </div>
+          <div class="kv">
+            <div><span class="k">远端</span><span class="v mute">origin/main</span></div>
+            <div><span class="k">状态</span><span class="v ok">已同步</span></div>
+            <div><span class="k">待推送</span><span class="v">0</span></div>
+            <div><span class="k">未跟踪</span><span class="v">3</span></div>
+            <div><span class="k">仓库体积</span><span class="v">18.4 MB</span></div>
+            <div><span class="k">最后索引</span><span class="v">2 分钟前</span></div>
+          </div>
+        </section>
+
+        <!-- 待处理 -->
+        <section class="panel" aria-label="待处理">
+          <div class="panel-head">
+            <span class="sec-index">05</span>
+            <h2 class="sec-title">待处理</h2>
+            <span class="sec-meta">3 项</span>
+          </div>
+          <ul class="todo">
+            <li>
+              <span class="box" aria-hidden="true"></span>
+              <span>
+                <span class="todo-title">合同草稿缺少验收条款</span>
+                <span class="todo-meta">GITMEMO/收件箱</span>
+              </span>
+              <span class="todo-when">12 分钟前</span>
+            </li>
+            <li>
+              <span class="box" aria-hidden="true"></span>
+              <span>
+                <span class="todo-title">有 3 个文件未提交</span>
+                <span class="todo-meta">工作区</span>
+              </span>
+              <span class="todo-when">刚刚</span>
+            </li>
+            <li>
+              <span class="box" aria-hidden="true"></span>
+              <span>
+                <span class="todo-title">roomlog 计划待搬到正式目录</span>
+                <span class="todo-meta">待定</span>
+              </span>
+              <span class="todo-when mute">—</span>
+            </li>
+          </ul>
+        </section>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="statusbar">
+    <span><b class="ok">●</b> 已同步</span>
+    <span>~/gitmemo · main · 1,281 个文件 · 18.4 MB</span>
+    <div class="right">
+      <span>GitMemo 1.0.159</span>
+      <span>本地优先</span>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ================= 说明（面板之外） ================= -->
+<article class="doc">
+
+  <h2>方向 B（仪器面板）的出处与取值</h2>
+
+  <p>参考来自 awwwards 当期 Sites of the Day 清单（2026-10-23，取自
+    <a href="https://www.awwwards.com/sites-of-the-day/feed/">RSS feed</a>；列表页是前端渲染，HTML 里没有条目）。
+    下面四件作品的数值是把线上 CSS 拉下来统计得到的，不是凭印象。</p>
+
+  <h3>借了什么 / 不借什么</h3>
+
+  <p><strong>Overworld Audio</strong> —
+    <a href="https://www.awwwards.com/sites/overworld-audio">awwwards</a> /
+    <a href="https://overworldaudio.com/">线上站</a><br>
+    同时存在 12 列与 24 列两套网格，沟槽变量 <code>--grid-gutter: 1rem</code>，
+    微标签 9 / 10 / 12px，大节间距 48px（3rem）。
+    <strong>借</strong>：12 列 + 固定沟槽；10 / 12px 两档微标签；48px 大节间距。
+    <strong>不借</strong>：全屏地图导航、音频自动播放、9px 字号（中文在 9px 下笔画糊）。</p>
+
+  <p><strong>Signal-A Studio</strong> —
+    <a href="https://www.awwwards.com/sites/signal-a-studio">awwwards</a> /
+    <a href="https://signal-a.studio/">线上站</a><br>
+    12 列网格出现 27 次 <code>1fr ×12</code>、23 次 <code>minmax(0,1fr) ×12</code>，
+    gap 以 10 / 16 / 20px 为主，等宽字用于 11–14px 的标签。
+    <strong>借</strong>：<code>minmax(0,1fr)</code> 的等宽列（抗长路径撑破）、24px 沟槽、11–13px 元信息。
+    <strong>不借</strong>：80px 展示标题、Lenis 平滑滚动、成组入场动效。</p>
+
+  <p><strong>Lidar Drone Scanning</strong> —
+    <a href="https://www.awwwards.com/sites/lidar-drone-scanning">awwwards</a> /
+    <a href="https://drone.riotters.com/">线上站</a><br>
+    <code>repeat(12, minmax(0,1fr))</code>，主区 <code>1fr 420px</code>（内容 + 定宽侧栏），
+    Switzer + Proto Mono，展示字到 240px。
+    <strong>借</strong>：数字一律等宽（本地用 <code>ui-monospace / Menlo</code> 代替 Proto Mono，不引外部字体）、细线框。
+    <strong>不借</strong>：WebGL 点云、全屏 3D、240px 巨字。</p>
+
+  <p><strong>Heron AI</strong> —
+    <a href="https://www.awwwards.com/sites/heron-ai">awwwards</a> /
+    <a href="https://heronaiapp.com/heron-dashboard">dashboard 页</a><br>
+    间距 0.4 / 0.8 / 1.2 / 1.6rem（4 / 8 / 12 / 16px），12 列网格，正文 14px。
+    <strong>借</strong>：4px 基频的间距节奏、12 列、14px 上下的正文。
+    <strong>不借</strong>：卡片圆角、柔和渐变、插画化空状态。</p>
+
+  <p>没有从 FORMAT、Cartier 这类展览版式借东西：方向 B 要的是仪表读数，不是杂志跨页。</p>
+
+  <h3>这一稿实际用的数值</h3>
+
+  <table>
+    <colgroup><col class="c1"><col class="c2"><col></colgroup>
+    <tr><th>项</th><th>取值</th><th>来源 / 理由</th></tr>
+    <tr><td>外壳</td><td>1440 宽；侧栏 224px + 主区</td><td>与 A / C 同宽同内容；224px 是现有应用侧栏宽度</td></tr>
+    <tr><td>网格</td><td>12 列 <code>minmax(0,1fr)</code>，沟槽 24px，页边 24px</td><td>Signal-A / Lidar；主区内 7 / 5 分栏</td></tr>
+    <tr><td>间距阶梯</td><td>4 / 8 / 12 / 16 / 24 / 32 / 48</td><td>Heron 的 4px 基频，向上收成 7 档，不出现 20、28</td></tr>
+    <tr><td>字号阶梯</td><td>10 / 11 / 12 / 13 / 15 / 20 / 30</td><td>9–14px 微标签收成 10/11/12/13；读数 30px 是唯一大字</td></tr>
+    <tr><td>数字</td><td>等宽 + <code>tabular-nums</code></td><td>Lidar 的 Proto Mono 观感，用系统等宽实现</td></tr>
+    <tr><td>线</td><td>1px：<code>#262b25</code>（分隔）/ <code>#1c211c</code>（行内）</td><td>只有两档线色，不做线框 + 阴影叠加</td></tr>
+    <tr><td>圆角</td><td>2px（按钮、标签、输入框）</td><td>仪表盘保持切角</td></tr>
+    <tr><td>颜色</td><td>底 <code>#0c0e0c</code>、面板 <code>#121512</code>、字 <code>#e9e7df</code>；绿仅「已同步 / 新增」，琥珀仅「草稿 / 待处理」</td><td>状态色只留两个，红色未使用；类型靠字母码，不靠颜色</td></tr>
+    <tr><td>整页高度</td><td>1440 × 884 以上，一屏放下五个内容块</td><td>待处理不做折叠，避免「点开才看到」</td></tr>
+  </table>
+
+</article>
+
+</body>
+</html>
