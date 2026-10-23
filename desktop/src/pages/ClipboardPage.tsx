@@ -558,12 +558,17 @@ export default function ClipboardPage({
       if (e.key !== "Escape") return;
 
       e.preventDefault();
+      // 退出多选后焦点回到最后点过的那一行，否则键盘导航要重新 Tab 回来
+      const lastPath = selectedClipPaths[selectedClipPaths.length - 1];
       setMultiSelectMode(false);
       setSelectedClipPaths([]);
+      if (lastPath) {
+        window.setTimeout(() => itemRefs.current.get(lastPath)?.focus({ preventScroll: true }), 0);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, isMobile, multiSelectMode]);
+  }, [active, isMobile, multiSelectMode, selectedClipPaths]);
 
   const copyContent = useCallback(async (content: string, copiedKey = "detail") => {
     try {
