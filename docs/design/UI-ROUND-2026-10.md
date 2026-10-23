@@ -43,8 +43,55 @@
 
 ## 五、未完成
 
-- 设置块的尺寸字面量从 56 处降到 11 处，剩余全部是组件常量（`outline-offset`、分隔线 `width:1px`、日志区 `max-height:220px`、复制按钮 `min-width:56px`、状态点 `8/4/22px`）。颜色与行高已全部走变量
-- 圆角已全部迁移：94 处引用 `--gm-radius-control/panel/card`，旧 `md/lg/sm/xs` 归零，浅色整体方正（本条已闭合）
-- 空态口径已定：解释与主行动放右侧主区，左侧只留标题与计数；各页按此收口（进行中）
-- 笔记页 Esc 已实现（`NotesPage.tsx` 302–317 行，捕获阶段监听、非编辑态 `closeDetail()`）；未确认的是关掉详情后焦点是否回到当前行，需要实测，见 `PAGE-CHECKLIST.md` §6.3
-- 真机（Tauri 窗口）行为验收未做，环境无法启动窗口
+每条附一条可复跑命令，结论不能只靠叙述。工作目录 = 仓库根。
+
+**1. 设置块的尺寸字面量**
+颜色与行高已全部走变量；剩 11 处是组件常量（`outline-offset`、分隔线 `width:1px`、日志区 `max-height:220px`、复制按钮 `min-width:56px`、状态点 `8/4/22px`）。
+
+```sh
+awk '/^\.gm-settings/,/^@media/' desktop/src/index.css \
+  | grep -E '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' | grep -v 'var('
+```
+
+期望：只输出上述几类常量，不出现颜色与行高。
+状态：颜色与行高已闭环；组件常量允许保留，新增规则不许再写。
+
+**2. 圆角迁移**
+已全部迁移：94 处引用 `--gm-radius-control/panel/card`，旧 `md/lg/sm/xs` 归零。
+
+```sh
+rg -c 'var\(--gm-radius-(control|panel|card)\)' desktop/src/index.css
+rg -c 'var\(--gm-radius-(sm|md|lg|xs)\)' desktop/src/index.css   # 期望 0
+rg -n 'var\(--gm-radius-pill\)' desktop/src/index.css | wc -l    # 13 处为圆形，属保留语义
+```
+
+状态：已闭合。
+
+**3. 空态口径**
+口径：解释与主行动放右侧主区，左侧只留标题与计数。
+
+```sh
+rg -n 'gm-empty-state|EmptyState' desktop/src --glob '*.tsx' -l
+```
+
+逐页打开，确认同一页左右两侧没有两句同义文案。
+状态：进行中。
+
+**4. 笔记页 Esc 关闭详情并回焦**
+已实现：`NotesPage.tsx` 304–325 行，捕获阶段监听、非编辑态 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行 `focus()`。
+
+```sh
+rg -n 'requestAnimationFrame|data-on="true"\]' desktop/src/pages/NotesPage.tsx
+```
+
+判定动作：Tab 到列表 → Enter 打开 → Esc → 直接按 ↑/↓，选中行应立即移动，不需要再 Tab 一圈。
+状态：**已实现，待真机确认**。改了列表选中属性名（不再是 `data-on`）时要同步改这个选择器，否则焦点静默落回 body。
+
+**5. 真机（Tauri 窗口）行为验收**
+未做，环境无法启动窗口。
+
+```sh
+cd desktop && pnpm tauri dev
+```
+
+状态：阻塞在环境，不阻塞产品。
