@@ -6,8 +6,8 @@ import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { PaneHeader } from "../components/AppHeaders";
-import { AppIcon } from "../components/base/AppIcon";
+import { PaneHeader, PaneTabHeader } from "../components/AppHeaders";
+
 import { Badge } from "../components/base/Badge";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
@@ -137,23 +137,11 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         </div>
 
         {/* Tabs */}
-        <div className="gm-compact-tab-row">
-          {tabs.map((tab) => {
-            const active = activeTab === tab.id;
-            const Icon = tabIcons[tab.id];
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="gm-compact-tab-button"
-                data-active={active ? "true" : "false"}
-              >
-                <AppIcon icon={Icon} size="2xs" />
-                {t(tab.labelKey)}
-              </button>
-            );
-          })}
-        </div>
+        <PaneTabHeader
+          tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tabIcons[tab.id] }))}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id)}
+        />
 
         {/* File list */}
         <ListPaneBody>

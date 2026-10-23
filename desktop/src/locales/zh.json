@@ -60,8 +60,8 @@
   },
   "imports": {
     "title": "导入文件",
-    "empty": "拖拽文件到窗口即可导入",
-    "selectOrDrop": "选择一个文件或将文件拖入窗口",
+    "empty": "拖拽 Markdown 文件到窗口即可导入",
+    "selectOrDrop": "还没有导入记录。选中一个 Markdown 文件，或直接拖进窗口",
     "importMarkdown": "导入 Markdown 文件",
     "imported": "已导入 {0} 个文件",
     "importSkipped": "已跳过 {0} 个文件：文件过大或不支持。",
@@ -260,11 +260,12 @@
     "placeholder": "搜索对话、笔记、剪贴板... ({0})",
     "mobilePlaceholder": "搜索笔记和剪贴板...",
     "searching": "搜索中...",
-    "emptyTitle": "全文搜索所有数据",
+    "emptyTitle": "搜索全部内容",
     "mobileEmptyTitle": "搜索笔记和剪贴板",
-    "emptyHint": "{0} 随时搜索",
+    "emptyHint": "对话、笔记、剪贴板、计划都能搜。输入关键词后回车，或按 {0} 在任何页面唤起",
     "mobileEmptyHint": "输入关键词后回车搜索",
-    "noResults": "未找到 \"{0}\" 的结果",
+    "noResults": "未找到「{0}」的结果",
+    "noResultsHint": "换个更短的关键词，或去掉标点和引号再试",
     "results": "{0} 条结果"
   },
   "plans": {

@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTML
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, Check, ChevronRight, Copy, RefreshCw, X } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
+import { PageHeader } from "../../AppHeaders";
 import { Button } from "../../base/Button";
 import { cx } from "../../base/classNames";
 import { useTimedIconSpin } from "../../base/useTimedIconSpin";
@@ -40,17 +41,19 @@ interface SettingsPageHeaderProps {
 
 export function SettingsPageHeader({ title, refreshIcon, refreshTitle, onRefresh }: SettingsPageHeaderProps) {
   return (
-    <header className="gm-settings-page-header">
-      <h1 className="gm-page-title">{title}</h1>
-      <Button
-        type="button"
-        variant="toolbar"
-        icon={refreshIcon}
-        iconSize="xs"
-        onClick={onRefresh}
-        title={refreshTitle}
-      />
-    </header>
+    <PageHeader
+      title={title}
+      actions={
+        <Button
+          type="button"
+          variant="toolbar"
+          icon={refreshIcon}
+          iconSize="xs"
+          onClick={onRefresh}
+          title={refreshTitle}
+        />
+      }
+    />
   );
 }
 

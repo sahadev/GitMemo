@@ -77,7 +77,12 @@ export function SearchResults({
       description={emptyDescription}
     />
   ) : results.length === 0 ? (
-    <p className="gm-muted-text">{t("search.noResults", query)}</p>
+    <EmptyState
+      icon={Search}
+      iconSize="empty-lg"
+      title={t("search.noResults", query)}
+      description={t("search.noResultsHint")}
+    />
   ) : (
     <>
       <p className="gm-search-result-count">{t("search.results", String(results.length))}</p>

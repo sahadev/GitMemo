@@ -7,6 +7,7 @@ import type {
 } from "react";
 import { ArrowUp, RefreshCw, type LucideIcon } from "lucide-react";
 import { AppIcon, type AppIconTone } from "../../base/AppIcon";
+import { EmptyState } from "../../base/EmptyState";
 import { cx } from "../../base/classNames";
 import { useTimedIconSpin } from "../../base/useTimedIconSpin";
 
@@ -173,13 +174,7 @@ export function ClipboardEmptyState({
   title: ReactNode;
   description?: ReactNode;
 }) {
-  return (
-    <div className="gm-empty-state gm-clipboard-empty-state">
-      <AppIcon icon={icon} size="empty" tone="empty" className="gm-empty-state-icon" />
-      <p className="gm-empty-state-title">{title}</p>
-      {description ? <p className="gm-empty-state-description">{description}</p> : null}
-    </div>
-  );
+  return <EmptyState icon={icon} title={title} description={description} className="gm-clipboard-empty-state" />;
 }
 
 export function ClipboardClipItem({

@@ -7,6 +7,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import { useToast } from "../hooks/useToast";
 import { relativeTime, formatAbsoluteTime } from "../utils/time";
 import { Loading } from "../components/Loading";
+import { PageHeader } from "../components/AppHeaders";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { usePlatformFlags } from "../hooks/usePlatform";
@@ -413,44 +414,46 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   return (
     <div className="gm-page gm-page-scroll gm-dashboard-page" data-mobile={isMobile ? "true" : "false"}>
-      <div className="gm-dashboard-header">
-        <h1 className="gm-page-title">{t("dashboard.title")}</h1>
-        <div className="gm-dashboard-actions">
-          {isMobile && (
+      <PageHeader
+        title={t("dashboard.title")}
+        actions={
+          <>
+            {isMobile && (
+              <Button
+                variant="toolbar"
+                onClick={() => onNavigate?.("search")}
+                title={t("nav.search")}
+                icon={Search}
+                iconSize="lg"
+              />
+            )}
             <Button
               variant="toolbar"
-              onClick={() => onNavigate?.("search")}
-              title={t("nav.search")}
-              icon={Search}
-              iconSize="lg"
+              onClick={handleRefresh}
+              title={t("common.refresh")}
+              icon={RefreshCw}
             />
-          )}
-          <Button
-            variant="toolbar"
-            onClick={handleRefresh}
-            title={t("common.refresh")}
-            icon={RefreshCw}
-          />
-          {isDesktop && clipStatus && (
-            <div
-              className="gm-status-pill"
-              data-clickable="true"
-              data-tone={clipStatus.watching ? "success" : "muted"}
-              onClick={() => onNavigate?.("clipboard")}
-            >
-              <AppIcon
-                icon={Circle}
-                size="dot"
-                fill="currentColor"
-                tone={clipStatus.watching ? "success" : "secondary"}
-              />
-              <span className="gm-status-pill-text">
-                {clipStatus.watching ? t("dashboard.clipboardActive") : t("dashboard.clipboardInactive")}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+            {isDesktop && clipStatus && (
+              <div
+                className="gm-status-pill"
+                data-clickable="true"
+                data-tone={clipStatus.watching ? "success" : "muted"}
+                onClick={() => onNavigate?.("clipboard")}
+              >
+                <AppIcon
+                  icon={Circle}
+                  size="dot"
+                  fill="currentColor"
+                  tone={clipStatus.watching ? "success" : "secondary"}
+                />
+                <span className="gm-status-pill-text">
+                  {clipStatus.watching ? t("dashboard.clipboardActive") : t("dashboard.clipboardInactive")}
+                </span>
+              </div>
+            )}
+          </>
+        }
+      />
 
       {isMobile && (
         <div className="gm-dashboard-card gm-dashboard-mobile-sync">

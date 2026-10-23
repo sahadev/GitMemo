@@ -60,8 +60,8 @@
   },
   "imports": {
     "title": "Imports",
-    "empty": "Drag files to the window to import",
-    "selectOrDrop": "Select a file or drag one into the window",
+    "empty": "Drag Markdown files to the window to import",
+    "selectOrDrop": "No imports yet. Pick a Markdown file, or drag one into the window",
     "importMarkdown": "Import Markdown files",
     "imported": "Imported {0} file(s)",
     "importSkipped": "Skipped {0} file(s): too large or unsupported.",
@@ -260,11 +260,12 @@
     "placeholder": "Search conversations, notes, clips... ({0})",
     "mobilePlaceholder": "Search notes and clipboard...",
     "searching": "Searching...",
-    "emptyTitle": "Full-text search across all your data",
+    "emptyTitle": "Search everything",
     "mobileEmptyTitle": "Search notes and clipboard",
-    "emptyHint": "{0} to search from anywhere",
+    "emptyHint": "Conversations, notes, clipboard and plans are all searchable. Type a keyword and press Enter, or press {0} from anywhere",
     "mobileEmptyHint": "Type a keyword and press Enter",
     "noResults": "No results for \"{0}\"",
+    "noResultsHint": "Try a shorter keyword, or drop the punctuation and quotes",
     "results": "{0} results"
   },
   "plans": {

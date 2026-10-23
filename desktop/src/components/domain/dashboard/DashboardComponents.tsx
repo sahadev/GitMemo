@@ -26,10 +26,8 @@ export function DashboardStatCard({ icon, label, value, tone, loading = false, o
       className="gm-dashboard-card gm-dashboard-stat-card"
       data-clickable={onClick ? "true" : "false"}
       data-loading={loading ? "true" : "false"}
-      data-tone={tone}
       onClick={onClick}
     >
-      <span aria-hidden="true" className="gm-dashboard-stat-rail" />
       <div className="gm-dashboard-stat-head">
         <AppIcon icon={icon} size="sm" tone={tone} className="gm-dashboard-stat-icon" />
         <span className="gm-section-title">{label}</span>
