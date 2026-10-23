@@ -182,9 +182,12 @@ export default function FavoritesPage({
 
   const list = (
     <ListPane>
-      <div className="gm-inst-list-head">
-        <span>{t("favorites.title")}</span>
-        <span className="gm-inst-list-count gm-favorites-count">{t("favorites.count", favorites.length)}</span>
+      <div className="gm-inst-identity gm-inst-pane-identity">
+        <span className="gm-inst-identity-mark">{t("favorites.title")}</span>
+        <span className="gm-inst-identity-spacer" />
+        <span className="gm-inst-identity-count gm-favorites-count">
+          {t("favorites.count", favorites.length)}
+        </span>
       </div>
       <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
