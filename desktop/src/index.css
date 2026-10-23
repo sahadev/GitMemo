@@ -508,7 +508,7 @@ a:focus-visible {
   align-items: center;
   background: var(--gm-color-bg-elevated);
   border: var(--gm-size-divider) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -728,7 +728,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: var(--gm-border-w) solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -794,7 +794,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: var(--gm-border-w) solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -900,7 +900,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -1033,7 +1033,7 @@ a:focus-visible {
 
 .gm-import-thumb,
 .gm-import-thumb-placeholder {
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   flex-shrink: 0;
   height: var(--gm-density-control);
   width: 48px;
@@ -1051,7 +1051,7 @@ a:focus-visible {
 
 .gm-clip-image-thumb {
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   flex-shrink: 0;
   height: 40px;
   object-fit: cover;
@@ -1154,7 +1154,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -1456,7 +1456,7 @@ a:focus-visible {
 .gm-clipboard-selection-action {
   align-items: center;
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: flex;
   font-size: var(--gm-font-xs);
@@ -1579,7 +1579,7 @@ a:focus-visible {
 .gm-vault-entry-icon {
   align-items: center;
   background: var(--bg-hover);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--accent);
   display: flex;
   height: var(--gm-density-row);
@@ -1765,7 +1765,7 @@ a:focus-visible {
 .gm-privacy-dialog {
   background: var(--bg-card);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   box-shadow: var(--gm-shadow-modal);
   max-width: 420px;
   padding: var(--gm-space-6) var(--gm-space-6);
@@ -1782,7 +1782,7 @@ a:focus-visible {
 .gm-privacy-icon {
   align-items: center;
   background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--accent);
   display: flex;
   height: var(--gm-icon-empty-lg);
@@ -1814,7 +1814,7 @@ a:focus-visible {
 
 .gm-privacy-points {
   background: var(--bg-hover);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   flex-direction: column;
   gap: var(--gm-space-4);
@@ -1871,7 +1871,7 @@ a:focus-visible {
 .gm-conversation-message {
   background: transparent;
   border-left: var(--gm-size-card-rail) solid var(--green);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   margin-bottom: var(--gm-section-gap-lg);
   padding: var(--gm-space-4) var(--gm-section-gap);
 }
@@ -1919,7 +1919,7 @@ a:focus-visible {
 .gm-note-textarea {
   background: var(--bg);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   font-family: inherit;
   font-size: var(--gm-font-sm);
@@ -1954,7 +1954,7 @@ a:focus-visible {
   align-items: center;
   background: none;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   bottom: var(--gm-icon-text-gap);
   color: var(--text-secondary);
   cursor: pointer;
@@ -1998,7 +1998,7 @@ a:focus-visible {
 .gm-editor-path-row,
 .gm-editor-actions-row {
   align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   gap: var(--gm-control-gap);
   padding: var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg);
@@ -2045,7 +2045,7 @@ a:focus-visible {
 .gm-search-input {
   background: var(--bg);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   font-family: inherit;
   font-size: var(--gm-font-sm);
@@ -2340,7 +2340,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -2381,7 +2381,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
@@ -2447,7 +2447,7 @@ a:focus-visible {
 }
 
 .gm-sidebar-logo {
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   height: var(--gm-icon-result);
   width: var(--gm-icon-result);
 }
@@ -2481,7 +2481,7 @@ a:focus-visible {
   background: transparent;
   border: var(--gm-border-w) solid transparent;
   border-left: var(--gm-size-card-rail) solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -2559,7 +2559,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -2654,7 +2654,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: var(--gm-border-w) solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -2914,7 +2914,7 @@ a:focus-visible {
 .gm-code-editor-box {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   padding: var(--gm-section-gap);
 }
 
@@ -2974,13 +2974,13 @@ a:focus-visible {
 .gm-code-mirror-box {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   margin: var(--gm-section-gap);
 }
 
 .gm-editor-toolbar {
   align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--border);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex-shrink: 0;
   gap: var(--gm-space-2);
@@ -3226,7 +3226,7 @@ a:focus-visible {
 .gm-button-secondary,
 .gm-button-ghost {
   align-items: center;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: inline-flex;
   font-size: var(--gm-font-xs);
@@ -3401,7 +3401,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   color: var(--accent);
   display: flex;
   flex-shrink: 0;
@@ -3452,7 +3452,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   gap: var(--gm-space-3);
   justify-content: space-between;
@@ -3490,7 +3490,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: var(--gm-border-w) solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   gap: var(--gm-space-4);
   min-width: 0;
@@ -3512,7 +3512,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: flex;
   flex-shrink: 0;
@@ -3549,7 +3549,7 @@ a:focus-visible {
 .gm-setup-tip {
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
   line-height: var(--gm-leading-relaxed);
@@ -3623,7 +3623,7 @@ a:focus-visible {
 
 .gm-setup-button {
   align-items: center;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: flex;
   font-size: var(--gm-font-sm);
@@ -3707,7 +3707,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   display: flex;
   gap: var(--gm-space-4);
@@ -3777,7 +3777,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: 2px solid var(--border);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   color: var(--gm-color-on-accent);
   display: flex;
   flex-shrink: 0;
@@ -3803,7 +3803,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: inline-flex;
   font-size: var(--gm-font-xs);
@@ -3857,7 +3857,7 @@ a:focus-visible {
 
 .gm-setup-platform-dot {
   background: var(--gm-provider-other);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   flex-shrink: 0;
   height: var(--gm-icon-dot);
   width: var(--gm-icon-dot);
@@ -3871,7 +3871,7 @@ a:focus-visible {
 .gm-setup-input {
   background: var(--bg-input);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   box-sizing: border-box;
   color: var(--text);
   font-size: var(--gm-font-sm);
@@ -3903,7 +3903,7 @@ a:focus-visible {
 .gm-setup-info-panel {
   background: var(--bg-hover);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   padding: var(--gm-space-3) var(--gm-space-4);
 }
 
@@ -3941,7 +3941,7 @@ a:focus-visible {
 .gm-setup-public-key-box {
   align-items: center;
   border: 1px dashed var(--border);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   color: var(--text-secondary);
   display: flex;
   font-size: var(--gm-font-xs);
@@ -4068,7 +4068,7 @@ a:focus-visible {
 .gm-setup-log-panel {
   background: var(--bg-hover);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   overflow: hidden;
 }
 
@@ -4144,7 +4144,7 @@ a:focus-visible {
 
 .gm-setup-result-list {
   background: var(--bg-hover);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   margin-bottom: var(--gm-space-5);
   max-height: 220px;
   overflow-y: auto;
@@ -4466,7 +4466,7 @@ a:focus-visible {
 .gm-settings-segmented-button {
   background: var(--bg-hover);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: var(--gm-font-xs);
@@ -4503,7 +4503,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -4521,7 +4521,7 @@ a:focus-visible {
 .gm-settings-input {
   background: var(--bg);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   font-size: var(--gm-font-xs);
   padding: var(--gm-control-pad-y) var(--gm-row-pad-x);
@@ -4546,7 +4546,7 @@ a:focus-visible {
   align-items: center;
   background: var(--bg);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -4652,7 +4652,7 @@ a:focus-visible {
 
 .gm-settings-dot {
   background: var(--red);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   flex-shrink: 0;
   height: var(--gm-icon-dot);
   margin-top: var(--gm-space-2);
@@ -4724,7 +4724,7 @@ a:focus-visible {
 }
 
 .gm-settings-logo {
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   height: var(--gm-icon-hero);
   margin-bottom: var(--gm-nav-item-gap);
   width: var(--gm-icon-hero);
@@ -4783,7 +4783,7 @@ a:focus-visible {
   appearance: none;
   background: var(--bg-hover);
   border: none;
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
   flex: 1;
   height: var(--gm-space-2);
   max-width: var(--gm-size-settings-progress-width);
@@ -4792,12 +4792,12 @@ a:focus-visible {
 
 .gm-settings-update-progress-track::-webkit-progress-bar {
   background: var(--bg-hover);
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
 }
 
 .gm-settings-update-progress-track::-webkit-progress-value {
   background: var(--accent);
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
 }
 
 .gm-settings-footer-links {
@@ -4834,7 +4834,7 @@ a:focus-visible {
 .gm-onboarding-card {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
   border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 34%, var(--border));
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   margin-bottom: var(--gm-section-gap);
   padding: var(--gm-section-gap-lg);
 }
@@ -4878,7 +4878,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -4891,7 +4891,7 @@ a:focus-visible {
   appearance: none;
   background: var(--border);
   border: none;
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
   display: block;
   height: 4px;
   margin-bottom: var(--gm-section-gap);
@@ -4901,12 +4901,12 @@ a:focus-visible {
 
 .gm-onboarding-progress::-webkit-progress-bar {
   background: var(--border);
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
 }
 
 .gm-onboarding-progress::-webkit-progress-value {
   background: var(--accent);
-  border-radius: var(--gm-radius-xs);
+  border-radius: var(--gm-radius-control);
 }
 
 .gm-onboarding-list {
@@ -4917,7 +4917,7 @@ a:focus-visible {
 
 .gm-onboarding-item {
   align-items: center;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   gap: var(--gm-card-header-gap);
   padding: var(--gm-row-pad-y-comfort) var(--gm-card-pad-mobile);
@@ -4934,7 +4934,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: 2px solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   flex-shrink: 0;
   height: 22px;
@@ -4977,7 +4977,7 @@ a:focus-visible {
   align-items: center;
   background: var(--accent);
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--gm-color-on-accent);
   cursor: pointer;
   display: flex;
@@ -5003,7 +5003,7 @@ a:focus-visible {
 .gm-settings-modal {
   background: var(--bg-card);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   box-shadow: var(--gm-shadow-modal);
   display: flex;
   flex-direction: column;
@@ -5067,7 +5067,7 @@ a:focus-visible {
 .gm-settings-log-entry {
   background: var(--bg);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   overflow: hidden;
 }
 
@@ -5281,7 +5281,7 @@ a:focus-visible {
       var(--bg)
     );
   border: var(--gm-border-w) solid color-mix(in srgb, var(--accent) 20%, var(--border));
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   box-sizing: border-box;
   color: var(--text);
   font-family: var(--gm-font-mono);
@@ -5620,7 +5620,7 @@ a:focus-visible {
 .gm-dashboard-empty-guide {
   background: color-mix(in srgb, var(--accent) 6%, var(--gm-color-bg-surface));
   border: 1px dashed color-mix(in srgb, var(--accent) 44%, var(--border));
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   margin-bottom: var(--gm-section-gap);
   padding: var(--gm-section-gap-lg) var(--gm-card-pad-x);
   text-align: center;
@@ -5652,7 +5652,7 @@ a:focus-visible {
 .gm-dashboard-quick-info {
   background: var(--gm-color-bg-elevated);
   border: 1px dashed var(--border);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
 
@@ -5768,7 +5768,7 @@ a:focus-visible {
 .gm-menu-popover {
   background: var(--gm-color-bg-elevated);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   box-shadow: var(--gm-shadow-popover);
   padding: var(--gm-space-2);
 }
@@ -5804,7 +5804,7 @@ a:focus-visible {
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -5867,7 +5867,7 @@ a:focus-visible {
 .gm-kbd {
   background: var(--gm-color-bg-inset);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   display: inline-block;
   font-family: var(--gm-font-mono);
@@ -5881,7 +5881,7 @@ a:focus-visible {
 .gm-floating-toast {
   background: var(--gm-color-bg-elevated);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   box-shadow: var(--gm-shadow-popover);
   z-index: 50;
 }
@@ -5910,7 +5910,7 @@ a:focus-visible {
 .gm-error-panel {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   max-width: min(760px, 88vw);
   padding: var(--gm-space-5);
   width: 100%;
@@ -5918,7 +5918,7 @@ a:focus-visible {
 
 .gm-error-log {
   background: var(--gm-color-bg-inset);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   font-family: var(--gm-font-mono);
   font-size: var(--gm-font-xs);
@@ -6001,7 +6001,7 @@ a:focus-visible {
 .gm-drop-card {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   box-shadow: var(--gm-shadow-modal);
   max-width: var(--gm-size-drop-card-max-width);
   overflow: hidden;
@@ -6032,7 +6032,7 @@ a:focus-visible {
   align-items: center;
   background: var(--gm-accent-soft);
   border: none;
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   color: var(--accent);
   display: flex;
   flex-shrink: 0;
@@ -6057,7 +6057,7 @@ a:focus-visible {
 .gm-drop-summary {
   background: var(--gm-color-bg-elevated);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   margin-bottom: var(--gm-space-6);
   padding: var(--gm-space-4) var(--gm-space-5);
 }
@@ -6094,7 +6094,7 @@ a:focus-visible {
 .gm-drop-action {
   background: var(--gm-color-bg-elevated);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   cursor: pointer;
   padding: var(--gm-space-5);
   text-align: left;
@@ -6155,7 +6155,7 @@ a:focus-visible {
   align-items: center;
   background: var(--gm-color-bg-elevated);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   bottom: 0;
   box-shadow: var(--gm-shadow-soft);
   display: flex;
@@ -6198,7 +6198,7 @@ a:focus-visible {
 .gm-find-input {
   background: var(--gm-color-bg-inset);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   flex: 1;
   min-height: var(--gm-size-find-input-min-height);
@@ -6358,7 +6358,7 @@ a:focus-visible {
   align-items: center;
   background: var(--accent);
   border: var(--gm-border-w) solid var(--accent);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--gm-color-on-accent);
   cursor: pointer;
   display: inline-flex;
@@ -6378,7 +6378,7 @@ a:focus-visible {
 .gm-quick-paste-panel {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-lg);
+  border-radius: var(--gm-radius-panel);
   box-shadow: var(--gm-shadow-modal), var(--gm-shadow-inset-top);
   overflow: hidden;
   width: min(560px, 100%);
@@ -6429,7 +6429,7 @@ a:focus-visible {
   background: transparent;
   border: none;
   border-left: 2px solid transparent;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   color: var(--text);
   cursor: pointer;
   display: flex;
@@ -6461,7 +6461,7 @@ a:focus-visible {
   align-items: center;
   background: var(--gm-color-bg-elevated);
   border: none;
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   display: flex;
   flex-shrink: 0;
   height: var(--gm-size-quick-paste-result-icon);
@@ -6547,7 +6547,7 @@ a:focus-visible {
 }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--text-secondary) 42%, transparent);
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
 }
 [data-theme="light"] ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--text-secondary) 34%, transparent);
@@ -6659,7 +6659,7 @@ select:focus-visible {
 .markdown-body pre {
   background: var(--gm-color-bg-inset);
   border: var(--gm-border-w) solid var(--border);
-  border-radius: var(--gm-radius-md);
+  border-radius: var(--gm-radius-control);
   padding: var(--gm-space-4) var(--gm-space-5);
   margin-bottom: 1em;
   overflow-x: auto;
@@ -6717,7 +6717,7 @@ select:focus-visible {
 
 .markdown-body img {
   max-width: 100%;
-  border-radius: var(--gm-radius-sm);
+  border-radius: var(--gm-radius-control);
 }
 
 .markdown-body input[type="checkbox"] {
