@@ -284,7 +284,7 @@ rg -n -B20 '#[0-9a-fA-F]{3,6}|rgba?\(|[0-9]+px' desktop/src/index.css \
 | 面板圆角引用数 | `rg -c 'var\(--gm-radius-panel\)' desktop/src/index.css` | 16 | 上升 |
 | 列表行高引用数 | `rg -c 'var\(--gm-density-row\)' desktop/src/index.css` | 11 | 上升 |
 | 写死的 `1px solid` | `rg -c '1px solid' desktop/src/index.css` | 0 | 恒为 0 |
-| 组件里写死的色值 | 见 §0 第四条 | 13 行（11 打印豁免 + 2 预览遮罩） | 恒为 13 或更低 |
+| 组件里写死的色值 | 见 §0 第四条 | 11 行，全部在打印块 | 恒为 11 或更低（组件层恒为 0） |
 
 用法：改完一页，跑一遍这七条，把数字记在提交说明里。数字不动就是没接上——比看截图可靠，因为截图看不出「这块颜色是变量还是写死的」。
 
