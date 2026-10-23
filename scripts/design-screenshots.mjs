@@ -63,6 +63,28 @@ const ROUTES = [
   { id: "favorites", navKey: "favorites", marker: null },
 ];
 
+/**
+ * Every navigable surface in the desktop app. `nav` describes how to reach it
+ * from a cold load; `marker` is what has to be visible before the shutter.
+ * `theme` runs are desktop-only, which is why mobile entries are absent here.
+ */
+const PAGES = [
+  { id: "dashboard", nav: { kind: "sidebar", key: "dashboard" }, marker: ".gm-dashboard-page" },
+  { id: "search", nav: { kind: "sidebar", key: "search" }, marker: ".gm-page-frame-column" },
+  { id: "ai-records", nav: { kind: "sidebar", key: "aiRecords" }, marker: ".gm-ai-records-page" },
+  { id: "ai-records-plans", nav: { kind: "tab", page: "aiRecords", tab: "plans" }, marker: '.gm-split-pane[data-panel-key="plans"]' },
+  { id: "notes", nav: { kind: "sidebar", key: "notes" }, marker: null },
+  { id: "clipboard", nav: { kind: "sidebar", key: "clipboard" }, marker: ".gm-clipboard-page" },
+  { id: "vault", nav: { kind: "more", key: "vault" }, marker: ".gm-vault-page" },
+  { id: "favorites", nav: { kind: "sidebar", key: "favorites" }, marker: null },
+  { id: "imports", nav: { kind: "more", key: "imports" }, marker: '.gm-split-pane[data-panel-key="imports"]' },
+  { id: "claude-config", nav: { kind: "more", key: "claudeConfig" }, marker: '.gm-split-pane[data-panel-key="claude-config"]' },
+  { id: "editor-home", nav: { kind: "settings-editor" }, marker: '.gm-split-pane[data-panel-key="editor-home"]' },
+  { id: "external-files", nav: { kind: "more", key: "externalFiles" }, marker: '.gm-split-pane[data-panel-key="external-files"]' },
+  { id: "settings", nav: { kind: "more", key: "settings" }, marker: ".gm-settings-page" },
+  { id: "quick-paste", nav: { kind: "url", path: "quick-paste.html" }, marker: ".gm-quick-paste-shell" },
+];
+
 const VIEWPORTS = {
   desktop: { width: 1440, height: 900, family: "desktop", os: "macos", dir: "desktop-1440" },
   mobile: { width: 390, height: 844, family: "mobile", os: "android", dir: "mobile-390" },
@@ -91,9 +113,12 @@ function parseArgs(argv) {
     out: DEFAULT_OUT,
     viewports: ["desktop", "mobile"],
     routes: ROUTES.map((r) => r.id),
+    allPages: false,
+    themes: ["dark"],
+    themeDirs: false,
     url: null,
     port: 5273,
-    theme: "dark",
+    theme: null,
     locale: "en",
     stub: true,
     emptyState: false,
@@ -130,6 +155,32 @@ function parseArgs(argv) {
         opts.routes = list;
         break;
       }
+      case "--pages": {
+        const list = value().split(",").map((s) => s.trim()).filter(Boolean);
+        if (list.includes("all")) {
+          opts.allPages = true;
+          opts.routes = PAGES.map((page) => page.id);
+        } else {
+          for (const id of list) if (!PAGES.some((page) => page.id === id)) {
+            throw new Error(`unknown page: ${id} (${PAGES.map((page) => page.id).join(", ")})`);
+          }
+          opts.allPages = true;
+          opts.routes = list;
+        }
+        opts.viewports = ["desktop"];
+        opts.themeDirs = true;
+        break;
+      }
+      case "--themes": {
+        const list = value().split(",").map((s) => s.trim()).filter(Boolean);
+        for (const t of list) if (!["dark", "light"].includes(t)) throw new Error(`unknown theme: ${t} (dark, light)`);
+        opts.themes = list;
+        opts.themeDirs = true;
+        break;
+      }
+      case "--theme-dirs":
+        opts.themeDirs = true;
+        break;
       case "--url":
         opts.url = value().replace(/\/$/, "");
         break;
@@ -140,6 +191,7 @@ function parseArgs(argv) {
       case "--theme":
         opts.theme = value();
         if (!["dark", "light"].includes(opts.theme)) throw new Error("--theme must be dark or light");
+        opts.themes = [opts.theme];
         break;
       case "--locale":
         opts.locale = value();
@@ -161,6 +213,7 @@ function parseArgs(argv) {
         throw new Error(`unknown argument: ${arg}`);
     }
   }
+  if (!opts.theme) opts.theme = opts.themes[0];
   return opts;
 }
 
@@ -173,10 +226,13 @@ Usage
 Options
   --viewport=<list>   desktop | mobile | desktop,mobile        (default: both)
   --routes=<list>     ${ROUTES.map((r) => r.id).join(" | ")}
+  --pages=<list>      14 desktop surfaces, or "all": ${PAGES.map((p) => p.id).join(", ")}
+                      (forces desktop viewport and per-theme folders)
+  --themes=<list>     dark | light | dark,light                (default: dark)
   --out=<dir>         output directory (default: desktop/.design-baseline)
   --url=<url>         use an already running dev server instead of spawning one
   --port=<n>          dev server port (default: 5273)
-  --theme=dark|light  theme pinned in localStorage (default: dark)
+  --theme=dark|light  single theme (same as --themes with one value)
   --locale=en|zh      UI language pinned in localStorage (default: en)
   --no-stub           do not stub the Tauri backend (captures error states)
   --empty-state       stub zero counts instead of sample counts (first-run UI)
@@ -185,14 +241,15 @@ Options
   -h, --help          show this help
 
 Output
-  <out>/<viewport-1440|mobile-390>/<route>.png   one 1x screenshot per route
-  <out>/manifest.json                            sizes + sha256 per screenshot
+  routes mode:  <out>/<desktop-1440|mobile-390>/<route>.png
+  pages mode:   <out>/<theme>/<page>.png
+  <out>/manifest.json            one entry per screenshot, with sha256
 
 Notes
   * Playwright is used from an existing install; nothing is added to package.json.
   * The Tauri backend is stubbed in-page so empty states render deterministically.
-  * Screenshots are pixel-comparable across runs on the same machine.
-  * desktop/.design-baseline/ is git-ignored; it is a local baseline, not a build artifact.
+  * Theme switching uses the product's own localStorage key (gitmemo-theme).
+  * desktop/.design-baseline/ is git-ignored; it is a local baseline.
 `);
 }
 
@@ -259,8 +316,6 @@ function stopDevServer(server) {
     child.kill("SIGTERM");
   });
 }
-
-// --------------------------------------------------------------- playwright
 
 function readVersion(pkgDir) {
   try {
@@ -429,32 +484,38 @@ function backendStub(viewport, opts) {
 
 function loadLabels(locale) {
   const file = join(DESKTOP, "src", "locales", `${locale}.json`);
-  const nav = JSON.parse(readFileSync(file, "utf8")).nav ?? {};
-  const missing = ROUTES.filter((r) => !nav[r.navKey]).map((r) => r.navKey);
+  const data = JSON.parse(readFileSync(file, "utf8"));
+  const nav = data.nav ?? {};
+  const settings = data.settings ?? {};
+  const missing = PAGES
+    .filter((page) => page.nav.key && page.nav.key !== "plans" && !nav[page.nav.key])
+    .map((page) => page.nav.key);
   if (missing.length) throw new Error(`locale ${locale} is missing nav labels: ${missing.join(", ")}`);
-  return nav;
+  if (!nav.plans) throw new Error(`locale ${locale} is missing nav.plans`);
+  return { nav, settings };
 }
 
 // ------------------------------------------------------------------- capture
 
-async function openPage(browser, viewport, opts, labels) {
+async function openPage(browser, viewport, opts, theme) {
   const { width, height } = VIEWPORTS[viewport];
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
-    colorScheme: opts.theme,
+    colorScheme: theme,
     reducedMotion: "reduce",
     locale: opts.locale === "zh" ? "zh-CN" : "en-US",
     timezoneId: "UTC",
     acceptDownloads: false,
   });
   if (opts.stub) await context.addInitScript(backendStub(viewport, opts));
+  // The product reads the theme from this key on boot; do not invent a switch.
   await context.addInitScript(
     ({ theme, locale }) => {
       localStorage.setItem("gitmemo-theme", theme);
       localStorage.setItem("gitmemo-locale", locale);
     },
-    { theme: opts.theme, locale: opts.locale },
+    { theme, locale: opts.locale },
   );
 
   const page = await context.newPage();
@@ -473,17 +534,81 @@ async function openPage(browser, viewport, opts, labels) {
   return { context, page, errors };
 }
 
+async function clickSidebar(page, label, opts) {
+  if (!(await page.locator(".gm-sidebar").count())) {
+    await page.locator(".gm-sidebar-boundary-toggle").click();
+  }
+  const item = page.locator(".gm-sidebar-nav").getByRole("button", { name: label, exact: true });
+  if (!(await item.count())) throw new Error(`sidebar has no "${label}" entry`);
+  await item.first().click();
+}
+
+async function clickMore(page, label, opts) {
+  const toggle = page.locator(".gm-sidebar-more-toggle");
+  if ((await toggle.getAttribute("data-open")) !== "true") await toggle.click();
+  const item = page.locator(".gm-sidebar-more-group").getByRole("button", { name: label, exact: true });
+  if (!(await item.count())) throw new Error(`More menu has no "${label}" entry`);
+  await item.first().click();
+}
+
+async function navigateDesktop(page, route, labels, opts) {
+  const nav = route.nav;
+
+  if (nav.kind === "url") {
+    await page.goto(`${opts.url}${nav.path}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    await page.waitForSelector(route.marker, { timeout: opts.timeoutMs });
+    return page.locator(route.marker).first();
+  }
+
+  // Come back from a secondary window/route if the previous page was one.
+  if (!(await page.locator(".gm-app-shell").count())) {
+    await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    await page.waitForSelector(".gm-app-shell", { timeout: opts.timeoutMs });
+  }
+
+  if (nav.kind === "sidebar") {
+    await clickSidebar(page, labels.nav[nav.key], opts);
+  } else if (nav.kind === "more") {
+    await clickMore(page, labels.nav[nav.key], opts);
+  } else if (nav.kind === "tab") {
+    await clickSidebar(page, labels.nav[nav.page], opts);
+    const tab = page.getByRole("button", { name: labels.nav[nav.tab], exact: true });
+    if (!(await tab.count())) throw new Error(`no "${labels.nav[nav.tab]}" tab`);
+    await tab.first().click();
+  } else if (nav.kind === "settings-editor") {
+    await clickMore(page, labels.nav.settings, opts);
+    await page.waitForSelector(".gm-settings-page", { timeout: opts.timeoutMs });
+    // Local folders are a settings sub-section, not a row on the index screen.
+    const section = page.locator(".gm-settings-page").getByText(labels.settings.sectionIntegrations, { exact: true }).first();
+    if (!(await section.count())) throw new Error("settings has no integrations section");
+    await section.click();
+    const row = page.locator(".gm-settings-row").filter({ hasText: labels.settings.localDirs }).first();
+    if (!(await row.count())) throw new Error("settings has no local-dirs row");
+    await row.getByRole("button", { name: labels.settings.open, exact: true }).first().click();
+  } else {
+    throw new Error(`unknown navigation kind: ${nav.kind}`);
+  }
+
+  const marker = route.marker
+    ? page.locator('.gm-app-page-mount[data-active="true"]').locator(route.marker).first()
+    : null;
+  if (marker) await marker.waitFor({ state: "visible", timeout: opts.timeoutMs });
+  return marker;
+}
+
 async function navigate(page, viewport, route, labels, opts) {
-  const label = labels[route.navKey];
+  if (opts.allPages) {
+    const marker = await navigateDesktop(page, route, labels, opts);
+    await page.evaluate(() => document.fonts?.ready);
+    await page.waitForTimeout(250);
+    return marker;
+  }
+
+  const label = labels.nav[route.navKey];
   let activeNav = null;
 
   if (viewport === "desktop") {
-    if (!(await page.locator(".gm-sidebar").count())) {
-      await page.locator(".gm-sidebar-boundary-toggle").click();
-    }
-    const item = page.locator(".gm-sidebar-nav").getByRole("button", { name: label, exact: true });
-    if (!(await item.count())) throw new Error(`sidebar has no "${label}" entry`);
-    await item.first().click();
+    await clickSidebar(page, label, opts);
     activeNav = page.locator('.gm-sidebar-nav-item[data-active="true"]').filter({ hasText: label }).first();
   } else {
     const tab = page.locator(".gm-bottom-nav-item").filter({ hasText: label });
@@ -532,52 +657,59 @@ async function runCapture(opts) {
     process.stdout.write(`note: bundled Chromium for playwright ${pwVersion} missing, using ${fallback}\n`);
   }
 
+  const catalogue = opts.allPages ? PAGES : ROUTES;
   const startedAt = new Date().toISOString();
   const shots = [];
   const errorsByRoute = [];
 
   try {
-    for (const viewport of opts.viewports) {
-      const dir = join(opts.out, VIEWPORTS[viewport].dir);
-      mkdirSync(dir, { recursive: true });
-      const { context, page, errors } = await openPage(browser, viewport, opts, labels);
-      try {
-        for (const routeId of opts.routes) {
-          const route = ROUTES.find((r) => r.id === routeId);
-          await navigate(page, viewport, route, labels, opts);
-          const file = join(dir, `${route.id}.png`);
-          const { sha256, bytes } = await capture(page, file);
-          shots.push({
-            route: route.id,
-            viewport,
-            width: VIEWPORTS[viewport].width,
-            height: VIEWPORTS[viewport].height,
-            file: `${VIEWPORTS[viewport].dir}/${route.id}.png`,
-            sha256,
-            bytes,
-          });
-          process.stdout.write(`  ${viewport.padEnd(7)} ${route.id.padEnd(11)} ${String(bytes).padStart(7)} B  ${sha256.slice(0, 12)}\n`);
+    for (const theme of opts.themes) {
+      for (const viewport of opts.viewports) {
+        const dir = join(opts.out, opts.themeDirs ? theme : VIEWPORTS[viewport].dir);
+        mkdirSync(dir, { recursive: true });
+        const { context, page, errors } = await openPage(browser, viewport, opts, theme);
+        try {
+          for (const routeId of opts.routes) {
+            const route = catalogue.find((r) => r.id === routeId);
+            if (!route) throw new Error(`unknown capture target: ${routeId}`);
+            await navigate(page, viewport, route, labels, opts);
+            const file = join(dir, `${route.id}.png`);
+            const { sha256, bytes } = await capture(page, file);
+            shots.push({
+              route: route.id,
+              viewport,
+              theme,
+              width: VIEWPORTS[viewport].width,
+              height: VIEWPORTS[viewport].height,
+              file: `${opts.themeDirs ? theme : VIEWPORTS[viewport].dir}/${route.id}.png`,
+              sha256,
+              bytes,
+            });
+            const label = theme === "dark" ? viewport : `${viewport}/${theme}`;
+            process.stdout.write(`  ${label.padEnd(15)} ${route.id.padEnd(17)} ${String(bytes).padStart(7)} B  ${sha256.slice(0, 12)}\n`);
+          }
+        } catch (err) {
+          errorsByRoute.push({ viewport: `${viewport}/${theme}`, message: err.message.split("\n")[0] });
+        } finally {
+          if (errors.length) errorsByRoute.push({ viewport: `${viewport}/${theme}`, message: `page errors: ${errors.slice(0, 3).join(" | ")}` });
+          await context.close();
         }
-      } catch (err) {
-        errorsByRoute.push({ viewport, message: err.message.split("\n")[0] });
-      } finally {
-        if (errors.length) errorsByRoute.push({ viewport, message: `page errors: ${errors.slice(0, 3).join(" | ")}` });
-        await context.close();
       }
     }
   } finally {
     await browser.close();
   }
 
-  // A partial run (one viewport or a route subset) must not erase the rest of
-  // the baseline; merge instead.
-  const partial = opts.viewports.length < Object.keys(VIEWPORTS).length || opts.routes.length < ROUTES.length;
+  // A partial run must not erase the rest of the baseline; merge instead.
+  const expected = opts.themes.length * opts.viewports.length * opts.routes.length;
+  const partial = shots.length < expected;
   let mergedShots = shots;
   if (partial && existsSync(join(opts.out, MANIFEST))) {
     try {
       const previous = JSON.parse(readFileSync(join(opts.out, MANIFEST), "utf8"));
-      const fresh = new Set(shots.map((s) => `${s.viewport}/${s.route}`));
-      mergedShots = [...previous.shots.filter((s) => !fresh.has(`${s.viewport}/${s.route}`)), ...shots];
+      const keyOf = (s) => `${s.theme || "dark"}/${s.viewport}/${s.route}`;
+      const fresh = new Set(shots.map(keyOf));
+      mergedShots = [...previous.shots.filter((s) => !fresh.has(keyOf(s))), ...shots];
     } catch { /* unreadable manifest: replace it */ }
   }
 
@@ -587,7 +719,8 @@ async function runCapture(opts) {
     tool: "scripts/design-screenshots.mjs",
     playwright: pwVersion,
     chromiumFallback: fallback ? "cache" : null,
-    theme: opts.theme,
+    mode: opts.allPages ? "pages" : "routes",
+    themes: opts.themes,
     locale: opts.locale,
     backendStub: opts.stub,
     viewports: opts.viewports,
@@ -639,14 +772,15 @@ async function main() {
       const fresh = await runCapture(opts);
       writeFileSync(join(opts.out, MANIFEST), `${JSON.stringify({ ...fresh, comparedWith: previous.generatedAt }, null, 2)}\n`);
 
-      const prevMap = new Map(allShots.map((s) => [`${s.viewport}/${s.route}`, s]));
-      const diffs = fresh.shots.filter((s) => prevMap.get(`${s.viewport}/${s.route}`)?.sha256 !== s.sha256);
+      const keyOf = (s) => `${s.theme || "dark"}/${s.viewport}/${s.route}`;
+      const prevMap = new Map(allShots.map((s) => [keyOf(s), s]));
+      const diffs = fresh.shots.filter((s) => prevMap.get(keyOf(s))?.sha256 !== s.sha256);
       if (diffs.length === 0) {
         process.stdout.write(`identical to previous run (${previous.generatedAt}) — ${fresh.shots.length} screenshots\n`);
         return 0;
       }
       process.stdout.write(`changed screenshots vs ${previous.generatedAt}:\n`);
-      for (const s of diffs) process.stdout.write(`  ${s.viewport}/${s.route}  ${s.file}\n`);
+      for (const s of diffs) process.stdout.write(`  ${s.theme || "dark"}/${s.viewport}/${s.route}  ${s.file}\n`);
       return 1;
     }
 
