@@ -2689,8 +2689,9 @@ a:focus-visible {
 }
 
 .gm-bottom-nav-label {
-  font-size: var(--gm-font-xs);
+  font-size: var(--gm-font-2xs);
   font-weight: 620;
+  letter-spacing: -0.01em;
   line-height: var(--gm-leading-tight);
   max-width: 100%;
   overflow: hidden;
