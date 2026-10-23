@@ -1007,11 +1007,11 @@
   --gm-danger: #e8786a;
   --gm-danger-tint: rgba(232, 120, 106, 0.12);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    /* 与上面 [data-theme="dark"] 相同的 27 个颜色值，实现时复制一份 */
-  }
-}
 ```
+
+主题切换的实现方式（不是可选项，写进代码时照此实现）：
+
+1. CSS 里只有两块：`:root`（纸面）与 `[data-theme="dark"]`（深夜）。不写 `@media (prefers-color-scheme)` 的重复色块，避免同一组值复制两遍后出现漂移。
+2. 应用启动时读 `localStorage.theme`，没有则读 `window.matchMedia("(prefers-color-scheme: dark)")`，把结果写到 `<html data-theme="dark">` 或 `<html data-theme="light">`。
+3. 用户手动切换后写回 `localStorage.theme`，此后不再跟随系统。
+4. 首帧闪烁用 `<html data-theme="...">` 在 Tauri 窗口创建时预置解决，不用 JS 事后补。
