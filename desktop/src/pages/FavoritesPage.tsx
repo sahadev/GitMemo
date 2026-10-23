@@ -8,6 +8,7 @@ import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
 import { AppIcon } from "../components/base/AppIcon";
+import { PaneHeader } from "../components/AppHeaders";
 import { Badge } from "../components/base/Badge";
 import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
@@ -182,13 +183,14 @@ export default function FavoritesPage({
 
   const list = (
     <ListPane>
-      <div className="gm-inst-identity gm-inst-pane-identity">
-        <span className="gm-inst-identity-mark">{t("favorites.title")}</span>
-        <span className="gm-inst-identity-spacer" />
-        <span className="gm-inst-identity-count gm-favorites-count">
-          {t("favorites.count", favorites.length)}
-        </span>
-      </div>
+      <PaneHeader
+        icon={Star}
+        iconFill="currentColor"
+        title={t("favorites.title")}
+        actions={(
+          <Badge>{t("favorites.count", favorites.length)}</Badge>
+        )}
+      />
       <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
           <Loading compact text={t("common.loading")} />

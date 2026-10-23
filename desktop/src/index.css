@@ -7242,12 +7242,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 .gm-inst-list-count { color: var(--gm-text-2); }
 .gm-favorites-count { white-space: nowrap; }
-
-/* 分栏页的身份栏：和仪表盘同一套类，线用常规线而不是强线，避免压过分栏边界 */
-.gm-inst-pane-identity {
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
-  padding: 0 var(--gm-list-header-pad-x);
-}
 .gm-inst-list-rows { flex: 1; min-height: 0; overflow-y: auto; }
 .gm-inst-list-row {
   align-items: center;
