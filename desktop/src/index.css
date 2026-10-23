@@ -2009,7 +2009,8 @@ a:focus-visible {
   align-items: center;
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
-  gap: var(--gm-control-gap);
+  /* 圆角归零后 4px 缝会让两个按钮读成一个控件被切开，用 8px 拉开 */
+  gap: var(--gm-space-3);
   padding: var(--gm-control-pad-y-lg) var(--gm-control-pad-x-lg);
 }
 
