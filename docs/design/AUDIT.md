@@ -2,7 +2,7 @@
 
 依据：`docs/design/LANGUAGE.md`。
 工具：`node scripts/audit_design_language.mjs`（加 `--strict` 有命中即退出码 1，加 `--json` 出机器可读结果）。
-扫描范围：`desktop/src` 下 133 个 `.css` / `.tsx` / `.ts` 文件，样式集中在单个 `index.css`（7010 行）。
+扫描范围：`desktop/src` 下 133 个 `.css` / `.tsx` / `.ts` 文件，样式集中在单个 `index.css`。
 本次不改任何界面代码。
 
 ## 结果
