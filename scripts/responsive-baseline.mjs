@@ -328,6 +328,29 @@ async function openAt(browser, width, skin, opts) {
   return { context, page };
 }
 
+/**
+ * 等页面“稳定下来”再量：连续两次采样几何签名一致才算稳定。
+ * 加载抖动（目录树/空态切换）会让深浅两套拍到不同内容，那不是布局回归。
+ * 超时不猜，直接标记 unstable，交给报告显式说明。
+ */
+async function waitForStable(page, opts, timeoutMs = 8000) {
+  const started = Date.now();
+  let previous = null;
+  while (Date.now() - started < timeoutMs) {
+    const current = await page.evaluate(() => {
+      const nodes = Array.from(document.querySelectorAll(".gm-app-page-mount[data-active='true'] *"));
+      return nodes.map((el) => {
+        const r = el.getBoundingClientRect();
+        return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}`;
+      }).join("|");
+    });
+    if (previous !== null && current === previous) return true;
+    previous = current;
+    await page.waitForTimeout(120);
+  }
+  return false;
+}
+
 async function captureCase(browser, labels, pageId, width, skin, opts) {
   const route = PAGES.find((p) => p.id === pageId);
   const { context, page } = await openAt(browser, width, skin, opts);
@@ -339,14 +362,15 @@ async function captureCase(browser, labels, pageId, width, skin, opts) {
     // be captured in the same pre-theme frame and the comparison is vacuous.
     await page.waitForFunction((skin) => document.documentElement.dataset.theme === skin, skin, { timeout: 5000 }).catch(() => {});
     await page.evaluate(() => document.fonts?.ready);
-    await page.waitForTimeout(400);
+    const stable = await waitForStable(page, opts);
+    await page.waitForTimeout(200);
 
     const measured = await page.evaluate(MEASURE);
     const dir = join(opts.out, String(width), skin);
     mkdirSync(dir, { recursive: true });
     const file = join(dir, `${pageId}.png`);
     await page.screenshot({ path: file, animations: "disabled", caret: "hide" });
-    return { pageId, width, skin, file, ...measured, geometryHash: geometryHash(measured.geometry) };
+    return { pageId, width, skin, file, stable, ...measured, geometryHash: geometryHash(measured.geometry) };
   } finally {
     await context.close();
   }
@@ -453,17 +477,28 @@ async function main() {
     const byKey = new Map();
     for (const r of results) {
       const key = `${r.width}/${r.pageId}`;
-      const entry = byKey.get(key) ?? { key };
+      const entry = byKey.get(key) ?? { key, unstable: [] };
       entry[r.skin] = r.geometryHash;
+      if (r.stable === false) entry.unstable.push(r.skin);
       byKey.set(key, entry);
     }
     for (const entry of byKey.values()) {
+      // 任一皮肤没稳定下来就不比：宁可报「未稳定」，也不让抖动冒充回归
+      if (entry.unstable.length) {
+        layoutRows.push({ key: entry.key, a: entry.dark, b: entry.light, match: false, unstable: entry.unstable });
+        continue;
+      }
       if (!entry.dark || !entry.light) continue;
       layoutRows.push({ key: entry.key, a: entry.dark, b: entry.light, match: entry.dark === entry.light });
     }
     layoutRows.sort((x, y) => (x.key < y.key ? -1 : 1));
     for (const row of layoutRows) {
-      if (!row.match) failures.push({ width: row.key.split("/")[0], page: row.key.split("/")[1], kind: "换肤布局变化", detail: `${row.a} ≠ ${row.b}` });
+      if (!row.match) failures.push({
+        width: row.key.split("/")[0],
+        page: row.key.split("/")[1],
+        kind: row.unstable ? "页面未稳定，未参与比对" : "换肤布局变化",
+        detail: row.unstable ? `${row.unstable.join(",")} 皮肤在超时内未稳定` : `${row.a} ≠ ${row.b}`,
+      });
     }
 
     const contaminated = pass.contaminated;
@@ -492,7 +527,7 @@ async function main() {
     }
     process.stdout.write("\n换肤布局对齐（同宽度下深/浅几何签名对比）\n");
     for (const row of layoutRows) {
-      process.stdout.write(`  ${row.key.padEnd(20)} ${row.match ? "一致" : `不一致 ${row.a} ≠ ${row.b}`}\n`);
+      process.stdout.write(`  ${row.key.padEnd(20)} ${row.match ? "一致" : (row.unstable ? "未稳定（未比对）" : `不一致 ${row.a} ≠ ${row.b}`)}\n`);
     }
 
     if (failures.length) {

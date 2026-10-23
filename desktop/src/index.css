@@ -7614,6 +7614,9 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 
 @media (max-width: 1023px) {
+  /* 窄栏里的分段控件允许换行：不换行会被容器边缘裁字 */
+  .gm-segment-row,
+  .gm-compact-tab-row { flex-wrap: wrap; }
   .gm-inst-body { grid-template-columns: minmax(0, 1fr); }
   .gm-inst-list {
     border-bottom: var(--gm-border-w) solid var(--gm-line-strong);
