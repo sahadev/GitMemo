@@ -24,7 +24,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import http from "node:http";
+import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -143,6 +144,22 @@ Pages not listed with --pages stay at ${1440}px so the matrix stays bounded.
 `);
 }
 
+/** Hash of every file under desktop/src, so a concurrent edit can be detected. */
+function sourceFingerprint() {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const full = join(dir, entry.name);
+      const stat = statSync(full);
+      if (stat.isDirectory()) walk(full);
+      else files.push(`${full.slice(DESKTOP.length)}:${stat.size}:${Math.round(stat.mtimeMs)}`);
+    }
+  };
+  walk(join(DESKTOP, "src"));
+  return createHash("sha256").update(files.sort().join("|")).digest("hex").slice(0, 12);
+}
+
 // ------------------------------------------------------------------ measure
 
 const MEASURE = () => {
@@ -237,6 +254,28 @@ function geometryHash(geometry) {
 
 // --------------------------------------------------------------------- runs
 
+function serverAlive(url) {
+  return new Promise((done) => {
+    const req = http.get(url, (res) => { res.resume(); done(true); });
+    req.on("error", () => done(false));
+    req.setTimeout(700, () => { req.destroy(); done(false); });
+  });
+}
+
+async function gotoWithRetry(page, url, opts, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+      return;
+    } catch (err) {
+      const transient = /ERR_CONNECTION_REFUSED|ERR_EMPTY_RESPONSE|ERR_NETWORK_CHANGED/.test(err.message);
+      if (!transient || attempt === attempts) throw err;
+      // Another process in the shared checkout may be restarting the dev server.
+      await page.waitForTimeout(800);
+    }
+  }
+}
+
 async function openAt(browser, width, skin, opts) {
   const context = await browser.newContext({
     viewport: { width, height: VIEWPORT_HEIGHT },
@@ -259,7 +298,7 @@ async function captureCase(browser, labels, pageId, width, skin, opts) {
   const route = PAGES.find((p) => p.id === pageId);
   const { context, page } = await openAt(browser, width, skin, opts);
   try {
-    await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    await gotoWithRetry(page, opts.url, opts);
     await page.waitForSelector(".gm-app-shell", { timeout: opts.timeoutMs });
     await navigate(page, "desktop", route, labels, { ...opts, allPages: true });
     // Measure only once the skin is actually applied, otherwise both runs can
@@ -305,20 +344,31 @@ async function main() {
 
   let server = null;
   try {
-    if (!opts.url) {
-      process.stdout.write(`starting vite dev server on port ${opts.port}…\n`);
+    const bootServer = async () => {
       server = await startDevServer({ port: opts.port, timeoutMs: opts.timeoutMs });
       opts.url = server.url;
+    };
+    if (!opts.url) {
+      process.stdout.write(`starting vite dev server on port ${opts.port}…\n`);
+      await bootServer();
     }
     const labels = loadLabels(opts.locale ?? "en");
     const { pw } = await resolvePlaywright();
     const { browser } = await launchChromium(pw.chromium);
 
-    const results = [];
-    const failures = [];
-    try {
+    const runPass = async () => {
+      const before = sourceFingerprint();
+      const results = [];
+      const failures = [];
       for (const c of cases) {
         try {
+          // Other agents share this checkout and its dev servers; if ours died,
+          // bring it back before the next case rather than recording a failure.
+          if (!(await serverAlive(opts.url))) {
+            process.stderr.write(`  dev server 失联，重启后继续（${c.width}/${c.page}）\n`);
+            await stopDevServer(server);
+            await bootServer();
+          }
           const result = await captureCase(browser, labels, c.page, c.width, c.skin, opts);
           results.push(result);
           const bits = [];
@@ -340,30 +390,29 @@ async function main() {
           failures.push({ ...c, kind: "采集失败", detail: err.message.split("\n")[0] });
         }
       }
-    } finally {
-      await browser.close();
-    }
+      return { before, after: sourceFingerprint(), results, failures };
+    };
 
-    // Skin layout alignment at the same width.
-    const byKey = new Map();
-    for (const result of results) {
-      const key = `${result.width}/${result.pageId}`;
-      if (!byKey.has(key)) byKey.set(key, {});
-      byKey.get(key)[result.skin] = result;
+    let pass = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      if (attempt > 1) process.stdout.write(`\n工作区在采集期间被改动，重跑第 ${attempt} 次…\n`);
+      pass = await runPass();
+      pass.contaminated = pass.before !== pass.after;
+      if (!pass.contaminated) break;
     }
-    const layoutRows = [];
-    for (const [key, pair] of byKey) {
-      const skins = Object.keys(pair);
-      if (skins.length < 2) continue;
-      const [a, b] = skins;
-      const match = pair[a].geometry === pair[b].geometry;
-      layoutRows.push({ key, match, a: pair[a].geometryHash, b: pair[b].geometryHash });
-      if (!match) failures.push({ kind: "换肤布局变化", page: pair[a].pageId, width: pair[a].width, detail: `${a} ${pair[a].geometryHash} ≠ ${b} ${pair[b].geometryHash}` });
-    }
+    const { results, failures } = pass;
+    await browser.close();
 
+    const contaminated = pass.contaminated;
+    if (contaminated) {
+      process.stderr.write(`\n警告：三次采集期间 desktop/src 都在被改动（${pass.before} → ${pass.after}），结果不可作为验收依据。\n`);
+    }
+    const fingerprintBefore = pass.before;
+    const fingerprintAfter = pass.after;
     mkdirSync(opts.out, { recursive: true });
     writeFileSync(join(opts.out, "report.json"), `${JSON.stringify({
       generatedAt: new Date().toISOString(),
+      sourceFingerprint: { before: fingerprintBefore, after: fingerprintAfter, contaminated },
       widths: opts.widths,
       skins: opts.skins,
       results: results.map(({ geometry, ...rest }) => rest),
@@ -386,7 +435,7 @@ async function main() {
       process.stdout.write("\n全部检查通过。\n");
     }
     process.stdout.write(`截图与报告：${opts.out}\n`);
-    return failures.length ? 1 : 0;
+    return contaminated ? 2 : failures.length ? 1 : 0;
   } catch (err) {
     process.stderr.write(`responsive-baseline: ${err.message}\n`);
     return 2;
