@@ -16,7 +16,7 @@ export function Switch({ enabled, onToggle, title, label, disabled = false }: Sw
       className="gm-switch"
       data-enabled={enabled ? "true" : "false"}
       role="switch"
-      aria-checked={enabled}
+      aria-checked={Boolean(enabled)}
       aria-label={label ?? title}
       title={title}
     >
