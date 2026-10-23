@@ -306,3 +306,26 @@ cd /Users/Zhuanz/Code/other/GitMemo-desktop && git worktree remove --force /tmp/
 ```
 
 独立 worktree 不受旁人正在改的文件干扰，几秒钟一次。这一步过了，这一批才算合格；只在工作区跑，等于没验。
+
+---
+
+## 9 坑位清单
+
+### 9.1 空列表的 early return 会打破 hooks 顺序
+
+给列表加「空时整屏空态」时，最自然的写法是在组件顶部 `if (!loading && items.length === 0) return <EmptyState/>`。**只要这个 return 落在任何一个 hook（`useCallback`、`useEffect`、`useMemo`、自定义 hook）之前，页面就会崩**：
+
+```
+Rendered fewer hooks than expected. This may be caused by an accidental early return statement.
+```
+
+React 按调用顺序对齐 hooks，首次渲染走了 12 个 hook、第二次只走 8 个，对不上就抛错。开发环境表现为整页被错误边界接管，生产环境可能白屏。
+
+正确写法二选一：
+
+1. **return 放在所有 hook 之后**、紧贴最终 `return` 之前；
+2. 不做 early return，改成三元：`{isEmpty ? <EmptyState/> : <Workspace/>}`。
+
+自查：把这个文件里 `return (` 之前最后一行与最早的 hook 行对比，early return 必须在最晚的那个 hook 之后。
+
+这个坑不会在 `tsc` 报错——类型是对的，只有运行时才崩；截图能看出来（错误边界），所以每页改完仍要看图。
