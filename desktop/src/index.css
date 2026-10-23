@@ -2621,7 +2621,13 @@ a:focus-visible {
 .gm-settings-about-meta-clickable:focus-visible {
   color: var(--accent);
   opacity: 1;
-  outline: none;
+}
+
+.gm-sidebar-version:focus-visible,
+.gm-settings-about-meta-clickable:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+  border-radius: var(--gm-radius-control);
 }
 
 .gm-sidebar-release-time {
@@ -7417,7 +7423,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   align-items: center;
   display: grid;
   gap: var(--gm-space-4);
-  grid-template-columns: 64px 96px minmax(0, 1fr) 72px;
+  grid-template-columns: 64px 96px minmax(200px, 1fr) 72px;
   padding: 0 var(--gm-space-4);
 }
 .gm-inst-table-head {
@@ -7559,6 +7565,11 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 .gm-inst-command-input::placeholder { color: var(--gm-text-3); }
 .gm-inst-command-input:focus-visible { outline: none; }
+/* 输入本身去掉描边，焦点改由容器承担，键盘用户仍能看见自己在哪 */
+.gm-inst-command-field:focus-within {
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 22%, transparent);
+}
 .gm-inst-command-caret {
   background: var(--gm-accent);
   display: block;
@@ -7624,22 +7635,43 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-command-caret { animation: none; }
 }
 
-@media (max-width: 900px) {
+/* 断点阶梯：≥1200 全显；1200 以下逐级藏列；768 以下单列。
+   除 title 外每列都有固定宽，藏列只减少总宽，title 用 1fr 吸收。 */
+@media (max-width: 1199px) {
+  .gm-inst-table-head [data-col="state"],
+  .gm-inst-table-state { display: none; }
+}
+
+@media (max-width: 1023px) {
   .gm-inst-body { grid-template-columns: minmax(0, 1fr); }
-  .gm-inst-list { border-right: 0; border-bottom: var(--gm-border-w) solid var(--gm-line-strong); max-height: 40vh; }
+  .gm-inst-list {
+    border-bottom: var(--gm-border-w) solid var(--gm-line-strong);
+    border-right: 0;
+    max-height: 40vh;
+  }
   .gm-inst-main { padding: var(--gm-space-3); }
+  .gm-inst-table-head,
+  .gm-inst-table-row { grid-template-columns: 96px minmax(200px, 1fr); }
+  .gm-inst-table-head [data-col="time"],
+  .gm-inst-table-time { display: none; }
+  .gm-inst-lower { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
   .gm-inst-identity { flex-wrap: wrap; gap: var(--gm-space-2); }
   .gm-inst-identity-status,
   .gm-inst-identity-count { display: none; }
   .gm-inst-identity-path { max-width: 100%; }
   .gm-inst-banner { flex-direction: column; gap: var(--gm-space-2); }
   .gm-inst-banner-meta { text-align: left; white-space: normal; }
+}
+
+@media (max-width: 767px) {
   .gm-inst-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gm-inst-gauge:nth-child(odd) { border-left: 0; }
   .gm-inst-gauge:nth-child(n + 3) { border-top: var(--gm-border-w) solid var(--gm-line); }
   .gm-inst-table-head,
-  .gm-inst-table-row { grid-template-columns: 56px 66px minmax(0, 1fr) 60px; }
-  .gm-inst-table-head [data-col="state"],
-  .gm-inst-table-state { display: none; }
-  .gm-inst-lower { grid-template-columns: minmax(0, 1fr); }
+  .gm-inst-table-row { grid-template-columns: minmax(0, 1fr) 64px; }
+  .gm-inst-table-head [data-col="type"],
+  .gm-inst-tag { display: none; }
 }
