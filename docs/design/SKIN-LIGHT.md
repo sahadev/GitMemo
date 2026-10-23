@@ -260,7 +260,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
   --gm-tag-chat:#1f3bff; --gm-tag-note:#d92d10;
   --gm-tag-clip:#007a52; --gm-tag-plan:#ffc53d;
   --gm-on-tag:#ffffff;
-  --gm-border-w:2px;
+  --gm-border-w:1px;
   --gm-radius-control:0; --gm-radius-panel:0; --gm-radius-card:0;
 }
 
@@ -290,7 +290,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 
 - 深色块的 `--gm-text-3` 已是 `#7d8792`、`--gm-line-strong` 已是 `#616d78`，与 §2.4 一致。
 - 浅色块的 `--gm-text-3` 是 `#6b6b6b`，压在选中底 `#e4e7ff` 上 4.36，低于 4.5；若要达标改 `#5c646f`（4.90），一行 token 值改动。
-- 浅色块的 `--gm-border-w` 目前仍是 `1px`，按 §1.4 要改成 `2px`。
+- 浅色块的 `--gm-border-w` 是 `1px`，与深色一致，符合 §3.5（两套同宽）。
 - 圆角已拆成皮肤级变量：`--gm-radius-control`（0 / 4px）、`--gm-radius-panel`（0 / 6px）、`--gm-radius-card`（0 / 4px），与 §1.4 一致。`--gm-r-1..4` 仍保留给尚未迁移的旧规则。
 
 圆角迁移未完成：`--gm-radius-card/control/panel` 已存在且卡片在用，但其他元素仍在引用共用的 `--gm-r-*`。这是待办，不阻塞。
