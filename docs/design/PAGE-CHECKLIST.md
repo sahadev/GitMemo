@@ -23,14 +23,14 @@
 | 写死的圆角 | `rg -o 'border-radius: *[^;]+' desktop/src/index.css \| grep -v 'var('` | 7 行 `0`、1 行 `50%` | 合法（方角与圆形） |
 | 写死的行高（行首） | `rg -n '^\s*height: *[0-9]+px' desktop/src/index.css \| wc -l` | `14` | 全是图标框、进度条、开关、面板最大高这类组件常量；`height: 32px` 与 `36px` 均为 **0** |
 | 写死的行高（全量，含单行规则） | `rg -o 'height: *[0-9]+px' desktop/src/index.css \| sort \| uniq -c` | `44` 处，最高频 44px×4、22px×4、26px×3 | 同上，无 30/32/34/36px |
-| 组件里写死的色值 | `rg -n '#[0-9a-fA-F]{3,8}\|rgba?\(' desktop/src/index.css \| rg -v -- '--gm-'` | `13` 行 = 打印 11 + 预览遮罩 2 | 打印属豁免；预览那 2 条是照片上的渐变与实心遮罩 |
+| 组件里写死的色值 | `rg -n '#[0-9a-fA-F]{3,8}\|rgba?\(' desktop/src/index.css \| rg -v -- '--gm-'` | `11` 行，**全部在打印块** | 组件层已清零；打印块必须用固定值覆盖屏幕样式，属豁免 |
 | 字号 / 内距 | `rg -n 'font-size: *[0-9]\|padding: *[0-9]px\|gap: *[0-9]px' desktop/src/index.css \| rg -v -- '--gm-'` | `7` 行 = 5 行 `em`（阅读面）+ 2 行 `pt`（打印） | 均合法，实际待迁移 **0** |
 
 口径（不写清这条，数字无法比较）：皮肤定义块（`:root` / `[data-theme]`）里的 hex 合法；打印块 `#gitmemo-print-root` 的 hex 与 `pt` 合法；阅读面的 `em` 合法；只有组件规则里写死的 px / hex 才算违规。
 
-结论：**皮肤层的值已经清干净**。图片预览的 6 处已正式化为四个媒体层变量（`--gm-media-backdrop` / `--gm-media-on` / `--gm-media-control` / `--gm-media-control-hover`，两套皮肤同值，因为叠在照片上）。其余只剩打印块的 11 行 hex 与两条遮罩字面量——`rgba(0,0,0,.6)`（7068 行，渐变版）与 7156 行实心版，补一个 `--gm-media-scrim` 就彻底清零。
+结论：**组件层的颜色已清零**。图片预览的 8 处全部正式化为五个媒体层变量（`--gm-media-backdrop` / `--gm-media-on` / `--gm-media-control` / `--gm-media-control-hover` / `--gm-media-scrim`，两套皮肤同值，因为叠在照片上）；剩下 11 行 hex 全在打印块，属规范豁免。
 
-口径提示：不同折叠方式会得到不同的数（13 / 3 / 7 都出现过）。差的都是**打印块与遮罩算不算**。本文只认上面这条命令的输出，并在表里写清构成。
+口径提示：13 / 3 / 7 这几个数都出现过，差的都是「打印块算不算、遮罩算不算」。本文只认上面这条命令的输出，表里写清构成。
 
 页面骨架不再是待办：那七个双栏浏览页本来就是「列表 + 详情」，不该长成仪表盘。
 
