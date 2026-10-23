@@ -2678,29 +2678,6 @@ a:focus-visible {
   text-align: center;
 }
 
-/* 移动端底部导航：「更多」把次要入口收进一个弹出层，复用菜单样式 */
-.gm-bottom-nav-more {
-  display: flex;
-  flex: 1;
-  justify-content: center;
-  position: relative;
-}
-
-.gm-bottom-nav-sheet {
-  bottom: calc(var(--gm-size-mobile-bottom-nav-height) + var(--gm-space-3));
-  display: flex;
-  flex-direction: column;
-  left: var(--gm-space-4);
-  min-width: var(--gm-size-menu-popover-min-width);
-  position: absolute;
-  z-index: var(--gm-z-overlay);
-}
-
-.gm-bottom-nav-sheet .gm-menu-item[data-active="true"] {
-  background: var(--gm-selected);
-  color: var(--gm-text);
-}
-
 .gm-bottom-nav {
   align-items: center;
   background: color-mix(in srgb, var(--gm-color-bg-surface) 94%, var(--gm-color-bg-page));
