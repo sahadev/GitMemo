@@ -2259,6 +2259,16 @@ a:focus-visible {
   padding: var(--gm-space-2);
 }
 
+/* 详情栏变窄时工具栏改行，避免未端按钮被裁到窗口外。窄宽阈值由页面传入。 */
+.gm-split-pane[data-narrow-detail="true"] .gm-file-detail-toolbar {
+  flex-wrap: wrap;
+  row-gap: var(--gm-space-1);
+}
+
+.gm-split-pane[data-narrow-detail="true"] .gm-file-detail-title {
+  flex: 1 0 100%;
+}
+
 .gm-split-pane[data-panel-key="search"][data-narrow-detail="true"] .gm-file-detail-title {
   flex-basis: calc(100% - var(--gm-control-height-sm) - var(--gm-control-gap));
 }

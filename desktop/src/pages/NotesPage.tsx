@@ -58,6 +58,9 @@ const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: str
   { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
   { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
 ];
+
+// 详情栏窄于此宽度时工具栏改行（字号与按钮宽度叠加后 540 已开始溢出）
+const NOTE_DETAIL_WRAP_WIDTH = 600;
 export default function NotesPage({
   active = true,
   focusTrigger,
@@ -84,6 +87,8 @@ export default function NotesPage({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<EditorHandle | null>(null);
   const detailOpenedFromCrossPageRef = useRef(false);
+  /** Esc 关掉详情后记住刚才那一行，方向键从它继续走，而不是从列表头重来 */
+  const lastClosedPathRef = useRef<string | null>(null);
   const {
     selectedFile,
     fileContent,
@@ -196,6 +201,7 @@ export default function NotesPage({
   useEffect(() => {
     void loadFiles();
     clearDetail();
+    lastClosedPathRef.current = null;
   }, [activeTab, clearDetail, loadFiles]);
 
   useEffect(() => {
@@ -221,7 +227,7 @@ export default function NotesPage({
 
   const { navPrev, navNext } = useFileListNavigation({
     files,
-    selectedPath: selectedFile,
+    selectedPath: selectedFile ?? lastClosedPathRef.current,
     openFile,
     hasMore,
     loadingMore,
@@ -301,7 +307,7 @@ export default function NotesPage({
     cancelEdit,
   });
 
-  // Esc 从阅读区回到列表；编辑态下交给编辑器自己处理（它有自己的取消逻辑）。
+  // Esc 只关详情、不清“位置”：否则方向键会从列表头重新开始，把同一行又打开一次。
   useEffect(() => {
     if (!active || isMobile || !selectedFile || editing) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -311,6 +317,7 @@ export default function NotesPage({
       // 用捕获阶段：正文区自己也会处理 Esc（退出某种展示态），
       // 这里要保证「先回到列表」这件主要的动作一定发生。
       event.preventDefault();
+      lastClosedPathRef.current = selectedFile;
       closeDetail();
       // 焦点回到当前行：否则 Esc 之后焦点落在 body 上，方向键要重新 Tab 一圈才回来。
       window.requestAnimationFrame(() => {
@@ -325,6 +332,7 @@ export default function NotesPage({
   return (
     <FileWorkspace
         panelKey="notes"
+        narrowDetailThreshold={NOTE_DETAIL_WRAP_WIDTH}
         left={showList && (
       <ListPane>
         <PaneTabHeader
