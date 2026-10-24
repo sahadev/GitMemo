@@ -1569,10 +1569,12 @@ a:focus-visible {
   min-height: 0;
 }
 
-/* 空态在这一栏里垂直居中，否则读起来像“页面没加载完” */
+/* 空态在这一栏里垂直居中，否则读起来像“页面没加载完”。
+   列方向 + 默认 stretch：子项的宽度跟满整栏，描述才会折行；写成行方向时
+   子项按 max-content 定宽，窄窗口里那一句会被切掉或撑出横向滚动。 */
 .gm-vault-empty-wrap {
-  align-items: center;
   display: flex;
+  flex-direction: column;
   justify-content: center;
 }
 
