@@ -75,7 +75,13 @@ rg -n 'gm-empty-state|EmptyState' desktop/src --glob '*.tsx' -l
 ```
 
 逐页打开，确认同一页左右两侧没有两句同义文案。
-状态：进行中。
+状态：**已闭环**。左栏空态只在手机端出现（桌面端左栏保持标题与计数，解释与主行动由右栏承担）：外部文件、计划、对话、编辑器首页、Claude 配置、收藏、导入、仓库八页已统一；计划页与对话页原有的三层嵌套三元（同一句文案重复两遍）已展平。
+
+验收命令（左栏 `files.length === 0` 分支下不应出现无 `isMobile` 守卫的 `EmptyState`）：
+
+```sh
+rg -n -A4 'length === 0 \? \(' desktop/src/pages/*.tsx | rg -B2 'EmptyState'
+```
 
 **4. 笔记页 Esc 关闭详情并回焦**
 已实现：`NotesPage.tsx` 里 Esc 的 `useEffect`（捕获阶段监听、非编辑态 `closeDetail()`，随后 `requestAnimationFrame` 里对 `[data-on="true"]` 的行 `focus()`。
