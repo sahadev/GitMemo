@@ -318,7 +318,7 @@ F 稿深色实测：强调 4.50、三级文字 4.95 / 4.66，两条线都过；�
 
 - 皮肤级圆角 89 处引用：`--gm-radius-control` 71、`--gm-radius-panel` 17、`--gm-radius-card` 1。
 - 旧名剩 15 处：`--gm-radius-pill` 13（圆形语义，该永久保留）、`--gm-r-1` 2（网格名，待确认是否并到 control）。
-- `--gm-radius-none`、`--gm-radius-sm/md/lg/xs` 引用均为 0，相关定义随迁移删除。
+- 已删除的 none / sm / md / lg / xs 五档引用均为 0，相关定义随迁移删除。
 
 判定口径：`var(` 出现次数才算引用，不含定义行；pill 单列保留，不并进 control。
 
