@@ -396,11 +396,14 @@ export default function NotesPage({
               ))}
             </div>
           ) : files.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title={t("notes.noNotes", t(`notes.${activeTab}`))}
-              description={t(getEmptyNotesDescriptionKey(activeTab))}
-            />
+            isMobile ? (
+              <EmptyState
+                icon={FileText}
+                title={t("notes.noNotes", t(`notes.${activeTab}`))}
+                description={t(getEmptyNotesDescriptionKey(activeTab))}
+                full
+              />
+            ) : null
           ) : (
             <>
             {files.map((file) => {
@@ -500,11 +503,18 @@ export default function NotesPage({
                 <MarkdownView content={fileContent} filePath={selectedFile ?? undefined} />
             </FileEditorSurface>
           </>
-        ) : (
+        ) : files.length > 0 ? (
           <EmptyState
             icon={Plus}
             title={t("notes.selectOrCreate")}
             description={t("notes.cmdN", formatShortcut(shortcuts.quick_note))}
+            full
+          />
+        ) : (
+          <EmptyState
+            icon={FileText}
+            title={t("notes.noNotes", t(`notes.${activeTab}`))}
+            description={t(getEmptyNotesDescriptionKey(activeTab))}
             full
           />
         )}
