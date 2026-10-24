@@ -1737,6 +1737,11 @@ a:focus-visible {
   gap: var(--gm-icon-text-gap);
 }
 
+/* 宽屏是双栏，右栏一直看得见；返回按钮只在窄窗单栏时出现 */
+.gm-vault-back {
+  display: none;
+}
+
 .gm-vault-secret {
   background: var(--gm-inset);
   border: var(--gm-border-w) solid var(--gm-line-strong);
@@ -1782,15 +1787,22 @@ a:focus-visible {
     display: none;
   }
 
-  /* 列表为空时整屏只剩右栏的内容（解锁表单、空态）——把左栏让出来，
-     否则窄窗下两边都没有东西，看上去是一整屏空白。 */
-  .gm-vault-page[data-list-empty="true"] .gm-vault-list-pane {
+  /* 窄窗是单栏：列表为空时整屏只剩右栏的内容（解锁表单、空态）；
+     选中条目时也切到右栏，否则点了条目什么也看不到。
+     两种情况都是「让出左栏、显示右栏」。 */
+  .gm-vault-page[data-list-empty="true"] .gm-vault-list-pane,
+  .gm-vault-page[data-detail-open="true"] .gm-vault-list-pane {
     display: none;
   }
 
-  .gm-vault-page[data-list-empty="true"] .gm-vault-detail-pane {
+  .gm-vault-page[data-list-empty="true"] .gm-vault-detail-pane,
+  .gm-vault-page[data-detail-open="true"] .gm-vault-detail-pane {
     display: flex;
     width: 100%;
+  }
+
+  .gm-vault-back {
+    display: inline-flex;
   }
 
   .gm-vault-unlock-form {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Copy, Eye, EyeOff, KeyRound, Lock, RefreshCw, ShieldCheck, Trash2, Unlock } from "lucide-react";
+import { ArrowLeft, Copy, Eye, EyeOff, KeyRound, Lock, RefreshCw, ShieldCheck, Trash2, Unlock } from "lucide-react";
 import { PaneHeader } from "../components/AppHeaders";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
@@ -183,7 +183,11 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
   const initialized = status?.initialized ?? false;
 
   return (
-    <div className="gm-page gm-vault-page" data-list-empty={!vaultEnabled || !unlocked || entries.length === 0 ? "true" : "false"}>
+    <div
+      className="gm-page gm-vault-page"
+      data-list-empty={!vaultEnabled || !unlocked || entries.length === 0 ? "true" : "false"}
+      data-detail-open={selectedEntry ? "true" : "false"}
+    >
       <section className="gm-vault-list-pane">
         <PaneHeader
           icon={KeyRound}
@@ -275,6 +279,13 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
                 <p className="gm-vault-detail-meta">{selectedEntry.source} · {relativeTime(selectedEntry.updated_at)}</p>
               </div>
               <div className="gm-vault-detail-actions">
+                <Button
+                  variant="toolbar"
+                  icon={ArrowLeft}
+                  title={t("common.back")}
+                  className="gm-vault-back"
+                  onClick={() => setSelectedId(null)}
+                />
                 {detail ? (
                   <Button variant="toolbar" icon={EyeOff} title={t("vault.hide")} onClick={() => setDetail(null)} />
                 ) : (
