@@ -379,7 +379,9 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
           <Loading compact text={t("dashboard.loading")} />
         ) : listError ? (
           <p className="gm-error-inline">{listError}</p>
-        ) : entries.length === 0 ? null : (
+        ) : entries.length === 0 ? (
+          isMobile ? <EmptyState title={leftEmptyText} full /> : null
+        ) : (
           entries.map((entry) => {
             const sel = selectedEntryKey === entry.rel_path;
             return (

@@ -20,6 +20,7 @@ import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
 import { ClipboardPrivacyDialog, useClipboardPrivacy } from "../components/ClipboardPrivacyDialog";
 import { AppIcon } from "../components/base/AppIcon";
+import { EmptyState } from "../components/base/EmptyState";
 import { useAppStore, type ClipboardStatus } from "../hooks/useAppStore";
 import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
@@ -41,7 +42,6 @@ import {
   ClipboardClipPreviewWrap,
   ClipboardClipText,
   ClipboardDetailPane,
-  ClipboardEmptyDetail,
   ClipboardEmptyState,
   ClipboardFilterBar,
   ClipboardFilterButton,
@@ -1027,7 +1027,7 @@ export default function ClipboardPage({
         right={showDetail && (
           <ClipboardDetailPane>
             {!selectedFile ? (
-              <ClipboardEmptyDetail icon={Clipboard}>{t("clipboard.selectToView")}</ClipboardEmptyDetail>
+              <EmptyState icon={Clipboard} title={t("clipboard.selectToView")} full className="gm-clipboard-empty-detail" />
             ) : (
               <>
                 <FileDetailToolbar

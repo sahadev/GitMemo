@@ -302,7 +302,17 @@ export default function ConversationsPage({
         <ListPaneBody mobileBottomPadding={isMobile}>
           {loading ? (
             <Loading compact text={t("conversations.loading")} />
-          ) : files.length === 0 ? null : (
+          ) : files.length === 0 ? (
+            isMobile ? (
+              <EmptyState
+                icon={MessageSquare}
+                iconSize="hero"
+                title={t("conversations.empty")}
+                description={t("conversations.emptyHint")}
+                full
+              />
+            ) : null
+          ) : (
             <>
             {files.map((f) => {
               const meta = metaCache.get(f.path);
@@ -345,17 +355,7 @@ export default function ConversationsPage({
       <DetailPane>
         {!selectedFile ? (
           files.length > 0 ? (
-            files.length > 0 ? (
             <EmptyState icon={MessageSquare} iconSize="hero" title={t("conversations.selectToView")} full />
-          ) : (
-            <EmptyState
-              icon={MessageSquare}
-              iconSize="hero"
-              title={t("conversations.empty")}
-              description={t("conversations.emptyHint")}
-              full
-            />
-          )
           ) : (
             <EmptyState
               icon={MessageSquare}

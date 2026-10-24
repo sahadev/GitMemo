@@ -19,7 +19,6 @@ import { shouldActivateMobileEditorChrome } from "../components/domain/app/appCh
 import { FileEditorSurface } from "../components/domain/files/FileEditorSurface";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
-import { PageFrame } from "../components/layout/PageFrame";
 import { getDocumentTitle } from "../components/domain/files/fileWorkspaceLogic";
 import {
   canClearMissingExternalFiles,
@@ -369,16 +368,6 @@ export default function ExternalFilesPage({
     void openExternalFile(filePath);
   }, [diskChangePending?.file_path, openExternalFile, selectedFilePath]);
 
-  // 列表为空时整屏空态，右栏不出现
-  if (!loading && entries.length === 0) {
-    return (
-      <PageFrame column>
-        <PaneHeader icon={FileSymlink} title={t("externalFiles.title")} actions={<Badge>{entries.length}</Badge>} />
-        <EmptyState icon={FileSymlink} iconSize="empty-lg" title={t("externalFiles.empty")} description={t("externalFiles.emptyHint")} full />
-      </PageFrame>
-    );
-  }
-
   return (
     <FileWorkspace
         panelKey="external-files"
@@ -423,7 +412,17 @@ export default function ExternalFilesPage({
             />
             <ListPaneBody>
               {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
-              
+              {!loading && entries.length === 0 ? (
+                isMobile ? (
+                  <EmptyState
+                    icon={FileSymlink}
+                    iconSize="empty-lg"
+                    title={t("externalFiles.empty")}
+                    description={t("externalFiles.emptyHint")}
+                    full
+                  />
+                ) : null
+              ) : null}
               {!loading && entries.map((entry) => {
                 const active = selectedFilePath === entry.file_path;
                 const title = getDocumentTitle(entry);
@@ -452,7 +451,15 @@ export default function ExternalFilesPage({
           !selectedEntry ? (
             entries.length > 0
               ? <EmptyState title={t("externalFiles.selectFile")} full />
-              : <EmptyState title={t("externalFiles.empty")} full />
+              : (
+                <EmptyState
+                  icon={FileSymlink}
+                  iconSize="empty-lg"
+                  title={t("externalFiles.empty")}
+                  description={t("externalFiles.emptyHint")}
+                  full
+                />
+              )
           ) : (
             <DetailPane>
             <>

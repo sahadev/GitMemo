@@ -14,6 +14,7 @@ import { EmptyState } from "../components/base/EmptyState";
 import { FileListItem } from "../components/domain/files/FileListItem";
 import { FileWorkspace } from "../components/domain/files/FileWorkspace";
 import { getDocumentTitle, getDocumentTitleForPath } from "../components/domain/files/fileWorkspaceLogic";
+import { usePlatform } from "../hooks/usePlatform";
 import {
   getClaudeConfigTabs,
   getInitialClaudeConfigTab,
@@ -98,6 +99,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
   });
 
   const TabIcon = tabIcons[activeTab] ?? Brain;
+  const isMobile = usePlatform() === "mobile";
   const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
@@ -148,7 +150,14 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
           {loading ? (
             <Loading compact text="Loading..." />
           ) : files.length === 0 ? (
-            <EmptyState icon={TabIcon} title={t("claudeConfig.empty")} description={t("claudeConfig.emptyHint")} />
+            isMobile ? (
+              <EmptyState
+                icon={TabIcon}
+                title={t("claudeConfig.empty")}
+                description={t("claudeConfig.emptyHint")}
+                full
+              />
+            ) : null
           ) : (
             files.map((f) => {
               const selected = selectedFile === f.path;
@@ -172,7 +181,17 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
         right={(
       <DetailPane>
         {!selectedFile ? (
-          <EmptyState icon={Brain} iconSize="empty-lg" title={t("claudeConfig.selectToView")} full />
+          files.length > 0 ? (
+            <EmptyState icon={Brain} iconSize="empty-lg" title={t("claudeConfig.selectToView")} full />
+          ) : (
+            <EmptyState
+              icon={TabIcon}
+              iconSize="empty-lg"
+              title={t("claudeConfig.empty")}
+              description={t("claudeConfig.emptyHint")}
+              full
+            />
+          )
         ) : (
           <>
             <FileDetailToolbar

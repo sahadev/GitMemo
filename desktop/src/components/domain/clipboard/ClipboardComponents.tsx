@@ -371,12 +371,3 @@ export function ClipboardFooterTotal({ children }: ChildrenProps) {
 export function ClipboardDetailPane({ children }: ChildrenProps) {
   return <div className="gm-detail-pane">{children}</div>;
 }
-
-export function ClipboardEmptyDetail({ icon, children }: ChildrenProps & { icon: LucideIcon }) {
-  return (
-    <div className="gm-empty-state gm-empty-state-full gm-clipboard-empty-detail">
-      <AppIcon icon={icon} size="empty" tone="empty" className="gm-empty-state-icon" />
-      <p className="gm-empty-state-title">{children}</p>
-    </div>
-  );
-}
