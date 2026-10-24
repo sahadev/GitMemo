@@ -105,7 +105,8 @@
     "clearAllConfirm": "Remove all files from the external files list?",
     "clearMissingConfirm": "Clear {0} missing file(s)? The records are removed; files on disk are not touched.",
     "cleared": "Cleared external files list",
-    "emptyHint": "Add an external folder in settings and its files will show up here."
+    "emptyHint": "Add an external folder in settings and its files will show up here.",
+    "hint": "Lists files you opened with GitMemo. For full folder browsing, use Settings → Local folders."
   },
   "favorites": {
     "title": "Favorites",
@@ -603,7 +604,8 @@
     "empty": "No files yet",
     "emptyHint": "Click 'Sync to Git' to sync config",
     "selectToView": "Select a file to view",
-    "knowledge": "Knowledge"
+    "knowledge": "Knowledge",
+    "hint": "Snapshots kept inside this repository. Edits stay in the repo and never touch your local config files."
   },
   "privacy": {
     "title": "Clipboard Privacy",

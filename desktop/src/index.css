@@ -1737,6 +1737,15 @@ a:focus-visible {
   gap: var(--gm-icon-text-gap);
 }
 
+/* 页头下一行说明：写清这一页的数据来自哪里，避免同名文件在两处被当成同一份 */
+.gm-pane-hint {
+  color: var(--gm-text-3);
+  flex-shrink: 0;
+  font-size: var(--gm-font-2xs);
+  line-height: var(--gm-leading-normal);
+  padding: var(--gm-space-2) var(--gm-list-header-pad-x);
+}
+
 /* 宽屏是双栏，右栏一直看得见；返回按钮只在窄窗单栏时出现 */
 .gm-vault-back {
   display: none;
@@ -7468,81 +7477,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-gauge[data-level="5"] .gm-inst-gauge-bar::after { width: 100%; }
 
 /* 4c · 五列表格 */
-.gm-inst-table {
-  border: var(--gm-border-w) solid var(--gm-line-strong);
-  flex: none;
-  margin-top: var(--gm-space-4);
-}
-.gm-inst-table-head,
-.gm-inst-table-row {
-  align-items: center;
-  display: grid;
-  gap: var(--gm-space-4);
-  grid-template-columns: 64px 96px minmax(200px, 1fr) 72px;
-  padding: 0 var(--gm-space-4);
-}
-.gm-inst-table-head {
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
-  color: var(--gm-text-3);
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  height: var(--gm-density-subheader);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.gm-inst-table-row {
-  background: transparent;
-  border: 0;
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
-  color: var(--gm-text);
-  cursor: pointer;
-  font-size: var(--gm-font-sm);
-  height: var(--gm-density-row-compact);
-  text-align: left;
-  transition: background 0.15s ease;
-  width: 100%;
-}
-.gm-inst-table-row:last-child { border-bottom: 0; }
-.gm-inst-table-row:hover { background: var(--gm-hover); }
-.gm-inst-table-row:active { background: var(--gm-selected); }
-.gm-inst-table-row:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: -2px; }
-.gm-inst-table-time,
-.gm-inst-table-source,
-.gm-inst-table-state {
-  color: var(--gm-text-3);
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gm-inst-table-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gm-inst-table-state { text-align: right; }
-.gm-inst-table-head [data-col="source"],
-.gm-inst-table-source { display: none; }
-.gm-inst-tag {
-  border-radius: var(--gm-r-1);
-  color: var(--gm-on-tag);
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  font-weight: 650;
-  justify-self: start;
-  letter-spacing: 0.06em;
-  max-width: 100%;
-  overflow: hidden;
-  padding: var(--gm-space-1) var(--gm-space-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gm-inst-tag[data-kind="conversation"],
-.gm-inst-tag[data-kind="conversations"] { background: var(--gm-tag-chat); }
-.gm-inst-tag[data-kind="manual"],
-.gm-inst-tag[data-kind="notes"],
-.gm-inst-tag[data-kind="scratch"] { background: var(--gm-tag-note); }
-.gm-inst-tag[data-kind="clip"],
-.gm-inst-tag[data-kind="clips"] { background: var(--gm-tag-clip); }
-.gm-inst-tag[data-kind="plan"],
-.gm-inst-tag[data-kind="plans"] { background: var(--gm-tag-plan); color: var(--gm-on-tag-plan); }
 
 /* 5 · 命令输入 + 待处理 */
 .gm-inst-lower {
@@ -7690,13 +7624,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-command-caret { animation: none; }
 }
 
-/* 断点阶梯：≥1200 全显；1200 以下逐级藏列；768 以下单列。
-   除 title 外每列都有固定宽，藏列只减少总宽，title 用 1fr 吸收。 */
-@media (max-width: 1199px) {
-  .gm-inst-table-head [data-col="state"],
-  .gm-inst-table-state { display: none; }
-}
-
+/* 断点阶梯：1023 以下仪表盘改单列，列表区限高 40vh。 */
 @media (max-width: 1023px) {
   /* 窄栏里的分段控件允许换行：不换行会被容器边缘裁字 */
   .gm-segment-row,
@@ -7708,10 +7636,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
     max-height: 40vh;
   }
   .gm-inst-main { padding: var(--gm-space-3); }
-  .gm-inst-table-head,
-  .gm-inst-table-row { grid-template-columns: 96px minmax(200px, 1fr); }
-  .gm-inst-table-head [data-col="time"],
-  .gm-inst-table-time { display: none; }
   .gm-inst-lower { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -7728,8 +7652,4 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gm-inst-gauge:nth-child(odd) { border-left: 0; }
   .gm-inst-gauge:nth-child(n + 3) { border-top: var(--gm-border-w) solid var(--gm-line); }
-  .gm-inst-table-head,
-  .gm-inst-table-row { grid-template-columns: minmax(0, 1fr) 64px; }
-  .gm-inst-table-head [data-col="type"],
-  .gm-inst-tag { display: none; }
 }

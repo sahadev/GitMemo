@@ -105,7 +105,8 @@
     "clearAllConfirm": "将所有文件从外部文件列表中移除？",
     "clearMissingConfirm": "清除 {0} 个失效文件？记录会被移除，但磁盘上的文件不受影响。",
     "cleared": "已清空外部文件列表",
-    "emptyHint": "在设置里添加外部目录，文件会出现在这里。"
+    "emptyHint": "在设置里添加外部目录，文件会出现在这里。",
+    "hint": "只列出用 GitMemo 打开过的文件；完整目录浏览在「设置 → 本机目录」。"
   },
   "favorites": {
     "title": "收藏",
@@ -603,7 +604,8 @@
     "empty": "暂无文件",
     "emptyHint": "点击「同步到 Git」同步配置",
     "selectToView": "选择文件查看",
-    "knowledge": "知识"
+    "knowledge": "知识",
+    "hint": "这里是本仓库内的配置快照，改动保存到仓库，不会写入本机配置文件。"
   },
   "privacy": {
     "title": "剪贴板隐私",

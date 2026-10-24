@@ -410,6 +410,7 @@ export default function ExternalFilesPage({
                 </>
               )}
             />
+            <p className="gm-pane-hint">{t("externalFiles.hint")}</p>
             <ListPaneBody>
               {loading ? <Loading compact text={t("dashboard.loading")} /> : null}
               {!loading && entries.length === 0 ? (

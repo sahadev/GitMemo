@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -318,31 +318,13 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     },
   ];
 
-  const categoryKind = (category: string) => getDashboardContentCategory(category);
-
-  const categoryLabel = (category: string) => {
-    switch (getDashboardContentCategory(category)) {
-      case "conversation": return t("dashboard.typeConversation");
-      case "manual": return t("dashboard.typeNote");
-      case "scratch": return t("dashboard.typeScratch");
-      case "clip": return t("dashboard.typeClip");
-      case "plan": return t("dashboard.typePlan");
-      default: return category;
-    }
-  };
 
   const resumeItem = displayedRecent[0];
   const pendingItems = [
-    gitStatus && gitStatus.unpushed > 0
-      ? { label: t("dashboard.unpushed"), meta: String(gitStatus.unpushed) }
-      : null,
     clipStatus && !clipStatus.watching
       ? { label: t("dashboard.clipboardInactive"), meta: t("nav.clipboard") }
       : null,
     !editorConfigured ? { label: t("dashboard.pendingNoEditor"), meta: t("nav.settings") } : null,
-    gitStatus?.last_commit_id
-      ? { label: t("dashboard.lastCommit"), meta: gitStatus.last_commit_id }
-      : null,
   ].filter(Boolean).slice(0, 3) as { label: string; meta: string }[];
 
   return (
@@ -356,9 +338,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           {syncStatusText}
         </span>
         <span className="gm-inst-identity-spacer" />
-        <span className="gm-inst-identity-count">
-          {stats ? t("dashboard.totalFiles", formatDashboardCount(displayedFileCount)) : t("common.loading")}
-        </span>
         {isMobile ? (
           <Button
             variant="toolbar"
@@ -382,7 +361,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
           <div className="gm-inst-list-head">
             <span>{t("dashboard.recentActivity")}</span>
-            <span className="gm-inst-list-count">{formatDashboardCount(displayedFileCount)}</span>
+            <span className="gm-inst-list-count">{formatDashboardCount(displayedRecent.length)}</span>
           </div>
           <div className="gm-inst-list-rows">
             {isRecentActivityLoading ? (
@@ -395,7 +374,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 ))}
               </div>
             ) : displayedRecent.length === 0 ? (
-              <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
+              recentError ? (
+                <div className="gm-inst-list-error" role="alert">
+                  <span className="gm-inst-list-error-text">{t("dashboard.listLoadFailed", recentError)}</span>
+                  <button type="button" className="gm-toolbar-button" onClick={() => void loadRecent()}>
+                    {t("common.retry")}
+                  </button>
+                </div>
+              ) : (
+                <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
+              )
             ) : (
               displayedRecent.slice(0, 12).map((item) => (
                 <button
@@ -444,49 +432,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                 <span className="gm-inst-gauge-bar" aria-hidden="true" />
                 <span className="gm-inst-gauge-detail">{card.detail ?? "—"}</span>
               </div>
-            ))}
-          </div>
-
-          {/* 4c · 表格 */}
-          <div className="gm-inst-table" role="table" aria-label={t("dashboard.recentActivity")}>
-            <div className="gm-inst-table-head" role="row">
-              <span role="columnheader" data-col="time">{t("dashboard.tableTime")}</span>
-              <span role="columnheader" data-col="type">{t("dashboard.gaugeType")}</span>
-              <span role="columnheader" data-col="title">{t("dashboard.tableTitle")}</span>
-              <span role="columnheader" data-col="source">{t("dashboard.tableSource")}</span>
-              <span role="columnheader" data-col="state">{t("dashboard.gaugeState")}</span>
-            </div>
-            {recentError ? (
-              <div className="gm-inst-list-error" role="alert">
-                <span className="gm-inst-list-error-text">{t("dashboard.listLoadFailed", recentError)}</span>
-                <button type="button" className="gm-toolbar-button" onClick={() => void loadRecent()}>
-                  {t("common.retry")}
-                </button>
-              </div>
-            ) : null}
-            {!recentError && displayedRecent.length === 0 ? (
-              <p className="gm-muted-text gm-inst-table-empty">{t("dashboard.tableEmpty")}</p>
-            ) : null}
-            {displayedRecent.slice(0, 7).map((item) => (
-              <button
-                key={item.path}
-                type="button"
-                role="row"
-                className="gm-inst-table-row"
-                onClick={() => openRecord(item)}
-              >
-                <span role="cell" data-col="time" className="gm-inst-table-time">{relativeTime(item.modified, t)}</span>
-                <span role="cell" data-col="type" className="gm-inst-tag" data-kind={categoryKind(item.category)}>
-                  {categoryLabel(item.category)}
-                </span>
-                <span role="cell" data-col="title" className="gm-inst-table-title" title={item.name}>{item.name}</span>
-                <span role="cell" data-col="source" className="gm-inst-table-source" title={item.path}>
-                  {item.path.split("/")[0]}
-                </span>
-                <span role="cell" data-col="state" className="gm-inst-table-state" data-state="synced">
-                  {t("dashboard.synced")}
-                </span>
-              </button>
             ))}
           </div>
 

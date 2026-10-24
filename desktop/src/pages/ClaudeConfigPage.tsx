@@ -123,6 +123,7 @@ export default function ClaudeConfigPage({ active = true, onFocusSidebar: _onFoc
             </>
           )}
         />
+        <p className="gm-pane-hint">{t("claudeConfig.hint")}</p>
 
         {/* Editor selector */}
         <div className="gm-segment-row">
