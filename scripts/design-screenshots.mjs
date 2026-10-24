@@ -80,7 +80,7 @@ const PAGES = [
   { id: "imports", nav: { kind: "more", key: "imports" }, marker: '.gm-split-pane[data-panel-key="imports"]' },
   { id: "claude-config", nav: { kind: "more", key: "claudeConfig" }, marker: '.gm-split-pane[data-panel-key="claude-config"]' },
   { id: "editor-home", nav: { kind: "settings-editor" }, marker: '.gm-split-pane[data-panel-key="editor-home"]' },
-  { id: "external-files", nav: { kind: "more", key: "externalFiles" }, marker: '.gm-page-frame-column' },
+  { id: "external-files", nav: { kind: "more", key: "externalFiles" }, marker: '.gm-split-pane[data-panel-key="external-files"]' },
   { id: "settings", nav: { kind: "more", key: "settings" }, marker: ".gm-settings-page" },
   { id: "quick-paste", nav: { kind: "url", path: "quick-paste.html" }, marker: ".gm-quick-paste-shell" },
 ];
