@@ -292,6 +292,14 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
                   <Button variant="toolbar" icon={Eye} title={t("vault.reveal")} disabled={revealing} onClick={() => void revealEntry(selectedEntry)} />
                 )}
                 <Button variant="toolbar" icon={Trash2} tone="danger" title={t("vault.delete")} disabled={busy} onClick={() => void deleteEntry(selectedEntry)} />
+                {/* 窄窗单栏时左栏整个让给了右栏，锁与刷新原本只在左栏头部，这里补一份 */}
+                <Button
+                  variant="toolbar"
+                  icon={Lock}
+                  title={t("vault.lock")}
+                  className="gm-vault-narrow-action"
+                  onClick={() => void lockVault()}
+                />
               </div>
             </header>
 

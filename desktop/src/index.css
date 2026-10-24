@@ -1742,6 +1742,11 @@ a:focus-visible {
   display: none;
 }
 
+/* 窄窗下拉才需要：锁定入口原本只在左栏头部 */
+.gm-vault-narrow-action {
+  display: none;
+}
+
 .gm-vault-secret {
   background: var(--gm-inset);
   border: var(--gm-border-w) solid var(--gm-line-strong);
@@ -1801,7 +1806,8 @@ a:focus-visible {
     width: 100%;
   }
 
-  .gm-vault-back {
+  .gm-vault-back,
+  .gm-vault-narrow-action {
     display: inline-flex;
   }
 
