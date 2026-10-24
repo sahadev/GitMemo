@@ -23,6 +23,7 @@
     "selectFile": "Pick a file on the left to preview or edit",
     "selectOrCreate": "Select a file or create a new anonymous draft",
     "emptyDir": "This folder is empty",
+    "emptyDirHint": "Use New file or New folder in the top left to put something here.",
     "emptyAnonymous": "No anonymous files yet",
     "missingDir": "This directory does not exist yet (install or run the tool once).",
     "missingBoth": "None of ~/.claude, ~/.cursor, or ~/.codex was found.",
@@ -62,7 +63,7 @@
   "imports": {
     "title": "Imports",
     "empty": "No imports yet",
-    "selectOrDrop": "No imports yet. Pick a Markdown file, or drag one into the window",
+    "selectOrDrop": "Select an import on the left to see its details",
     "importMarkdown": "Import Markdown files",
     "imported": "Imported {0} file(s)",
     "importSkipped": "Skipped {0} file(s): too large or unsupported.",
@@ -76,7 +77,7 @@
     "title": "External Files",
     "subtitle": "Keep a local-only working set of files you opened from your device.",
     "empty": "No external files yet",
-    "selectFile": "Open a file with GitMemo to start tracking it here",
+    "selectFile": "Select a file on the left to view it",
     "openMarkdown": "Open Markdown file",
     "localOnlyHint": "This list stays on this device and is not synced to Git.",
     "lastSaved": "Last saved {0}",
@@ -297,8 +298,8 @@
     "searchFailed": "Search failed: {0}"
   },
   "plans": {
-    "empty": "No plans yet. Generate one from a conversation, or sync the remote repo and plans will show up here.",
-    "emptyDesc": "Plans from the remote repository will appear here after sync.",
+    "empty": "No plans yet",
+    "emptyDesc": "Generate one from a conversation, or sync the remote repo and plans will appear here.",
     "selectToView": "Select a plan to view",
     "delete": "Delete",
     "deleteConfirm": "Delete this plan from GitMemo?",

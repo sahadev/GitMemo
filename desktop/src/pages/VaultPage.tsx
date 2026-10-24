@@ -183,7 +183,7 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
   const initialized = status?.initialized ?? false;
 
   return (
-    <div className="gm-page gm-vault-page">
+    <div className="gm-page gm-vault-page" data-list-empty={!vaultEnabled || !unlocked || entries.length === 0 ? "true" : "false"}>
       <section className="gm-vault-list-pane">
         <PaneHeader
           icon={KeyRound}

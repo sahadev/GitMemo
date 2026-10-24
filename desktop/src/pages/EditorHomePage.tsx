@@ -414,7 +414,7 @@ export default function EditorHomePage({ active = true, openTarget, onOpenTarget
         !rootOk ? (
           <EmptyState title={rootPath} description={t("editorHome.missingDir")} full />
         ) : entries.length === 0 ? (
-          <EmptyState title={leftEmptyText} full />
+          <EmptyState title={leftEmptyText} description={t("editorHome.emptyDirHint")} full />
         ) : (
           <EmptyState
             title={t(getEditorSelectTitleKey(root))}

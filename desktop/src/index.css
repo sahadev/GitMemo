@@ -1782,6 +1782,17 @@ a:focus-visible {
     display: none;
   }
 
+  /* 列表为空时整屏只剩右栏的内容（解锁表单、空态）——把左栏让出来，
+     否则窄窗下两边都没有东西，看上去是一整屏空白。 */
+  .gm-vault-page[data-list-empty="true"] .gm-vault-list-pane {
+    display: none;
+  }
+
+  .gm-vault-page[data-list-empty="true"] .gm-vault-detail-pane {
+    display: flex;
+    width: 100%;
+  }
+
   .gm-vault-unlock-form {
     flex-direction: column;
   }

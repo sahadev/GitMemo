@@ -23,6 +23,7 @@
     "selectFile": "点选左侧文件进行预览或编辑",
     "selectOrCreate": "选择一个文件，或新建匿名草稿",
     "emptyDir": "此文件夹为空",
+    "emptyDirHint": "用左上角的新建文件或新建文件夹按钮在这里放东西。",
     "emptyAnonymous": "暂无匿名文件",
     "missingDir": "该目录不存在（可能尚未安装或运行过对应工具）",
     "missingBoth": "未找到 ~/.claude、~/.cursor 或 ~/.codex（本页无法浏览）。",
@@ -62,7 +63,7 @@
   "imports": {
     "title": "导入文件",
     "empty": "还没有导入",
-    "selectOrDrop": "还没有导入记录。选中一个 Markdown 文件，或直接拖进窗口",
+    "selectOrDrop": "选中左侧文件查看导入详情",
     "importMarkdown": "导入 Markdown 文件",
     "imported": "已导入 {0} 个文件",
     "importSkipped": "已跳过 {0} 个文件：文件过大或不支持。",
@@ -76,7 +77,7 @@
     "title": "外部文件",
     "subtitle": "记录你从设备中打开过的文件，仅保存在本机索引中。",
     "empty": "还没有外部文件",
-    "selectFile": "通过 GitMemo 打开一个文件后，它会出现在这里",
+    "selectFile": "选择左侧文件查看",
     "openMarkdown": "打开 Markdown 文件",
     "localOnlyHint": "这个列表仅保存在当前设备，不会同步到 Git。",
     "lastSaved": "最近保存：{0}",
@@ -297,8 +298,8 @@
     "searchFailed": "搜索失败：{0}"
   },
   "plans": {
-    "empty": "还没有计划。在对话里生成一份计划，或从远程仓库同步后就会出现在这里。",
-    "emptyDesc": "同步后，远程仓库中的计划会显示在这里。",
+    "empty": "还没有计划",
+    "emptyDesc": "在对话里生成一份计划，或同步远程仓库后，计划会出现在这里。",
     "selectToView": "选择一个计划查看",
     "delete": "删除",
     "deleteConfirm": "确定从 GitMemo 中删除此计划？",
