@@ -195,7 +195,17 @@ export default function FavoritesPage({
       <ListPaneBody mobileBottomPadding={isMobile}>
         {loading ? (
           <Loading compact text={t("common.loading")} />
-        ) : favorites.length === 0 ? null : favorites.map((item) => {
+        ) : favorites.length === 0 ? (
+          isMobile ? (
+            <EmptyState
+              icon={Star}
+              iconSize="empty-lg"
+              title={t("favorites.empty")}
+              description={t("favorites.emptyHint")}
+              full
+            />
+          ) : null
+        ) : favorites.map((item) => {
           const active = selectedTargetId === item.target_id;
           const Icon = sourceIcon[item.source_type as keyof typeof sourceIcon] ?? sourceIcon.unknown;
           return (
@@ -256,7 +266,13 @@ export default function FavoritesPage({
         favorites.length > 0 ? (
           <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.selectToView")} full />
         ) : (
-          <EmptyState icon={Star} iconSize="empty-lg" title={t("favorites.empty")} full />
+          <EmptyState
+            icon={Star}
+            iconSize="empty-lg"
+            title={t("favorites.empty")}
+            description={t("favorites.emptyHint")}
+            full
+          />
         )
       ) : (
         <>
@@ -325,28 +341,6 @@ export default function FavoritesPage({
       )}
     </DetailPane>
   );
-
-  // 列表为空时只保留页头与空态：空的详情栏是负资产，但页面身份与条数不能跟着消失
-  if (!loading && favorites.length === 0) {
-    // 页头常驻：列表为空不等于页面为空，用户仍要知道自己在哪、这页有多少条
-    return (
-      <PageFrame column>
-        <PaneHeader
-          icon={Star}
-          iconFill="currentColor"
-          title={t("favorites.title")}
-          actions={<Badge>{t("favorites.count", favorites.length)}</Badge>}
-        />
-        <EmptyState
-          icon={Star}
-          iconSize="empty-lg"
-          title={t("favorites.empty")}
-          description={t("favorites.emptyHint")}
-          full
-        />
-      </PageFrame>
-    );
-  }
 
   return (
     <FileWorkspace

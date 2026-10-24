@@ -332,22 +332,6 @@ export default function ImportsPage({
   const selectedFileEntry = files.find((file) => file.path === selectedFile) ?? null;
   const selectedFileTitle = getDocumentTitleForPath(selectedFile, selectedFileEntry);
 
-  // 列表为空时整屏空态，页头常驻（列表空不等于页面空）
-  if (!loading && files.length === 0) {
-    return (
-      <PageFrame column>
-        <PaneHeader icon={Download} title={t("imports.title")} actions={<Badge>{files.length}</Badge>} />
-        <EmptyState
-          icon={Download}
-          iconSize="empty-lg"
-          title={t("imports.empty")}
-          description={t("imports.emptyHint")}
-          full
-        />
-      </PageFrame>
-    );
-  }
-
   return (
     <FileWorkspace
         panelKey="imports"
@@ -386,7 +370,17 @@ export default function ImportsPage({
             <ListPaneBody>
               {loading ? (
                 <Loading compact text={t("common.loading")} />
-              ) : files.length === 0 ? null : (
+              ) : files.length === 0 ? (
+                isMobile ? (
+                  <EmptyState
+                    icon={Download}
+                    iconSize="empty-lg"
+                    title={t("imports.empty")}
+                    description={t("imports.emptyHint")}
+                    full
+                  />
+                ) : null
+              ) : (
                 <>
                 {files.map((file) => {
                   const selected = selectedFile === file.path;
@@ -494,7 +488,12 @@ export default function ImportsPage({
               files.length > 0 ? (
                 <EmptyState icon={Download} title={t("imports.selectOrDrop")} full />
               ) : (
-                <EmptyState icon={Download} title={t("imports.empty")} full />
+                <EmptyState
+                  icon={Download}
+                  title={t("imports.empty")}
+                  description={t("imports.emptyHint")}
+                  full
+                />
               )
             )}
           </DetailPane>

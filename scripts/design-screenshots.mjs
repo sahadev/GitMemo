@@ -77,7 +77,7 @@ const PAGES = [
   { id: "clipboard", nav: { kind: "sidebar", key: "clipboard" }, marker: ".gm-clipboard-page" },
   { id: "vault", nav: { kind: "more", key: "vault" }, marker: ".gm-vault-page" },
   { id: "favorites", nav: { kind: "sidebar", key: "favorites" }, marker: null },
-  { id: "imports", nav: { kind: "more", key: "imports" }, marker: '.gm-page-frame-column' },
+  { id: "imports", nav: { kind: "more", key: "imports" }, marker: '.gm-split-pane[data-panel-key="imports"]' },
   { id: "claude-config", nav: { kind: "more", key: "claudeConfig" }, marker: '.gm-split-pane[data-panel-key="claude-config"]' },
   { id: "editor-home", nav: { kind: "settings-editor" }, marker: '.gm-split-pane[data-panel-key="editor-home"]' },
   { id: "external-files", nav: { kind: "more", key: "externalFiles" }, marker: '.gm-page-frame-column' },
