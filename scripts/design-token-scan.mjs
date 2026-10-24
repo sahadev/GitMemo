@@ -145,6 +145,10 @@ What counts as a violation
     @media print { ... }
     @media (prefers-reduced-motion: reduce) { ... }
     #gitmemo-print-root and .gitmemo-print-* blocks
+    .markdown-body, the reading surface (sizes are em, relative to the
+      container, so prose proportions follow the user's base size)
+    any declaration marked `/* design-scan: constant - <reason> */`
+      (component-local size constants listed in desktop/src/index.css)
   Print output and reduced-motion overrides are supposed to win with
   !important and literal pt/hex values; the docs treat them as an exempt zone.
   Everything else, including a selector-specificity !important, still counts.
@@ -238,8 +242,11 @@ function loadLadders(cssPath) {
 
 // ------------------------------------------------------------------ scanning
 
-function scanCssFile(file, text, ladders, enabled, loc, push, exemptLines) {
-  const isExemptAt = (lineNumber) => Boolean(exemptLines && exemptLines[lineNumber - 1]);
+function scanCssFile(file, text, ladders, enabled, loc, push, exemptLines, constantLines) {
+  const isExemptAt = (lineNumber) => Boolean(
+    (exemptLines && exemptLines[lineNumber - 1])
+    || (constantLines && constantLines.has(lineNumber)),
+  );
   const lines = text.split("\n");
   let offset = 0;
 
@@ -442,7 +449,8 @@ function checkSpacingValue(rawValue, ladder, ctx = {}) {
 function isExemptPrelude(prelude) {
   return /^@media\b[^{]*\bprint\b/i.test(prelude)
     || /^@media\b[^{]*prefers-reduced-motion\s*:\s*reduce/i.test(prelude)
-    || /#gitmemo-print-root|\.gitmemo-print-/.test(prelude);
+    || /#gitmemo-print-root|\.gitmemo-print-/.test(prelude)
+    || /\.markdown-body\b/.test(prelude);
 }
 
 /** Marks every line that sits inside a print or reduced-motion block. */
@@ -569,8 +577,15 @@ function main() {
 
   for (const file of files) {
     let text;
+    let constantLines = null;
     try {
-      text = stripComments(readFileSync(file, "utf8"));
+      const raw = readFileSync(file, "utf8");
+      constantLines = new Set(
+        raw.split("\n")
+          .map((line, i) => (/design-scan:\s*constant/.test(line) ? i + 1 : 0))
+          .filter(Boolean),
+      );
+      text = stripComments(raw);
     } catch (err) {
       process.stderr.write(`design-token-scan: skipping ${file} (${err.message})\n`);
       continue;
@@ -581,9 +596,10 @@ function main() {
     else cssCount += 1;
 
     const exemptLines = isTsx || !opts.exempt ? null : computeExemptLines(text);
+    const marked = opts.exempt ? constantLines : null;
 
     if (isTsx) scanTsxFile(file, text, ladders, opts.only, loc, push);
-    else scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines);
+    else scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines, marked);
 
     if (opts.only.has("important")) {
       for (const m of text.matchAll(/!\s*important/gi)) {

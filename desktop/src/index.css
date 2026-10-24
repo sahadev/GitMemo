@@ -1218,7 +1218,7 @@ a:focus-visible {
 }
 
 .gm-clipboard-list-body[data-selecting="true"] {
-  padding-bottom: 58px;
+  padding-bottom: 58px; /* design-scan: constant — 选择条高度，列表为其预留的底部空间 */
 }
 
 .gm-clipboard-list-body[data-mobile="true"] {
@@ -5892,7 +5892,7 @@ a:focus-visible {
   font-size: var(--gm-font-2xs);
   line-height: var(--gm-space-5);
   min-width: var(--gm-size-kbd-min-width);
-  padding: 1px var(--gm-space-2);
+  padding: var(--gm-border-w) var(--gm-space-2);
   text-align: center;
 }
 
@@ -6950,7 +6950,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: var(--gm-color-bg-inset, #11130f);
+  background: var(--gm-color-bg-inset);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -7142,7 +7142,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 64px 76px 76px;
+  padding: 64px 76px 76px; /* design-scan: constant — 沉浸预览的舞台内边距，随工具栏偏移 */
   overflow: hidden;
   cursor: grab;
 }
