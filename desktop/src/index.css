@@ -1168,7 +1168,6 @@ a:focus-visible {
 .gm-clipboard-filter-tabs {
   background: transparent;
   border: 0;
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
   border-radius: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

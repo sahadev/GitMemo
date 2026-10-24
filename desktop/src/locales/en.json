@@ -203,7 +203,8 @@
     "quickNotePlaceholder": "Write something — the first line becomes the title (Cmd/Ctrl+S to save)",
     "tableTime": "Time",
     "tableTitle": "Title",
-    "tablePath": "Location"
+    "tablePath": "Location",
+    "quickNoteTemplateContent": "New note\n\n- Key point\n- Next step\n"
   },
   "conversations": {
     "title": "Conversations",

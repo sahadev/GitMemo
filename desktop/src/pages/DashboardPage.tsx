@@ -196,14 +196,17 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     onNavigate?.("notes");
   }, [onNavigate, quickNotePath, quickNoteSaving, setNotesTab, setPendingOpenPath]);
 
+  const quickNoteTemplate = t("dashboard.quickNoteTemplateContent");
   const insertQuickNoteTemplate = useCallback(() => {
-    setQuickNoteDraft(quickNotePlaceholder);
+    // 模板必须是「不同于占位符」的真实内容：以前插的是占位符原文，插完画面毫无变化，
+    // 看起来像按钮没反应。
+    setQuickNoteDraft(quickNoteTemplate);
     window.requestAnimationFrame(() => {
       const textarea = quickNoteTextareaRef.current;
-      textarea?.setSelectionRange(quickNotePlaceholder.length, quickNotePlaceholder.length);
+      textarea?.setSelectionRange(quickNoteTemplate.length, quickNoteTemplate.length);
       textarea?.focus();
     });
-  }, [quickNotePlaceholder]);
+  }, [quickNoteTemplate]);
 
   const handleQuickNoteKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     const ev = e.nativeEvent;

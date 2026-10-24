@@ -203,7 +203,8 @@
     "quickNotePlaceholder": "记点什么，第一行会成为标题（Cmd/Ctrl+S 保存）",
     "tableTime": "时间",
     "tableTitle": "标题",
-    "tablePath": "位置"
+    "tablePath": "位置",
+    "quickNoteTemplateContent": "新笔记\n\n- 要点\n- 下一步\n"
   },
   "conversations": {
     "title": "对话",
