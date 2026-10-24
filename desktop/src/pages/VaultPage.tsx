@@ -125,6 +125,8 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
       const next = await invoke<VaultStatus>("lock_vault");
       setStatus(next);
       setDetail(null);
+      // 锁定时一并清掉选中项：解锁后应当落在列表，而不是直接回到刚才那条的详情
+      setSelectedId(null);
       showToast(t("vault.locked"));
     } catch (e) {
       showToast(`${e}`, true);
