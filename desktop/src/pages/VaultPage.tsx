@@ -57,8 +57,13 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
   const [busy, setBusy] = useState(false);
   const [revealing, setRevealing] = useState(false);
 
+  /**
+   * 选中只由用户点击决定，不做「没选中就退回第一条」的回落：
+   * 回落会让「清空选中」等价于「选中第一条」，窄窗（≤760）下右栏永远开着、
+   * 列表再也进不去。data-detail-open 同样只看是否有显式选中。
+   */
   const selectedEntry = useMemo(
-    () => entries.find((entry) => entry.id === selectedId) ?? entries[0] ?? null,
+    () => (selectedId ? entries.find((entry) => entry.id === selectedId) ?? null : null),
     [entries, selectedId],
   );
 
@@ -71,7 +76,8 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
       ]);
       setStatus(nextStatus);
       setEntries(nextEntries);
-      setSelectedId((current) => current && nextEntries.some((entry) => entry.id === current) ? current : nextEntries[0]?.id ?? null);
+      // 刷新后条目可能消失：保留仍然存在的选中，否则回到「未选中」，不自动选第一条。
+      setSelectedId((current) => (current && nextEntries.some((entry) => entry.id === current) ? current : null));
       if (!nextStatus.unlocked) setDetail(null);
     } catch (e) {
       showToast(`${e}`, true);
@@ -269,7 +275,7 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
             <EmptyState icon={KeyRound} title={t("vault.empty")} description={t("vault.emptyDesc")} />
           </div>
         ) : !selectedEntry ? (
-          entries.length > 0 ? <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full /> : null
+          <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full />
         ) : !unlocked ? (
           <EmptyState icon={Lock} title={t("vault.lockedState")} description={t("vault.lockedStateDesc")} full />
         ) : (
