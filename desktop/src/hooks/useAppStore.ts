@@ -160,6 +160,11 @@ interface AppStore {
   updateBody: string | null;
   updateProgress: number;
   updateError: string | null;
+  /**
+   * 失败发生在哪一步。界面只渲染对应的本地化文案，原始错误串只做 title 和日志，
+   * 所以这里的阶段决定文案与重试动作，不再把原始串当正文。
+   */
+  updateErrorStage: "check" | "install" | null;
   pendingUpdateDetailsOpen: boolean;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
@@ -214,6 +219,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   updateBody: null,
   updateProgress: 0,
   updateError: null,
+  updateErrorStage: null,
   pendingUpdateDetailsOpen: false,
 
   refreshClipboardStatus: async () => {
@@ -321,7 +327,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
   checkForUpdates: async () => {
     if (!canRequestDesktopUpdateCheck(get().updateStatus)) return;
-    set({ updateStatus: "checking", updateProgress: 0, updateError: null });
+    set({ updateStatus: "checking", updateProgress: 0, updateError: null, updateErrorStage: null });
     const t0 = performance.now();
     await logUpdaterInfo(
       `check start (timeout_ms=${UPDATE_CHECK_TIMEOUT_MS}, endpoint=tauri.conf updater endpoints)`,
@@ -348,12 +354,13 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
       const ms = Math.round(performance.now() - t0);
       const errStr = formatUnknownErr(e);
       await logUpdaterError(`check failed after ${ms}ms: ${errStr}`);
-      set({ updateStatus: "error", updateError: errStr });
+      // 原始错误只进日志与 title；正文用本地化文案（SettingsPage 渲染）。
+      set({ updateStatus: "error", updateError: errStr, updateErrorStage: "check" });
     }
   },
 
   installUpdate: async () => {
-    set({ updateStatus: "downloading", updateProgress: 0 });
+    set({ updateStatus: "downloading", updateProgress: 0, updateError: null, updateErrorStage: null });
     const t0 = performance.now();
     await logUpdaterInfo(`install: re-check start (timeout_ms=${UPDATE_CHECK_TIMEOUT_MS})`);
     try {
@@ -387,7 +394,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
       const ms = Math.round(performance.now() - t0);
       const errStr = formatUnknownErr(e);
       await logUpdaterError(`install failed after ${ms}ms: ${errStr}`);
-      set({ updateStatus: "error", updateError: errStr });
+      set({ updateStatus: "error", updateError: errStr, updateErrorStage: "install" });
     }
   },
 
