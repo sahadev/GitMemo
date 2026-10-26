@@ -178,7 +178,7 @@
     "recentActivity": "最近动态",
     "clipboardActive": "剪贴板监控中",
     "clipboardInactive": "剪贴板未启动",
-    "noActivity": "这里还没有条目：在下面的命令框记一条，或让 Claude / Cursor 的对话自动进来。",
+    "noActivity": "GitMemo 把笔记、剪贴板和 AI 对话存成本地知识库。在下面的命令框记一条，或让 Claude / Cursor 的对话自动进来。",
     "viewAll": "查看全部",
     "cliCardTitle": "用 CLI 解锁 AI 工作流",
     "cliCardDesc": "CLI 负责连接终端与 AI 工具，让 Claude、Cursor、Codex 可以保存并复用你的知识库。",

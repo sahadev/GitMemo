@@ -178,7 +178,7 @@
     "recentActivity": "Recent Activity",
     "clipboardActive": "Clipboard Active",
     "clipboardInactive": "Clipboard Paused",
-    "noActivity": "Nothing here yet. Write one in the command box below, or let your Claude / Cursor conversations land here.",
+    "noActivity": "GitMemo keeps your notes, clipboard and AI conversations in one local knowledge base. Write one in the command box below, or let your Claude / Cursor conversations land here.",
     "viewAll": "View all",
     "cliCardTitle": "Unlock AI workflows with the CLI",
     "cliCardDesc": "The CLI connects GitMemo to terminals and AI tools so Claude, Cursor, and Codex can save and reuse your knowledge.",
