@@ -7504,7 +7504,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   min-height: 0;
 }
 .gm-inst-command {
-  min-height: 152px;
+  min-height: 304px;
 }
 
 .gm-inst-command {
@@ -7548,6 +7548,10 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   gap: var(--gm-space-3);
   min-height: 0;
   padding: var(--gm-space-4);
+}
+
+.gm-inst-command-field textarea {
+  min-height: 176px;
 }
 .gm-inst-command-sigil {
   color: var(--gm-accent);
