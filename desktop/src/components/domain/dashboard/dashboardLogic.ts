@@ -168,14 +168,6 @@ export function getDashboardVisibleRecentItems(isDesktop: boolean, recent: Recen
   return recent.filter((item) => canOpenDashboardRecentItem(isDesktop, item));
 }
 
-export function hasDashboardContentFiles(stats: AppStats) {
-  return getDashboardContentFileCount(stats) > 0;
-}
-
-export function shouldShowDashboardEmptyGuide(stats: AppStats, visibleRecent: RecentItem[]) {
-  return !hasDashboardContentFiles(stats) && visibleRecent.length === 0;
-}
-
 export function hasDashboardQuickNoteContent(content: string) {
   return content.trim().length > 0;
 }

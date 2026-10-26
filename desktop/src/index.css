@@ -7348,7 +7348,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   flex: none;
   flex-direction: column;
   margin-top: var(--gm-space-4);
-  max-height: 320px;
   min-height: 0;
   min-width: 0;
 }
@@ -7385,7 +7384,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-list-count { color: var(--gm-text-2); }
 .gm-inst-list-head .gm-inst-list-count { margin-left: auto; }
 .gm-favorites-count { white-space: nowrap; }
-.gm-inst-list-rows { flex: 1; min-height: 0; overflow-y: auto; }
+.gm-inst-list-rows { flex: 1; min-height: 0; }
 .gm-inst-list-row {
   align-items: center;
   background: transparent;
@@ -7455,32 +7454,8 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   overflow-y: auto;
   padding: var(--gm-space-4);
 }
-.gm-inst-banner {
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
-  display: flex;
-  flex: none;
-  justify-content: space-between;
-  gap: var(--gm-space-5);
-  padding: var(--gm-space-4);
-}
-.gm-inst-banner[data-empty="true"] { background: var(--gm-accent-soft); }
-.gm-inst-banner-title {
-  color: var(--gm-text);
-  font-size: var(--gm-font-md);
-  font-weight: 650;
-  line-height: var(--gm-leading-title);
-  margin: 0;
-}
-.gm-inst-banner-meta {
-  color: var(--gm-text-3);
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  margin: 0;
-  text-align: right;
-  white-space: nowrap;
-}
 
-/* 4b · 仪表带 */
+/* 4a · 仪表带 */
 .gm-inst-gauges {
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: grid;
@@ -7662,12 +7637,11 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-command-caret { animation: none; }
 }
 
-/* 断点阶梯：1023 以下仪表盘改单列，列表区限高 40vh。 */
+/* 断点阶梯：1023 以下仪表盘改单列。 */
 @media (max-width: 1023px) {
   /* 窄栏里的分段控件允许换行：不换行会被容器边缘裁字 */
   .gm-segment-row,
   .gm-compact-tab-row { flex-wrap: wrap; }
-  .gm-inst-list { max-height: 40vh; }
   .gm-inst-main { padding: var(--gm-space-3); }
 }
 
@@ -7676,8 +7650,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-identity-status,
   .gm-inst-identity-count { display: none; }
   .gm-inst-identity-path { max-width: 100%; }
-  .gm-inst-banner { flex-direction: column; gap: var(--gm-space-2); }
-  .gm-inst-banner-meta { text-align: left; white-space: normal; }
 }
 
 @media (max-width: 767px) {
