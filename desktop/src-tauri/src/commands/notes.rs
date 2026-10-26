@@ -229,26 +229,26 @@ fn normalize_dashboard_quick_note_markdown(
     format!("---\n{}\n---\n\n{}\n", lines.join("\n"), body.trim_end())
 }
 
-fn next_scratch_note_path(
-    dir: &Path,
+/// 快记的标题：取正文第一行，去掉 Markdown 标题符号与多余空白，限长；空则用日期时间。
+fn dashboard_quick_note_title(
+    content: &str,
     now: &chrono::DateTime<chrono::Local>,
-) -> Result<String, String> {
-    let date_str = now.format("%Y-%m-%d").to_string();
-    let scratch_dir = dir.join("notes/scratch");
-    std::fs::create_dir_all(&scratch_dir).map_err(|e| e.to_string())?;
-
-    let mut seq = 1u32;
-    loop {
-        let filename = format!("{}-{:03}.md", date_str, seq);
-        if !scratch_dir.join(&filename).exists() {
-            return Ok(format!("notes/scratch/{}", filename));
-        }
-        seq += 1;
+) -> String {
+    let first = content
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with("---"))
+        .unwrap_or("");
+    let trimmed = first.trim_start_matches('#').trim();
+    if trimmed.is_empty() {
+        return now.format("%Y-%m-%d %H:%M").to_string();
     }
+    trimmed.chars().take(60).collect()
 }
 
 fn is_safe_dashboard_quick_note_path(path: &str) -> bool {
-    path.starts_with("notes/scratch/")
+    // 便笺与文档已合并：快记既可能更新老便笺，也可能更新自己刚写下的文档
+    (path.starts_with("notes/scratch/") || path.starts_with("notes/manual/"))
         && path.ends_with(".md")
         && !path.contains("..")
         && !path.contains('\\')
@@ -389,6 +389,20 @@ mod tests {
         assert!(!clip_content_matches_kind(text_clip, ClipKindFilter::Image));
         assert!(clip_content_matches_kind(image_clip, ClipKindFilter::Image));
         assert!(!clip_content_matches_kind(image_clip, ClipKindFilter::Text));
+    }
+
+    #[test]
+    fn dashboard_quick_note_title_uses_first_content_line() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-07-10T10:30:00+08:00")
+            .unwrap()
+            .with_timezone(&chrono::Local);
+
+        assert_eq!(dashboard_quick_note_title("购物清单", &now), "购物清单");
+        assert_eq!(dashboard_quick_note_title("# 会议要点\n\n- A", &now), "会议要点");
+        assert_eq!(dashboard_quick_note_title("\n\n  第二行才是内容  \n", &now), "第二行才是内容");
+        assert_eq!(dashboard_quick_note_title("   ", &now), "2026-07-10 10:30");
+        let long = "很".repeat(80);
+        assert_eq!(dashboard_quick_note_title(&long, &now).chars().count(), 60);
     }
 
     #[test]
@@ -831,7 +845,19 @@ fn save_dashboard_quick_note_sync(
             let existing = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
             (path, Some(existing))
         }
-        None => (next_scratch_note_path(&dir, &now)?, None),
+        None => {
+            // 新建一律落成文档：标题取正文第一行（去掉开头 # 与多余空白），空则用时间戳
+            let title = dashboard_quick_note_title(&content, &now);
+            let rel_path = files::write_manual(&dir, &title, &content, false)
+                .map_err(|e| e.to_string())?;
+            refresh_index_file(&dir, &rel_path);
+            bg_commit_and_push(format!("note: dashboard quick {}", rel_path));
+            return Ok(NoteResult {
+                success: true,
+                path: rel_path.clone(),
+                message: format!("Quick note saved: {}", rel_path),
+            });
+        }
     };
 
     let markdown =
