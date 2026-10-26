@@ -2536,11 +2536,11 @@ a:focus-visible {
 
 .gm-sidebar-brand {
   align-items: center;
-  background: var(--gm-color-bg-elevated);
+  background: transparent;
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   justify-content: space-between;
-  padding: var(--gm-space-4) var(--gm-space-5);
+  padding: var(--gm-space-4) var(--gm-space-3);
 }
 
 .gm-sidebar-brand-main {
@@ -2657,27 +2657,33 @@ a:focus-visible {
 }
 
 .gm-sidebar-footer {
-  background: var(--gm-color-bg-elevated);
+  background: transparent;
   border-top: var(--gm-border-w) solid var(--gm-line);
-  padding: var(--gm-card-header-gap);
+  padding: var(--gm-space-3);
 }
 
 .gm-sidebar-sync-button {
   align-items: center;
-  background: var(--bg);
-  border: var(--gm-border-w) solid var(--gm-line);
+  background: transparent;
+  border: var(--gm-border-w) solid transparent;
   border-radius: var(--gm-radius-control);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-size: var(--gm-font-xs);
-  font-weight: 720;
-  gap: var(--gm-icon-text-gap);
-  justify-content: center;
+  font-weight: 650;
+  gap: var(--gm-nav-item-gap);
+  justify-content: flex-start;
   min-height: var(--gm-control-height-lg);
-  padding: var(--gm-control-pad-y-lg) var(--gm-control-pad-x);
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  padding: var(--gm-nav-item-pad-y) var(--gm-nav-item-pad-x);
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   width: 100%;
+}
+
+.gm-sidebar-sync-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg-hover) 64%, transparent);
+  color: var(--text);
 }
 
 .gm-sidebar-sync-button[data-status="syncing"] {
