@@ -341,13 +341,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
 
   const resumeItem = displayedRecent[0];
-  const pendingItems = [
-    clipStatus && !clipStatus.watching
-      ? { label: t("dashboard.clipboardInactive"), meta: t("nav.clipboard") }
-      : null,
-    !editorConfigured ? { label: t("dashboard.pendingNoEditor"), meta: t("nav.settings") } : null,
-  ].filter(Boolean).slice(0, 3) as { label: string; meta: string }[];
-
   return (
     <div className="gm-inst-dashboard" data-mobile={isMobile ? "true" : "false"} data-active={active ? "true" : "false"}>
       {/* 1 · 身份栏 */}
@@ -525,20 +518,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               </div>
             </section>
 
-            <section className="gm-inst-todo">
-              <div className="gm-inst-todo-head">
-                <span>{t("dashboard.pendingTitle")}</span>
-                <span className="gm-inst-todo-count">{formatDashboardCount(pendingItems.length)}</span>
-              </div>
-              <ul className="gm-inst-todo-rows">
-                {pendingItems.map((item) => (
-                  <li key={item.label} className="gm-inst-todo-row">
-                    <span className="gm-inst-todo-label">{item.label}</span>
-                    <span className="gm-inst-todo-meta">{item.meta}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </div>
         </div>
       </div>

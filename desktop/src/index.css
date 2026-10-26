@@ -7493,7 +7493,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: grid;
   flex: none;
   gap: var(--gm-space-4);
-  grid-template-columns: minmax(0, 1fr) 336px;
+  grid-template-columns: minmax(0, 1fr);
   margin-top: var(--gm-space-4);
   min-height: 0;
 }
@@ -7501,16 +7501,15 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   min-height: 152px;
 }
 
-.gm-inst-command,
-.gm-inst-todo {
+.gm-inst-command {
   border: var(--gm-border-w) solid var(--gm-line-strong);
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
 }
-.gm-inst-command-head,
-.gm-inst-todo-head {
+
+.gm-inst-command-head {
   align-items: center;
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   color: var(--gm-text-3);
@@ -7524,6 +7523,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   padding: 0 var(--gm-space-4);
   text-transform: uppercase;
 }
+
 .gm-inst-command-open {
   background: transparent;
   border: 0;
@@ -7609,26 +7609,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-command-new:focus-visible,
 .gm-inst-command-open:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
 
-.gm-inst-todo-count { color: var(--gm-text-2); }
-.gm-inst-todo-rows { flex: 1; list-style: none; margin: 0; min-height: 0; overflow-y: auto; padding: 0; }
-.gm-inst-todo-row {
-  align-items: center;
-  border-bottom: var(--gm-border-w) solid var(--gm-line);
-  display: grid;
-  font-size: var(--gm-font-sm);
-  gap: var(--gm-space-4);
-  grid-template-columns: minmax(0, 1fr) auto;
-  height: var(--gm-density-row);
-  padding: 0 var(--gm-space-4);
-}
-.gm-inst-todo-row:last-child { border-bottom: 0; }
-.gm-inst-todo-label { color: var(--gm-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gm-inst-todo-meta {
-  color: var(--gm-text-3);
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  white-space: nowrap;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .gm-inst-command-caret { animation: none; }
@@ -7646,7 +7626,6 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
     max-height: 40vh;
   }
   .gm-inst-main { padding: var(--gm-space-3); }
-  .gm-inst-lower { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 900px) {
