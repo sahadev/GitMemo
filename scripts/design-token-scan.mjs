@@ -42,21 +42,27 @@ const TOKEN_CSS = join(REPO_ROOT, "desktop", "src", "index.css");
 const FONT_FALLBACK = [11, 12, 13, 15, 17, 20, 24];
 const SPACE_FALLBACK = [0, 2, 4, 8, 12, 16, 24, 32];
 
-const RULES = ["font-size", "spacing", "color", "tsx-color", "important"];
+const RULES = ["font-size", "font-weight", "spacing", "color", "tsx-color", "hover", "important"];
 const RULE_LABEL = {
   "font-size": "off-ladder font size",
+  "font-weight": "off-ladder font weight (400/650/720)",
   spacing: "off-ladder spacing",
+  hover: "transition without :hover",
   color: "hard-coded colour (index.css)",
   "tsx-color": "hard-coded colour (.tsx)",
   important: "!important",
 };
 const RULE_LAYER = {
   "font-size": "structure",
+  "font-weight": "structure",
+  hover: "structure",
   spacing: "structure",
   important: "structure",
   color: "skin",
   "tsx-color": "skin",
 };
+
+const FONT_WEIGHTS = new Set([400, 650, 720]);
 
 const CSS_FONT_SIZE_KEYWORDS = new Set([
   "inherit", "initial", "unset", "revert", "revert-layer",
@@ -312,6 +318,20 @@ function scanCssFile(file, text, ladders, enabled, loc, push, exemptLines, const
         }
       }
 
+      if (enabled.has("font-weight") && prop === "font-weight") {
+        const weight = value.trim();
+        if (/^\d+$/.test(weight) && !FONT_WEIGHTS.has(Number(weight))) {
+          push({
+            rule: "font-weight",
+            file,
+            ...position,
+            exempt,
+            value: weight,
+            snippet: snippetOf(text, partStart),
+          });
+        }
+      }
+
       if (enabled.has("spacing") && SPACING_PROP.test(prop)) {
         for (const verdict of checkSpacingValue(value, ladders.space)) {
           push({
@@ -442,6 +462,43 @@ function checkSpacingValue(rawValue, ladder, ctx = {}) {
     out.push(`${m[1]}${m[2] ?? ""}`);
   }
   return out;
+}
+
+// 交互态：transition 存在但同级选择器没有 :hover 规则 —— 过渡空转，等于 hover 无反馈。
+// 只比对「同一个类」，且忽略只做 transform/opacity 动画的类（开关滑块之类靠状态属性驱动）。
+function scanInteraction(text, loc, push) {
+  const rules = [...text.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ selector: m[1].replace(/\/\*[\s\S]*?\*\//g, " "), body: m[2], index: m.index }));
+  // 输入控件的过渡服务于 focus 而非 hover，不参与这条规则
+  const isFormControl = (cls) => /-(input|textarea|select|field)$/.test(cls);
+  const transitioned = new Map();
+  const hovered = new Set();
+  for (const rule of rules) {
+    for (const part of rule.selector.split(",")) {
+      const sel = part.trim();
+      const single = sel.match(/^(\.gm-[a-z0-9-]+)$/);
+      if (single && !isFormControl(single[1]) && /transition:[^;]*\b(background|border-color|color)\b/.test(rule.body)) {
+        transitioned.set(single[1], rule.index);
+      }
+      // :hover 可能写在复合选择器里（`:hover:not(:disabled)`、`[data-x]:hover`），
+      // 只要这一条里出现了 :hover，就认为它命中的类都有 hover 态。
+      if (sel.includes(":hover")) {
+        for (const hit of sel.matchAll(/\.gm-[a-z0-9-]+/g)) hovered.add(hit[0]);
+      }
+    }
+  }
+  for (const [cls, index] of transitioned) {
+    if (hovered.has(cls)) continue;
+    const position = loc(index);
+    push({
+      rule: "hover",
+      file: "desktop/src/index.css",
+      ...position,
+      exempt: false,
+      value: `${cls} 有 transition 无 :hover`,
+      snippet: snippetOf(text, index),
+    });
+  }
 }
 
 // --------------------------------------------------------------- exemptions
@@ -599,7 +656,10 @@ function main() {
     const marked = opts.exempt ? constantLines : null;
 
     if (isTsx) scanTsxFile(file, text, ladders, opts.only, loc, push);
-    else scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines, marked);
+    else {
+      scanCssFile(file, text, ladders, opts.only, loc, push, exemptLines, marked);
+      if (opts.only.has("hover")) scanInteraction(text, loc, push);
+    }
 
     if (opts.only.has("important")) {
       for (const m of text.matchAll(/!\s*important/gi)) {

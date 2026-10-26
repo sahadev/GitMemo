@@ -410,6 +410,7 @@
   --gm-density-pad-panel: 14px;
   --gm-size-value-min: 56px;
   --gm-density-subheader: 28px;
+  --gm-focus-ring-width: 2px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1126,7 +1127,7 @@ a:focus-visible {
   border-radius: var(--gm-radius-pill);
   color: var(--text-secondary);
   font-size: var(--gm-font-2xs);
-  font-weight: 500;
+  font-weight: 650;
   padding: var(--gm-space-1) var(--gm-row-pad-x);
   white-space: nowrap;
 }
@@ -1184,7 +1185,7 @@ a:focus-visible {
   cursor: pointer;
   display: flex;
   font-size: var(--gm-font-xs);
-  font-weight: 500;
+  font-weight: 400;
   gap: var(--gm-control-gap);
   height: 26px;
   justify-content: center;
@@ -1201,7 +1202,7 @@ a:focus-visible {
   background: var(--bg);
   box-shadow: var(--gm-shadow-control);
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .gm-clipboard-filter-button span {
@@ -1311,6 +1312,10 @@ a:focus-visible {
   cursor: pointer;
 }
 
+.gm-clipboard-clip-item[data-interactive="true"]:hover {
+  background: var(--bg-hover);
+}
+
 .gm-clipboard-clip-item[data-interactive="true"]:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
   outline-offset: -2px;
@@ -1348,7 +1353,7 @@ a:focus-visible {
   color: var(--text-secondary);
   display: flex;
   font-size: var(--gm-font-xs);
-  font-weight: 700;
+  font-weight: 650;
   height: var(--gm-icon-lg);
   justify-content: center;
   width: var(--gm-icon-lg);
@@ -1666,7 +1671,7 @@ a:focus-visible {
 .gm-vault-unlock-title {
   color: var(--text);
   font-size: var(--gm-font-lg);
-  font-weight: 700;
+  font-weight: 720;
 }
 
 .gm-vault-unlock-desc {
@@ -1709,7 +1714,7 @@ a:focus-visible {
 .gm-vault-detail-kicker {
   color: var(--accent);
   font-size: var(--gm-font-2xs);
-  font-weight: 750;
+  font-weight: 650;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -1870,7 +1875,7 @@ a:focus-visible {
 .gm-privacy-title {
   color: var(--text);
   font-size: var(--gm-font-md);
-  font-weight: 700;
+  font-weight: 720;
   margin-bottom: var(--gm-space-1);
 }
 
@@ -2224,7 +2229,6 @@ a:focus-visible {
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   border-left: var(--gm-size-card-rail) solid transparent;
   border-radius: 0;
-  box-shadow: none;
   padding: var(--gm-list-row-pad-y) var(--gm-list-row-pad-x);
 }
 
@@ -2395,7 +2399,7 @@ a:focus-visible {
 .gm-status-pill-text {
   color: currentColor;
   font-size: var(--gm-font-xs);
-  font-weight: 500;
+  font-weight: 650;
 }
 
 .gm-badge {
@@ -2560,7 +2564,7 @@ a:focus-visible {
   color: var(--text);
   display: block;
   font-size: var(--gm-font-md);
-  font-weight: 800;
+  font-weight: 720;
   line-height: var(--gm-leading-tight);
 }
 
@@ -2624,14 +2628,14 @@ a:focus-visible {
 
 .gm-sidebar-nav-label {
   font-size: var(--gm-font-sm);
-  font-weight: 620;
+  font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gm-sidebar-nav-item[data-active="true"] .gm-sidebar-nav-label {
-  font-weight: 760;
+  font-weight: 650;
 }
 
 .gm-sidebar-more-chevron {
@@ -2639,7 +2643,6 @@ a:focus-visible {
   flex-shrink: 0;
   color: currentColor;
   opacity: 0.7;
-  transition: transform 0.15s ease;
 }
 
 .gm-sidebar-more-toggle[data-open="true"] .gm-sidebar-more-chevron {
@@ -2817,7 +2820,7 @@ a:focus-visible {
 
 .gm-bottom-nav-label {
   font-size: var(--gm-font-2xs);
-  font-weight: 620;
+  font-weight: 650;
   letter-spacing: -0.01em;
   line-height: var(--gm-leading-tight);
   max-width: 100%;
@@ -2827,7 +2830,7 @@ a:focus-visible {
 }
 
 .gm-bottom-nav-item[data-active="true"] .gm-bottom-nav-label {
-  font-weight: 760;
+  font-weight: 650;
 }
 
 .gm-split-pane {
@@ -3001,7 +3004,7 @@ a:focus-visible {
 
 .gm-file-detail-title[data-mobile="true"] {
   font-size: var(--gm-font-sm);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .gm-file-detail-title[data-clickable="true"] {
@@ -3278,7 +3281,6 @@ a:focus-visible {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-card);
-  box-shadow: var(--gm-edge-shadow);
   padding: var(--gm-card-pad-y) var(--gm-card-pad-x);
 }
 
@@ -3470,7 +3472,6 @@ a:focus-visible {
   background: var(--bg-card);
   border: none;
   border-radius: 0;
-  box-shadow: none;
   display: grid;
   grid-template-columns: var(--gm-size-setup-sidebar-width) minmax(0, 1fr);
   height: 100%;
@@ -3540,7 +3541,7 @@ a:focus-visible {
   display: flex;
   flex-shrink: 0;
   font-size: var(--gm-font-sm);
-  font-weight: 800;
+  font-weight: 720;
   height: var(--gm-size-setup-logo-box);
   justify-content: center;
   width: var(--gm-size-setup-logo-box);
@@ -3553,14 +3554,14 @@ a:focus-visible {
 .gm-setup-kicker {
   color: var(--accent);
   font-size: var(--gm-font-xs);
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0;
   margin-bottom: var(--gm-space-2);
 }
 
 .gm-setup-sidebar-title {
   font-size: var(--gm-font-xl);
-  font-weight: 700;
+  font-weight: 720;
   line-height: var(--gm-leading-title);
   margin: 0;
   overflow-wrap: anywhere;
@@ -3651,7 +3652,7 @@ a:focus-visible {
   display: flex;
   flex-shrink: 0;
   font-size: var(--gm-font-xs);
-  font-weight: 700;
+  font-weight: 650;
   height: var(--gm-size-setup-step-index);
   justify-content: center;
   width: var(--gm-size-setup-step-index);
@@ -3666,7 +3667,7 @@ a:focus-visible {
 .gm-setup-step-label {
   color: var(--text-secondary);
   font-size: var(--gm-font-sm);
-  font-weight: 600;
+  font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -3693,7 +3694,7 @@ a:focus-visible {
 
 .gm-setup-tip-title {
   color: var(--text);
-  font-weight: 700;
+  font-weight: 720;
   margin-bottom: var(--gm-space-2);
 }
 
@@ -3882,7 +3883,7 @@ a:focus-visible {
   color: var(--text);
   flex-shrink: 0;
   font-size: var(--gm-font-2xl);
-  font-weight: 700;
+  font-weight: 650;
   min-width: var(--gm-size-setup-step-index);
 }
 
@@ -3941,7 +3942,7 @@ a:focus-visible {
   color: var(--text-secondary);
   display: inline-flex;
   font-size: var(--gm-font-xs);
-  font-weight: 700;
+  font-weight: 650;
   justify-content: center;
   min-height: var(--gm-control-height-xs);
   padding: var(--gm-space-2) var(--gm-space-3);
@@ -4150,7 +4151,7 @@ a:focus-visible {
 .gm-setup-title {
   color: var(--text);
   font-size: var(--gm-font-xl);
-  font-weight: 700;
+  font-weight: 720;
   line-height: var(--gm-leading-title);
   margin: 0 0 var(--gm-space-3);
   text-align: center;
@@ -4190,7 +4191,7 @@ a:focus-visible {
 
 .gm-setup-running-title {
   font-size: var(--gm-font-2xl);
-  font-weight: 700;
+  font-weight: 720;
   margin-bottom: var(--gm-space-3);
   text-align: center;
 }
@@ -4217,7 +4218,7 @@ a:focus-visible {
 
 .gm-setup-log-head span:first-child {
   font-size: var(--gm-font-xs);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .gm-setup-log-head span:last-child {
@@ -5000,7 +5001,7 @@ a:focus-visible {
 .gm-onboarding-title {
   color: var(--text);
   font-size: var(--gm-font-md);
-  font-weight: 700;
+  font-weight: 720;
   margin-bottom: var(--gm-space-1);
 }
 
@@ -5394,7 +5395,7 @@ a:focus-visible {
   display: inline-flex;
   flex-shrink: 0;
   font-size: var(--gm-font-lg);
-  font-weight: 760;
+  font-weight: 650;
   line-height: var(--gm-leading-none);
   transform-origin: center;
 }
@@ -5437,8 +5438,8 @@ a:focus-visible {
 }
 
 .gm-dashboard-quick-note-textarea:focus {
-  border-color: color-mix(in srgb, var(--accent) 64%, var(--gm-line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--gm-accent) 64%, var(--gm-line));
+  box-shadow: 0 0 0 var(--gm-focus-ring-width) color-mix(in srgb, var(--gm-accent) 22%, transparent);
 }
 
 .gm-dashboard-quick-note-actions {
@@ -5474,7 +5475,6 @@ a:focus-visible {
   border: 0;
   border-left: var(--gm-border-w) solid var(--gm-line);
   border-radius: 0;
-  box-shadow: none;
   padding: var(--gm-space-4) var(--gm-space-4) var(--gm-space-4) var(--gm-space-4);
 }
 
@@ -5558,7 +5558,7 @@ a:focus-visible {
 .gm-dashboard-stat-card[data-loading="true"] .gm-dashboard-stat-value {
   color: var(--text-secondary);
   font-size: var(--gm-font-xs);
-  font-weight: 560;
+  font-weight: 720;
 }
 
 .gm-dashboard-activity-list {
@@ -5586,7 +5586,6 @@ a:focus-visible {
 }
 
 .gm-dashboard-activity-icon {
-  transition: color 0.15s ease;
 }
 
 .gm-dashboard-activity-title {
@@ -5594,7 +5593,6 @@ a:focus-visible {
   font-size: var(--gm-font-xs);
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -5614,7 +5612,7 @@ a:focus-visible {
 .gm-dashboard-value {
   color: var(--text);
   font-size: var(--gm-font-lg);
-  font-weight: 760;
+  font-weight: 720;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6064,7 +6062,6 @@ a:focus-visible {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line-strong);
   border-radius: var(--gm-radius-panel);
-  box-shadow: var(--gm-shadow-modal);
   max-width: var(--gm-size-drop-card-max-width);
   overflow: hidden;
   width: 100%;
@@ -6106,7 +6103,7 @@ a:focus-visible {
 .gm-drop-title {
   color: var(--text);
   font-size: var(--gm-font-xl);
-  font-weight: 760;
+  font-weight: 720;
 }
 
 .gm-drop-description {
@@ -6441,7 +6438,6 @@ a:focus-visible {
   background: var(--gm-color-bg-surface);
   border: var(--gm-border-w) solid var(--gm-line);
   border-radius: var(--gm-radius-panel);
-  box-shadow: var(--gm-shadow-modal), var(--gm-shadow-inset-top);
   overflow: hidden;
   width: min(560px, 100%);
 }
@@ -6544,7 +6540,7 @@ a:focus-visible {
 .gm-quick-paste-result-title {
   color: var(--text);
   font-size: var(--gm-font-sm);
-  font-weight: 560;
+  font-weight: 720;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6658,7 +6654,7 @@ select:focus-visible {
   margin-top: 1.15em;
   margin-bottom: 0.58em;
   color: var(--text);
-  font-weight: 760;
+  font-weight: 720;
   line-height: var(--gm-leading-heading);
 }
 
@@ -6710,7 +6706,7 @@ select:focus-visible {
   padding: 0;
   border-radius: 0;
   font-size: 0.92em;
-  font-weight: 600;
+  font-weight: 650;
   font-family: var(--gm-font-mono);
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -6759,7 +6755,7 @@ select:focus-visible {
 
 .markdown-body th {
   background: var(--gm-color-bg-elevated);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .markdown-body hr {
@@ -7018,7 +7014,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: flex;
   align-items: center;
   gap: var(--gm-icon-text-gap);
-  font-weight: 600;
+  font-weight: 720;
   font-size: var(--gm-font-lg);
   color: var(--gm-color-text-primary);
 }
@@ -7553,7 +7549,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 /* 输入本身去掉描边，焦点改由容器承担，键盘用户仍能看见自己在哪 */
 .gm-inst-command-field:focus-within {
   border-color: var(--gm-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 22%, transparent);
+  box-shadow: 0 0 0 var(--gm-focus-ring-width) color-mix(in srgb, var(--gm-accent) 22%, transparent);
 }
 .gm-inst-command-caret {
   background: var(--gm-accent);
@@ -7648,4 +7644,68 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gm-inst-gauge:nth-child(odd) { border-left: 0; }
   .gm-inst-gauge:nth-child(n + 3) { border-top: var(--gm-border-w) solid var(--gm-line); }
+}
+
+/* ---------------------------------------------------------------------------
+   交互态补齐（视觉细节排查 2026-10-24）
+
+   两类断裂：声明了 transition 却没有 :hover（过渡空转），有 :hover 却没有
+   transition（状态突变）。下面按「元素本身可点 → 补 hover；只是被父级
+   联动 → 删掉空转的 transition」处理。
+   --------------------------------------------------------------------------- */
+
+/* 分段控件：设置、AI 配置、剪贴板三处共用，原先 hover 完全无反馈 */
+.gm-segment-button:hover,
+.gm-compact-tab-button:hover,
+.gm-settings-segmented-button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.gm-segment-button[data-active="true"]:hover,
+.gm-compact-tab-button[data-active="true"]:hover,
+.gm-settings-segmented-button[data-active="true"]:hover {
+  background: var(--gm-color-bg-selected);
+  color: var(--text);
+}
+
+/* 开关：轨道亮度抬一档，激活态不动（accent 已经足够显眼） */
+.gm-switch:hover {
+  background: var(--gm-line-strong);
+}
+
+.gm-switch[data-enabled="true"]:hover {
+  background: var(--gm-accent-hover);
+}
+
+/* 安装向导与上手清单里的可点卡片 */
+.gm-setup-button:hover,
+.gm-setup-option:hover,
+.gm-setup-platform-button:hover,
+.gm-onboarding-item:hover {
+  background: var(--bg-hover);
+}
+
+/* 侧栏同步按钮 */
+.gm-sidebar-sync-button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/* 补 transition：这些元素有 hover 但状态是瞬间跳变 */
+.gm-inst-command-save,
+.gm-inst-command-new,
+.gm-inst-command-open,
+.gm-notification-action,
+.gm-settings-nav-row,
+.gm-settings-icon-button,
+.gm-settings-about-meta-clickable,
+.gm-sidebar-version,
+.gm-drop-action,
+.gm-dashboard-activity-row,
+.gm-clip-cleaner-row,
+.gm-clip-cleaner-nav,
+.gm-clip-cleaner-icon-btn,
+.gm-clip-cleaner-danger {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
