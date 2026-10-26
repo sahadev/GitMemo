@@ -600,8 +600,6 @@
     "unlocked": "保险箱已解锁",
     "lock": "锁定保险箱",
     "locked": "保险箱已锁定",
-    "lockedState": "保险箱已锁定",
-    "lockedStateDesc": "解锁后才能查看加密条目。",
     "empty": "暂无加密条目",
     "emptyDesc": "开启并解锁保险箱后，复制密码或 Token 会出现在这里。",
     "selectEntry": "选择一个条目",
