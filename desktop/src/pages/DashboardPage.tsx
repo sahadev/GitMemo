@@ -319,9 +319,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       label: t("dashboard.gaugeTotal"),
       value: displayedFileCount,
       level: 5,
-      detail: stats
-        ? `${formatDashboardSizeKb(displayedRepoSizeKb)} · ${t("dashboard.gaugeAddedThisWeek", String(stats.added_this_week ?? 0))}`
-        : undefined,
+      detail: stats ? formatDashboardSizeKb(displayedRepoSizeKb) : undefined,
     },
     {
       id: "conversation",

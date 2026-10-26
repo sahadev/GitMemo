@@ -89,17 +89,6 @@ fn count_image_files(dir: &Path) -> usize {
         .count()
 }
 
-/// 最近 N 秒内活动过的条目数；索引不可用时返回 None，由调用方退化。
-fn count_activity_since(sync_dir: &Path, window_secs: i64) -> Option<usize> {
-    let db_path = sync_dir.join(".metadata").join("index.db");
-    if !db_path.exists() {
-        return None;
-    }
-    let conn = database::open_or_create(&db_path).ok()?;
-    let cutoff = chrono::Utc::now().timestamp_millis() - window_secs * 1000;
-    database::count_documents_active_since(&conn, cutoff).ok()
-}
-
 fn latest_activity_ts(sync_dir: &Path) -> Option<i64> {
     let db_path = sync_dir.join(".metadata").join("index.db");
     if !db_path.exists() {
@@ -119,8 +108,6 @@ pub struct AppStats {
     pub tracked_files: usize,
     pub total_size_kb: f64,
     pub repository_size_kb: f64,
-    /// 本周新增（索引里 7 天内活动过的条目数）
-    pub added_this_week: usize,
     /// 对话的工具来源数量（conversations/ 下的子目录数）
     pub conversation_sources: usize,
     /// 剪贴板里的图片张数（clips/ 下的图片文件）
@@ -175,9 +162,7 @@ fn get_stats_from_index(sync_dir: &Path) -> Result<AppStats, String> {
     let stats = database::get_dashboard_stats(&conn).map_err(|e| e.to_string())?;
     let repository_size = git::repository_storage_size(sync_dir);
 
-    let week_cutoff = chrono::Utc::now().timestamp_millis() - 7 * 24 * 3600 * 1000;
     Ok(AppStats {
-        added_this_week: database::count_documents_active_since(&conn, week_cutoff).unwrap_or(0),
         conversation_sources: count_subdirs(&sync_dir.join("conversations")),
         clip_images: count_image_files(&sync_dir.join("clips")),
         last_activity_ts: database::latest_activity_ts(&conn).unwrap_or(0),
@@ -206,7 +191,6 @@ fn get_stats_from_filesystem(sync_dir: &Path) -> Result<AppStats, String> {
         tracked_files,
         total_size_kb: total_size as f64 / 1024.0,
         repository_size_kb: repository_size as f64 / 1024.0,
-        added_this_week: count_activity_since(sync_dir, 7 * 24 * 3600).unwrap_or(0),
         conversation_sources: count_subdirs(&sync_dir.join("conversations")),
         clip_images: count_image_files(&sync_dir.join("clips")),
         last_activity_ts: latest_activity_ts(sync_dir).unwrap_or(0),

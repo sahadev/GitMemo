@@ -19,7 +19,6 @@ export interface AppStats {
   tracked_files?: number;
   total_size_kb: number;
   repository_size_kb?: number;
-  added_this_week?: number;
   conversation_sources?: number;
   clip_images?: number;
   last_activity_ts?: number;

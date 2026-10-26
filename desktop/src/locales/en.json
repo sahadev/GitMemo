@@ -205,7 +205,6 @@
     "quickNoteTemplateContent": "New note\n\n- Key point\n- Next step\n",
     "activityHide": "Hide recent activity",
     "activityShow": "Show recent activity",
-    "gaugeAddedThisWeek": "+{0} this week",
     "gaugeToolSources": "{0} tool sources",
     "gaugeDocsOnly": "{0} documents",
     "gaugeClipImages": "{0} images",

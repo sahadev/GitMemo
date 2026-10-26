@@ -205,7 +205,6 @@
     "quickNoteTemplateContent": "新笔记\n\n- 要点\n- 下一步\n",
     "activityHide": "关闭最近动态",
     "activityShow": "显示最近动态",
-    "gaugeAddedThisWeek": "本周 +{0}",
     "gaugeToolSources": "{0} 个工具来源",
     "gaugeDocsOnly": "文档 {0} 篇",
     "gaugeClipImages": "图片 {0} 张",
