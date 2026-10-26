@@ -210,6 +210,16 @@ export default function NotesPage({
     consumePendingOpenPath();
   }, [pendingOpenPath, openFile, consumePendingOpenPath]);
 
+  // 方向键换行时，焦点要跟着选中行走：否则旧行还带着焦点环，
+  // 看上去像两行同时被选中。只在列表本来就有焦点时接管，避免抢鼠标点击的焦点。
+  useEffect(() => {
+    if (!selectedFile) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || !active.closest(".gm-inst-list-rows")) return;
+    const row = document.querySelector<HTMLElement>('.gm-inst-list-rows [data-on="true"]');
+    if (row && row !== active) row.focus();
+  }, [selectedFile]);
+
   const { navPrev, navNext } = useFileListNavigation({
     files,
     selectedPath: selectedFile ?? lastClosedPathRef.current,

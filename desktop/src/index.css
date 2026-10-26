@@ -752,6 +752,7 @@ a:focus-visible {
 
 .gm-pane-tab-button {
   align-items: center;
+  overflow: hidden;
   background: transparent;
   border: var(--gm-border-w) solid transparent;
   border-radius: var(--gm-radius-control);
@@ -792,6 +793,13 @@ a:focus-visible {
 .gm-pane-tab-icon {
   color: currentColor;
   flex-shrink: 0;
+}
+
+/* 分段标签一律不换行：窄栏里宁可省略号，也不要把字排成竖列 */
+.gm-pane-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gm-pane-tab-button[data-active="true"] .gm-pane-tab-icon {

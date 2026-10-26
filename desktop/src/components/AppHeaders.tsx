@@ -80,7 +80,7 @@ export function PaneTabHeader<T extends string>({
             onClick={() => onChange(tab.id)}
           >
             <AppIcon icon={Icon} className="gm-pane-tab-icon" size={isMobile ? "sm" : "xs"} />
-            {tab.label}
+            <span className="gm-pane-tab-label">{tab.label}</span>
           </button>
         );
       })}
