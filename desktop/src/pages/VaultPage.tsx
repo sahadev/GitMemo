@@ -276,8 +276,6 @@ export default function VaultPage({ active = true }: { active?: boolean } = {}) 
           </div>
         ) : !selectedEntry ? (
           <EmptyState icon={KeyRound} title={t("vault.selectEntry")} full />
-        ) : !unlocked ? (
-          <EmptyState icon={Lock} title={t("vault.lockedState")} description={t("vault.lockedStateDesc")} full />
         ) : (
           <article className="gm-vault-detail">
             <header className="gm-vault-detail-header">
