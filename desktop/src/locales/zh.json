@@ -250,7 +250,11 @@
     "save": "保存",
     "noteDeleted": "笔记已删除",
     "deleteConfirm": "确定删除此笔记？",
-    "send": "保存"
+    "send": "保存",
+    "placeholderTitleOptional": "标题（可选）",
+    "placeholderUnified": "写点什么。标题留空时，第一行会作为标题",
+    "emptyTitle": "还没有笔记",
+    "emptyHint": "在上方输入框写第一条；也可以直接用命令行 gitmemo manual 创建"
   },
   "clipboard": {
     "title": "剪贴板",

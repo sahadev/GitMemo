@@ -250,7 +250,11 @@
     "save": "Save",
     "noteDeleted": "Note deleted",
     "deleteConfirm": "Delete this note?",
-    "send": "Save"
+    "send": "Save",
+    "placeholderTitleOptional": "Title (optional)",
+    "placeholderUnified": "Write something. If the title is empty, the first line becomes it.",
+    "emptyTitle": "No notes yet",
+    "emptyHint": "Write your first note above, or create one from the CLI: gitmemo manual"
   },
   "clipboard": {
     "title": "Clipboard",

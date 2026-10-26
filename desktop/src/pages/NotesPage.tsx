@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo, type Dispatch, type 
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Loading } from "../components/Loading";
-import { Plus, FileText, BookOpen, Trash2, RefreshCw } from "lucide-react";
+import { Plus, FileText, Trash2, RefreshCw } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { FileDetailToolbar } from "../components/FileDetailToolbar";
 import { FileMoreActionsMenu } from "../components/FileMoreActionsMenu";
 import { FavoriteButton } from "../components/FavoriteButton";
-import { PaneTabHeader } from "../components/AppHeaders";
+import { PaneHeader } from "../components/AppHeaders";
+import { Badge } from "../components/base/Badge";
 import { AppIcon } from "../components/base/AppIcon";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
@@ -26,13 +27,6 @@ import { NoteComposer } from "../components/domain/notes/NoteComposer";
 import {
   canPressNoteCreateButton,
   canNavigateListFromEmptyComposer,
-  getEmptyNotesDescriptionKey,
-  getNoteCreateBlockReason,
-  getNoteCreateBlockToastKey,
-  getNoteComposerDraft,
-  getNotePlaceholderKey,
-  getNotesTabForPath,
-  isManualNotesTab,
   shouldShowNoteComposerHelper,
 } from "../components/domain/notes/notesLogic";
 import { DetailPane, ListPane } from "../components/layout/Pane";
@@ -42,7 +36,7 @@ import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
-import { useAppStore, type NotesTab } from "../hooks/useAppStore";
+import { useAppStore } from "../hooks/useAppStore";
 import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
 import { type FileEntry, type FilePage } from "../types/files";
@@ -54,10 +48,8 @@ import { useMobileDetailBackHandler } from "../hooks/useMobileDetailBackHandler"
 import { useMobileEditorChrome } from "../hooks/useMobileEditorChrome";
 import { formatShortcut, withDefaultShortcuts } from "../utils/shortcuts";
 
-const tabs: { id: NotesTab; labelKey: string; icon: typeof FileText; folder: string }[] = [
-  { id: "scratch", labelKey: "notes.scratch", icon: FileText, folder: "notes/scratch" },
-  { id: "manual", labelKey: "notes.manual", icon: BookOpen, folder: "notes/manual" },
-];
+/** 便笺与文档已合并：列表读整个 notes 目录，新建一律写成文档（notes/manual） */
+const NOTES_FOLDER = "notes";
 
 // 详情栏窄于此宽度时工具栏改行（字号与按钮宽度叠加后 540 已开始溢出）
 const NOTE_DETAIL_WRAP_WIDTH = 600;
@@ -76,13 +68,12 @@ export default function NotesPage({
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
-  const { notesTab: activeTab, setNotesTab, pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
+  const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
-  const [scratchDraft, setScratchDraft] = useState("");
-  const [manualDraft, setManualDraft] = useState("");
-  const [manualTitle, setManualTitle] = useState("");
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteTitle, setNoteTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<EditorHandle | null>(null);
@@ -126,9 +117,8 @@ export default function NotesPage({
   const imeComposingRef = useRef(false);
 
   const loadNotesPage = useCallback((offset: number, limit: number) => {
-    const folder = tabs.find((tb) => tb.id === activeTab)!.folder;
-    return invoke<FilePage>("list_files_page", { folder, offset, limit });
-  }, [activeTab]);
+    return invoke<FilePage>("list_files_page", { folder: NOTES_FOLDER, offset, limit });
+  }, []);
   const {
     files,
     loadError,
@@ -202,7 +192,7 @@ export default function NotesPage({
     void loadFiles();
     clearDetail();
     lastClosedPathRef.current = null;
-  }, [activeTab, clearDetail, loadFiles]);
+  }, [clearDetail, loadFiles]);
 
   useEffect(() => {
     if (focusTrigger && textareaRef.current) textareaRef.current.focus();
@@ -216,14 +206,9 @@ export default function NotesPage({
 
   useEffect(() => {
     if (!isPendingPathForFolder(pendingOpenPath, "notes/")) return;
-    const targetTab = getNotesTabForPath(pendingOpenPath);
-    if (activeTab !== targetTab) {
-      setNotesTab(targetTab);
-      return;
-    }
     void openFile(pendingOpenPath, true);
     consumePendingOpenPath();
-  }, [activeTab, pendingOpenPath, setNotesTab, openFile, consumePendingOpenPath]);
+  }, [pendingOpenPath, openFile, consumePendingOpenPath]);
 
   const { navPrev, navNext } = useFileListNavigation({
     files,
@@ -234,27 +219,21 @@ export default function NotesPage({
     loadMore,
     selectFromEmpty: true,
   });
-  const isManualTab = isManualNotesTab(activeTab);
-  const noteDraft = getNoteComposerDraft(activeTab, { scratch: scratchDraft, manual: manualDraft });
-  const setNoteDraft = isManualTab ? setManualDraft : setScratchDraft;
-
   const handleCreateNote = async () => {
-    const blockReason = getNoteCreateBlockReason(activeTab, noteDraft, manualTitle, saving);
-    if (blockReason) {
-      if (blockReason !== "saving") showToast(t(getNoteCreateBlockToastKey(blockReason)), true);
+    if (saving) return;
+    if (!noteDraft.trim()) {
+      showToast(t("notes.contentRequired"), true);
       return;
     }
+    // 标题可选：留空时取正文第一行；再退到时间戳，避免写出空名文件
+    const firstLine = noteDraft.trim().split("\n")[0].trim().slice(0, 60);
+    const title = noteTitle.trim() || firstLine || new Date().toLocaleString();
     setSaving(true);
     try {
-      let result: NoteResult;
-      if (isManualTab) {
-        result = await invoke<NoteResult>("create_manual", { title: manualTitle, content: noteDraft, append: false });
-      } else {
-        result = await invoke<NoteResult>("create_note", { content: noteDraft });
-      }
+      const result = await invoke<NoteResult>("create_manual", { title, content: noteDraft, append: false });
       showToast(result.message);
       setNoteDraft("");
-      if (isManualTab) setManualTitle("");
+      setNoteTitle("");
       loadFiles();
     } catch (e) { showToast(`Error: ${e}`, true); }
     finally { setSaving(false); }
@@ -335,34 +314,34 @@ export default function NotesPage({
         narrowDetailThreshold={NOTE_DETAIL_WRAP_WIDTH}
         left={showList && (
       <ListPane>
-        <PaneTabHeader
-          tabs={tabs.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon }))}
-          activeId={activeTab}
-          onChange={setNotesTab}
-          isMobile={isMobile}
+        <PaneHeader
+          icon={FileText}
+          title={t("nav.notes")}
           actions={(
-            <Button
-              variant="toolbar"
-              onClick={handleRefresh}
-              title={t("common.refresh")}
-              icon={RefreshCw}
-              iconSize={isMobile ? "sm" : "xs"}
-              mobile={isMobile}
-            />
+            <>
+              <Button
+                variant="toolbar"
+                onClick={handleRefresh}
+                title={t("common.refresh")}
+                icon={RefreshCw}
+                iconSize={isMobile ? "sm" : "xs"}
+                mobile={isMobile}
+              />
+              <Badge>{files.length}</Badge>
+            </>
           )}
         />
 
         {/* Quick note input */}
         <NoteComposer
-          key={activeTab}
-          showTitle={isManualTab}
-          title={manualTitle}
-          onTitleChange={setManualTitle}
-          titlePlaceholder={t("notes.placeholderTitle")}
+          showTitle
+          title={noteTitle}
+          onTitleChange={setNoteTitle}
+          titlePlaceholder={t("notes.placeholderTitleOptional")}
           sendLabel={t("notes.send")}
           note={noteDraft}
           onNoteChange={setNoteDraft}
-          notePlaceholder={t(getNotePlaceholderKey(activeTab))}
+          notePlaceholder={t("notes.placeholderUnified")}
           textareaRef={textareaRef}
           rows={isMobile ? 4 : 3}
           mobile={isMobile}
@@ -407,8 +386,8 @@ export default function NotesPage({
             isMobile ? (
               <EmptyState
                 icon={FileText}
-                title={t("notes.noNotes", t(`notes.${activeTab}`))}
-                description={t(getEmptyNotesDescriptionKey(activeTab))}
+                title={t("notes.emptyTitle")}
+                description={t("notes.emptyHint")}
                 full
               />
             ) : null
@@ -521,8 +500,8 @@ export default function NotesPage({
         ) : (
           <EmptyState
             icon={FileText}
-            title={t("notes.noNotes", t(`notes.${activeTab}`))}
-            description={t(getEmptyNotesDescriptionKey(activeTab))}
+            title={t("notes.emptyTitle")}
+            description={t("notes.emptyHint")}
             full
           />
         )}
