@@ -1,5 +1,6 @@
 import {useEffect, useState, useCallback, useMemo, useRef, type KeyboardEvent} from "react";
 import {invoke} from "@tauri-apps/api/core";
+import {readText} from "@tauri-apps/plugin-clipboard-manager";
 import {useI18n} from "../hooks/useI18n";
 import {useSync} from "../hooks/useSync";
 import {useAppStore} from "../hooks/useAppStore";
@@ -215,6 +216,19 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   }, [onNavigate, quickNotePath, quickNoteSaving, setNotesTab, setPendingOpenPath]);
 
   const quickNoteTemplate = t("dashboard.quickNoteTemplateContent");
+  const insertFromClipboard = useCallback(async () => {
+    try {
+      const text = await readText();
+      if (!text) {
+        showToast(t("dashboard.clipboardEmpty"), true);
+        return;
+      }
+      setQuickNoteDraft((prev) => (prev.trim() ? `${prev.replace(/\s+$/, "")}\n\n${text}` : text));
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  }, [setQuickNoteDraft, showToast, t]);
+
   const insertQuickNoteTemplate = useCallback(() => {
     // 模板必须是「不同于占位符」的真实内容：以前插的是占位符原文，插完画面毫无变化，
     // 看起来像按钮没反应。
@@ -481,6 +495,9 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   disabled={quickNoteDraft !== ""}
                 >
                   {t("dashboard.quickNoteInsertTemplate")}
+                </button>
+                <button type="button" className="gm-inst-command-new" onClick={() => void insertFromClipboard()}>
+                  {t("dashboard.quickNoteFromClipboard")}
                 </button>
                 <button type="button" className="gm-inst-command-new" onClick={startNewQuickNote}>
                   {t("dashboard.quickNoteNew")}

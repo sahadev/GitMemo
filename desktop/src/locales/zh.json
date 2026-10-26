@@ -132,7 +132,9 @@
   },
   "sidebar": {
     "syncing": "同步中...",
-    "syncToGit": "同步到 Git"
+    "syncToGit": "同步到 Git",
+    "unpushedCount": "{0} 条未推送",
+    "allPushed": "已全部推送"
   },
   "dashboard": {
     "listLoadFailed": "列表没能加载：{0}",
@@ -216,7 +218,9 @@
     "tableStateNew": "新增",
     "tableStateDraft": "草稿",
     "tableStateSynced": "已同步",
-    "lastSyncedAgo": "上次同步 {0}"
+    "lastSyncedAgo": "上次同步 {0}",
+    "quickNoteFromClipboard": "取剪贴板",
+    "clipboardEmpty": "剪贴板里没有可用的文字"
   },
   "conversations": {
     "title": "对话",

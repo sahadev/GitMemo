@@ -132,7 +132,9 @@
   },
   "sidebar": {
     "syncing": "Syncing...",
-    "syncToGit": "Sync to Git"
+    "syncToGit": "Sync to Git",
+    "unpushedCount": "{0} unpushed",
+    "allPushed": "All pushed"
   },
   "dashboard": {
     "listLoadFailed": "Could not load the list: {0}",
@@ -216,7 +218,9 @@
     "tableStateNew": "New",
     "tableStateDraft": "Draft",
     "tableStateSynced": "Synced",
-    "lastSyncedAgo": "synced {0}"
+    "lastSyncedAgo": "synced {0}",
+    "quickNoteFromClipboard": "Paste clipboard",
+    "clipboardEmpty": "Clipboard has no text"
   },
   "conversations": {
     "title": "Conversations",

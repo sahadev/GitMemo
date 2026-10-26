@@ -15,6 +15,7 @@ import {
 import type { Page } from "../App";
 import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
+import { useSync } from "../hooks/useSync";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
 import { AppIcon } from "./base/AppIcon";
 import { ImageContextMenu } from "./domain/files/ImageContextMenu";
@@ -51,6 +52,10 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
   const { appMeta, updateStatus, checkForUpdates, requestUpdateDetailsOpen } = useAppStore();
   const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
+  // 顶栏没做，同步上下文改在这里常驻：分支与未推送数全站可见
+  const { gitStatus } = useSync();
+  const branchLabel = gitStatus?.git_branch || "";
+  const unpushedCount = gitStatus?.unpushed ?? 0;
   const desktopUpdateAvailable = updateStatus === "available";
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -152,6 +157,14 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           <AppIcon icon={RefreshCw} size="xs" spin={syncing} />
           {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
         </button>
+        <p className="gm-sidebar-sync-meta">
+          {branchLabel ? <span>{branchLabel}</span> : null}
+          {unpushedCount > 0 ? (
+            <span data-tone="warning">{t("sidebar.unpushedCount", String(unpushedCount))}</span>
+          ) : (
+            <span>{t("sidebar.allPushed")}</span>
+          )}
+        </p>
         <button
           className="gm-sidebar-version"
           type="button"

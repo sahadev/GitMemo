@@ -2714,6 +2714,20 @@ a:focus-visible {
   color: var(--gm-danger);
 }
 
+.gm-sidebar-sync-meta {
+  color: var(--gm-text-3);
+  display: flex;
+  font-family: var(--gm-font-mono);
+  font-size: var(--gm-font-2xs);
+  gap: var(--gm-space-2);
+  justify-content: center;
+  padding: var(--gm-space-1) 0;
+}
+
+.gm-sidebar-sync-meta [data-tone="warning"] {
+  color: var(--gm-warning);
+}
+
 .gm-sidebar-sync-button .gm-icon {
   color: currentColor;
 }
