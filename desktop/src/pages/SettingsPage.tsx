@@ -156,7 +156,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
     cliStatus, cliStatusChecked, cliStatusLoading, refreshCliStatus,
     theme, toggleTheme,
     appMeta,
-    updateStatus, updateVersion, updateDate, updateBody, updateProgress, updateError,
+    updateStatus, updateVersion, updateDate, updateBody, updateProgress, updateError, updateErrorStage,
     pendingUpdateDetailsOpen, consumeUpdateDetailsOpen,
     checkForUpdates, installUpdate,
   } = useAppStore();
@@ -704,6 +704,16 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
   const showDesktopUpdateDetails = updateStatus === "available";
   const canCheckDesktopUpdates = canRequestDesktopUpdateCheck(updateStatus);
   const showDesktopUpdateCheckAction = shouldShowDesktopUpdateCheckAction(updateStatus);
+  /**
+   * 正文只放本地化的人话，原始错误串降到 title（悬停可见）且已写入 gitmemo.log。
+   * 失败阶段决定文案，也决定「重试」要重做哪一步。
+   */
+  const updateErrorIsInstall = updateErrorStage === "install";
+  const updateErrorText = t(updateErrorIsInstall ? "settings.installError" : "settings.updateError");
+  const retryDesktopUpdate = () => {
+    if (updateErrorIsInstall) void installUpdate();
+    else void checkForUpdates();
+  };
   const openDesktopVersionDetails = () => {
     if (showDesktopUpdateDetails) {
       setShowUpdateDetails(true);
@@ -1404,12 +1414,20 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
 
         {isDesktop && (
           <SettingsUpdateStatus>
-            {showDesktopUpdateCheckAction && updateStatus !== "idle" && (
-              <SettingsStatus tone={updateStatus === "error" ? "danger" : "success"}>
-                {updateStatus === "error" ? (updateError || t("settings.updateError")) : t("settings.upToDate")}
-              </SettingsStatus>
+            {showDesktopUpdateCheckAction && updateStatus === "error" && (
+              <>
+                <SettingsStatus tone="danger" title={updateError ?? undefined}>
+                  {updateErrorText}
+                </SettingsStatus>
+                <SettingsActionButton icon={RefreshCw} variant="secondary" tone="muted" onClick={retryDesktopUpdate}>
+                  {t("common.retry")}
+                </SettingsActionButton>
+              </>
             )}
-            {showDesktopUpdateCheckAction && (
+            {showDesktopUpdateCheckAction && updateStatus === "upToDate" && (
+              <SettingsStatus tone="success">{t("settings.upToDate")}</SettingsStatus>
+            )}
+            {showDesktopUpdateCheckAction && updateStatus !== "error" && (
               <SettingsActionButton
                 icon={updateStatus === "upToDate" ? RefreshCw : Download}
                 variant="secondary"

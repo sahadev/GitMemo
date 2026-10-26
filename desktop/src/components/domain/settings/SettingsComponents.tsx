@@ -400,11 +400,13 @@ interface SettingsStatusProps {
   children: ReactNode;
   tone?: SettingsTone;
   className?: string;
+  /** 悬停提示。用于把原始错误串从正文降到 title，不再占界面主位。 */
+  title?: string;
 }
 
-export function SettingsStatus({ children, tone = "default", className }: SettingsStatusProps) {
+export function SettingsStatus({ children, tone = "default", className, title }: SettingsStatusProps) {
   return (
-    <span className={cx("gm-settings-status", className)} data-tone={tone}>
+    <span className={cx("gm-settings-status", className)} data-tone={tone} title={title}>
       {children}
     </span>
   );
