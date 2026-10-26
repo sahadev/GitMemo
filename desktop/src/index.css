@@ -7382,7 +7382,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: grid;
   font-size: var(--gm-font-sm);
   gap: var(--gm-space-4);
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 64px 56px minmax(0, 1fr) 88px 56px;
   height: var(--gm-density-row);
   padding: 0 var(--gm-space-4);
   text-align: left;
@@ -7398,6 +7398,27 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   box-shadow: inset 2px 0 0 var(--gm-accent);
 }
 .gm-inst-list-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-inst-list-type,
+.gm-inst-list-source,
+.gm-inst-list-state,
+.gm-inst-list-time {
+  color: var(--gm-text-3);
+  font-family: var(--gm-font-mono);
+  font-size: var(--gm-font-2xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gm-inst-list-type[data-kind="conversation"] { color: var(--gm-tag-chat); }
+.gm-inst-list-type[data-kind="manual"],
+.gm-inst-list-type[data-kind="scratch"] { color: var(--gm-tag-note); }
+.gm-inst-list-type[data-kind="clip"] { color: var(--gm-tag-clip); }
+.gm-inst-list-type[data-kind="plan"] { color: var(--gm-tag-plan); }
+.gm-inst-list-source { text-align: right; }
+.gm-inst-list-state { text-align: right; }
+.gm-inst-list-state[data-state="new"] { color: var(--gm-accent); }
+.gm-inst-list-state[data-state="draft"] { color: var(--gm-warning); }
+.gm-inst-list-state[data-state="synced"] { color: var(--gm-text-3); }
 .gm-inst-list-time {
   color: var(--gm-text-3);
   font-family: var(--gm-font-mono);

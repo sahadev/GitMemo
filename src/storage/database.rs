@@ -801,6 +801,26 @@ pub fn remove_relative_file(conn: &Connection, sync_dir: &Path, rel_path: &str) 
 }
 
 #[allow(dead_code)]
+/// 统计 activity_ts 不早于 cutoff（毫秒）的条目数，用于仪表盘「本周新增」。
+pub fn count_documents_active_since(conn: &Connection, cutoff_ms: i64) -> Result<usize> {
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM documents WHERE activity_ts >= ?1",
+        params![cutoff_ms],
+        |row| row.get(0),
+    )?;
+    Ok(count as usize)
+}
+
+/// 最近一次活动时间戳（毫秒），没有条目时为 0。
+pub fn latest_activity_ts(conn: &Connection) -> Result<i64> {
+    let ts: i64 = conn.query_row(
+        "SELECT COALESCE(MAX(activity_ts), 0) FROM documents",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(ts)
+}
+
 pub fn list_documents_page(
     conn: &Connection,
     folder: &str,

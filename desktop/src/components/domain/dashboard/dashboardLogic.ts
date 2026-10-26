@@ -19,6 +19,10 @@ export interface AppStats {
   tracked_files?: number;
   total_size_kb: number;
   repository_size_kb?: number;
+  added_this_week?: number;
+  conversation_sources?: number;
+  clip_images?: number;
+  last_activity_ts?: number;
 }
 
 export interface RecentItem {
@@ -27,6 +31,10 @@ export interface RecentItem {
   category: string;
   modified: string;
   modified_ts: number;
+  /** 产出来源：对话的工具目录名、clipboard / image、manual / scratch / plan */
+  source: string;
+  /** git 状态：new | draft | synced */
+  state: "new" | "draft" | "synced";
 }
 
 export type DashboardContentCategory = "conversation" | "manual" | "scratch" | "clip" | "plan";

@@ -206,7 +206,16 @@
     "tablePath": "位置",
     "quickNoteTemplateContent": "新笔记\n\n- 要点\n- 下一步\n",
     "activityHide": "关闭最近动态",
-    "activityShow": "显示最近动态"
+    "activityShow": "显示最近动态",
+    "gaugeAddedThisWeek": "本周 +{0}",
+    "gaugeToolSources": "{0} 个工具来源",
+    "gaugeDocsOnly": "文档 {0} 篇",
+    "gaugeClipImages": "图片 {0} 张",
+    "gaugeLastActivity": "最近 {0} 分钟",
+    "gaugeNoActivity": "暂无记录",
+    "tableStateNew": "新增",
+    "tableStateDraft": "草稿",
+    "tableStateSynced": "已同步"
   },
   "conversations": {
     "title": "对话",

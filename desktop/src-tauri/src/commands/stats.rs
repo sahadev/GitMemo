@@ -2,8 +2,10 @@ use gitmemo_core::storage::{database, files, git};
 use gitmemo_core::utils::datetime::record_timestamp_for_markdown;
 use gitmemo_core::utils::title::extract_display_title;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
+use std::process::Command;
 
 const DASHBOARD_RECENT_LIMIT: usize = 8;
 const DASHBOARD_RECENT_FOLDERS: [&str; 5] = [
@@ -59,6 +61,54 @@ fn count_md_files(dir: &Path) -> usize {
         .count()
 }
 
+/// 统计 conversations/ 下的一级子目录数量；没有子目录时按 1 计（平铺存放）。
+fn count_subdirs(dir: &Path) -> usize {
+    let Ok(entries) = std::fs::read_dir(dir) else { return 0 };
+    let count = entries
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .count();
+    if count == 0 && dir.exists() { 1 } else { count }
+}
+
+fn is_image_ext(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()).map(|e| e.to_ascii_lowercase()).as_deref(),
+        Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "heic")
+    )
+}
+
+fn count_image_files(dir: &Path) -> usize {
+    if !dir.exists() {
+        return 0;
+    }
+    walkdir::WalkDir::new(dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file() && is_image_ext(e.path()))
+        .count()
+}
+
+/// 最近 N 秒内活动过的条目数；索引不可用时返回 None，由调用方退化。
+fn count_activity_since(sync_dir: &Path, window_secs: i64) -> Option<usize> {
+    let db_path = sync_dir.join(".metadata").join("index.db");
+    if !db_path.exists() {
+        return None;
+    }
+    let conn = database::open_or_create(&db_path).ok()?;
+    let cutoff = chrono::Utc::now().timestamp_millis() - window_secs * 1000;
+    database::count_documents_active_since(&conn, cutoff).ok()
+}
+
+fn latest_activity_ts(sync_dir: &Path) -> Option<i64> {
+    let db_path = sync_dir.join(".metadata").join("index.db");
+    if !db_path.exists() {
+        return None;
+    }
+    let conn = database::open_or_create(&db_path).ok()?;
+    database::latest_activity_ts(&conn).ok()
+}
+
 #[derive(Debug, Serialize)]
 pub struct AppStats {
     pub conversations: usize,
@@ -69,6 +119,14 @@ pub struct AppStats {
     pub tracked_files: usize,
     pub total_size_kb: f64,
     pub repository_size_kb: f64,
+    /// 本周新增（索引里 7 天内活动过的条目数）
+    pub added_this_week: usize,
+    /// 对话的工具来源数量（conversations/ 下的子目录数）
+    pub conversation_sources: usize,
+    /// 剪贴板里的图片张数（clips/ 下的图片文件）
+    pub clip_images: usize,
+    /// 最近一次写入的时间戳（毫秒）
+    pub last_activity_ts: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -115,7 +173,12 @@ fn get_stats_from_index(sync_dir: &Path) -> Result<AppStats, String> {
     let stats = database::get_dashboard_stats(&conn).map_err(|e| e.to_string())?;
     let repository_size = git::repository_storage_size(sync_dir);
 
+    let week_cutoff = chrono::Utc::now().timestamp_millis() - 7 * 24 * 3600 * 1000;
     Ok(AppStats {
+        added_this_week: database::count_documents_active_since(&conn, week_cutoff).unwrap_or(0),
+        conversation_sources: count_subdirs(&sync_dir.join("conversations")),
+        clip_images: count_image_files(&sync_dir.join("clips")),
+        last_activity_ts: database::latest_activity_ts(&conn).unwrap_or(0),
         conversations: stats.conversation_count,
         manuals: stats.note_manual_count,
         scratch_notes: stats.note_scratch_count,
@@ -141,6 +204,10 @@ fn get_stats_from_filesystem(sync_dir: &Path) -> Result<AppStats, String> {
         tracked_files,
         total_size_kb: total_size as f64 / 1024.0,
         repository_size_kb: repository_size as f64 / 1024.0,
+        added_this_week: count_activity_since(sync_dir, 7 * 24 * 3600).unwrap_or(0),
+        conversation_sources: count_subdirs(&sync_dir.join("conversations")),
+        clip_images: count_image_files(&sync_dir.join("clips")),
+        last_activity_ts: latest_activity_ts(sync_dir).unwrap_or(0),
     })
 }
 
@@ -207,6 +274,10 @@ pub struct RecentItem {
     pub category: String,
     pub modified: String,
     pub modified_ts: i64,
+    /// 产出来源：对话的工具目录名、剪贴板类型、manual / plan
+    pub source: String,
+    /// git 状态：new（未跟踪）/ draft（有改动）/ synced（已提交）
+    pub state: String,
 }
 
 #[tauri::command]
@@ -222,8 +293,13 @@ fn get_recent_activity_sync() -> Result<Vec<RecentItem>, String> {
         return Ok(vec![]);
     }
 
-    get_recent_activity_from_index(&sync_dir)
-        .or_else(|_| get_recent_activity_from_filesystem(&sync_dir))
+    let mut items = get_recent_activity_from_index(&sync_dir)
+        .or_else(|_| get_recent_activity_from_filesystem(&sync_dir))?;
+    let (untracked, modified) = collect_git_states(&sync_dir);
+    for item in items.iter_mut() {
+        item.state = state_for_path(&item.path, &untracked, &modified);
+    }
+    Ok(items)
 }
 
 fn is_dashboard_recent_path(rel_path: &str) -> bool {
@@ -246,6 +322,93 @@ fn recent_category_for_path(rel_path: &str) -> &'static str {
     }
 }
 
+/// 从路径推导「来源」：对话取工具目录（claude/codex/…），剪贴板取 frontmatter 的 source，
+/// 笔记与计划直接用目录名。
+fn recent_source_for(rel_path: &str, head: &str) -> String {
+    if let Some(rest) = rel_path.strip_prefix("conversations/") {
+        let tool = rest.split('/').next().unwrap_or("");
+        // 平铺存放时没有子目录，退回 "conversation"
+        return if rest.contains('/') && !tool.is_empty() {
+            tool.to_string()
+        } else {
+            "conversation".to_string()
+        };
+    }
+    if rel_path.starts_with("clips/") {
+        let source = frontmatter_field(head, "source").unwrap_or_default();
+        return match source.as_str() {
+            "clipboard-image" => "image".to_string(),
+            "clipboard" => "clipboard".to_string(),
+            "" => "clipboard".to_string(),
+            other => other.to_string(),
+        };
+    }
+    if rel_path.starts_with("notes/manual/") {
+        return "manual".to_string();
+    }
+    if rel_path.starts_with("notes/scratch/") {
+        return "scratch".to_string();
+    }
+    if rel_path.starts_with("plans/") {
+        return "plan".to_string();
+    }
+    "file".to_string()
+}
+
+fn frontmatter_field(head: &str, key: &str) -> Option<String> {
+    let mut lines = head.lines();
+    if lines.next()?.trim() != "---" {
+        return None;
+    }
+    for line in lines {
+        let line = line.trim();
+        if line == "---" {
+            break;
+        }
+        if let Some(rest) = line.strip_prefix(key) {
+            if let Some(value) = rest.strip_prefix(':') {
+                return Some(value.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+/// 一次 git status 建立「未跟踪 / 有改动」集合，逐行查表，避免每行起一个进程。
+fn collect_git_states(sync_dir: &Path) -> (HashSet<String>, HashSet<String>) {
+    let mut untracked = HashSet::new();
+    let mut modified = HashSet::new();
+    let Ok(output) = Command::new("git").arg("status").arg("--porcelain").current_dir(sync_dir).output() else {
+        return (untracked, modified);
+    };
+    if !output.status.success() {
+        return (untracked, modified);
+    }
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        if line.len() < 4 {
+            continue;
+        }
+        let code = &line[..2];
+        let path = line[3..].trim().trim_matches('"').to_string();
+        if code.contains("??") {
+            untracked.insert(path);
+        } else if code.trim() != "" {
+            modified.insert(path);
+        }
+    }
+    (untracked, modified)
+}
+
+fn state_for_path(path: &str, untracked: &HashSet<String>, modified: &HashSet<String>) -> String {
+    if untracked.contains(path) {
+        "new".to_string()
+    } else if modified.contains(path) {
+        "draft".to_string()
+    } else {
+        "synced".to_string()
+    }
+}
+
 fn recent_item_from_index(sync_dir: &Path, row: database::RecentDocumentItem) -> RecentItem {
     let full_path = sync_dir.join(&row.file_path);
     let head = read_md_head(&full_path);
@@ -253,6 +416,8 @@ fn recent_item_from_index(sync_dir: &Path, row: database::RecentDocumentItem) ->
     let category = recent_category_for_path(&row.file_path).to_string();
     RecentItem {
         name,
+        source: recent_source_for(&row.file_path, &head),
+        state: "synced".to_string(),
         path: row.file_path,
         category,
         modified: row.activity_at,
@@ -315,6 +480,8 @@ fn get_recent_activity_from_filesystem(sync_dir: &Path) -> Result<Vec<RecentItem
             let category = recent_category_for_path(&rel_path).to_string();
 
             items.push(RecentItem {
+                source: recent_source_for(&rel_path, ""),
+                state: "synced".to_string(),
                 name,
                 path: rel_path,
                 category,
@@ -394,6 +561,8 @@ fn get_review_item_sync() -> Result<Option<RecentItem>, String> {
             };
 
             candidates.push(RecentItem {
+                source: recent_source_for(&rel_path, ""),
+                state: "synced".to_string(),
                 name,
                 path: rel_path,
                 category: category.to_string(),

@@ -12,7 +12,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -306,14 +306,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       label: t("dashboard.gaugeTotal"),
       value: displayedFileCount,
       level: 5,
-      detail: stats ? formatDashboardSizeKb(displayedRepoSizeKb) : undefined,
+      detail: stats
+        ? `${formatDashboardSizeKb(displayedRepoSizeKb)} · ${t("dashboard.gaugeAddedThisWeek", String(stats.added_this_week ?? 0))}`
+        : undefined,
     },
     {
       id: "conversation",
       label: t("dashboard.conversations"),
       value: stats?.conversations,
       level: Math.min(5, Math.ceil((stats?.conversations ?? 0) / 40)),
-      detail: undefined,
+      detail: stats?.conversation_sources
+        ? t("dashboard.gaugeToolSources", String(stats.conversation_sources))
+        : undefined,
     },
     {
       // 笔记 = 手写笔记 + 便签。只算 manuals 会漏掉便签，看起来像「笔记数不对」。
@@ -321,24 +325,38 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       label: t("nav.notes"),
       value: stats ? (stats.manuals ?? 0) + (stats.scratch_notes ?? 0) : undefined,
       level: Math.min(5, Math.ceil((((stats?.manuals ?? 0) + (stats?.scratch_notes ?? 0))) / 40)),
-      detail: undefined,
+      detail: stats ? t("dashboard.gaugeDocsOnly", String(stats.manuals ?? 0)) : undefined,
     },
     {
       id: "clip",
       label: t("dashboard.clips"),
       value: stats?.clips,
       level: Math.min(5, Math.ceil((stats?.clips ?? 0) / 10)),
-      detail: undefined,
+      detail: stats ? t("dashboard.gaugeClipImages", String(stats.clip_images ?? 0)) : undefined,
     },
     {
       id: "plans",
       label: t("dashboard.plans"),
       value: stats?.plans,
       level: Math.min(5, Math.ceil((stats?.plans ?? 0) / 2)),
-      detail: undefined,
+      detail: stats?.last_activity_ts
+        ? t("dashboard.gaugeLastActivity", String(Math.max(1, Math.round((Date.now() - stats.last_activity_ts) / 60000))))
+        : t("dashboard.gaugeNoActivity"),
     },
   ];
 
+
+  const categoryKind = (category: string) => getDashboardContentCategory(category);
+  const categoryLabel = (category: string) => {
+    switch (getDashboardContentCategory(category)) {
+      case "conversation": return t("dashboard.typeConversation");
+      case "manual": return t("dashboard.typeNote");
+      case "scratch": return t("dashboard.typeScratch");
+      case "clip": return t("dashboard.typeClip");
+      case "plan": return t("dashboard.typePlan");
+      default: return category;
+    }
+  };
 
   const resumeItem = displayedRecent[0];
   return (
@@ -509,8 +527,19 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     onClick={() => openRecord(item)}
                     title={item.path}
                   >
-                    <span className="gm-inst-list-title">{item.name}</span>
                     <span className="gm-inst-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
+                    <span className="gm-inst-list-type" data-kind={categoryKind(item.category)}>
+                      {categoryLabel(item.category)}
+                    </span>
+                    <span className="gm-inst-list-title">{item.name}</span>
+                    <span className="gm-inst-list-source">{item.source}</span>
+                    <span className="gm-inst-list-state" data-state={item.state}>
+                      {item.state === "new"
+                        ? t("dashboard.tableStateNew")
+                        : item.state === "draft"
+                          ? t("dashboard.tableStateDraft")
+                          : t("dashboard.tableStateSynced")}
+                    </span>
                   </button>
                 ))
               )}
