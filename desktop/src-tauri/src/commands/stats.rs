@@ -383,6 +383,10 @@ fn frontmatter_field(head: &str, key: &str) -> Option<String> {
 }
 
 /// 一次 git status 建立「未跟踪 / 有改动」集合，逐行查表，避免每行起一个进程。
+///
+/// 注意：状态栏的 dirty_files 与最近列表的 state 各自调用一次本函数，是两次独立快照。
+/// 它们属于两条独立刷新链路（状态查询 / 活动查询），不合并成一次调用——合并会把两者的
+/// 缓存失效策略绑死。允许在极短窗口内不一致，下一次刷新自愈，这是有意的，不是缺陷。
 fn collect_git_states(sync_dir: &Path) -> (HashSet<String>, HashSet<String>) {
     let mut untracked = HashSet::new();
     let mut modified = HashSet::new();
