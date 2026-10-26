@@ -7395,13 +7395,18 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   display: grid;
   font-size: var(--gm-font-sm);
   gap: var(--gm-space-4);
-  grid-template-columns: 64px 56px minmax(0, 1fr) 88px 56px;
+  grid-template-columns: minmax(0, 1fr) auto;
   height: var(--gm-density-row);
   padding: 0 var(--gm-space-4);
   text-align: left;
   transition: background 0.15s ease;
   width: 100%;
 }
+/* 仪表盘的最近动态是五列信息行；其它页沿用两列（标题 + 时间靠右） */
+.gm-inst-dashboard .gm-inst-list-row {
+  grid-template-columns: 64px 56px minmax(0, 1fr) 88px 56px;
+}
+
 .gm-inst-list-row:hover { background: var(--gm-hover); }
 .gm-inst-list-row:active { background: var(--gm-selected); }
 .gm-inst-list-row:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: -2px; }
