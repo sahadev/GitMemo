@@ -215,7 +215,8 @@
     "gaugeNoActivity": "暂无记录",
     "tableStateNew": "新增",
     "tableStateDraft": "草稿",
-    "tableStateSynced": "已同步"
+    "tableStateSynced": "已同步",
+    "lastSyncedAgo": "上次同步 {0}"
   },
   "conversations": {
     "title": "对话",

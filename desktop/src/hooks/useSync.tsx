@@ -10,6 +10,7 @@ export interface GitStatus {
   git_remote: string;
   git_branch: string;
   unpushed: number;
+  dirty_files: number;
   behind: number;
   last_commit_id: string;
   last_commit_msg: string;

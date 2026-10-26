@@ -215,7 +215,8 @@
     "gaugeNoActivity": "No activity yet",
     "tableStateNew": "New",
     "tableStateDraft": "Draft",
-    "tableStateSynced": "Synced"
+    "tableStateSynced": "Synced",
+    "lastSyncedAgo": "synced {0}"
   },
   "conversations": {
     "title": "Conversations",

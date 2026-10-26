@@ -364,10 +364,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       {/* 1 · 身份栏 */}
       <header className="gm-inst-identity">
         <span className="gm-inst-identity-mark">{t("dashboard.title")}</span>
-        <span className="gm-inst-identity-path">{gitStatus?.sync_dir || t("dashboard.noRemote")}</span>
+        <span className="gm-inst-identity-path">
+          {gitStatus?.sync_dir || t("dashboard.noRemote")}
+          {gitStatus?.git_branch ? ` · ${gitStatus.git_branch}` : ""}
+        </span>
         <span className="gm-inst-identity-status" data-tone={syncStatus.tone}>
           <AppIcon icon={Circle} size="dot" fill="currentColor" tone={syncStatus.tone === "success" ? "success" : "secondary"} />
           {syncStatusText}
+          {gitStatus?.last_commit_time
+            ? ` · ${t("dashboard.lastSyncedAgo", relativeTime(gitStatus.last_commit_time, t))}`
+            : ""}
         </span>
         <span className="gm-inst-identity-spacer" />
         {!activityOpen ? (

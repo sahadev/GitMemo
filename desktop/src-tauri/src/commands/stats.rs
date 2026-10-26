@@ -136,6 +136,8 @@ pub struct AppStatus {
     pub git_remote: String,
     pub git_branch: String,
     pub unpushed: usize,
+    /// 工作区有改动（含未跟踪）的文件数；和 unpushed 是两件事
+    pub dirty_files: usize,
     pub behind: usize,
     pub last_commit_id: String,
     pub last_commit_msg: String,
@@ -229,6 +231,7 @@ fn get_status_sync() -> Result<AppStatus, String> {
             git_remote: String::new(),
             git_branch: String::new(),
             unpushed: 0,
+            dirty_files: 0,
             behind: 0,
             last_commit_id: String::new(),
             last_commit_msg: String::new(),
@@ -248,6 +251,10 @@ fn get_status_sync() -> Result<AppStatus, String> {
     };
 
     let (unpushed, behind) = git::ahead_behind(&sync_dir).unwrap_or((0, 0));
+    let dirty_files = {
+        let (untracked, modified) = collect_git_states(&sync_dir);
+        untracked.len() + modified.len()
+    };
 
     // Get last commit info
     let (last_commit_id, last_commit_msg, last_commit_time) = get_last_commit(&sync_dir);
@@ -259,6 +266,7 @@ fn get_status_sync() -> Result<AppStatus, String> {
         git_remote: remote,
         git_branch: branch,
         unpushed,
+        dirty_files,
         behind,
         last_commit_id,
         last_commit_msg,
