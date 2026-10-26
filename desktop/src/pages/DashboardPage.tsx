@@ -5,7 +5,7 @@ import {useI18n} from "../hooks/useI18n";
 import {useSync} from "../hooks/useSync";
 import {useAppStore} from "../hooks/useAppStore";
 import {useToast} from "../hooks/useToast";
-import {relativeTime, formatAbsoluteTime} from "../utils/time";
+import {relativeTime} from "../utils/time";
 import {Loading} from "../components/Loading";
 import {useRelativeTimeTick} from "../hooks/useRelativeTimeTick";
 import {useFileWatcher} from "../hooks/useFileWatcher";
@@ -13,7 +13,7 @@ import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
 import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft} from "lucide-react";
-import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
+import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
@@ -305,7 +305,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
 
   const displayedFileCount = stats ? getDashboardDisplayedFileCount(stats) : 0;
   const displayedRecent = getDashboardVisibleRecentItems(isDesktop, Array.isArray(recent) ? recent : []);
-  const showEmptyGuide = stats ? shouldShowDashboardEmptyGuide(stats, displayedRecent) : false;
   const isDashboardOverviewLoading = statsLoading && !stats;
   const isRecentActivityLoading = recentLoading && displayedRecent.length === 0;
 
@@ -372,7 +371,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     }
   };
 
-  const resumeItem = displayedRecent[0];
   return (
     <div className="gm-inst-dashboard" data-mobile={isMobile ? "true" : "false"} data-active={active ? "true" : "false"}>
       {/* 1 · 身份栏 */}
@@ -419,23 +417,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       <div className="gm-inst-body" data-activity={activityOpen ? "open" : "closed"}>
 
         <div className="gm-inst-main">
-          {/* 4a · 横幅 */}
-          <div className="gm-inst-banner" data-empty={showEmptyGuide ? "true" : "false"}>
-            <p className="gm-inst-banner-title">
-              {showEmptyGuide
-                ? t("dashboard.emptyGuideTitle")
-                : resumeItem
-                  ? t("dashboard.resumeLatest", resumeItem.name)
-                  : t("dashboard.noActivity")}
-            </p>
-            <p className="gm-inst-banner-meta">
-              {showEmptyGuide
-                ? (isMobile ? t("dashboard.emptyGuideMobileDesc") : t("dashboard.emptyGuideDesc"))
-                : formatAbsoluteTime(resumeItem?.modified || gitStatus?.last_commit_time || "")}
-            </p>
-          </div>
-
-          {/* 4b · 仪表带 */}
+          {/* 4a · 仪表带 */}
           <div className="gm-inst-gauges">
             {gaugeCards.map((card) => (
               <div className="gm-inst-gauge" key={card.id} data-level={String(card.level)}>
