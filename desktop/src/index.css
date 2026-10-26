@@ -7404,7 +7404,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 /* 仪表盘的最近动态是五列信息行；其它页沿用两列（标题 + 时间靠右） */
 .gm-inst-dashboard .gm-inst-list-row {
-  grid-template-columns: 64px 56px minmax(0, 1fr) 88px 56px;
+  grid-template-columns: 84px 56px minmax(0, 1fr) 88px 56px;
 }
 
 .gm-inst-list-row:hover { background: var(--gm-hover); }

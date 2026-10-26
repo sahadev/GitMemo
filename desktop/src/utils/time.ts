@@ -57,7 +57,6 @@ export function relativeTime(
     const d = parseGitMemoDate(dateStr);
     if (!d) return dateStr;
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 0) return formatAbsoluteTime(dateStr);
     const tr = t || ((key: string, ...args: (string | number)[]) => {
       // Fallback English
       const map: Record<string, string> = {
@@ -70,6 +69,11 @@ export function relativeTime(
       args.forEach((a, i) => { s = s.replace(`{${i}}`, String(a)); });
       return s;
     });
+    // 未来时间：小偏差（时钟漂移、frontmatter 手写）按「刚刚」处理，
+    // 偏差超过一天才退回绝对日期——否则最近列表里会冒出一串日期。
+    if (diff < 0) {
+      return diff > -86400 ? tr("time.justNow") : formatAbsoluteTime(dateStr);
+    }
     if (diff < 60) return tr("time.justNow");
     if (diff < 3600) return tr("time.minAgo", Math.floor(diff / 60));
     if (diff < 86400) return tr("time.hrAgo", Math.floor(diff / 3600));
