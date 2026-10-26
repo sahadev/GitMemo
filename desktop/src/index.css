@@ -7390,6 +7390,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-list-row:hover { background: var(--gm-hover); }
 .gm-inst-list-row:active { background: var(--gm-selected); }
 .gm-inst-list-row:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: -2px; }
+/* 选中态只给真正的列表（笔记等）；仪表盘的「最近动态」是快捷入口，不设选中 */
 .gm-inst-list-row[data-on="true"] {
   background: var(--gm-selected);
   box-shadow: inset 2px 0 0 var(--gm-accent);

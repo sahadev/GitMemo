@@ -506,7 +506,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                     key={item.path}
                     type="button"
                     className="gm-inst-list-row"
-                    data-on={resumeItem?.path === item.path ? "true" : "false"}
                     onClick={() => openRecord(item)}
                     title={item.path}
                   >
