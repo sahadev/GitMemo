@@ -379,60 +379,6 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
       </header>
 
       <div className="gm-inst-body" data-activity={activityOpen ? "open" : "closed"}>
-        {/* 3 · 最近条目 */}
-        {activityOpen ? (
-        <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
-          <div className="gm-inst-list-head">
-            <span>{t("dashboard.recentActivity")}</span>
-            <span className="gm-inst-list-count">{formatDashboardCount(displayedRecent.length)}</span>
-            <button
-              type="button"
-              className="gm-inst-list-close"
-              onClick={() => setActivityVisible(false)}
-              title={t("dashboard.activityHide")}
-            >
-              <AppIcon icon={X} size="2xs" />
-            </button>
-          </div>
-          <div className="gm-inst-list-rows">
-            {isRecentActivityLoading ? (
-              <div className="gm-inst-list-skeleton" aria-hidden="true">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="gm-inst-list-row" data-skeleton="true">
-                    <span className="gm-inst-list-title" />
-                    <span className="gm-inst-list-time" data-col="time" />
-                  </div>
-                ))}
-              </div>
-            ) : displayedRecent.length === 0 ? (
-              recentError ? (
-                <div className="gm-inst-list-error" role="alert">
-                  <span className="gm-inst-list-error-text">{t("dashboard.listLoadFailed", recentError)}</span>
-                  <button type="button" className="gm-toolbar-button" onClick={() => void loadRecent()}>
-                    {t("common.retry")}
-                  </button>
-                </div>
-              ) : (
-                <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
-              )
-            ) : (
-              displayedRecent.slice(0, 12).map((item) => (
-                <button
-                  key={item.path}
-                  type="button"
-                  className="gm-inst-list-row"
-                  data-on={resumeItem?.path === item.path ? "true" : "false"}
-                  onClick={() => openRecord(item)}
-                  title={item.path}
-                >
-                  <span className="gm-inst-list-title">{item.name}</span>
-                  <span className="gm-inst-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </section>
-        ) : null}
 
         <div className="gm-inst-main">
           {/* 4a · 横幅 */}
@@ -518,6 +464,60 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               </div>
             </section>
 
+            {/* 5 · 最近条目（放在快记之后，大小屏一致） */}
+          {activityOpen ? (
+          <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
+            <div className="gm-inst-list-head">
+              <span>{t("dashboard.recentActivity")}</span>
+              <span className="gm-inst-list-count">{formatDashboardCount(displayedRecent.length)}</span>
+              <button
+                type="button"
+                className="gm-inst-list-close"
+                onClick={() => setActivityVisible(false)}
+                title={t("dashboard.activityHide")}
+              >
+                <AppIcon icon={X} size="2xs" />
+              </button>
+            </div>
+            <div className="gm-inst-list-rows">
+              {isRecentActivityLoading ? (
+                <div className="gm-inst-list-skeleton" aria-hidden="true">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="gm-inst-list-row" data-skeleton="true">
+                      <span className="gm-inst-list-title" />
+                      <span className="gm-inst-list-time" data-col="time" />
+                    </div>
+                  ))}
+                </div>
+              ) : displayedRecent.length === 0 ? (
+                recentError ? (
+                  <div className="gm-inst-list-error" role="alert">
+                    <span className="gm-inst-list-error-text">{t("dashboard.listLoadFailed", recentError)}</span>
+                    <button type="button" className="gm-toolbar-button" onClick={() => void loadRecent()}>
+                      {t("common.retry")}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="gm-inst-list-empty">{t("dashboard.noActivity")}</p>
+                )
+              ) : (
+                displayedRecent.slice(0, 12).map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className="gm-inst-list-row"
+                    data-on={resumeItem?.path === item.path ? "true" : "false"}
+                    onClick={() => openRecord(item)}
+                    title={item.path}
+                  >
+                    <span className="gm-inst-list-title">{item.name}</span>
+                    <span className="gm-inst-list-time" data-col="time">{relativeTime(item.modified, t)}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+          ) : null}
           </div>
         </div>
       </div>

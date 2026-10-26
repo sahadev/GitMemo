@@ -7318,21 +7318,21 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-identity-spacer { flex: 1; }
 
 /* 2 · 两列主体 */
-.gm-inst-body[data-activity="closed"] {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .gm-inst-body {
-  display: grid;
+  display: flex;
   flex: 1;
-  grid-template-columns: var(--gm-inst-list-width) minmax(0, 1fr);
+  flex-direction: column;
   min-height: 0;
 }
 
 /* 3 · 最近条目列 */
 .gm-inst-list {
+  border-top: var(--gm-border-w) solid var(--gm-line);
   display: flex;
+  flex: none;
   flex-direction: column;
+  margin-top: var(--gm-space-4);
+  max-height: 320px;
   min-height: 0;
   min-width: 0;
 }
@@ -7629,12 +7629,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   /* 窄栏里的分段控件允许换行：不换行会被容器边缘裁字 */
   .gm-segment-row,
   .gm-compact-tab-row { flex-wrap: wrap; }
-  .gm-inst-body { grid-template-columns: minmax(0, 1fr); }
-  .gm-inst-list {
-    border-bottom: var(--gm-border-w) solid var(--gm-line-strong);
-    border-right: 0;
-    max-height: 40vh;
-  }
+  .gm-inst-list { max-height: 40vh; }
   .gm-inst-main { padding: var(--gm-space-3); }
 }
 
