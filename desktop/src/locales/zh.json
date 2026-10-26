@@ -204,7 +204,9 @@
     "tableTime": "时间",
     "tableTitle": "标题",
     "tablePath": "位置",
-    "quickNoteTemplateContent": "新笔记\n\n- 要点\n- 下一步\n"
+    "quickNoteTemplateContent": "新笔记\n\n- 要点\n- 下一步\n",
+    "activityHide": "关闭最近动态",
+    "activityShow": "显示最近动态"
   },
   "conversations": {
     "title": "对话",

@@ -11,7 +11,7 @@ import {useFileWatcher} from "../hooks/useFileWatcher";
 import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
-import {GitBranch, RefreshCw, Circle, Search} from "lucide-react";
+import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft} from "lucide-react";
 import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, shouldShowDashboardEmptyGuide, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
@@ -21,6 +21,8 @@ import {type NoteResult} from "../types/notes";
 
 const DASHBOARD_CACHE_KEY = "gitmemo-dashboard-cache";
 let dashboardStatsRequest: Promise<AppStats> | null = null;
+const DASHBOARD_ACTIVITY_KEY = "gitmemo-dashboard-activity";
+
 let dashboardRecentRequest: Promise<RecentItem[]> | null = null;
 
 
@@ -101,6 +103,22 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
   const [recentLoading, setRecentLoading] = useState(!cached?.recent);
   const [error, setError] = useState("");
   const [recentError, setRecentError] = useState<string | null>(null);
+  // 「最近动态」可以关掉：仪表盘只留读数与快记。选择记在本机，下次打开保持。
+  const [activityOpen, setActivityOpen] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(DASHBOARD_ACTIVITY_KEY) !== "closed";
+    } catch {
+      return true;
+    }
+  });
+  const setActivityVisible = useCallback((next: boolean) => {
+    setActivityOpen(next);
+    try {
+      window.localStorage.setItem(DASHBOARD_ACTIVITY_KEY, next ? "open" : "closed");
+    } catch {
+      // 存不了就只在本次会话生效
+    }
+  }, []);
   const [quickNoteDraft, setQuickNoteDraft] = useState("");
   const [quickNotePath, setQuickNotePath] = useState<string | null>(null);
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
@@ -341,6 +359,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           {syncStatusText}
         </span>
         <span className="gm-inst-identity-spacer" />
+        {!activityOpen ? (
+          <Button
+            variant="toolbar"
+            onClick={() => setActivityVisible(true)}
+            title={t("dashboard.activityShow")}
+            icon={PanelLeft}
+          />
+        ) : null}
         {isMobile ? (
           <Button
             variant="toolbar"
@@ -359,12 +385,21 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
         />
       </header>
 
-      <div className="gm-inst-body">
+      <div className="gm-inst-body" data-activity={activityOpen ? "open" : "closed"}>
         {/* 3 · 最近条目 */}
+        {activityOpen ? (
         <section className="gm-inst-list" aria-label={t("dashboard.recentActivity")}>
           <div className="gm-inst-list-head">
             <span>{t("dashboard.recentActivity")}</span>
             <span className="gm-inst-list-count">{formatDashboardCount(displayedRecent.length)}</span>
+            <button
+              type="button"
+              className="gm-inst-list-close"
+              onClick={() => setActivityVisible(false)}
+              title={t("dashboard.activityHide")}
+            >
+              <AppIcon icon={X} size="2xs" />
+            </button>
           </div>
           <div className="gm-inst-list-rows">
             {isRecentActivityLoading ? (
@@ -404,6 +439,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             )}
           </div>
         </section>
+        ) : null}
 
         <div className="gm-inst-main">
           {/* 4a · 横幅 */}

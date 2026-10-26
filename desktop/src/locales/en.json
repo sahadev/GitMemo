@@ -204,7 +204,9 @@
     "tableTime": "Time",
     "tableTitle": "Title",
     "tablePath": "Location",
-    "quickNoteTemplateContent": "New note\n\n- Key point\n- Next step\n"
+    "quickNoteTemplateContent": "New note\n\n- Key point\n- Next step\n",
+    "activityHide": "Hide recent activity",
+    "activityShow": "Show recent activity"
   },
   "conversations": {
     "title": "Conversations",

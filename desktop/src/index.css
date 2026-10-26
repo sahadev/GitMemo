@@ -7312,6 +7312,10 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-identity-spacer { flex: 1; }
 
 /* 2 · 两列主体 */
+.gm-inst-body[data-activity="closed"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .gm-inst-body {
   display: grid;
   flex: 1;
@@ -7321,12 +7325,27 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 
 /* 3 · 最近条目列 */
 .gm-inst-list {
-  border-right: var(--gm-border-w) solid var(--gm-line-strong);
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
 }
+.gm-inst-list-close {
+  background: none;
+  border: 0;
+  border-radius: var(--gm-radius-control);
+  color: var(--gm-text-3);
+  cursor: pointer;
+  display: flex;
+  padding: var(--gm-space-1);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gm-inst-list-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
 .gm-inst-list-head {
   align-items: center;
   border-bottom: var(--gm-border-w) solid var(--gm-line);
@@ -7342,6 +7361,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   text-transform: uppercase;
 }
 .gm-inst-list-count { color: var(--gm-text-2); }
+.gm-inst-list-head .gm-inst-list-count { margin-left: auto; }
 .gm-favorites-count { white-space: nowrap; }
 .gm-inst-list-rows { flex: 1; min-height: 0; overflow-y: auto; }
 .gm-inst-list-row {
@@ -7392,7 +7412,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   padding: var(--gm-space-4);
 }
 .gm-inst-banner {
-  border: var(--gm-border-w) solid var(--gm-line-strong);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
   flex: none;
   justify-content: space-between;
@@ -7418,12 +7438,10 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 
 /* 4b · 仪表带 */
 .gm-inst-gauges {
-  border: var(--gm-border-w) solid var(--gm-line-strong);
-  border-top: 0;
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: grid;
   flex: none;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-top: var(--gm-space-4);
 }
 .gm-inst-gauge {
   border-left: var(--gm-border-w) solid var(--gm-line);
