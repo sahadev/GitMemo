@@ -53,6 +53,20 @@ const DESKTOP = join(REPO_ROOT, "desktop");
 const DEFAULT_OUT = join(DESKTOP, ".design-baseline");
 const MANIFEST = "manifest.json";
 
+/**
+ * 把应用内路径拼到 dev server 地址上。
+ *
+ * 两端斜杠先归一再拼，所以 http://127.0.0.1:5274 + quick-paste.html
+ * 和 http://127.0.0.1:5274/ + /quick-paste.html 得到同一个地址。
+ * 之前是直接 `${opts.url}${nav.path}`，而 --url 会把结尾斜杠去掉，
+ * 拼出来是 http://127.0.0.1:5274quick-paste.html，page.goto 直接报非法 URL。
+ */
+function joinAppUrl(base, path) {
+  const root = String(base ?? "").replace(/\/+$/, "");
+  const suffix = String(path ?? "").replace(/^\/+/, "");
+  return suffix ? `${root}/${suffix}` : `${root}/`;
+}
+
 const ROUTES = [
   { id: "dashboard", navKey: "dashboard", marker: ".gm-inst-dashboard" },
   { id: "search", navKey: "search", marker: ".gm-page-frame-column" },
@@ -618,7 +632,7 @@ async function navigateDesktop(page, route, labels, opts) {
   const nav = route.nav;
 
   if (nav.kind === "url") {
-    await page.goto(`${opts.url}${nav.path}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
+    await page.goto(joinAppUrl(opts.url, nav.path), { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
     await page.waitForSelector(route.marker, { timeout: opts.timeoutMs });
     return page.locator(route.marker).first();
   }
@@ -914,6 +928,7 @@ async function main() {
 export {
   startDevServer,
   stopDevServer,
+  joinAppUrl,
   resolvePlaywright,
   launchChromium,
   backendStub,
