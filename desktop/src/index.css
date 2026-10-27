@@ -4371,6 +4371,12 @@ a:focus-visible {
   margin-top: var(--gm-section-gap-lg);
 }
 
+/* 设置索引页的页头自带一条下边框；紧跟其后的第一张卡片再画上边框，
+   两条 1px 就叠成双线（颜色还不一样）。只留页头那条。 */
+.gm-page-header + .gm-settings-card {
+  border-top: 0;
+}
+
 .gm-settings-card-header {
   align-items: center;
   display: flex;
