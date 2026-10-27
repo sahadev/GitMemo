@@ -504,7 +504,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
               {isRecentActivityLoading ? (
                 <div className="gm-inst-list-skeleton" aria-hidden="true">
                   {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="gm-inst-list-row" data-skeleton="true">
+                    <div key={i} className="gm-inst-list-row gm-inst-list-row--recent" data-skeleton="true">
                       <span className="gm-inst-list-title" />
                       <span className="gm-inst-list-time" data-col="time" />
                     </div>
@@ -526,7 +526,7 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
                   <button
                     key={item.path}
                     type="button"
-                    className="gm-inst-list-row"
+                    className="gm-inst-list-row gm-inst-list-row--recent"
                     onClick={() => openRecord(item)}
                     title={item.path}
                   >

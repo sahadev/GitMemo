@@ -7402,10 +7402,15 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   transition: background 0.15s ease;
   width: 100%;
 }
-/* 仪表盘的最近动态是五列信息行；其它页沿用两列（标题 + 时间靠右） */
-.gm-inst-dashboard .gm-inst-list-row {
+/* 只有仪表盘的最近动态是五列信息行。必须挂在自己的行类上：
+   靠父级 .gm-inst-dashboard 生效的话，任何复用 .gm-inst-list-row 的列表
+   只要被塞进仪表盘作用域（或复制了那段结构）就会退化成五列，
+   笔记列表的标题被挤成 84px、时间挤到第二列。 */
+.gm-inst-list-row--recent {
   grid-template-columns: 84px 56px minmax(0, 1fr) 88px 56px;
 }
+/* 两列布局里时间贴右边缘；即便列宽因内容变化也不会飘到标题后面 */
+.gm-inst-list-row:not(.gm-inst-list-row--recent) > .gm-inst-list-time { text-align: right; }
 
 .gm-inst-list-row:hover { background: var(--gm-hover); }
 .gm-inst-list-row:active { background: var(--gm-selected); }
