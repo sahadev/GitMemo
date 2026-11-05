@@ -1,23 +1,34 @@
+use crate::inject::marker_block::MARKER_END;
 use crate::utils::i18n::Lang;
 use anyhow::Result;
 
-pub const MARKER_START: &str = "<!-- [gitmemo:start] -->";
-const MARKER_END: &str = "<!-- [gitmemo:end] -->";
+pub use crate::inject::marker_block::MARKER_START;
 
 /// Generate the CLAUDE.md instruction block (language-aware)
 pub fn generate_instruction(sync_dir: &str, lang: Lang) -> String {
+    generate_instruction_for(sync_dir, lang, true)
+}
+
+/// Generate an instruction block, optionally claiming that conversations are
+/// auto-captured. Editors without log import (OpenCode) pass `false`.
+pub fn generate_instruction_for(sync_dir: &str, lang: Lang, auto_capture: bool) -> String {
     match lang {
-        Lang::Zh => generate_instruction_zh(sync_dir),
-        Lang::En => generate_instruction_en(sync_dir),
+        Lang::Zh => generate_instruction_zh(sync_dir, auto_capture),
+        Lang::En => generate_instruction_en(sync_dir, auto_capture),
     }
 }
 
-fn generate_instruction_zh(sync_dir: &str) -> String {
+fn generate_instruction_zh(sync_dir: &str, auto_capture: bool) -> String {
+    let capture_line = if auto_capture {
+        "对话会由 GitMemo 自动捕获（通过 `gitmemo capture`），无需手动保存。"
+    } else {
+        "GitMemo 不会自动收录此编辑器里的对话；需要留存时，按下方规则把成篇内容写入 GitMemo。"
+    };
     format!(
         r#"{MARKER_START}
 ## GitMemo
 
-对话会由 GitMemo 自动捕获（通过 `gitmemo capture`），无需手动保存。
+{capture_line}
 
 当你输出**大段、可独立阅读、对后续有复用价值**的内容时，必须将其转存为 Markdown 文档并保存到 GitMemo，而不是只留在聊天里。典型场景包括：调研报告、分析报告、技术方案、架构设计、教程指南、总结性长文，或用户明确要求写文档/报告。
 
@@ -54,12 +65,17 @@ tags: {{逗号分隔的标签}}
     )
 }
 
-fn generate_instruction_en(sync_dir: &str) -> String {
+fn generate_instruction_en(sync_dir: &str, auto_capture: bool) -> String {
+    let capture_line = if auto_capture {
+        "Conversations are auto-captured by GitMemo (via `gitmemo capture`). No manual saving needed."
+    } else {
+        "GitMemo does not capture conversations from this editor automatically; when something is worth keeping, save it as described below."
+    };
     format!(
         r#"{MARKER_START}
 ## GitMemo
 
-Conversations are auto-captured by GitMemo (via `gitmemo capture`). No manual saving needed.
+{capture_line}
 
 When your answer contains **long-form, self-contained, reusable content**, you MUST convert it into a Markdown document and save it to GitMemo instead of leaving it only in chat. Typical cases: research reports, analysis reports, technical proposals, architecture docs, tutorials, long-form summaries, or whenever the user explicitly asks for a document/report.
 
@@ -98,49 +114,13 @@ Rules: title max 60 chars, save silently, overwrite same-name files; `date` must
 
 /// Inject instruction into ~/.claude/CLAUDE.md
 pub fn inject(claude_md_path: &std::path::Path, sync_dir: &str, lang: Lang) -> Result<()> {
-    let content = if claude_md_path.exists() {
-        std::fs::read_to_string(claude_md_path)?
-    } else {
-        String::new()
-    };
-
-    // Remove old injection if exists
-    let cleaned = remove_block(&content);
-
-    // Append new instruction
     let instruction = generate_instruction(sync_dir, lang);
-    let new_content = if cleaned.is_empty() {
-        instruction
-    } else {
-        format!("{}\n\n{}", cleaned.trim_end(), instruction)
-    };
-
-    if let Some(parent) = claude_md_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(claude_md_path, new_content)?;
-    Ok(())
+    crate::inject::marker_block::upsert(claude_md_path, &instruction)
 }
 
 /// Remove injected block from content
 pub fn remove(claude_md_path: &std::path::Path) -> Result<()> {
-    if !claude_md_path.exists() {
-        return Ok(());
-    }
-    let content = std::fs::read_to_string(claude_md_path)?;
-    let cleaned = remove_block(&content);
-    std::fs::write(claude_md_path, cleaned)?;
-    Ok(())
-}
-
-fn remove_block(content: &str) -> String {
-    if let (Some(start), Some(end)) = (content.find(MARKER_START), content.find(MARKER_END)) {
-        let before = &content[..start];
-        let after = &content[end + MARKER_END.len()..];
-        format!("{}{}", before.trim_end(), after.trim_start())
-    } else {
-        content.to_string()
-    }
+    crate::inject::marker_block::remove(claude_md_path)
 }
 
 #[cfg(test)]
@@ -160,6 +140,17 @@ mod tests {
     }
 
     #[test]
+    fn test_instruction_without_auto_capture() {
+        let zh = generate_instruction_for("~/.gitmemo", Lang::Zh, false);
+        assert!(zh.contains("不会自动收录"));
+        assert!(!zh.contains("无需手动保存"));
+
+        let en = generate_instruction_for("~/.gitmemo", Lang::En, false);
+        assert!(en.contains("does not capture conversations"));
+        assert!(!en.contains("No manual saving needed"));
+    }
+
+    #[test]
     fn test_inject_en() {
         let instruction = generate_instruction("~/.gitmemo", Lang::En);
         assert!(instruction.contains(MARKER_START));
@@ -176,7 +167,7 @@ mod tests {
         let instruction = generate_instruction("~/.gitmemo", Lang::En);
         let original = "# My CLAUDE.md\n\nSome existing content.\n";
         let injected = format!("{}\n\n{}", original.trim(), &instruction);
-        let cleaned = remove_block(&injected);
+        let cleaned = crate::inject::marker_block::strip_block(&injected);
         assert_eq!(cleaned.trim(), original.trim());
     }
 }

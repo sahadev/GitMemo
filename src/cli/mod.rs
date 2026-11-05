@@ -38,7 +38,7 @@ pub enum Commands {
         #[arg(long)]
         no_mcp: bool,
 
-        /// Target editor: claude, cursor, codex, or all (interactive if omitted)
+        /// Target editor: claude, cursor, codex, opencode, or all (interactive if omitted)
         #[arg(long)]
         editor: Option<String>,
 

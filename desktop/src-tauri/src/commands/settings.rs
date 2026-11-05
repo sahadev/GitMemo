@@ -956,6 +956,14 @@ fn cursor_skills_dir() -> std::path::PathBuf {
         .join("skills")
 }
 
+fn opencode_agents_md_path() -> std::path::PathBuf {
+    gitmemo_core::inject::opencode_agents_md::path()
+}
+
+fn opencode_config_path() -> std::path::PathBuf {
+    gitmemo_core::inject::opencode_mcp::config_path()
+}
+
 fn claude_skills_dir() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
     std::path::PathBuf::from(home)
@@ -1093,6 +1101,55 @@ pub fn remove_cursor_integration() -> Result<String, String> {
             let _ = std::fs::remove_dir_all(&skill_dir);
         }
     }
+
+    Ok("disabled".into())
+}
+
+// ── OpenCode integration (AGENTS.md rules + MCP, no conversation capture) ───
+
+#[tauri::command]
+pub fn get_opencode_integration_status() -> Result<bool, String> {
+    Ok(gitmemo_core::inject::opencode_agents_md::is_injected(
+        &opencode_agents_md_path(),
+    ))
+}
+
+#[tauri::command]
+pub fn setup_opencode_integration(lang: String) -> Result<String, String> {
+    use gitmemo_core::inject::{opencode_agents_md, opencode_mcp};
+    use gitmemo_core::utils::i18n::Lang;
+
+    update_config_lang(&lang)?;
+
+    let sync_dir = files::sync_dir().to_string_lossy().to_string();
+    let lang_enum = Lang::parse(&lang);
+
+    opencode_agents_md::inject(&opencode_agents_md_path(), &sync_dir, lang_enum)
+        .map_err(|e| e.to_string())?;
+
+    let cli_path = crate::platform::gitmemo_command_for_registration();
+    opencode_mcp::register(&opencode_config_path(), &cli_path).map_err(|e| e.to_string())?;
+
+    Ok("enabled".into())
+}
+
+#[tauri::command]
+pub fn remove_opencode_integration() -> Result<String, String> {
+    use gitmemo_core::inject::{opencode_agents_md, opencode_mcp};
+
+    let path = opencode_agents_md_path();
+    opencode_agents_md::remove(&path).map_err(|e| e.to_string())?;
+
+    // Clean up an AGENTS.md that only held our block.
+    if path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if content.trim().is_empty() {
+                let _ = std::fs::remove_file(&path);
+            }
+        }
+    }
+
+    opencode_mcp::unregister(&opencode_config_path()).map_err(|e| e.to_string())?;
 
     Ok("disabled".into())
 }

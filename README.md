@@ -12,7 +12,7 @@
 
 GitMemo is a local-first, Git-native personal knowledge capture and reuse system. It saves clipboard text, screenshots, Markdown, AI conversations, terminal output, external files, and ideas into a Git repository you control, so both you and AI tools can search, read, sync, export, and build on them. Supported AI working preferences and editor context, such as global `CLAUDE.md`, Claude memory/skills, and Cursor rules/skills, can also be versioned in that same knowledge repo.
 
-Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, and Codex users.
+Available as both a CLI and a Desktop app, with a local-first workflow for Claude Code, Cursor, Codex, and OpenCode users.
 
 ## Why GitMemo Matters in the AI Era
 
@@ -29,7 +29,7 @@ That changes the role of the knowledge base: it is no longer only a place for hu
 - **Search and reuse** — Search saved material from the CLI, Desktop, or MCP instead of losing it in chat history
 - **Project scene archival** — Ask MetaBot, Claude, Codex, or Cursor to save the current branch, task goal, progress, risks, and next actions into GitMemo, so future work can resume across tools, devices, and time without rebuilding the context
 - **AI preference and config sync** — Keep user-authored AI working rules, global `CLAUDE.md`, Claude memory/skills, Cursor rules/skills, and related MCP config searchable, versioned, and portable
-- **Multi-editor** — Supports Claude Code, Cursor, and Codex
+- **Multi-editor** — Supports Claude Code, Cursor, Codex, and OpenCode
 - **Notes** — Scratch notes and manuals — one command to create
 - **Clipboard capture** — Optional Desktop monitoring captures local clipboard text and images when enabled
 - **No always-on sync daemon for editor capture** — Capture relies on native hooks, integrations, or local session logs rather than a separate sync service
@@ -241,10 +241,13 @@ No manual copying. No export buttons. Supported sources can flow into your sync 
 | **Claude Code** | `CLAUDE.md`, hooks, `/save`, native logs | PostToolUse Hook + `gitmemo capture` | `~/.claude.json` |
 | **Cursor** | Cursor Rules (`.mdc`) and skills | `cds_sync` MCP tool | `~/.cursor/mcp.json` |
 | **Codex** | Native local logs under `~/.codex` | `gitmemo capture` | — |
+| **OpenCode** | Rules in `~/.config/opencode/AGENTS.md` | MCP tools (`gitmemo`) | `~/.config/opencode/opencode.json` |
 
 ## How It Works
 
 For Claude Code, Cursor, and Codex capture flows, GitMemo avoids an extra sync daemon and instead uses each tool's native mechanisms: hooks/rules/MCP where available, and local session logs for Codex.
+
+**OpenCode:** OpenCode is configured, not captured. GitMemo writes its rules into `~/.config/opencode/AGENTS.md` and registers the MCP server in `~/.config/opencode/opencode.json`; OpenCode also reads `~/.claude/skills`, so the `/save` skill works with no extra copy. Conversations from OpenCode are not imported into `conversations/` — save anything worth keeping via `/save` or the MCP tools.
 
 **Claude Code:**
 

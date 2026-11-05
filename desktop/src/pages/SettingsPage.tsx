@@ -152,7 +152,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
   const { gitStatus, refreshGitStatus } = useSync();
   const {
     settings, refreshSettings,
-    claudeEnabled, cursorEnabled, integrationStatusChecked, integrationStatusLoading, refreshIntegrationStatus,
+    claudeEnabled, cursorEnabled, opencodeEnabled, integrationStatusChecked, integrationStatusLoading, refreshIntegrationStatus,
     cliStatus, cliStatusChecked, cliStatusLoading, refreshCliStatus,
     theme, toggleTheme,
     appMeta,
@@ -457,6 +457,21 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
     }
   };
 
+  const toggleOpencodeIntegration = async () => {
+    try {
+      if (opencodeEnabled) {
+        await invoke<string>("remove_opencode_integration");
+        showToast("OpenCode integration disabled");
+      } else {
+        await invoke<string>("setup_opencode_integration", { lang: locale });
+        showToast("OpenCode integration enabled");
+      }
+      await refreshIntegrationStatus();
+    } catch (e) {
+      showToast(`Error: ${e}`, true);
+    }
+  };
+
   const updateClaudeSkills = async () => {
     setUpdatingClaudeSkills(true);
     try {
@@ -695,6 +710,11 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
   }, t);
   const cursorStatusView = getEditorIntegrationStatusView({
     enabled: cursorEnabled,
+    checked: integrationStatusChecked,
+    loading: integrationStatusLoading,
+  }, t);
+  const opencodeStatusView = getEditorIntegrationStatusView({
+    enabled: opencodeEnabled,
     checked: integrationStatusChecked,
     loading: integrationStatusLoading,
   }, t);
@@ -1101,6 +1121,31 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                     disabled={integrationStatusLoading}
                     onToggle={() => void toggleCursorIntegration()}
                     label={t("settings.cursorIntegration")}
+                  />
+                </SettingsControlGroup>
+              </SettingsRow>
+
+              <SettingsDivider />
+              <SettingsRow
+                icon={SlidersHorizontal}
+                title={t("settings.opencodeIntegration")}
+                description={t("settings.opencodeIntegrationDesc")}
+                status={opencodeStatusView.label}
+                statusTone={opencodeStatusView.tone}
+              >
+                <SettingsControlGroup>
+                  <SettingsIconButton
+                    icon={RefreshCw}
+                    spin={integrationStatusLoading}
+                    disabled={integrationStatusLoading}
+                    onClick={() => void refreshIntegrationStatus()}
+                    title={t("settings.detectIntegration")}
+                  />
+                  <Switch
+                    enabled={opencodeEnabled}
+                    disabled={integrationStatusLoading}
+                    onToggle={() => void toggleOpencodeIntegration()}
+                    label={t("settings.opencodeIntegration")}
                   />
                 </SettingsControlGroup>
               </SettingsRow>

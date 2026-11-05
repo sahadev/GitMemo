@@ -405,6 +405,8 @@
     "claudeIntegrationDesc": "Auto-save conversations & sync plans via CLAUDE.md",
     "cursorIntegration": "Cursor IDE integration",
     "cursorIntegrationDesc": "Auto-save conversations & inject rules via ~/.cursor/",
+    "opencodeIntegration": "OpenCode integration",
+    "opencodeIntegrationDesc": "Write GitMemo rules & register MCP via ~/.config/opencode/",
     "cliCapability": "GitMemo CLI",
     "cliCapabilityDesc": "Adds editor setup, Codex/Claude session capture, MCP tools, terminal notes, and Git maintenance commands.",
     "cliNotChecked": "CLI not checked",
@@ -715,6 +717,7 @@
     "tipMobileStorageRemote": "Mobile sync uses an HTTPS token and does not depend on system Git, SSH, or AI editor integrations.",
     "tipEditors": "Editor integrations are optional; finish setup first and enable them later in Settings if needed.",
     "tipSettingUp": "GitMemo is creating folders, Git config, and editor integrations. The result page will appear automatically.",
-    "tipSave": "In Claude Code or Cursor, talk to the AI first, then type /save. If you run /save before any real conversation, there is nothing useful to save."
+    "tipSave": "In Claude Code or Cursor, talk to the AI first, then type /save. If you run /save before any real conversation, there is nothing useful to save.",
+    "opencodeDesc": "Rules in ~/.config/opencode/AGENTS.md + MCP (no conversation capture)"
   }
 }

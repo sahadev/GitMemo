@@ -7,6 +7,7 @@ enum EditorChoice {
     Claude,
     Cursor,
     Codex,
+    Opencode,
     All,
 }
 
@@ -50,6 +51,7 @@ pub fn cmd_init(
         Some("claude") => EditorChoice::Claude,
         Some("cursor") => EditorChoice::Cursor,
         Some("codex") => EditorChoice::Codex,
+        Some("opencode") => EditorChoice::Opencode,
         Some("all") => EditorChoice::All,
         Some(other) => anyhow::bail!(t.unsupported_editor(other)),
         None => {
@@ -63,6 +65,7 @@ pub fn cmd_init(
                 0 => EditorChoice::Claude,
                 1 => EditorChoice::Cursor,
                 2 => EditorChoice::Codex,
+                3 => EditorChoice::Opencode,
                 _ => EditorChoice::All,
             }
         }
@@ -71,6 +74,7 @@ pub fn cmd_init(
     let install_claude = matches!(editor_choice, EditorChoice::Claude | EditorChoice::All);
     let install_cursor = matches!(editor_choice, EditorChoice::Cursor | EditorChoice::All);
     let install_codex = matches!(editor_choice, EditorChoice::Codex | EditorChoice::All);
+    let install_opencode = matches!(editor_choice, EditorChoice::Opencode | EditorChoice::All);
 
     // 1. Handle --path: symlink existing repo
     let sync_dir = if let Some(ref repo_path) = path {
@@ -207,6 +211,8 @@ pub fn cmd_init(
         .join("rules")
         .join("gitmemo.mdc");
     let cursor_mcp_path = dirs::home_dir().unwrap().join(".cursor").join("mcp.json");
+    let opencode_agents_md_path = inject::opencode_agents_md::path();
+    let opencode_config_path = inject::opencode_mcp::config_path();
 
     // Backup relevant configs
     for (src, name) in [
@@ -215,6 +221,8 @@ pub fn cmd_init(
         (&claude_json_path, "claude.json.backup"),
         (&cursor_rules_path, "gitmemo.mdc.backup"),
         (&cursor_mcp_path, "cursor-mcp.json.backup"),
+        (&opencode_agents_md_path, "opencode-AGENTS.md.backup"),
+        (&opencode_config_path, "opencode.json.backup"),
     ] {
         if src.exists() {
             std::fs::copy(src, backup_dir.join(name))?;
@@ -302,6 +310,21 @@ pub fn cmd_init(
 
     if install_codex {
         println!("  {} {}", style("✓").green(), t.codex_capture_enabled());
+    }
+
+    if install_opencode {
+        inject::opencode_agents_md::inject(&opencode_agents_md_path, &sync_dir_str, lang)?;
+        println!(
+            "  {} {}",
+            style("✓").green(),
+            t.opencode_agents_md_injected()
+        );
+
+        if !no_mcp {
+            let binary = std::env::current_exe()?.to_string_lossy().to_string();
+            inject::opencode_mcp::register(&opencode_config_path, &binary)?;
+            println!("  {} {}", style("✓").green(), t.opencode_mcp_registered());
+        }
     }
 
     // 8. Detect remote default branch (or default to "main") and save config
@@ -403,6 +426,9 @@ pub fn cmd_init(
     if install_cursor {
         println!("    {} {}", style("Cursor").cyan(), t.cursor_next_step_2());
     }
+    if install_opencode {
+        println!("    {} {}", style("OpenCode").cyan(), t.opencode_next_step());
+    }
     println!();
     println!("  {}", t.verify_heading());
     println!(
@@ -502,6 +528,28 @@ pub fn cmd_uninstall(remove_data: bool) -> Result<()> {
     let cursor_mcp_path = dirs::home_dir().unwrap().join(".cursor").join("mcp.json");
     inject::cursor_mcp::unregister(&cursor_mcp_path)?;
     println!("  {} {}", style("✓").green(), t.cursor_mcp_removed());
+
+    // Remove OpenCode configs (AGENTS.md rules + MCP server entry)
+    let opencode_agents_md_path = inject::opencode_agents_md::path();
+    inject::opencode_agents_md::remove(&opencode_agents_md_path)?;
+    println!(
+        "  {} {}",
+        style("✓").green(),
+        t.opencode_agents_md_removed()
+    );
+
+    if opencode_agents_md_path.exists() {
+        let is_empty = std::fs::read_to_string(&opencode_agents_md_path)
+            .map(|content| content.trim().is_empty())
+            .unwrap_or(false);
+        if is_empty {
+            std::fs::remove_file(&opencode_agents_md_path)?;
+        }
+    }
+
+    let opencode_config_path = inject::opencode_mcp::config_path();
+    inject::opencode_mcp::unregister(&opencode_config_path)?;
+    println!("  {} {}", style("✓").green(), t.opencode_mcp_removed());
 
     if remove_data {
         let sync_dir = storage::files::sync_dir();

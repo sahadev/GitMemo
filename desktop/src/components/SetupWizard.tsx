@@ -624,6 +624,10 @@ export function SetupWizard({ onComplete }: { onComplete: (needsRemoteSync?: boo
                 <SetupCheckbox checked={editors.includes("codex")} />
                 <SetupOptionCopy title="Codex" description={t("setup.codexDesc")} />
               </SetupOptionButton>
+              <SetupOptionButton selected={editors.includes("opencode")} onClick={() => toggleEditor("opencode")}>
+                <SetupCheckbox checked={editors.includes("opencode")} />
+                <SetupOptionCopy title="OpenCode" description={t("setup.opencodeDesc")} />
+              </SetupOptionButton>
             </SetupStack>
 
             <SetupButtonRow>

@@ -12,7 +12,7 @@
 
 GitMemo 是一个本地优先、Git 原生的个人知识捕获与复用系统。它把剪贴板、截图、Markdown、AI 对话、终端输出、外部文件和灵感记录统一保存到用户自己控制的 Git 仓库中，让人和 AI 都能搜索、阅读、同步、导出和二次创作。已支持的 AI 工作偏好和编辑器上下文，例如全局 `CLAUDE.md`、Claude memory/skills、Cursor rules/skills，也可以进入同一个知识仓库并由 Git 管理。
 
-它提供 CLI 和 Desktop 两种使用形态，并以本地优先的方式服务 Claude Code、Cursor 和 Codex 用户。
+它提供 CLI 和 Desktop 两种使用形态，并以本地优先的方式服务 Claude Code、Cursor、Codex 和 OpenCode 用户。
 
 ## 为什么 GitMemo 在 AI 时代成立
 
@@ -29,7 +29,7 @@ GitMemo 成立的原因，是这些临时来源需要一个长期、可迁移、
 - **搜索与复用** — 通过 CLI、Desktop 或 MCP 搜索已保存内容，而不是让它们淹没在聊天记录里
 - **项目现场，随时归档** — 让 MetaBot、Claude、Codex 或 Cursor 把当前分支、任务目标、实现进度、风险和下一步计划保存到 GitMemo；以后换工具、换设备、换时间继续工作时，直接读取上下文，不再从零回忆
 - **AI 偏好与配置同步** — 把用户自己写下的 AI 工作规则、全局 `CLAUDE.md`、Claude memory/skills、Cursor rules/skills 和相关 MCP 配置纳入搜索、版本管理和多端同步
-- **多编辑器** — 同时支持 Claude Code、Cursor 与 Codex
+- **多编辑器** — 同时支持 Claude Code、Cursor、Codex 与 OpenCode
 - **笔记功能** — 便签和手册，一行命令创建
 - **剪贴板捕获** — Desktop 可在启用后本地监控并捕获剪贴板中的文本和图片
 - **编辑器捕获链路无需常驻同步守护进程** — 对话保存依赖编辑器原生 hooks / 集成或本机会话日志，而不是额外的同步服务
@@ -241,10 +241,13 @@ GitMemo 可在已支持工作流中捕获并整理 **8 类知识产物**：
 | **Claude Code** | `CLAUDE.md`、hooks、`/save`、原生日志 | PostToolUse Hook + `gitmemo capture` | `~/.claude.json` |
 | **Cursor** | Cursor Rules（`.mdc`）与 skills | `cds_sync` MCP 工具 | `~/.cursor/mcp.json` |
 | **Codex** | `~/.codex` 下的本机原生日志 | `gitmemo capture` | — |
+| **OpenCode** | `~/.config/opencode/AGENTS.md` 中的规则 | MCP 工具（`gitmemo`） | `~/.config/opencode/opencode.json` |
 
 ## 工作原理
 
 对 Claude Code、Cursor 和 Codex 的对话捕获链路，GitMemo 不依赖额外的同步守护进程，而是使用各自工具的原生机制：能接 hook/rules/MCP 的地方直接接入，Codex 则读取本机会话日志。
+
+**OpenCode：** 只做配置接入，不做对话捕获。GitMemo 把规则写进 `~/.config/opencode/AGENTS.md`，并在 `~/.config/opencode/opencode.json` 注册 MCP 服务；OpenCode 本身会扫描 `~/.claude/skills`，所以 `/save` 技能无需重复安装即可使用。OpenCode 里的对话不会导入 `conversations/`，需要留存的内容用 `/save` 或 MCP 工具写入。
 
 **Claude Code：**
 

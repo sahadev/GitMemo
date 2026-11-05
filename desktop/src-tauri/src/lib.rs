@@ -467,6 +467,9 @@ pub fn run() {
             settings::setup_cursor_integration,
             settings::update_cursor_skills,
             settings::remove_cursor_integration,
+            settings::get_opencode_integration_status,
+            settings::setup_opencode_integration,
+            settings::remove_opencode_integration,
             // Init (setup wizard)
             init::scan_ssh_keys,
             init::generate_ssh_key,

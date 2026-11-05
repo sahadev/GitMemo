@@ -112,6 +112,7 @@ interface AppStore {
   // Editor integration flags
   claudeEnabled: boolean;
   cursorEnabled: boolean;
+  opencodeEnabled: boolean;
   integrationStatusChecked: boolean;
   integrationStatusLoading: boolean;
   refreshIntegrationStatus: () => Promise<void>;
@@ -199,6 +200,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   settings: null,
   claudeEnabled: false,
   cursorEnabled: false,
+  opencodeEnabled: false,
   integrationStatusChecked: false,
   integrationStatusLoading: false,
   theme: loadTheme(),
@@ -240,13 +242,24 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
     if (get().integrationStatusLoading) return;
     set({ integrationStatusLoading: true });
     try {
-      const [claude, cursor] = await Promise.all([
+      const [claude, cursor, opencode] = await Promise.all([
         invoke<boolean>("get_claude_integration_status").catch(() => false),
         invoke<boolean>("get_cursor_integration_status").catch(() => false),
+        invoke<boolean>("get_opencode_integration_status").catch(() => false),
       ]);
-      set({ claudeEnabled: claude, cursorEnabled: cursor, integrationStatusChecked: true });
+      set({
+        claudeEnabled: claude,
+        cursorEnabled: cursor,
+        opencodeEnabled: opencode,
+        integrationStatusChecked: true,
+      });
     } catch {
-      set({ claudeEnabled: false, cursorEnabled: false, integrationStatusChecked: true });
+      set({
+        claudeEnabled: false,
+        cursorEnabled: false,
+        opencodeEnabled: false,
+        integrationStatusChecked: true,
+      });
     } finally {
       set({ integrationStatusLoading: false });
     }

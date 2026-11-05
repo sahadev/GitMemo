@@ -338,6 +338,7 @@ fn init_gitmemo_sync(
         let install_claude = request.editors.contains(&"claude".to_string());
         let install_cursor = request.editors.contains(&"cursor".to_string());
         let install_codex = request.editors.contains(&"codex".to_string());
+        let install_opencode = request.editors.contains(&"opencode".to_string());
         let sync_dir_str = sync_dir.to_string_lossy().to_string();
 
         if install_claude {
@@ -356,6 +357,13 @@ fn init_gitmemo_sync(
 
         if install_codex {
             result.add_ok("codex", "Codex capture enabled");
+        }
+
+        if install_opencode {
+            match setup_opencode_full(&sync_dir_str, &request.lang) {
+                Ok(()) => result.add_ok("opencode", "OpenCode integration enabled"),
+                Err(e) => result.add_err("opencode", &format!("OpenCode setup failed: {e}")),
+            }
         }
 
         // 7. Initial commit
@@ -674,6 +682,24 @@ fn setup_cursor_full(sync_dir: &str, lang: &str) -> Result<(), String> {
     let cli_path = crate::platform::gitmemo_command_for_registration();
     cursor_mcp::register(&cursor_mcp_path, &cli_path)
         .map_err(|e| format!("Cursor MCP failed: {e}"))?;
+
+    Ok(())
+}
+
+/// Set up OpenCode integration (AGENTS.md rules + MCP server)
+#[cfg(not(target_os = "android"))]
+fn setup_opencode_full(sync_dir: &str, lang: &str) -> Result<(), String> {
+    use gitmemo_core::inject::{opencode_agents_md, opencode_mcp};
+    use gitmemo_core::utils::i18n::Lang;
+
+    let lang_enum = Lang::parse(lang);
+
+    opencode_agents_md::inject(&opencode_agents_md::path(), sync_dir, lang_enum)
+        .map_err(|e| format!("OpenCode AGENTS.md failed: {e}"))?;
+
+    let cli_path = crate::platform::gitmemo_command_for_registration();
+    opencode_mcp::register(&opencode_mcp::config_path(), &cli_path)
+        .map_err(|e| format!("OpenCode MCP failed: {e}"))?;
 
     Ok(())
 }

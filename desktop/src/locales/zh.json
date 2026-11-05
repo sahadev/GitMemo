@@ -405,6 +405,8 @@
     "claudeIntegrationDesc": "自动保存对话记录 & 同步计划文件",
     "cursorIntegration": "Cursor IDE 集成",
     "cursorIntegrationDesc": "自动保存对话记录 & 通过 ~/.cursor/ 注入规则",
+    "opencodeIntegration": "OpenCode 集成",
+    "opencodeIntegrationDesc": "通过 ~/.config/opencode/ 注入规则并注册 MCP",
     "cliCapability": "GitMemo CLI",
     "cliCapabilityDesc": "提供编辑器配置、Codex/Claude 会话捕获、MCP 工具、终端笔记和 Git 维护命令。",
     "cliNotChecked": "未检测 CLI",
@@ -715,6 +717,7 @@
     "tipMobileStorageRemote": "移动端使用 HTTPS Token 同步，不依赖系统 Git、SSH 或任何 AI 编辑器集成。",
     "tipEditors": "编辑器集成不是必选项；先完成初始化，之后也能在设置页再开启。",
     "tipSettingUp": "正在写入目录、Git 和编辑器配置，完成后会自动进入结果页。",
-    "tipSave": "先在 Claude Code 或 Cursor 里和 AI 对话，再输入 /save。如果还没发生真实对话就执行 /save，就没有可保存的有效会话。"
+    "tipSave": "先在 Claude Code 或 Cursor 里和 AI 对话，再输入 /save。如果还没发生真实对话就执行 /save，就没有可保存的有效会话。",
+    "opencodeDesc": "规则写入 ~/.config/opencode/AGENTS.md + 注册 MCP（不自动收录对话）"
   }
 }

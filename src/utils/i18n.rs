@@ -239,6 +239,12 @@ impl I18n {
     pub fn codex_capture_enabled(&self) -> &str {
         self.s("codex_capture_enabled")
     }
+    pub fn opencode_agents_md_injected(&self) -> &str {
+        self.s("opencode_agents_md_injected")
+    }
+    pub fn opencode_mcp_registered(&self) -> &str {
+        self.s("opencode_mcp_registered")
+    }
     pub fn deploy_key_hint(&self) -> &str {
         self.s("deploy_key_hint")
     }
@@ -259,6 +265,9 @@ impl I18n {
     }
     pub fn cursor_next_step_2(&self) -> &str {
         self.s("cursor_next_step_2")
+    }
+    pub fn opencode_next_step(&self) -> &str {
+        self.s("opencode_next_step")
     }
     pub fn verify_heading(&self) -> &str {
         self.s("verify_heading")
@@ -304,6 +313,12 @@ impl I18n {
     }
     pub fn cursor_mcp_removed(&self) -> &str {
         self.s("cursor_mcp_removed")
+    }
+    pub fn opencode_agents_md_removed(&self) -> &str {
+        self.s("opencode_agents_md_removed")
+    }
+    pub fn opencode_mcp_removed(&self) -> &str {
+        self.s("opencode_mcp_removed")
     }
     pub fn data_deleted(&self, path: &str) -> String {
         self.fmt1("data_deleted", path)
@@ -630,13 +645,15 @@ mod tests {
     fn test_editor_options_array() {
         let en = I18n::new(Lang::En);
         let opts = en.editor_options();
-        assert_eq!(opts.len(), 4);
+        assert_eq!(opts.len(), 5);
         assert_eq!(opts[0], "Claude Code");
+        assert_eq!(opts[3], "OpenCode");
 
         let zh = I18n::new(Lang::Zh);
         let opts_zh = zh.editor_options();
-        assert_eq!(opts_zh.len(), 4);
+        assert_eq!(opts_zh.len(), 5);
         assert_eq!(opts_zh[2], "Codex");
+        assert_eq!(opts_zh[3], "OpenCode");
     }
 
     #[test]
