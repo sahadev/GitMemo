@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { forwardRef } from "react";
 import { cx } from "../../base/classNames";
+import { UnreadDot } from "../../base/UnreadDot";
 
 interface FileListItemProps {
   title: ReactNode;
@@ -10,6 +11,8 @@ interface FileListItemProps {
   active?: boolean;
   mobile?: boolean;
   icon?: ReactNode;
+  /** 有新内容未读时在标题行尾部显示小红点；不参与行高与点击行为。 */
+  unread?: boolean;
   onClick: () => void;
   className?: string;
 }
@@ -22,6 +25,7 @@ export const FileListItem = forwardRef<HTMLButtonElement, FileListItemProps>(fun
   active = false,
   mobile = false,
   icon,
+  unread = false,
   onClick,
   className,
 }, ref) {
@@ -37,6 +41,7 @@ export const FileListItem = forwardRef<HTMLButtonElement, FileListItemProps>(fun
       <div className="gm-file-list-title-row">
         {icon ? <span className="gm-file-list-icon">{icon}</span> : null}
         <p className="gm-file-list-title">{title}</p>
+        {unread ? <UnreadDot /> : null}
       </div>
       {subtitle || meta ? (
         <div className="gm-file-list-meta-row">

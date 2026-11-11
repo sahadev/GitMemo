@@ -5,7 +5,7 @@ mod startup_skeleton;
 
 use commands::{
     clipboard, crash_log, favorites, import, init, local_editor, mobile_git_spike, notes,
-    notifications, search, settings, stats, sync_log, vault, watcher,
+    notifications, search, settings, stats, sync_log, unread, vault, watcher,
 };
 #[cfg(desktop)]
 use gitmemo_core::services::sync::StartupMode;
@@ -382,6 +382,10 @@ pub fn run() {
             notes::save_image_to_local,
             notes::resolve_sync_path,
             notes::list_files,
+            // Unread tracking (local only)
+            unread::unread_snapshot,
+            unread::mark_file_read,
+            unread::mark_folder_read,
             notes::list_files_page,
             notes::sync_external_plans,
             notes::update_note,

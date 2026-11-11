@@ -2451,6 +2451,20 @@ a:focus-visible {
   color: var(--red);
 }
 
+/* 未读小红点：颜色跟危险态 token 走，尺寸复用状态点 token，不写死色值 */
+.gm-unread-dot {
+  background: var(--gm-color-danger);
+  border-radius: var(--gm-radius-pill);
+  flex: 0 0 auto;
+  height: var(--gm-icon-dot);
+  width: var(--gm-icon-dot);
+}
+
+/* 侧边栏计数徽标贴右边，与「更多」的折叠箭头对齐 */
+.gm-sidebar-nav-count {
+  margin-left: auto;
+}
+
 .gm-icon-button {
   align-items: center;
   background: transparent;
@@ -7426,7 +7440,18 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   background: var(--gm-selected);
   box-shadow: inset 2px 0 0 var(--gm-accent);
 }
-.gm-inst-list-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-inst-list-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 笔记行标题区：未读圆点跟在标题前面，不能把两列的网格换成三列 */
+.gm-inst-list-title-cell {
+  align-items: center;
+  display: flex;
+  gap: var(--gm-space-3);
+  min-width: 0;
+}
 .gm-inst-list-type,
 .gm-inst-list-source,
 .gm-inst-list-state,

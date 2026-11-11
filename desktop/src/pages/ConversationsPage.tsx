@@ -40,6 +40,7 @@ import { DetailPane, ListPane, ListPaneBody } from "../components/layout/Pane";
 import { useRelativeTimeTick } from "../hooks/useRelativeTimeTick";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
+import { useUnread } from "../hooks/useUnread";
 import { formatDateOnly, relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
@@ -67,6 +68,7 @@ export default function ConversationsPage({
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { isUnread, markRead } = useUnread();
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   useRelativeTimeTick();
   const isMobile = usePlatform() === "mobile";
@@ -158,13 +160,14 @@ export default function ConversationsPage({
     try {
       const raw = await invoke<string>("read_file", { filePath: path });
       applyConversationRaw(path, raw);
+      markRead(path);
       resetEditor();
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) {
       console.error(e);
     }
-  }, [applyConversationRaw, isMobile, resetEditor, scrollItemIntoView]);
+  }, [applyConversationRaw, isMobile, markRead, resetEditor, scrollItemIntoView]);
 
   useEffect(() => {
     if (!isPendingPathForFolder(pendingOpenPath, "conversations/")) return;
@@ -324,6 +327,7 @@ export default function ConversationsPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
+                  unread={isUnread(f.path)}
                   title={getDocumentTitle({ ...f, title: f.title || meta?.title })}
                   subtitle={relativeTime(f.modified, t)}
                   meta={(

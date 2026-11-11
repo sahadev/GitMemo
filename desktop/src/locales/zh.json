@@ -16,6 +16,11 @@
     "settings": "设置",
     "more": "更多"
   },
+  "unread": {
+    "sidebarNotes": "{0} 条笔记有更新",
+    "sidebarAiRecords": "{0} 条 AI 记录有更新",
+    "fileUnread": "有新内容未读"
+  },
   "editorHome": {
     "title": "本机 Claude / Cursor / Codex",
     "subtitle": "可浏览并编辑本机 Claude / Cursor / Codex 文件，并在独立工作区中保存匿名草稿。",

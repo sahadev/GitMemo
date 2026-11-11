@@ -16,6 +16,11 @@
     "settings": "Settings",
     "more": "More"
   },
+  "unread": {
+    "sidebarNotes": "{0} unread notes",
+    "sidebarAiRecords": "{0} unread AI records",
+    "fileUnread": "Unread new content"
+  },
   "editorHome": {
     "title": "Local Claude, Cursor & Codex",
     "subtitle": "Browse and edit local Claude/Cursor/Codex files, plus keep anonymous drafts in a separate workspace.",

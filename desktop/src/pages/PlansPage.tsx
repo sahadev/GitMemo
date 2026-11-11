@@ -31,6 +31,7 @@ import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { usePlatform } from "../hooks/usePlatform";
 import { useFileWatcher } from "../hooks/useFileWatcher";
+import { useUnread } from "../hooks/useUnread";
 import { useAppStore } from "../hooks/useAppStore";
 import { type FileEntry, type FilePage } from "../types/files";
 import { usePagedFileList } from "../hooks/usePagedFileList";
@@ -53,6 +54,7 @@ export default function PlansPage({
 } = {}) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { isUnread, markRead } = useUnread();
   const { pendingOpenPath, consumePendingOpenPath } = useAppStore();
   const isMobile = usePlatform() === "mobile";
   useRelativeTimeTick();
@@ -109,10 +111,11 @@ export default function PlansPage({
       const content = await invoke<string>("read_file", { filePath: path });
       setSelectedFile(path);
       setFileContent(content);
+      markRead(path);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     } catch (e) { console.error(e); }
-  }, [isMobile, scrollItemIntoView]);
+  }, [isMobile, markRead, scrollItemIntoView]);
 
   useEffect(() => {
     if (!isPendingPathForFolder(pendingOpenPath, "plans/")) return;
@@ -227,6 +230,7 @@ export default function PlansPage({
                   onClick={() => openFile(f.path)}
                   active={selected}
                   mobile={isMobile}
+                  unread={isUnread(f.path)}
                   title={getDocumentTitle(f)}
                   subtitle={relativeTime(f.modified, t)}
                 />

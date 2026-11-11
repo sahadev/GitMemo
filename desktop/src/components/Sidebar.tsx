@@ -17,7 +17,9 @@ import { useI18n } from "../hooks/useI18n";
 import { useAppStore } from "../hooks/useAppStore";
 import { useSync } from "../hooks/useSync";
 import { useLongPressImageSave } from "../hooks/useLongPressImageSave";
+import { useUnread } from "../hooks/useUnread";
 import { AppIcon } from "./base/AppIcon";
+import { Badge } from "./base/Badge";
 import { ImageContextMenu } from "./domain/files/ImageContextMenu";
 
 interface SidebarProps {
@@ -49,6 +51,7 @@ const moreNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }
 
 export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, onSync }: SidebarProps) {
   const { t } = useI18n();
+  const { countFor } = useUnread();
   const { appMeta, updateStatus, checkForUpdates, requestUpdateDetailsOpen } = useAppStore();
   const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
@@ -71,6 +74,12 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [moreOpen]);
   const moreActive = moreNavItems.some((item) => item.id === currentPage);
+  // AI 记录页把对话与计划合成一个入口，未读数也按两栏之和算
+  const unreadForPage = (page: Page) => {
+    if (page === "notes") return countFor("notes");
+    if (page === "ai-records") return countFor("conversations") + countFor("plans");
+    return 0;
+  };
 
   const openVersionDetails = () => {
     if (desktopUpdateAvailable) {
@@ -100,6 +109,7 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = currentPage === item.id;
+          const unreadCount = unreadForPage(item.id);
           return (
             <button
               key={item.id}
@@ -110,6 +120,18 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
             >
               <AppIcon icon={Icon} size="sm" className="gm-sidebar-nav-icon" />
               <span className="gm-sidebar-nav-label">{t(item.labelKey)}</span>
+              {unreadCount > 0 ? (
+                <Badge
+                  tone="danger"
+                  className="gm-sidebar-nav-count"
+                  ariaLabel={t(
+                    item.id === "notes" ? "unread.sidebarNotes" : "unread.sidebarAiRecords",
+                    unreadCount,
+                  )}
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Badge>
+              ) : null}
             </button>
           );
         })}

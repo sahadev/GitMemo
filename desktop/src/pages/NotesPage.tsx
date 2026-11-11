@@ -10,6 +10,7 @@ import { FavoriteButton } from "../components/FavoriteButton";
 import { PaneHeader } from "../components/AppHeaders";
 import { Badge } from "../components/base/Badge";
 import { AppIcon } from "../components/base/AppIcon";
+import { UnreadDot } from "../components/base/UnreadDot";
 import { Button } from "../components/base/Button";
 import { EmptyState } from "../components/base/EmptyState";
 import { shouldActivateMobileEditorChrome } from "../components/domain/app/appChromeLogic";
@@ -36,6 +37,7 @@ import { relativeTime } from "../utils/time";
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { useFileWatcher } from "../hooks/useFileWatcher";
+import { useUnread } from "../hooks/useUnread";
 import { useAppStore } from "../hooks/useAppStore";
 import { useFileDetailState } from "../hooks/useFileDetailState";
 import { useFileEditorState } from "../hooks/useFileEditorState";
@@ -68,6 +70,7 @@ export default function NotesPage({
 }) {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { isUnread, markRead } = useUnread();
   const { pendingOpenPath, consumePendingOpenPath, settings } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   useRelativeTimeTick();
@@ -89,6 +92,7 @@ export default function NotesPage({
   } = useFileDetailState({
     onOpened: ({ path, fromCrossPage }) => {
       resetEditor();
+      markRead(path);
       detailOpenedFromCrossPageRef.current = isMobile && fromCrossPage;
       scrollItemIntoView(path);
     },
@@ -417,7 +421,10 @@ export default function NotesPage({
                 onClick={() => openFile(file.path)}
                 title={typeof title === "string" ? title : undefined}
               >
-                <span className="gm-inst-list-title">{title}</span>
+                <span className="gm-inst-list-title-cell">
+                  {isUnread(file.path) ? <UnreadDot label={t("unread.fileUnread")} /> : null}
+                  <span className="gm-inst-list-title">{title}</span>
+                </span>
                 <span className="gm-inst-list-time" data-col="time">{relativeTime(file.modified, t)}</span>
               </button>
               );
