@@ -139,7 +139,9 @@
     "syncing": "Syncing...",
     "syncToGit": "Sync to Git",
     "unpushedCount": "{0} unpushed",
-    "allPushed": "All pushed"
+    "allPushed": "All pushed",
+    "syncFailed": "Sync failed",
+    "syncFailureDetails": "View sync error"
   },
   "dashboard": {
     "listLoadFailed": "Could not load the list: {0}",
@@ -724,5 +726,11 @@
     "tipSettingUp": "GitMemo is creating folders, Git config, and editor integrations. The result page will appear automatically.",
     "tipSave": "In Claude Code or Cursor, talk to the AI first, then type /save. If you run /save before any real conversation, there is nothing useful to save.",
     "opencodeDesc": "Rules in ~/.config/opencode/AGENTS.md + MCP (no conversation capture)"
+  },
+  "syncError": {
+    "title": "Sync failed",
+    "copy": "Copy details",
+    "detailsLabel": "Remote output",
+    "quotaHint": "The remote rejected this push because the repository is over the hosting quota (Gitee free repos are capped at 1GB). Free space on the remote first — run GC in the repository settings to drop unreachable objects, or move the history to a new repository — then sync again."
   }
 }

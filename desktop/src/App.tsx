@@ -24,6 +24,7 @@ import ExternalFilesPage from "./pages/ExternalFilesPage";
 import ImportsPage from "./pages/ImportsPage";
 import { SetupWizard } from "./components/SetupWizard";
 import { shouldShowMobileTabBar } from "./components/domain/app/appChromeLogic";
+import { SyncFailureDialog } from "./components/domain/sync/SyncFailureDialog";
 import { useSync } from "./hooks/useSync";
 import { usePlatformFlags } from "./hooks/usePlatform";
 import { useAppStore } from "./hooks/useAppStore";
@@ -552,6 +553,8 @@ function App() {
               syncing={sync.isSyncing}
               syncMsg={sync.message}
               syncFailed={sync.isFailed}
+              hasSyncFailure={Boolean(sync.failure)}
+              onShowSyncFailure={sync.openFailure}
               onSync={sync.triggerSync}
             />
           )}
@@ -577,6 +580,13 @@ function App() {
         <BottomNav currentPage={currentPage} onNavigate={navigatePage} />
       )}
       {dropZone}
+      <SyncFailureDialog
+        open={sync.failureOpen}
+        message={sync.failure}
+        syncing={sync.isSyncing}
+        onClose={sync.closeFailure}
+        onRetry={sync.triggerSync}
+      />
     </div>
   );
 }

@@ -2753,6 +2753,32 @@ a:focus-visible {
   color: var(--gm-warning);
 }
 
+/* 失败详情入口：侧栏一行放不下远端输出，只留这一行字，点开才是全文。 */
+.gm-sidebar-sync-error {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--gm-danger);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--gm-font-2xs);
+  gap: var(--gm-space-1);
+  justify-content: center;
+  padding: var(--gm-space-1) 0 0;
+  text-align: center;
+  width: 100%;
+}
+
+.gm-sidebar-sync-error:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.gm-sidebar-sync-error .gm-icon {
+  color: currentColor;
+}
+
 .gm-sidebar-sync-button .gm-icon {
   color: currentColor;
 }
@@ -5289,6 +5315,25 @@ a:focus-visible {
   padding: var(--gm-row-pad-y-comfort);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* 同步失败弹窗：一句结论 + 原始输出；结论用正文色，提示条用警告色提醒“需要去远端处理”。 */
+.gm-sync-error-summary {
+  color: var(--text);
+  font-size: var(--gm-font-sm);
+  line-height: var(--gm-leading-relaxed);
+  margin: 0;
+}
+
+.gm-sync-error-hint {
+  background: var(--gm-warning-soft);
+  border: var(--gm-border-w) solid color-mix(in srgb, var(--gm-warning) 40%, transparent);
+  border-radius: var(--gm-radius-control);
+  color: var(--text);
+  font-size: var(--gm-font-xs);
+  line-height: var(--gm-leading-relaxed);
+  margin: 0;
+  padding: var(--gm-row-pad-y-comfort) var(--gm-row-pad-x);
 }
 
 .gm-settings-changelog-release {

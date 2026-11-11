@@ -139,7 +139,9 @@
     "syncing": "同步中...",
     "syncToGit": "同步到 Git",
     "unpushedCount": "{0} 条未推送",
-    "allPushed": "已全部推送"
+    "allPushed": "已全部推送",
+    "syncFailed": "同步失败",
+    "syncFailureDetails": "查看同步错误"
   },
   "dashboard": {
     "listLoadFailed": "列表没能加载：{0}",
@@ -724,5 +726,11 @@
     "tipSettingUp": "正在写入目录、Git 和编辑器配置，完成后会自动进入结果页。",
     "tipSave": "先在 Claude Code 或 Cursor 里和 AI 对话，再输入 /save。如果还没发生真实对话就执行 /save，就没有可保存的有效会话。",
     "opencodeDesc": "规则写入 ~/.config/opencode/AGENTS.md + 注册 MCP（不自动收录对话）"
+  },
+  "syncError": {
+    "title": "同步失败",
+    "copy": "复制详情",
+    "detailsLabel": "远端输出",
+    "quotaHint": "远端仓库体积超过托管平台配额（Gitee 免费仓库上限 1GB），推送被服务端拒收。先给远端腾空间：在仓库设置里执行 GC 清掉不可达对象，或把历史迁到新仓库，然后再同步。"
   }
 }

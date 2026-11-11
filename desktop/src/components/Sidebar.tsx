@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings, RefreshCw, MoreHorizontal, ChevronDown } from "lucide-react";
+import { Settings, RefreshCw, MoreHorizontal, ChevronDown, TriangleAlert } from "lucide-react";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -29,6 +29,9 @@ interface SidebarProps {
   syncing: boolean;
   syncMsg: string;
   syncFailed: boolean;
+  /** 上一次失败是否还留着详情可查看 */
+  hasSyncFailure: boolean;
+  onShowSyncFailure: () => void;
   onSync: () => void;
 }
 
@@ -49,12 +52,19 @@ const moreNavItems: { id: Page; icon: typeof LayoutDashboard; labelKey: string }
   { id: "settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
-export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, onSync }: SidebarProps) {
+export default function Sidebar({ currentPage, onNavigate, focused, syncing, syncMsg, syncFailed, hasSyncFailure, onShowSyncFailure, onSync }: SidebarProps) {
   const { t } = useI18n();
   const { countFor } = useUnread();
   const { appMeta, updateStatus, checkForUpdates, requestUpdateDetailsOpen } = useAppStore();
   const logoActions = useLongPressImageSave({ src: "/logo.png", fileName: "gitmemo-logo.png" });
   const syncStatus = syncing ? "syncing" : syncMsg ? (syncFailed ? "danger" : "success") : "idle";
+  // 失败时的 message 是远端返回的一整屏日志，放进这一行按钮会把侧栏撑开，
+  // 所以这一行只留状态，完整信息走详情弹窗。
+  const syncLabel = syncing
+    ? t("sidebar.syncing")
+    : syncFailed
+      ? t("sidebar.syncFailed")
+      : syncMsg || t("sidebar.syncToGit");
   // 顶栏没做，同步上下文改在这里常驻：分支与未推送数全站可见
   const { gitStatus } = useSync();
   const branchLabel = gitStatus?.git_branch || "";
@@ -177,8 +187,19 @@ export default function Sidebar({ currentPage, onNavigate, focused, syncing, syn
           data-status={syncStatus}
         >
           <AppIcon icon={RefreshCw} size="xs" spin={syncing} />
-          {syncing ? t("sidebar.syncing") : syncMsg ? syncMsg : t("sidebar.syncToGit")}
+          {syncLabel}
         </button>
+        {hasSyncFailure && !syncing ? (
+          <button
+            type="button"
+            className="gm-sidebar-sync-error"
+            onClick={onShowSyncFailure}
+            title={t("sidebar.syncFailureDetails")}
+          >
+            <AppIcon icon={TriangleAlert} size="xs" />
+            <span>{t("sidebar.syncFailureDetails")}</span>
+          </button>
+        ) : null}
         <p className="gm-sidebar-sync-meta">
           {branchLabel ? <span>{branchLabel}</span> : null}
           {unpushedCount > 0 ? (

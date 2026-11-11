@@ -1,7 +1,39 @@
+/// Remove terminal control sequences from text that came out of Git.
+///
+/// Git colours its remote output (`remote: Powered by \x1b[01;33mGITEE.COM\x1b[0m`),
+/// and the progress stream separates updates with `\r`. Both render as garbage
+/// once the text leaves the terminal, so they are stripped before the message is
+/// shown in the app or written to a log file.
+#[allow(dead_code)]
+pub fn strip_ansi(content: &str) -> String {
+    let mut out = String::with_capacity(content.len());
+    let mut chars = content.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\u{1b}' => {
+                // CSI (ESC `[` … final byte) and the shorter two-character forms.
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    for next in chars.by_ref() {
+                        if ('@'..='~').contains(&next) {
+                            break;
+                        }
+                    }
+                } else {
+                    chars.next();
+                }
+            }
+            '\r' => {}
+            _ => out.push(ch),
+        }
+    }
+    out
+}
+
 /// Filter sensitive values from text before it is displayed or written to logs.
 #[allow(dead_code)]
 pub fn filter_sensitive(content: &str) -> String {
-    let mut result = content.to_string();
+    let mut result = strip_ansi(content);
 
     // API keys
     let patterns = [
@@ -106,6 +138,24 @@ mod tests {
     fn test_clean_text_unchanged() {
         let input = "Hello, this is normal text with no secrets.";
         assert_eq!(filter_sensitive(input), input);
+    }
+
+    #[test]
+    fn test_strip_ansi_removes_colour_codes() {
+        let input = "remote: Powered by \u{1b}[01;33mGITEE.COM \u{1b}[0m[1.1.23]\r\nremote: Repo size";
+        let output = strip_ansi(input);
+        assert!(!output.contains('\u{1b}'));
+        assert!(!output.contains('\r'));
+        assert!(output.contains("GITEE.COM [1.1.23]"));
+        assert!(output.contains("remote: Repo size"));
+    }
+
+    #[test]
+    fn test_git_error_for_user_drops_terminal_codes() {
+        let input = "remote: Repo size: 1694.160MB, exceeds quota 1024MB";
+        let output = git_error_for_user(format!("\u{1b}[01;33m{input}\u{1b}[0m"));
+        assert!(!output.contains('\u{1b}'));
+        assert!(output.contains("exceeds quota"));
     }
 
     #[test]
