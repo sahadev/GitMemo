@@ -129,7 +129,15 @@ fn scan_folder(dir: &Path, folder: &str) -> Vec<ScannedFile> {
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| is_tracked_file(entry.path()))
     {
-        if entry.path().components().any(|part| {
+        let rel_path = entry
+            .path()
+            .strip_prefix(dir)
+            .unwrap_or(entry.path())
+            .to_string_lossy()
+            .to_string();
+        // 隐藏段只在相对路径上判：真实同步根目录就叫 `.gitmemo`，
+        // 拿绝对路径判隐藏会把整个仓库当成隐藏目录，一条文件都扫不到。
+        if Path::new(&rel_path).components().any(|part| {
             part.as_os_str()
                 .to_str()
                 .map(|name| name.starts_with('.'))
@@ -141,12 +149,6 @@ fn scan_folder(dir: &Path, folder: &str) -> Vec<ScannedFile> {
             Ok(meta) => meta,
             Err(_) => continue,
         };
-        let rel_path = entry
-            .path()
-            .strip_prefix(dir)
-            .unwrap_or(entry.path())
-            .to_string_lossy()
-            .to_string();
         files_out.push(ScannedFile {
             rel_path,
             signature: signature_of(&meta),
@@ -356,5 +358,21 @@ mod tests {
         assert!(is_supported_folder("notes"));
         assert!(!is_supported_folder("clips"));
         assert!(!is_supported_folder("../notes"));
+    }
+
+    #[test]
+    fn scans_files_under_a_dot_named_sync_root() {
+        // 真实同步根目录是 `~/.gitmemo`，名字本身以点开头。
+        let root = temp_dir("dotroot");
+        let dir = root.join(".gitmemo");
+        std::fs::create_dir_all(dir.join("notes")).unwrap();
+        write_note(&dir, "notes/a.md", "# a");
+        write_note(&dir, "notes/.metadata/b.md", "# hidden");
+
+        let mut state = UnreadState::default();
+        let (count, paths) = snapshot_folder(&mut state, &dir, "notes");
+        assert_eq!(count, 0);
+        assert!(paths.is_empty());
+        assert_eq!(state.folders["notes"].seen.len(), 1);
     }
 }
