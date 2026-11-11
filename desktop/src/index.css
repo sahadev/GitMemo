@@ -2560,7 +2560,8 @@ a:focus-visible {
   background: transparent;
   border-bottom: var(--gm-border-w) solid var(--gm-line);
   display: flex;
-  justify-content: space-between;
+  /* 顶部区域水平居中：图标与两行文字作为一个组对齐到侧边栏中线 */
+  justify-content: center;
   padding: var(--gm-space-4) var(--gm-space-3);
 }
 
@@ -2576,9 +2577,11 @@ a:focus-visible {
 }
 
 .gm-sidebar-logo {
-  border-radius: var(--gm-radius-control);
-  height: var(--gm-icon-result);
-  width: var(--gm-icon-result);
+  /* 1.1 倍后按圆形裁切：图形自带黑底，圆形裁切不会露出接缝 */
+  border-radius: var(--gm-radius-pill);
+  height: calc(var(--gm-icon-result) * 1.1);
+  object-fit: cover;
+  width: calc(var(--gm-icon-result) * 1.1);
 }
 
 .gm-sidebar-brand-title {
@@ -2603,6 +2606,13 @@ a:focus-visible {
   gap: var(--gm-nav-stack-gap);
   overflow-y: auto;
   padding: var(--gm-space-3);
+  /* 展开「更多」后导航会溢出：滚动条一出现就会挤窄内容、
+     让每一行的图标整体跳动。这里保留滚动能力，只把轨道藏起来。 */
+  scrollbar-width: none;
+}
+
+.gm-sidebar-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .gm-sidebar-nav-item {
@@ -2666,6 +2676,7 @@ a:focus-visible {
   opacity: 0.7;
 }
 
+/* 展开时箭头翻转：只有图标朝向在变，位置不动（滚动条已隐藏，不会横向跳动） */
 .gm-sidebar-more-toggle[data-open="true"] .gm-sidebar-more-chevron {
   transform: rotate(180deg);
 }
