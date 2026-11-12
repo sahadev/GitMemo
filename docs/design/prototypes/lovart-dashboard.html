@@ -6,15 +6,15 @@
 <title>GitMemo — Workspace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <style>
 /* ─────────────────────────────────────────────
    Tokens
    ───────────────────────────────────────────── */
 :root{
   --font-ui:'Inter','SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --font-display:'Cormorant Garamond','Iowan Old Style','Palatino Linotype',Georgia,serif;
-  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-display:var(--font-ui);
+  --font-mono:var(--font-ui);
 
   --bg:#100F09;
   --panel:#181713;
@@ -83,12 +83,13 @@ body{
 button{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 .lucide{width:16px;height:16px;stroke-width:1.6;flex:none}
-.mono{font-family:var(--font-mono);font-size:11px;letter-spacing:.01em;font-variant-ligatures:none}
-.serif{font-family:var(--font-display);font-weight:400}
+.mono{font-family:var(--font-ui);font-size:11px;letter-spacing:.015em;font-variant-numeric:tabular-nums}
+.serif{font-family:var(--font-ui);font-weight:400}
 .eyebrow{
-  font-family:var(--font-mono);
+  font-family:var(--font-ui);
   font-size:10px;
-  letter-spacing:.16em;
+  font-weight:500;
+  letter-spacing:.15em;
   text-transform:uppercase;
   color:var(--muted);
 }
@@ -207,8 +208,8 @@ kbd{
 .view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:32px 0 24px}
 .view-head .eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .view-head h1{
-  font-family:var(--font-display);font-weight:300;
-  font-size:clamp(30px,3.1vw,44px);line-height:1.02;letter-spacing:-.018em;
+  font-family:var(--font-ui);font-weight:300;
+  font-size:clamp(29px,3vw,41px);line-height:1.04;letter-spacing:-.04em;
   margin:0;
 }
 .view-head h1 em{font-style:italic;font-weight:300}
@@ -249,9 +250,9 @@ kbd{
 .stat:first-child{border-left:0}
 .stat__label{display:block}
 .stat__value{
-  font-family:var(--font-display);font-weight:400;font-size:33px;line-height:1.15;
-  letter-spacing:-.015em;margin-top:9px;display:flex;align-items:baseline;gap:7px;
-  font-variant-numeric:lining-nums;
+  font-family:var(--font-ui);font-weight:300;font-size:29px;line-height:1.2;
+  letter-spacing:-.03em;margin-top:10px;display:flex;align-items:baseline;gap:7px;
+  font-variant-numeric:tabular-nums lining-nums;
 }
 .stat__delta{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.02em}
 .stat__delta.up{color:var(--lime-text)}
@@ -265,7 +266,7 @@ kbd{
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .card__head{display:flex;align-items:center;gap:12px;padding:15px 18px 13px;border-bottom:1px solid var(--hair)}
-.card__title{font-family:var(--font-display);font-size:20px;font-weight:400;letter-spacing:-.01em;line-height:1.2;margin:0}
+.card__title{font-family:var(--font-ui);font-size:16px;font-weight:500;letter-spacing:-.018em;line-height:1.3;margin:0}
 .card__sub{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.02em}
 .card__head > .spacer{margin-left:auto}
 .card__body{padding:2px 0}
@@ -305,7 +306,7 @@ kbd{
 }
 .row__meta{
   display:flex;align-items:center;gap:7px;margin-top:4px;
-  font-family:var(--font-mono);font-size:10px;color:var(--muted);
+  font-family:var(--font-ui);font-size:11px;color:var(--muted);letter-spacing:.005em;
   white-space:nowrap;overflow:hidden;
 }
 .row__meta .sep{opacity:.5}
@@ -421,13 +422,13 @@ kbd{
 }
 .backdrop.is-open .dialog{transform:none}
 .dialog__head{display:flex;align-items:flex-start;gap:14px;padding:20px 22px 16px}
-.dialog__title{font-family:var(--font-display);font-size:24px;font-weight:400;letter-spacing:-.012em;margin:0;line-height:1.15}
+.dialog__title{font-family:var(--font-ui);font-size:19px;font-weight:500;letter-spacing:-.02em;margin:0;line-height:1.25}
 .dialog__hint{font-size:12px;color:var(--muted);margin-top:4px}
 .dialog__body{padding:0 22px}
 .dialog__body textarea{
   width:100%;min-height:132px;resize:vertical;
   background:var(--bg);border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  font-family:var(--font-ui);font-size:12px;line-height:1.7;
   padding:12px 13px;outline:0;transition:border-color .16s;
 }
 .dialog__body textarea:focus{border-color:var(--lime-line)}
@@ -839,8 +840,8 @@ kbd{
             '<div class="field__ctl"><div class="seg" id="themeSeg">' +
               '<button data-theme-set="dark" class="is-on">Dark</button><button data-theme-set="light">Light</button>' +
             '</div></div></div>' +
-          '<div class="field"><div><div class="field__label">Display typeface</div><div class="field__hint">Cormorant Garamond for headings, Inter for interface text.</div></div>' +
-            '<div class="field__ctl mono" style="color:var(--text-2)">Cormorant · Inter</div></div>' +
+          '<div class="field"><div><div class="field__label">Typeface</div><div class="field__hint">Inter across display, interface, and metadata — one family, four weights.</div></div>' +
+            '<div class="field__ctl mono" style="color:var(--text-2)">Inter</div></div>' +
         '</div></section>' +
         '<section class="card"><div class="card__head"><h2 class="card__title">Repository</h2></div><div class="card__body">' +
           '<div class="field"><div><div class="field__label">Local path</div><div class="field__hint">Every capture is written here as Markdown or JSON before indexing.</div></div>' +
