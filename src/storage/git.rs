@@ -1,6 +1,5 @@
 use anyhow::Result;
 use fs4::fs_std::FileExt;
-#[cfg(target_os = "android")]
 use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::io::Read;
@@ -1219,7 +1218,7 @@ fn commit_and_push_with_token(repo_path: &Path, message: &str, token: &str) -> R
 
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
-    drop_pending_images(repo_path, &mut index, &[]);
+    drop_pending_images(repo_path, &mut index, &[])?;
     index.write()?;
 
     let tree_id = index.write_tree()?;
@@ -1357,34 +1356,64 @@ pub fn setup_tracking(repo_path: &Path, branch: &str) {
 /// passes the image it was asked to sync so exactly that file gets through.
 ///
 /// The registry only ever holds untracked paths, so dropping an entry can never
-/// stage a deletion. Best effort: a broken registry must not block a commit.
-fn drop_pending_images(repo_path: &Path, index: &mut git2::Index, allow: &[&str]) {
-    let allow: Vec<String> = allow
-        .iter()
-        .map(|p| crate::storage::pending_images::normalize(p))
-        .collect();
-    let pending = crate::storage::pending_images::list(repo_path);
+/// stage a deletion. Fails closed: an unreadable registry aborts the commit
+/// instead of staging every pending screenshot at once.
+fn drop_pending_images(repo_path: &Path, index: &mut git2::Index, allow: &[&str]) -> Result<()> {
+    use crate::storage::pending_images;
+    use std::collections::HashSet;
 
-    // Deleted files must lose their entry, otherwise a later re-commit would
-    // treat a stale path as a deletion.
-    let gone: Vec<String> = pending
+    let allow: HashSet<String> = allow
         .iter()
-        .filter(|rel| !repo_path.join(rel).exists())
+        .map(|p| pending_images::normalize(p))
+        .collect();
+    let pending = pending_images::list_checked(repo_path)?;
+
+    // An entry only means something while the image is untracked and still on
+    // disk. Entries for deleted files, or for images that already reached git,
+    // are retired here: keeping them turns every following commit into a
+    // deletion of that path, which is what made sync churn thousands of files.
+    let tracked = tracked_in_head(repo_path, &pending);
+    let stale: Vec<String> = pending
+        .iter()
+        .filter(|rel| !allow.contains(*rel))
+        .filter(|rel| !repo_path.join(rel).exists() || tracked.contains(*rel))
         .cloned()
         .collect();
-    if !gone.is_empty() {
-        let gone_refs: Vec<&str> = gone.iter().map(|s| s.as_str()).collect();
-        let _ = crate::storage::pending_images::remove(repo_path, &gone_refs);
+    if !stale.is_empty() {
+        let stale_refs: Vec<&str> = stale.iter().map(|s| s.as_str()).collect();
+        let _ = pending_images::remove(repo_path, &stale_refs);
     }
 
-    for rel in pending {
-        if gone.iter().any(|g| g == &rel) || allow.iter().any(|a| a == &rel) {
+    for rel in &pending {
+        if stale.contains(rel) || allow.contains(rel) {
             continue;
         }
-        if let Err(e) = index.remove_path(Path::new(&rel)) {
+        if let Err(e) = index.remove_path(Path::new(rel)) {
             eprintln!("[gitmemo] Could not drop pending image {}: {}", rel, e);
         }
     }
+    Ok(())
+}
+
+/// Which of `candidates` are already part of `HEAD`. Used to retire registry
+/// entries that no longer describe an untracked image.
+fn tracked_in_head(repo_path: &Path, candidates: &[String]) -> HashSet<String> {
+    let mut found = HashSet::new();
+    let Ok(repo) = git2::Repository::open(repo_path) else {
+        return found;
+    };
+    let Ok(Some(head)) = current_head_commit(&repo) else {
+        return found;
+    };
+    let Ok(tree) = head.tree() else {
+        return found;
+    };
+    for rel in candidates {
+        if tree.get_path(Path::new(rel)).is_ok() {
+            found.insert(rel.clone());
+        }
+    }
+    found
 }
 
 /// Stage all changes, commit, and push. Returns sync result.
@@ -1398,7 +1427,7 @@ pub fn commit_only(repo_path: &Path, message: &str) -> Result<SyncResult> {
 
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
-    drop_pending_images(repo_path, &mut index, &[]);
+    drop_pending_images(repo_path, &mut index, &[])?;
     index.write()?;
 
     let tree_id = index.write_tree()?;
@@ -1458,7 +1487,7 @@ fn commit_and_push_inner(
     // Stage all
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
-    drop_pending_images(repo_path, &mut index, allow_paths);
+    drop_pending_images(repo_path, &mut index, allow_paths)?;
     index.write()?;
 
     // Check if there's anything to commit
@@ -2121,6 +2150,84 @@ mod tests {
         let repo = git2::Repository::open(repo_path).unwrap();
         let tree = current_head_commit(&repo).unwrap().unwrap().tree().unwrap();
         assert!(tree.get_path(Path::new(png)).is_ok());
+    }
+
+    #[test]
+    fn corrupt_registry_aborts_the_commit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path();
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo_path)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        std::fs::create_dir_all(repo_path.join(".metadata")).unwrap();
+        std::fs::create_dir_all(repo_path.join("clips")).unwrap();
+        std::fs::write(repo_path.join(".gitignore"), ".metadata/\n").unwrap();
+
+        let png = "clips/shot.png";
+        std::fs::write(repo_path.join(png), b"png").unwrap();
+        crate::storage::pending_images::add(repo_path, &[png]).unwrap();
+        std::fs::write(repo_path.join("note.md"), "note\n").unwrap();
+
+        // A damaged registry used to read as "nothing pending", which staged
+        // and committed every screenshot in one go.
+        std::fs::write(
+            repo_path.join(".metadata/pending_sync_images.json"),
+            "{ truncated",
+        )
+        .unwrap();
+
+        assert!(commit_and_push(repo_path, "note").is_err());
+
+        let repo = git2::Repository::open(repo_path).unwrap();
+        let has_head = current_head_commit(&repo).unwrap().is_some();
+        assert!(!has_head || current_head_commit(&repo)
+            .unwrap()
+            .unwrap()
+            .tree()
+            .unwrap()
+            .get_path(Path::new(png))
+            .is_err());
+    }
+
+    #[test]
+    fn tracked_pending_entry_is_retired_instead_of_deleted() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo_path = tmp.path();
+        if Command::new("git")
+            .arg("init")
+            .current_dir(repo_path)
+            .status()
+            .map(|status| !status.success())
+            .unwrap_or(true)
+        {
+            return;
+        }
+
+        std::fs::create_dir_all(repo_path.join(".metadata")).unwrap();
+        std::fs::create_dir_all(repo_path.join("clips")).unwrap();
+        std::fs::write(repo_path.join(".gitignore"), ".metadata/\n").unwrap();
+
+        // The image already reached git before the registry knew about it.
+        let png = "clips/legacy.png";
+        std::fs::write(repo_path.join(png), b"png").unwrap();
+        commit_and_push_allowing(repo_path, "legacy image", &[png]).unwrap();
+        crate::storage::pending_images::add(repo_path, &[png]).unwrap();
+
+        // A later, unrelated commit must neither delete nor re-add it.
+        std::fs::write(repo_path.join("note.md"), "note\n").unwrap();
+        commit_and_push(repo_path, "note").unwrap();
+
+        let repo = git2::Repository::open(repo_path).unwrap();
+        let tree = current_head_commit(&repo).unwrap().unwrap().tree().unwrap();
+        assert!(tree.get_path(Path::new(png)).is_ok());
+        assert!(!crate::storage::pending_images::contains(repo_path, png));
     }
 
     #[test]
