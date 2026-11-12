@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GitMemo — Editorial Tech prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ─── Tokens (mirrors desktop/src/index.css) ───────────────── */
+:root{
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;
+
+  --bg:#1A1817;
+  --card:#252220;
+  --hover:#302C2C;
+  --input:#252220;
+  --text:#FDFCFC;
+  --text-2:#9A9898;
+  --muted:#7C7978;
+  --accent:#007AFF;
+  --accent-hover:#0056B3;
+  --accent-soft:rgba(0,122,255,.14);
+  --border:rgba(253,252,252,.08);
+  --border-strong:rgba(253,252,252,.22);
+  --green:#30D158;
+  --yellow:#FF9F0A;
+  --red:#FF453A;
+  --code-bg:#1F1D1C;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+
+  --r1:4px; --r2:6px; --r3:8px;
+  color-scheme:dark;
+}
+[data-theme="light"]{
+  --bg:#F7F4F2;
+  --card:#FDFCFB;
+  --hover:#EEEBE8;
+  --input:#FDFCFB;
+  --text:#201D1D;
+  --text-2:#7A7574;
+  --muted:#96918F;
+  --accent:#007AFF;
+  --accent-hover:#0056B3;
+  --accent-soft:rgba(0,122,255,.10);
+  --border:rgba(15,0,0,.10);
+  --border-strong:rgba(15,0,0,.26);
+  --green:#248A3D;
+  --yellow:#C46200;
+  --red:#D70015;
+  --code-bg:#F2EFEC;
+  --shadow:0 10px 26px rgba(40,30,25,.14);
+  color-scheme:light;
+}
+
+/* ─── Base ─────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font-mono);font-size:12px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+::selection{background:var(--accent-soft);color:var(--text)}
+button{font:inherit;color:inherit}
+input,textarea{font:inherit;color:inherit}
+.lucide{width:14px;height:14px;stroke-width:1.7;flex:none}
+.sans{font-family:var(--font-sans)}
+.mut{color:var(--muted)}
+.t2{color:var(--text-2)}
+.link{color:var(--accent);cursor:pointer;background:none;border:0;font:inherit;padding:0}
+.link:hover{text-decoration:underline}
+kbd{
+  font-family:var(--font-mono);font-size:9.5px;line-height:1;padding:2px 4px;
+  border:1px solid var(--border);border-radius:3px;color:var(--muted);
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid transparent;background-clip:content-box;border-radius:6px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ─── Shell ────────────────────────────────────────────────── */
+#app{display:grid;grid-template-columns:208px minmax(0,1fr);height:100vh}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+
+/* sidebar */
+.sb{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);padding:10px 8px 8px}
+.brand{display:flex;align-items:center;gap:8px;padding:4px 8px 12px}
+.brand__mark{
+  width:18px;height:18px;border-radius:var(--r1);background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-size:10px;font-weight:600;letter-spacing:-.04em;
+}
+.brand__name{font-size:12.5px;font-weight:500;letter-spacing:-.01em}
+.brand__ver{font-size:9px;color:var(--muted);letter-spacing:.04em}
+.nav{display:flex;flex-direction:column;gap:1px}
+.nav__label{padding:10px 8px 4px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.nav__item{
+  display:flex;align-items:center;gap:8px;height:27px;padding:0 8px;
+  border:0;border-radius:var(--r1);background:none;color:var(--text-2);
+  font-size:11.5px;text-align:left;cursor:pointer;width:100%;
+  transition:background .14s,color .14s;
+}
+.nav__item:hover{background:var(--hover);color:var(--text)}
+.nav__item:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
+.nav__item.is-on{background:var(--accent-soft);color:var(--accent)}
+.nav__item .n{margin-left:auto;font-size:9.5px;color:var(--muted)}
+.nav__item.is-on .n{color:var(--accent)}
+.sb__foot{margin-top:auto;border-top:1px solid var(--border);padding-top:8px}
+.repo{padding:4px 8px;display:flex;flex-direction:column;gap:3px}
+.repo__r{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2)}
+.repo__r .v{margin-left:auto;color:var(--text)}
+.repo__r .warn{color:var(--yellow)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--text-2);flex:none}
+.dot--ok{background:var(--green)}
+.dot--warn{background:var(--yellow)}
+.dot--err{background:var(--red)}
+.dot--accent{background:var(--accent)}
+
+/* toolbar */
+.tb{height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border)}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);min-width:0;white-space:nowrap}
+.crumbs b{color:var(--text-2);font-weight:400}
+.tb__right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.search{
+  display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;width:230px;
+  border:1px solid var(--border);border-radius:var(--r2);background:var(--input);color:var(--muted);
+  transition:border-color .15s,box-shadow .15s;
+}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:11.5px;color:var(--text)}
+.search input::placeholder{color:var(--muted)}
+.iconbtn{
+  width:26px;height:26px;display:grid;place-items:center;border:1px solid transparent;
+  border-radius:var(--r2);background:none;color:var(--text-2);cursor:pointer;
+  transition:background .14s,color .14s,border-color .14s;
+}
+.iconbtn:hover{background:var(--hover);color:var(--text);border-color:var(--border)}
+.iconbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;
+  border:1px solid var(--border);border-radius:var(--r2);background:none;color:var(--text);
+  font-size:11.5px;cursor:pointer;white-space:nowrap;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.btn:hover{background:var(--hover);border-color:var(--border-strong)}
+.btn:active{transform:translateY(.5px)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn--primary{background:var(--accent);border-color:transparent;color:#fff}
+.btn--primary:hover{background:var(--accent-hover)}
+.btn--quiet{border-color:transparent;color:var(--text-2)}
+.btn--quiet:hover{color:var(--text)}
+.btn--sm{height:22px;padding:0 7px;font-size:10.5px;border-radius:var(--r1)}
+.btn .lucide{width:12px;height:12px}
+
+/* status bar */
+.sbar{
+  height:22px;flex:none;display:flex;align-items:center;gap:12px;padding:0 12px;
+  border-top:1px solid var(--border);font-size:9.5px;color:var(--muted);
+}
+.sbar .sep{opacity:.4}
+
+/* ─── Views ────────────────────────────────────────────────── */
+.view{display:flex;flex-direction:column;flex:1;min-height:0}
+.vh{display:flex;align-items:center;gap:12px;padding:13px 16px 12px;border-bottom:1px solid var(--border);flex:none}
+.vh h1{font-family:var(--font-sans);font-size:19px;font-weight:600;letter-spacing:-.015em;margin:0;line-height:1.2}
+.vh .sub{font-size:10.5px;color:var(--muted);margin-top:3px}
+.vh__a{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+
+/* split panes */
+.panes{display:grid;grid-template-columns:336px minmax(0,1fr);flex:1;min-height:0}
+.pane{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:auto}
+.pane + .pane{border-left:1px solid var(--border)}
+.pane__h{
+  position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;
+  padding:7px 12px;background:var(--bg);border-bottom:1px solid var(--border);
+  font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+}
+.pane__h .spacer{margin-left:auto}
+.pane__body{padding:0}
+.detail{padding:16px;min-width:0}
+
+/* rows */
+.row{
+  display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:9px;align-items:center;
+  padding:7px 12px;border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background .12s;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-top:0;
+}
+.row:hover{background:var(--hover)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.row.is-sel{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent)}
+.row__i{color:var(--muted);display:flex}
+.row.is-sel .row__i{color:var(--accent)}
+.row__t{font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row__m{font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center}
+.row__r{text-align:right;font-size:9.5px;color:var(--muted);white-space:nowrap}
+.row > span:nth-child(2){min-width:0;display:block;overflow:hidden}
+
+/* tags */
+.tag{
+  display:inline-flex;align-items:center;gap:4px;height:16px;padding:0 4px;
+  border:1px solid var(--border);border-radius:3px;
+  font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);
+}
+.tag--blue{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:var(--accent-soft)}
+.tag--green{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent)}
+.tag--yellow{color:var(--yellow);border-color:color-mix(in srgb,var(--yellow) 40%,transparent)}
+.tag--red{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent)}
+
+/* ─── Dashboard ────────────────────────────────────────────── */
+.dash{overflow:auto;padding:14px 16px 20px;flex:1;min-height:0}
+.strip{
+  display:flex;flex-wrap:wrap;align-items:stretch;margin-bottom:14px;
+  border:1px solid var(--border);border-radius:var(--r3);background:var(--card);overflow:hidden;
+}
+.strip__c{display:flex;align-items:center;gap:6px;padding:7px 10px;font-size:10.5px;color:var(--text-2)}
+.strip__c + .strip__c{border-left:1px solid var(--border)}
+.strip__c b{color:var(--text);font-weight:500}
+.strip__c .warn{color:var(--yellow)}
+.strip__c .ok{color:var(--green)}
+.dash__grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(240px,.8fr);gap:16px;align-items:start}
+.sec{margin-bottom:16px}
+.sec__h{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+}
+.sec__h::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec__h .link{text-transform:none;letter-spacing:0;font-size:10px}
+.list{border:1px solid var(--border);border-radius:var(--r3);overflow:hidden;background:var(--card)}
+.list .row:last-child{border-bottom:0}
+
+/* log */
+.log{border:1px solid var(--border);border-radius:var(--r3);background:var(--card);overflow:hidden}
+.log__r{display:grid;grid-template-columns:42px 8px minmax(0,1fr);gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px;color:var(--text-2)}
+.log__r:last-child{border-bottom:0}
+.log__t{color:var(--muted);font-variant-numeric:tabular-nums}
+.log__r b{color:var(--text);font-weight:400}
+.log__r .warn{color:var(--yellow)}
+.log__r .err{color:var(--red)}
+.log__r .ok{color:var(--green)}
+.log__r .d{margin-top:5px}
+
+/* quick actions */
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden}
+.qa__b{
+  display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+  padding:9px 10px;border:0;background:var(--card);color:var(--text-2);
+  font-size:11px;text-align:left;cursor:pointer;transition:background .14s,color .14s;
+}
+.qa__b:hover{background:var(--hover);color:var(--text)}
+.qa__b .lucide{width:13px;height:13px;color:var(--muted)}
+.qa__b:hover .lucide{color:var(--accent)}
+.qa__b .k{font-size:9px;color:var(--muted)}
+
+/* kv table */
+.kv{border:1px solid var(--border);border-radius:var(--r3);background:var(--card);overflow:hidden}
+.kv__r{display:flex;align-items:center;gap:12px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px}
+.kv__r:last-child{border-bottom:0}
+.kv__k{color:var(--text-2)}
+.kv__v{margin-left:auto;font-size:10.5px;color:var(--text);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kv__v.num{font-variant-numeric:tabular-nums}
+
+/* ─── Detail ───────────────────────────────────────────────── */
+.dt__title{font-family:var(--font-sans);font-size:16px;font-weight:600;letter-spacing:-.012em;margin:0 0 5px;line-height:1.35}
+.dt__meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--muted)}
+.dt__acts{display:flex;gap:6px;margin:12px 0 14px;flex-wrap:wrap}
+.snippet{
+  border:1px solid var(--border);border-radius:var(--r2);background:var(--card);
+  padding:10px 12px;font-size:11px;line-height:1.75;color:var(--text-2);white-space:pre-wrap;overflow:auto;max-width:86ch;
+}
+.dt__sec{margin-top:16px}
+.dt__sh{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+
+/* markdown */
+.md{font-family:var(--font-sans);font-size:14px;line-height:1.75;color:var(--text);max-width:74ch}
+.md h1{font-size:24px;font-weight:600;letter-spacing:-.022em;margin:0 0 12px;line-height:1.25}
+.md h2{font-size:17px;font-weight:600;letter-spacing:-.012em;margin:22px 0 8px}
+.md h3{font-size:14.5px;font-weight:600;margin:18px 0 6px}
+.md p{margin:0 0 12px;color:color-mix(in srgb,var(--text) 90%,transparent)}
+.md ul,.md ol{margin:0 0 12px;padding-left:18px}
+.md li{margin:3px 0;color:color-mix(in srgb,var(--text) 90%,transparent)}
+.md code{font-family:var(--font-mono);font-size:12px;background:var(--hover);padding:1px 4px;border-radius:3px}
+.md pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;overflow:auto;margin:0 0 14px}
+.md pre code{background:none;padding:0;font-size:11.5px;line-height:1.65;color:var(--text-2)}
+.md blockquote{margin:0 0 14px;padding:2px 0 2px 12px;border-left:2px solid var(--border-strong);color:var(--text-2)}
+.md table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:12.5px}
+.md th,.md td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+.md th{color:var(--text-2);font-weight:500;background:var(--card)}
+.md hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+
+/* editor */
+.editor{display:flex;flex-direction:column;flex:1;min-height:0}
+.editor__bar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--border);flex:none;flex-wrap:wrap}
+.editor__bar .path{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.editor__body{flex:1;overflow:auto;padding:22px 26px 60px;min-height:0}
+.editor__ta{
+  width:100%;max-width:74ch;min-height:60vh;border:0;outline:0;resize:none;background:none;
+  font-family:var(--font-mono);font-size:12px;line-height:1.8;color:var(--text);
+}
+.editor__foot{
+  display:flex;align-items:center;gap:10px;padding:4px 12px;border-top:1px solid var(--border);
+  font-size:9.5px;color:var(--muted);flex:none;
+}
+.toolbtn{
+  width:22px;height:22px;display:grid;place-items:center;border:1px solid transparent;border-radius:var(--r1);
+  background:none;color:var(--text-2);cursor:pointer;
+}
+.toolbtn:hover{background:var(--hover);color:var(--text);border-color:var(--border)}
+.toolbtn .lucide{width:12px;height:12px}
+
+/* transcript */
+.turn{border-left:2px solid var(--border);padding:1px 0 1px 10px;margin-bottom:12px}
+.turn--user{border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
+.turn__role{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.turn__body{font-size:11.5px;line-height:1.7;color:var(--text-2);white-space:pre-wrap}
+.turn__body.md{font-family:var(--font-mono);font-size:11.5px;line-height:1.7;white-space:normal}
+.turn__body.md p{margin:0 0 8px}
+.turn__body.md pre{margin:0 0 8px}
+.turn__body.md code{font-size:11px}
+
+/* empty / error */
+.empty{padding:44px 18px;text-align:center;color:var(--muted);font-size:11px}
+.empty .lucide{width:18px;height:18px;margin-bottom:8px;color:var(--border-strong)}
+.empty p{margin:0 0 4px}
+.errorbox{margin:16px;border:1px solid color-mix(in srgb,var(--red) 38%,transparent);background:color-mix(in srgb,var(--red) 7%,transparent);border-radius:var(--r2);padding:12px 14px}
+.errorbox__t{display:flex;align-items:center;gap:6px;color:var(--red);font-size:11.5px}
+.errorbox p{margin:7px 0 0;font-size:10.5px;line-height:1.65;color:var(--text-2)}
+.errorbox code{font-family:var(--font-mono);font-size:10.5px;color:var(--text)}
+
+/* ─── Settings ─────────────────────────────────────────────── */
+.settings{display:grid;grid-template-columns:186px minmax(0,1fr);flex:1;min-height:0}
+.snav{padding:8px;border-right:1px solid var(--border);overflow:auto}
+.snav__i{
+  display:block;width:100%;text-align:left;border:0;background:none;font-family:inherit;
+  font-size:11px;color:var(--text-2);padding:5px 8px;border-radius:var(--r1);cursor:pointer;
+  transition:background .13s,color .13s;
+}
+.snav__i:hover{background:var(--hover);color:var(--text)}
+.snav__i.is-on{background:var(--accent-soft);color:var(--accent)}
+.snav__i:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
+.sform{overflow:auto;padding:14px 16px 32px}
+.sform__h{font-family:var(--font-sans);font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0 0 2px}
+.sform__s{font-size:10.5px;color:var(--muted);margin-bottom:12px}
+.frow{display:flex;align-items:center;gap:16px;padding:9px 10px;border-bottom:1px solid var(--border)}
+.frow:first-of-type{border-top:1px solid var(--border)}
+.frow__l{font-size:11.5px;color:var(--text)}
+.frow__h{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.55;max-width:58ch}
+.frow__c{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.fval{font-size:10.5px;color:var(--text-2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.switch{
+  width:28px;height:16px;border-radius:9px;border:1px solid var(--border);background:var(--hover);
+  position:relative;cursor:pointer;transition:background .16s,border-color .16s;padding:0;
+}
+.switch::after{
+  content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;
+  background:var(--text-2);transition:transform .16s,background .16s;
+}
+.switch.is-on{background:color-mix(in srgb,var(--accent) 26%,transparent);border-color:var(--accent)}
+.switch.is-on::after{transform:translateX(12px);background:var(--accent)}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--border);border-radius:var(--r1);overflow:hidden}
+.seg button{height:22px;padding:0 8px;border:0;background:none;font-family:inherit;font-size:10.5px;color:var(--text-2);cursor:pointer}
+.seg button + button{border-left:1px solid var(--border)}
+.seg button.is-on{background:var(--accent-soft);color:var(--accent)}
+.input{
+  height:24px;padding:0 7px;border:1px solid var(--border);border-radius:var(--r1);
+  background:var(--input);font-size:11px;outline:0;min-width:0;
+}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.keys{border:1px solid var(--border);border-radius:var(--r3);overflow:hidden}
+.keys__r{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-2)}
+.keys__r:last-child{border-bottom:0}
+.keys__r .k{margin-left:auto;display:flex;gap:4px}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:30px;transform:translate(-50%,8px);
+  display:flex;align-items:center;gap:7px;padding:7px 12px;z-index:60;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r2);
+  box-shadow:var(--shadow);font-size:11px;opacity:0;pointer-events:none;
+  transition:opacity .18s,transform .18s;
+}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+.toast .lucide{width:12px;height:12px;color:var(--green)}
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width:1180px){
+  #app{grid-template-columns:188px minmax(0,1fr)}
+  .dash__grid{grid-template-columns:minmax(0,1fr)}
+  .panes{grid-template-columns:300px minmax(0,1fr)}
+  .search{width:180px}
+}
+@media (max-width:900px){
+  #app{grid-template-columns:52px minmax(0,1fr)}
+  .sb{padding:8px 6px;align-items:center}
+  .brand{padding:2px 0 10px;gap:0}
+  .brand__text,.nav__label,.nav__item span,.sb__foot{display:none}
+  .nav__item{justify-content:center;padding:0}
+  .search{width:150px}
+  .crumbs{display:none}
+  .settings{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .snav{display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);padding:6px}
+  .snav__i{white-space:nowrap;padding:4px 7px}
+  .vh{flex-wrap:wrap}
+}
+@media (max-width:740px){
+  .panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,45%) minmax(0,1fr)}
+  .pane + .pane{border-left:0;border-top:1px solid var(--border)}
+  .editor__body{padding:16px 16px 40px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"><i data-lucide="check"></i><span id="toastText"></span></div>
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ───────────────────────── i18n ───────────────────────── */
+const I18N = {
+  en:{
+    nav:{g1:'Workspace',g2:'System',dashboard:'Dashboard',search:'Search',notes:'Notes',ai:'AI Records',clipboard:'Clipboard',settings:'Settings'},
+    common:{search:'Search knowledge',capture:'Capture',sync:'Sync',open:'Open',copyPath:'Copy path',reveal:'Reveal',save:'Save',cancel:'Cancel',records:'records'},
+    strip:{branch:'branch',tree:'working tree',ahead:'unpushed',remote:'remote',last:'last commit',index:'index'},
+    dash:{title:'Dashboard',sub:'Local repository, recent captures, and sync state.',
+      recent:'Recent captures',all:'View all',events:'System events',quick:'Quick actions',
+      monitor:'Clipboard monitor',counts:'Library counts',on:'monitoring',off:'paused',
+      monitorHint:'Sensitive clips are skipped before they reach disk.',clipsThisMonth:'clips this month',privacy:'privacy rules',privacyVal:'4 active'},
+    quick:{capture:'Capture context',note:'New note',search:'Search',import:'Import files'},
+    counts:{conv:'AI conversations',notes:'Notes',clips:'Clips',imports:'Imports',files:'External files'},
+    search:{title:'Search',sub:'One index across notes, AI records, clips, and external files.',
+      ph:'Search everything…',all:'All',notes:'Notes',ai:'AI',clips:'Clips',files:'Files',
+      results:'results',sort:'Sort',byRecent:'Recent',byType:'Type',
+      empty:'No matches',emptyHint:'Nothing indexed for this query. Try a path, a provider, or a shorter term.',
+      preview:'Preview',meta:{type:'Type',source:'Source',path:'Path',captured:'Captured',size:'Size'},
+      recentSearches:'Recent searches',hint:'↑↓ navigate · ↵ open · esc clear'},
+    notes:{title:'Notes',sub:'Markdown documents versioned with your repository.',
+      updated:'updated',words:'words',edit:'Edit',preview:'Preview',saved:'saved',unsaved:'unsaved changes',
+      empty:'Start writing to create the first note.'},
+    ai:{title:'AI Records',sub:'Conversations captured from Claude Code, Cursor, and Codex.',
+      summary:'Summary',transcript:'Transcript',msgs:'messages',
+      meta:{provider:'Provider',model:'Model',messages:'Messages',date:'Captured',project:'Project',path:'Path'},
+      missingT:'Record file missing',missingP:'This entry is in the index but its JSON file is no longer on disk. Reindex to drop it, or restore the file from Git history.',
+      reindex:'Reindex'},
+    clip:{title:'Clipboard',sub:'Text and images captured while you work.',
+      copy:'Copy',raw:'Open raw',monitor:'Monitoring',privacyNote:'Redacted by privacy rule',
+      privacyHint:'This clip matched a secret pattern and was never written to disk.',
+      meta:{captured:'Captured',source:'Source',size:'Size',hash:'Hash',monitor:'Monitor'},
+      empty:'Clipboard history is empty'},
+    set:{title:'Settings',sub:'Configuration grouped by what it affects.',
+      groups:{repo:'Repository',remote:'Git Remote',sync:'Synchronization',ai:'AI Integrations',clipboard:'Clipboard',appearance:'Appearance',keys:'Keyboard Shortcuts',diag:'Diagnostics',data:'Data Management'}},
+    sbar:{index:'index',synced:'synced',lang:'English'},
+    toast:{copy:'Copied to clipboard',saved:'Note saved',sync:'Pushing 3 commits to origin/main',capture:'Capture sent to repository',reindex:'Rebuilding index — 1,284 records',reveal:'Revealed in Finder'}
+  },
+  zh:{
+    nav:{g1:'工作区',g2:'系统',dashboard:'仪表盘',search:'搜索',notes:'笔记',ai:'AI 记录',clipboard:'剪贴板',settings:'设置'},
+    common:{search:'搜索知识库',capture:'捕获',sync:'同步',open:'打开',copyPath:'复制路径',reveal:'显示位置',save:'保存',cancel:'取消',records:'条记录'},
+    strip:{branch:'分支',tree:'工作区',ahead:'未推送',remote:'远端',last:'最近提交',index:'索引'},
+    dash:{title:'仪表盘',sub:'本地仓库、最近捕获与同步状态。',
+      recent:'最近捕获',all:'查看全部',events:'系统事件',quick:'快捷操作',
+      monitor:'剪贴板监控',counts:'库统计',on:'监控中',off:'已暂停',
+      monitorHint:'敏感内容在落盘前就会被跳过。',clipsThisMonth:'本月条目',privacy:'隐私规则',privacyVal:'4 条生效'},
+    quick:{capture:'捕获当前内容',note:'新建笔记',search:'搜索',import:'导入文件'},
+    counts:{conv:'AI 对话',notes:'笔记',clips:'剪贴板',imports:'导入',files:'外部文件'},
+    search:{title:'搜索',sub:'笔记、AI 记录、剪贴板、外部文件共用一个索引。',
+      ph:'搜索全部内容…',all:'全部',notes:'笔记',ai:'AI',clips:'剪贴板',files:'文件',
+      results:'条结果',sort:'排序',byRecent:'最近',byType:'类型',
+      empty:'没有匹配',emptyHint:'索引里没有这条查询的结果。试试路径、服务商名或更短的词。',
+      preview:'预览',meta:{type:'类型',source:'来源',path:'路径',captured:'捕获时间',size:'大小'},
+      recentSearches:'最近搜索',hint:'↑↓ 选择 · ↵ 打开 · esc 清空'},
+    notes:{title:'笔记',sub:'随仓库一起做版本控制的 Markdown 文档。',
+      updated:'更新于',words:'字',edit:'编辑',preview:'预览',saved:'已保存',unsaved:'未保存',
+      empty:'写下第一条笔记。'},
+    ai:{title:'AI 记录',sub:'从 Claude Code、Cursor、Codex 捕获的对话。',
+      summary:'摘要',transcript:'对话',msgs:'条消息',
+      meta:{provider:'服务商',model:'模型',messages:'消息数',date:'捕获时间',project:'项目',path:'路径'},
+      missingT:'记录文件缺失',missingP:'索引里有这条记录，但磁盘上的 JSON 文件已不存在。重建索引可以清除它，或从 Git 历史恢复。',
+      reindex:'重建索引'},
+    clip:{title:'剪贴板',sub:'工作过程中捕获的文本与图片。',
+      copy:'复制',raw:'打开原始文件',monitor:'监控',privacyNote:'已按隐私规则隐藏',
+      privacyHint:'这条内容命中密钥规则，从未写入磁盘。',
+      meta:{captured:'捕获时间',source:'来源',size:'大小',hash:'哈希',monitor:'监控'},
+      empty:'剪贴板历史为空'},
+    set:{title:'设置',sub:'按影响范围分组的配置项。',
+      groups:{repo:'仓库',remote:'Git 远端',sync:'同步',ai:'AI 集成',clipboard:'剪贴板',appearance:'外观',keys:'快捷键',diag:'诊断',data:'数据管理'}},
+    sbar:{index:'索引',synced:'已同步',lang:'中文'},
+    toast:{copy:'已复制到剪贴板',saved:'笔记已保存',sync:'正在推送 3 个提交到 origin/main',capture:'已送入仓库',reindex:'正在重建索引 — 1,284 条',reveal:'已在访达中显示'}
+  }
+};
+
+/* ───────────────────────── data ───────────────────────── */
+const MD_CONFLICT = [
+  '# Conflict resolution: rebase vs merge',
+  '',
+  'Local captures arrive as commits on `main`. When the remote has moved, the working copy can diverge within a single session — usually right after a long agent run.',
+  '',
+  '## Decision',
+  '',
+  '> Rebase local capture commits onto the remote tip. Never merge capture commits into a shared branch.',
+  '',
+  'Reasons, in order of weight:',
+  '',
+  '1. Capture commits are linear by construction — one writer, one machine.',
+  '2. A merge commit on a knowledge repo hides the actual change in history.',
+  '3. Conflicts are almost always in generated index files, which can be re-derived.',
+  '',
+  '## Implementation',
+  '',
+  '```bash',
+  'git fetch --all --prune',
+  'git rebase --autostash --rebase-merges origin/main',
+  '# index files are rebuilt from the tree after a successful rebase',
+  'gitmemo reindex --quiet',
+  '```',
+  '',
+  'The worker retries up to three times with exponential backoff. If the tree is still dirty after the third attempt, it stops and surfaces the conflict in the dashboard instead of guessing.',
+  '',
+  '## Edge cases',
+  '',
+  '| Case | Handling |',
+  '| --- | --- |',
+  '| Unpushed merge commit | rebase with `--rebase-merges` |',
+  '| Missing record file | drop from index, keep the commit |',
+  '| Remote unreachable | queue, retry on next tick |',
+  '',
+  'Nothing here touches the user’s own notes — those are normal tracked files and conflict exactly like code would.'
+].join('\n');
+
+const MD_WEEKLY = [
+  '# Weekly review — capture volume up 34%',
+  '',
+  'Totals for 2026-W45: **412 AI conversations** captured, 268 notes, 240 clips.',
+  '',
+  '## What changed',
+  '',
+  '- Clipboard capture stopped dropping large images after the 0.3.1 patch.',
+  '- Cursor sessions are now attributed to their project directory.',
+  '- Search latency fell from 340 ms to 90 ms after the index move to SQLite FTS5.',
+  '',
+  '## Next',
+  '',
+  '1. Trim the retention window for raw clip text to 90 days.',
+  '2. Add a per-project filter to AI Records.',
+  '3. Decide whether imports belong in the sidebar.',
+  '',
+  '> The useful signal is not volume. It is how often a capture is reopened within a week.'
+].join('\n');
+
+const MD_PROTOCOLS = [
+  '# Local-first sync protocols — CRDT vs Git',
+  '',
+  'Git is a sync protocol with a merge step that requires a human when two writers touch the same line. CRDTs remove that step at the cost of history legibility.',
+  '',
+  '## Where Git wins',
+  '',
+  '- Every change is inspectable and revertible.',
+  '- Conflicts are rare for a single-writer knowledge base.',
+  '- Remotes are interchangeable: GitHub, Gitea, a bare repo on a NAS.',
+  '',
+  '## Where Git loses',
+  '',
+  'Two machines capturing concurrently produce diverging histories. Rebase fixes it only because capture commits are append-only — a property CRDTs get for free.'
+].join('\n');
+
+const NOTES = [
+  {id:'conflict', title:'Conflict resolution: rebase vs merge', path:'notes/2026-11-12-conflict-resolution.md', updated:'48m', words:820, md:MD_CONFLICT},
+  {id:'weekly', title:'Weekly review — capture volume up 34%', path:'notes/2026-11-11-weekly-review.md', updated:'1d', words:410, md:MD_WEEKLY},
+  {id:'protocols', title:'Local-first sync protocols — CRDT vs Git', path:'notes/2026-11-10-sync-protocols.md', updated:'2d', words:1840, md:MD_PROTOCOLS},
+  {id:'panes', title:'Tauri 2 window state — restoring split panes', path:'notes/2026-11-09-window-state.md', updated:'3d', words:920, md:'# Tauri 2 window state\n\nSplit pane widths are stored per window label and restored before the first paint.'},
+  {id:'index', title:'Indexing strategy: SQLite FTS5 vs a JSON grep', path:'notes/2026-11-08-indexing-strategy.md', updated:'4d', words:1120, md:'# Indexing strategy\n\nFTS5 keeps search under 100 ms at 10k records.'}
+];
+
+const AIS = [
+  {id:'a1', title:'Refactoring the sync worker for retry semantics', provider:'Claude Code', model:'claude-sonnet-4-5', msgs:24, date:'2026-11-12 15:41', project:'GitMemo-desktop', path:'records/2026-11-12-sync-retry.json',
+   summary:'Reworked the sync worker so a failed rebase retries with backoff instead of aborting the tick. Extracted the conflict detector into its own module and added tests for the dirty-tree case.',
+   transcript:[
+     {role:'user', text:'The worker aborts the whole tick when rebase fails. Can we retry?\n\n```rust\nif rebase(state).is_err() { return Err(SyncError::Aborted); }\n```'},
+     {role:'assistant', text:'Two changes: track attempts on the worker, and classify the failure before deciding to abort.\n\n```rust\nmatch rebase(state) {\n    Ok(_) => attempts = 0,\n    Err(e) if e.is_transient() && attempts < 3 => {\n        attempts += 1;\n        backoff(attempts);\n    }\n    Err(e) => return Err(e.into()),\n}\n```\n\nis_transient() should cover network errors and lock contention, not real conflicts.'},
+     {role:'user', text:'Conflicts should surface in the dashboard, not retry.'},
+     {role:'assistant', text:'Agreed — conflict errors go straight to the event log with the file list attached.'}
+   ]},
+  {id:'a2', title:'Why does a Tauri command return null on first invoke?', provider:'Cursor', model:'claude-sonnet-4-5', msgs:18, date:'2026-11-12 14:02', project:'GitMemo-desktop', path:'threads/2026-11-12-tauri-null.json',
+   summary:'First invoke returns null because the managed state is registered after the window is created. Moving the state registration into setup() before window creation fixes it.',
+   transcript:[
+     {role:'user', text:'invoke("get_settings") returns null the first time, then works.'},
+     {role:'assistant', text:'The command reads managed state that is not registered yet. Register it in .setup() before the window is built.'}
+   ]},
+  {id:'a3', title:'Moving the clipboard watcher onto the async runtime', provider:'Codex', model:'gpt-5-codex', msgs:31, date:'2026-11-12 11:20', project:'GitMemo-desktop', path:'records/2026-11-12-clipboard-async.json',
+   summary:'Replaced the polling thread with a tokio interval task; image decoding moved to blocking tasks so the UI event loop stays responsive.',
+   transcript:[
+     {role:'user', text:'The watcher thread blocks on image hashing and drops clips.'},
+     {role:'assistant', text:'Use tokio::task::spawn_blocking for the hash, keep the interval on the runtime.'}
+   ]},
+  {id:'a4', title:'Summarizing 46 captured conversations', provider:'Claude Code', model:'claude-sonnet-4-5', msgs:9, date:'2026-11-10 09:12', project:'GitMemo-desktop', path:'records/2026-11-10-summarize-captures.json',
+   summary:'Grouped a week of captures into four themes: sync correctness, Tauri shell behaviour, search indexing, and UI token discipline.',
+   transcript:[{role:'user', text:'Summarize this week of captures by theme.'},{role:'assistant', text:'Four themes, with sync correctness dominating at 38% of messages.'}]},
+  {id:'a5', title:'Overriding Mantine dark theme tokens', provider:'Cursor', model:'claude-sonnet-4-5', msgs:12, date:'2026-11-10 16:55', project:'GitMemo-desktop', path:'threads/2026-11-10-mantine-tokens.json', missing:true,
+   summary:'', transcript:[]}
+];
+
+const CLIPS = [
+  {id:'c1', kind:'text', text:'git rebase --autostash --rebase-merges origin/main', time:'2m', size:'44 B', app:'Terminal', hash:'9f2ac1'},
+  {id:'c2', kind:'text', text:'docker run --rm -v $PWD:/app -w /app node:20 pnpm test --filter desktop', time:'12m', size:'71 B', app:'Terminal', hash:'41b77d'},
+  {id:'c3', kind:'image', text:'Screenshot 2026-11-12 at 15.41.02.png', time:'26m', size:'184 KB', app:'Xcode', hash:'e0c318'},
+  {id:'c4', kind:'text', text:'', time:'38m', size:'—', app:'Safari', hash:'—', sensitive:true},
+  {id:'c5', kind:'text', text:'SELECT id, kind, created_at FROM records ORDER BY created_at DESC LIMIT 20;', time:'1h', size:'82 B', app:'DataGrip', hash:'7a0e52'},
+  {id:'c6', kind:'text', text:'### Task\nRefactor the sync worker so retries are bounded and conflicts surface in the dashboard.', time:'2h', size:'118 B', app:'Cursor', hash:'c93b41'}
+];
+
+const FILES = [
+  {id:'f1', title:'DESIGN.md', path:'~/Code/other/GitMemo-desktop/docs/design/DESIGN.md', size:'14 KB', updated:'1d'},
+  {id:'f2', title:'technical-architecture.md', path:'~/Code/other/GitMemo-desktop/docs/technical-architecture.md', size:'22 KB', updated:'6d'},
+  {id:'f3', title:'README_CN.md', path:'~/Code/other/GitMemo-desktop/README_CN.md', size:'9 KB', updated:'3d'}
+];
+
+const EVENTS = [
+  {t:'16:01', kind:'ok', html:'commit <b>a41f9c2</b> capture: terminal output'},
+  {t:'15:52', kind:'ok', html:'push origin/main · 3 commits'},
+  {t:'15:40', kind:'', html:'clipboard capture <span class="mut">skipped · sensitive</span>'},
+  {t:'15:07', kind:'', html:'index rebuilt · 1,284 records'},
+  {t:'14:58', kind:'warn', html:'remote unreachable · retry 1 of 3'},
+  {t:'14:12', kind:'', html:'import · 2 markdown files'},
+  {t:'13:40', kind:'ok', html:'AI record captured · Claude Code'}
+];
+
+/* settings */
+const SETTINGS = [
+  {id:'repo', rows:[
+    {label:{en:'Local path',zh:'本地路径'}, hint:{en:'Every capture is written here as Markdown or JSON before indexing.',zh:'每次捕获先以 Markdown 或 JSON 写入这里，再进入索引。'},
+     ctl:{type:'value', value:'~/gitmemo/knowledge'}, act:{icon:'folder-open', label:{en:'Reveal',zh:'显示'}, toast:'reveal'}},
+    {label:{en:'Commit captures automatically',zh:'自动提交捕获'}, hint:{en:'One commit per captured item, message derived from the first line.',zh:'每条捕获生成一个提交，提交信息取自首行。'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Retention for raw clip text',zh:'剪贴板原文保留期'}, hint:{en:'Clips older than this are pruned. Notes are never pruned.',zh:'超过期限的剪贴板条目会被清理，笔记不受影响。'},
+     ctl:{type:'seg', options:['30d','90d','1y'], on:1}},
+    {label:{en:'Repository size',zh:'仓库体积'}, hint:{en:'1,284 records · 38 MB working tree',zh:'1,284 条记录 · 工作区 38 MB'},
+     ctl:{type:'value', value:'38 MB'}}
+  ]},
+  {id:'remote', rows:[
+    {label:{en:'Remote URL',zh:'远端地址'}, hint:{en:'SSH works with the agent you already use for GitHub.',zh:'SSH 复用你已有的 GitHub 密钥。'},
+     ctl:{type:'input', value:'git@github.com:zhuanz/knowledge.git'}},
+    {label:{en:'Branch',zh:'分支'}, hint:{en:'Capture commits always land on this branch.',zh:'捕获提交始终落在这个分支。'},
+     ctl:{type:'value', value:'main'}},
+    {label:{en:'Push after commit',zh:'提交后自动推送'}, hint:{en:'Off means commits stay local until you push.',zh:'关闭后提交留在本地，直到手动推送。'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Test connection',zh:'测试连接'}, hint:{en:'Last checked 26 minutes ago · 82 ms',zh:'上次检测 26 分钟前 · 82 ms'},
+     ctl:{type:'value', value:'ok'}, act:{icon:'plug', label:{en:'Test',zh:'检测'}, toast:'sync'}}
+  ]},
+  {id:'sync', rows:[
+    {label:{en:'Sync interval',zh:'同步间隔'}, hint:{en:'Pull on this interval; push immediately after a commit.',zh:'按此间隔拉取，提交后立即推送。'},
+     ctl:{type:'seg', options:['5m','15m','1h'], on:1}},
+    {label:{en:'On conflict',zh:'冲突处理'}, hint:{en:'Capture commits rebase; your own notes stop and wait for review.',zh:'捕获提交自动变基；自己的笔记会暂停等待处理。'},
+     ctl:{type:'seg', options:{en:['rebase','stop'],zh:['变基','暂停']}, on:0}},
+    {label:{en:'Retry policy',zh:'重试策略'}, hint:{en:'3 attempts with exponential backoff, then surface in events.',zh:'最多 3 次指数退避，之后写入事件日志。'},
+     ctl:{type:'value', value:'3 × backoff'}},
+    {label:{en:'Work offline',zh:'离线模式'}, hint:{en:'Captures keep landing locally; push resumes when the remote is back.',zh:'捕获照常写入本地，远端恢复后继续推送。'},
+     ctl:{type:'switch', on:false}}
+  ]},
+  {id:'ai', rows:[
+    {label:{en:'Claude Code',zh:'Claude Code'}, hint:{en:'Detected · sessions captured from ~/.claude',zh:'已检测 · 从 ~/.claude 捕获会话'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Cursor',zh:'Cursor'}, hint:{en:'Detected · threads captured from ~/.cursor',zh:'已检测 · 从 ~/.cursor 捕获对话'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Codex',zh:'Codex'}, hint:{en:'Not detected · install the CLI to enable capture',zh:'未检测 · 安装 CLI 后启用捕获'},
+     ctl:{type:'switch', on:false}, note:'warn'},
+    {label:{en:'MCP server',zh:'MCP 服务'}, hint:{en:'Exposes search and capture to any MCP client.',zh:'向任意 MCP 客户端提供搜索与捕获。'},
+     ctl:{type:'value', value:'127.0.0.1:7742'}, act:{icon:'copy', label:{en:'Copy',zh:'复制'}, toast:'copy'}}
+  ]},
+  {id:'clipboard', rows:[
+    {label:{en:'Monitor clipboard',zh:'监控剪贴板'}, hint:{en:'Runs while the app is open. Pause from the menu bar.',zh:'应用打开时运行，可从菜单栏暂停。'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Capture images',zh:'捕获图片'}, hint:{en:'Hashed and stored as PNG next to the record.',zh:'计算哈希后以 PNG 存入记录旁。'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Skip secrets',zh:'跳过密钥'}, hint:{en:'API keys and tokens are dropped before they reach disk. 4 rules active.',zh:'API key 与 token 在落盘前丢弃，共 4 条规则生效。'},
+     ctl:{type:'switch', on:true}},
+    {label:{en:'Excluded apps',zh:'排除的应用'}, hint:{en:'1Password, Keychain Access, banking apps',zh:'1Password、钥匙串访问、银行类应用'},
+     ctl:{type:'value', value:'3 apps'}}
+  ]},
+  {id:'appearance', rows:[
+    {label:{en:'Theme',zh:'主题'}, hint:{en:'Warm dark and warm light, both built from the same tokens.',zh:'暖色深色与浅色，共用同一套变量。'},
+     ctl:{type:'theme'}},
+    {label:{en:'Interface text',zh:'界面文字'}, hint:{en:'JetBrains Mono for shell and metadata, system sans for reading.',zh:'外壳与元数据用 JetBrains Mono，正文用系统无衬线。'},
+     ctl:{type:'value', value:'mono + sans'}},
+    {label:{en:'Density',zh:'密度'}, hint:{en:'Compact keeps 40 rows visible in a 900 px window.',zh:'紧凑模式在 900 px 窗口内可见 40 行。'},
+     ctl:{type:'seg', options:{en:['compact','comfortable'],zh:['紧凑','舒适']}, on:0}},
+    {label:{en:'Language',zh:'语言'}, hint:{en:'Applies immediately, no restart.',zh:'立即生效，无需重启。'},
+     ctl:{type:'lang'}}
+  ]},
+  {id:'keys', rows:{type:'keys'}},
+  {id:'diag', rows:[
+    {label:{en:'App version',zh:'应用版本'}, hint:{en:'Tauri 2 · macOS 15.1',zh:'Tauri 2 · macOS 15.1'}, ctl:{type:'value', value:'0.41.2'}},
+    {label:{en:'CLI version',zh:'CLI 版本'}, hint:{en:'Required for terminal and AI capture',zh:'终端与 AI 捕获需要'}, ctl:{type:'value', value:'0.41.2'}},
+    {label:{en:'Index',zh:'索引'}, hint:{en:'1,284 records · rebuilt 26 minutes ago',zh:'1,284 条记录 · 26 分钟前重建'}, ctl:{type:'value', value:'FTS5'}},
+    {label:{en:'Last sync',zh:'最近同步'}, hint:{en:'origin/main · 3 commits ahead',zh:'origin/main · 领先 3 个提交'}, ctl:{type:'value', value:'26m ago'}},
+    {label:{en:'Copy diagnostics',zh:'复制诊断信息'}, hint:{en:'Versions, paths, and recent event log.',zh:'版本、路径与最近事件日志。'},
+     act:{icon:'copy', label:{en:'Copy',zh:'复制'}, toast:'copy'}}
+  ]},
+  {id:'data', rows:[
+    {label:{en:'Export knowledge base',zh:'导出知识库'}, hint:{en:'A zip of Markdown, JSON records, and the clip index.',zh:'包含 Markdown、JSON 记录与剪贴板索引的压缩包。'},
+     act:{icon:'download', label:{en:'Export',zh:'导出'}, toast:'capture'}},
+    {label:{en:'Rebuild index',zh:'重建索引'}, hint:{en:'Safe to run at any time; search is unavailable for ~2 s.',zh:'随时可执行；搜索会中断约 2 秒。'},
+     act:{icon:'refresh-cw', label:{en:'Reindex',zh:'重建'}, toast:'reindex'}},
+    {label:{en:'Delete imported files',zh:'删除导入文件'}, hint:{en:'Removes the import layer only; captured notes stay.',zh:'只删除导入层，已捕获的笔记保留。'},
+     act:{icon:'trash-2', label:{en:'Manage',zh:'管理'}, toast:'saved'}},
+    {label:{en:'Open data folder',zh:'打开数据目录'}, hint:{en:'~/gitmemo/knowledge',zh:'~/gitmemo/knowledge'},
+     act:{icon:'folder-open', label:{en:'Open',zh:'打开'}, toast:'reveal'}}
+  ]}
+];
+
+const KEYS = [
+  {k:['⌘','K'], l:{en:'Search everything',zh:'搜索全部'}},
+  {k:['⌘','⇧','C'], l:{en:'Capture current context',zh:'捕获当前内容'}},
+  {k:['⌘','N'], l:{en:'New note',zh:'新建笔记'}},
+  {k:['⌘','S'], l:{en:'Save note',zh:'保存笔记'}},
+  {k:['⌘','1–6'], l:{en:'Switch panes',zh:'切换页面'}},
+  {k:['⌘','⇧','P'], l:{en:'Push to remote',zh:'推送到远端'}},
+  {k:['⌘','.'], l:{en:'Pause clipboard monitor',zh:'暂停剪贴板监控'}},
+  {k:['esc'], l:{en:'Clear search or close panel',zh:'清空搜索或关闭面板'}}
+];
+
+/* ───────────────────────── state ───────────────────────── */
+const state = {
+  view:'dashboard', lang:'en', theme:'dark',
+  q:'', filter:'all', selResult:0,
+  noteId:'conflict', noteMode:'preview', noteDraft:{},
+  aiId:'a1', clipId:'c1', settingsId:'repo'
+};
+
+const t = (path) => {
+  let v = I18N[state.lang];
+  for (const p of path.split('.')) v = v && v[p];
+  return (v === undefined || v === null) ? path : v;
+};
+const L = (pair) => pair[state.lang] || pair.en;
+
+/* search index */
+const INDEX = [].concat(
+  AIS.map(a => ({kind:'ai', id:a.id, title:a.title, meta:a.provider + ' · ' + a.msgs + ' ' + t('ai.msgs'), path:a.path, time:a.date.slice(11), sort:0})),
+  NOTES.map(n => ({kind:'note', id:n.id, title:n.title, meta:n.words + ' ' + t('notes.words'), path:n.path, time:n.updated, sort:1})),
+  CLIPS.map(c => ({kind:'clip', id:c.id, title:(c.sensitive ? t('clip.privacyNote') : c.text.split('\n')[0]) || c.text, meta:c.app + ' · ' + c.size, path:'clips/2026-11-12-' + c.id + '.md', time:c.time, sort:2})),
+  FILES.map(f => ({kind:'file', id:f.id, title:f.title, meta:f.size, path:f.path, time:f.updated, sort:3}))
+);
+
+const KIND_ICON = {ai:'sparkles', note:'file-text', clip:'clipboard', file:'file'};
+const KIND_LABEL = {ai:'AI', note:'Note', clip:'Clip', file:'File'};
+
+function kindTag(kind){
+  const cls = kind === 'ai' ? 'tag--blue' : '';
+  return '<span class="tag ' + cls + '">' + KIND_LABEL[kind] + '</span>';
+}
+
+/* ───────────────────────── markdown ───────────────────────── */
+function esc(s){
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function inline(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+}
+function mdToHtml(src){
+  const lines = String(src).split('\n');
+  let out = '', i = 0, inCode = false, code = [], list = null;
+
+  const closeList = () => { if (list) { out += '</' + list + '>'; list = null; } };
+
+  while (i < lines.length){
+    const L0 = lines[i];
+
+    if (/^```/.test(L0)){
+      if (inCode){ out += '<pre><code>' + esc(code.join('\n')) + '</code></pre>'; code = []; inCode = false; }
+      else inCode = true;
+      i++; continue;
+    }
+    if (inCode){ code.push(L0); i++; continue; }
+
+    if (/^\s*$/.test(L0)){ closeList(); i++; continue; }
+
+    let m;
+    if ((m = L0.match(/^(#{1,3})\s+(.*)$/))){
+      closeList();
+      const n = m[1].length;
+      out += '<h' + n + '>' + inline(m[2]) + '</h' + n + '>';
+      i++; continue;
+    }
+    if (/^---\s*$/.test(L0)){ closeList(); out += '<hr>'; i++; continue; }
+    if ((m = L0.match(/^>\s?(.*)$/))){ closeList(); out += '<blockquote>' + inline(m[1]) + '</blockquote>'; i++; continue; }
+    if ((m = L0.match(/^[-*]\s+(.*)$/))){
+      if (list !== 'ul'){ closeList(); out += '<ul>'; list = 'ul'; }
+      out += '<li>' + inline(m[1]) + '</li>'; i++; continue;
+    }
+    if ((m = L0.match(/^\d+\.\s+(.*)$/))){
+      if (list !== 'ol'){ closeList(); out += '<ol>'; list = 'ol'; }
+      out += '<li>' + inline(m[1]) + '</li>'; i++; continue;
+    }
+    if (/\|/.test(L0) && lines[i+1] && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i+1])){
+      closeList();
+      const head = L0.split('|').map(s => s.trim()).filter(Boolean);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /\|/.test(lines[i])){
+        rows.push(lines[i].split('|').map(s => s.trim()).filter(Boolean)); i++;
+      }
+      out += '<table><thead><tr>' + head.map(h => '<th>' + inline(h) + '</th>').join('') + '</tr></thead><tbody>' +
+        rows.map(r => '<tr>' + r.map(c => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+      continue;
+    }
+
+    closeList();
+    const para = [L0]; i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,3}\s|```|>|[-*]\s|\d+\.\s|---\s*$)/.test(lines[i])) { para.push(lines[i]); i++; }
+    out += '<p>' + inline(para.join(' ')) + '</p>';
+  }
+  closeList();
+  if (inCode) out += '<pre><code>' + esc(code.join('\n')) + '</code></pre>';
+  return out;
+}
+
+/* ───────────────────────── helpers ───────────────────────── */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const icon = (name) => '<i data-lucide="' + name + '"></i>';
+let toastTimer = null;
+
+function toast(key){
+  const el = $('#toast');
+  $('#toastText').textContent = t('toast.' + key);
+  el.classList.add('is-on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('is-on'), 1900);
+}
+
+/* ───────────────────────── shell ───────────────────────── */
+const NAV_MAIN = [
+  {id:'dashboard', icon:'layout-dashboard'},
+  {id:'search', icon:'search', kbd:'⌘K'},
+  {id:'notes', icon:'file-text', n:268},
+  {id:'ai', icon:'sparkles', n:412},
+  {id:'clipboard', icon:'clipboard', n:240}
+];
+
+function sidebarHTML(){
+  const navItem = (v) =>
+    '<button class="nav__item ' + (state.view === v.id ? 'is-on' : '') + '" data-view="' + v.id + '">' +
+      icon(v.icon) + '<span>' + t('nav.' + v.id) + '</span>' +
+      (v.n ? '<span class="n">' + v.n + '</span>' : v.kbd ? '<span class="n">' + v.kbd + '</span>' : '') +
+    '</button>';
+
+  return '<aside class="sb">' +
+    '<div class="brand"><div class="brand__mark">gm</div>' +
+      '<div class="brand__text"><div class="brand__name">GitMemo</div>' +
+      '<div class="brand__ver">v0.41.2 · local-first</div></div></div>' +
+    '<nav class="nav">' +
+      '<div class="nav__label">' + t('nav.g1') + '</div>' +
+      NAV_MAIN.map(navItem).join('') +
+      '<div class="nav__label">' + t('nav.g2') + '</div>' +
+      navItem({id:'settings', icon:'settings'}) +
+    '</nav>' +
+    '<div class="sb__foot"><div class="repo">' +
+      '<div class="repo__r">' + icon('git-branch') + '<span>main</span><span class="v">a41f9c2</span></div>' +
+      '<div class="repo__r"><span class="dot dot--ok"></span><span>' + t('sbar.synced') + '</span><span class="v">3 ↑</span></div>' +
+      '<div class="repo__r"><span class="dot dot--warn"></span><span>' + t('strip.tree') + '</span><span class="v">2</span></div>' +
+    '</div></div>' +
+  '</aside>';
+}
+
+function toolbarHTML(){
+  const label = t('nav.' + state.view);
+  return '<div class="tb">' +
+    '<div class="crumbs">' + icon('hard-drive') + '<span>~/gitmemo/knowledge</span>' +
+      '<span>/</span><b>' + label.toLowerCase() + '</b></div>' +
+    '<div class="tb__right">' +
+      '<label class="search">' + icon('search') +
+        '<input id="q" type="text" placeholder="' + t('common.search') + '" value="' + esc(state.q) + '" spellcheck="false" autocomplete="off" />' +
+        '<kbd>⌘K</kbd></label>' +
+      '<button class="iconbtn" data-lang title="Language / 语言">' + (state.lang === 'en' ? '中' : 'EN') + '</button>' +
+      '<button class="iconbtn" data-theme-toggle title="Theme">' + icon(state.theme === 'dark' ? 'moon' : 'sun') + '</button>' +
+      '<button class="iconbtn" data-act="sync" title="' + t('common.sync') + '">' + icon('refresh-cw') + '</button>' +
+    '</div></div>';
+}
+
+function statusbarHTML(){
+  return '<div class="sbar">' +
+    '<span>1,284 ' + t('common.records') + '</span><span class="sep">·</span>' +
+    '<span>' + t('sbar.index') + ' 26m</span><span class="sep">·</span>' +
+    '<span>main · a41f9c2</span><span class="sep">·</span>' +
+    '<span>' + t('sbar.synced') + '</span>' +
+    '<span style="margin-left:auto">JetBrains Mono · UTF-8</span>' +
+  '</div>';
+}
+
+/* ───────────────────────── dashboard ───────────────────────── */
+function dashHTML(){
+  const recent = INDEX.slice(0, 6).map((e, i) =>
+    '<button class="row" data-result="' + i + '" data-goto="search">' +
+      '<span class="row__i">' + icon(KIND_ICON[e.kind]) + '</span>' +
+      '<span><span class="row__t">' + esc(e.title) + '</span>' +
+        '<span class="row__m">' + kindTag(e.kind) + '<span>' + esc(e.meta) + '</span>' +
+        '<span>·</span><span style="overflow:hidden;text-overflow:ellipsis">' + esc(e.path) + '</span></span></span>' +
+      '<span class="row__r">' + esc(e.time) + '</span>' +
+    '</button>').join('');
+
+  const events = EVENTS.map(e =>
+    '<div class="log__r"><span class="log__t">' + e.t + '</span>' +
+    '<span class="dot ' + (e.kind === 'ok' ? 'dot--ok' : e.kind === 'warn' ? 'dot--warn' : '') + ' d"></span>' +
+    '<span>' + e.html + '</span></div>').join('');
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('dash.title') + '</h1><div class="sub">' + t('dash.sub') + '</div></div>' +
+      '<div class="vh__a">' +
+        '<button class="btn" data-act="sync">' + icon('refresh-cw') + t('common.sync') + '</button>' +
+        '<button class="btn btn--primary" data-act="capture">' + icon('plus') + t('common.capture') + '</button>' +
+      '</div></div>' +
+
+    '<div class="dash">' +
+      '<div class="strip">' +
+        '<div class="strip__c">' + icon('git-branch') + '<span>' + t('strip.branch') + '</span><b>main</b></div>' +
+        '<div class="strip__c"><span class="dot dot--warn"></span><span>' + t('strip.tree') + '</span><b>2</b></div>' +
+        '<div class="strip__c">' + icon('arrow-up') + '<span>' + t('strip.ahead') + '</span><b>3</b></div>' +
+        '<div class="strip__c"><span class="dot dot--ok"></span><span>' + t('strip.remote') + '</span><b>origin</b></div>' +
+        '<div class="strip__c">' + icon('git-commit-horizontal') + '<span>' + t('strip.last') + '</span><b>a41f9c2</b><span class="mut">26m</span></div>' +
+        '<div class="strip__c">' + icon('database') + '<span>' + t('strip.index') + '</span><b>1,284</b></div>' +
+      '</div>' +
+
+      '<div class="dash__grid">' +
+        '<div>' +
+          '<div class="sec"><div class="sec__h"><span>' + t('dash.recent') + '</span>' +
+            '<button class="link" data-view="search">' + t('dash.all') + '</button></div>' +
+            '<div class="list">' + recent + '</div></div>' +
+
+          '<div class="sec"><div class="sec__h"><span>' + t('dash.events') + '</span></div>' +
+            '<div class="log">' + events + '</div></div>' +
+        '</div>' +
+
+        '<div>' +
+          '<div class="sec"><div class="sec__h"><span>' + t('dash.quick') + '</span></div>' +
+            '<div class="qa">' +
+              '<button class="qa__b" data-act="capture">' + icon('plus') + '<span>' + t('quick.capture') + '</span><span class="k">⇧⌘C</span></button>' +
+              '<button class="qa__b" data-act="note">' + icon('file-plus') + '<span>' + t('quick.note') + '</span><span class="k">⌘N</span></button>' +
+              '<button class="qa__b" data-view="search">' + icon('search') + '<span>' + t('quick.search') + '</span><span class="k">⌘K</span></button>' +
+              '<button class="qa__b" data-act="import">' + icon('download') + '<span>' + t('quick.import') + '</span><span class="k">⌘O</span></button>' +
+            '</div></div>' +
+
+          '<div class="sec"><div class="sec__h"><span>' + t('dash.monitor') + '</span></div>' +
+            '<div class="kv">' +
+              '<div class="kv__r"><span class="kv__k">' + t('clip.monitor') + '</span>' +
+                '<span class="kv__v"><span class="dot dot--ok" style="display:inline-block;vertical-align:middle;margin-right:5px"></span>' + t('dash.on') + '</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('dash.clipsThisMonth') + '</span><span class="kv__v num">240</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('dash.privacy') + '</span><span class="kv__v">' + t('dash.privacyVal') + '</span></div>' +
+              '<div class="kv__r"><span class="kv__k" style="font-size:10px;color:var(--muted)">' + t('dash.monitorHint') + '</span></div>' +
+            '</div></div>' +
+
+          '<div class="sec"><div class="sec__h"><span>' + t('dash.counts') + '</span></div>' +
+            '<div class="kv">' +
+              '<div class="kv__r"><span class="kv__k">' + t('counts.conv') + '</span><span class="kv__v num">412</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('counts.notes') + '</span><span class="kv__v num">268</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('counts.clips') + '</span><span class="kv__v num">240</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('counts.imports') + '</span><span class="kv__v num">58</span></div>' +
+              '<div class="kv__r"><span class="kv__k">' + t('counts.files') + '</span><span class="kv__v num">12</span></div>' +
+            '</div></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── search ───────────────────────── */
+function filteredIndex(){
+  const q = state.q.trim().toLowerCase();
+  return INDEX.filter(e => {
+    if (state.filter !== 'all' && e.kind !== state.filter) return false;
+    if (!q) return true;
+    return (e.title + ' ' + e.meta + ' ' + e.path).toLowerCase().indexOf(q) > -1;
+  });
+}
+
+function resultDetailHTML(e){
+  if (!e) return '<div class="empty">' + icon('mouse-pointer-click') + '<p>' + t('search.preview') + '</p></div>';
+
+  let body = '';
+  if (e.kind === 'note'){
+    const n = NOTES.filter(x => x.id === e.id)[0];
+    body = '<div class="md">' + mdToHtml(n.md) + '</div>';
+  } else if (e.kind === 'ai'){
+    const a = AIS.filter(x => x.id === e.id)[0];
+    body = a.missing
+      ? errorHTML()
+      : '<div class="dt__sh">' + t('ai.summary') + '</div><div class="snippet">' + esc(a.summary) + '</div>' +
+        '<div class="dt__sec"><div class="dt__sh">' + t('ai.transcript') + '</div>' +
+        a.transcript.map(x => '<div class="turn ' + (x.role === 'user' ? 'turn--user' : '') + '">' +
+          '<div class="turn__role">' + x.role + '</div><div class="turn__body md">' + mdToHtml(x.text) + '</div></div>').join('') + '</div>';
+  } else if (e.kind === 'clip'){
+    const c = CLIPS.filter(x => x.id === e.id)[0];
+    body = c.sensitive
+      ? '<div class="errorbox" style="margin:0;border-color:var(--border);background:var(--card)">' +
+        '<div class="errorbox__t" style="color:var(--text-2)">' + icon('shield') + t('clip.privacyNote') + '</div>' +
+        '<p>' + t('clip.privacyHint') + '</p></div>'
+      : '<div class="snippet">' + esc(c.text) + '</div>';
+  } else {
+    const f = FILES.filter(x => x.id === e.id)[0];
+    body = '<div class="snippet">' + esc(f.path) + '</div>' +
+      '<div class="dt__sec"><div class="dt__sh">' + t('search.meta.path') + '</div>' +
+      '<div class="snippet" style="font-size:10.5px">' + esc(f.path) + '\n\n' + t('notes.updated') + ' ' + f.updated + ' · ' + f.size + '</div></div>';
+  }
+
+  return '<div class="detail">' +
+    '<h2 class="dt__title">' + esc(e.title) + '</h2>' +
+    '<div class="dt__meta">' + kindTag(e.kind) + '<span>' + esc(e.meta) + '</span><span>·</span><span>' + esc(e.time) + '</span></div>' +
+    '<div class="dt__acts">' +
+      '<button class="btn btn--primary" data-act="open">' + icon('external-link') + t('common.open') + '</button>' +
+      '<button class="btn" data-act="copy-path">' + icon('copy') + t('common.copyPath') + '</button>' +
+      '<button class="btn btn--quiet" data-act="reveal">' + icon('folder-open') + t('common.reveal') + '</button>' +
+    '</div>' +
+    '<div class="kv" style="margin-bottom:14px">' +
+      '<div class="kv__r"><span class="kv__k">' + t('search.meta.type') + '</span><span class="kv__v">' + KIND_LABEL[e.kind] + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('search.meta.source') + '</span><span class="kv__v">' + esc(e.meta) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('search.meta.path') + '</span><span class="kv__v">' + esc(e.path) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('search.meta.captured') + '</span><span class="kv__v">' + esc(e.time) + '</span></div>' +
+    '</div>' + body + '</div>';
+}
+
+function errorHTML(){
+  return '<div class="errorbox" style="margin:0">' +
+    '<div class="errorbox__t">' + icon('alert-triangle') + t('ai.missingT') + '</div>' +
+    '<p>' + t('ai.missingP') + '</p>' +
+    '<p><code>threads/2026-11-10-mantine-tokens.json</code></p>' +
+    '<p style="margin-top:10px"><button class="btn btn--sm" data-act="reindex">' + icon('refresh-cw') + t('ai.reindex') + '</button></p>' +
+  '</div>';
+}
+
+function searchHTML(){
+  const results = filteredIndex();
+  if (state.selResult >= results.length) state.selResult = 0;
+  const sel = results[state.selResult];
+
+  const chips = [['all', t('search.all')], ['note', t('search.notes')], ['ai', t('search.ai')], ['clip', t('search.clips')], ['file', t('search.files')]]
+    .map(([k, l]) => '<button class="btn btn--sm ' + (state.filter === k ? 'btn--primary' : 'btn--quiet') + '" data-chip="' + k + '">' + l + '</button>').join('');
+
+  const rows = results.map((e, i) =>
+    '<button class="row ' + (i === state.selResult ? 'is-sel' : '') + '" data-result="' + i + '">' +
+      '<span class="row__i">' + icon(KIND_ICON[e.kind]) + '</span>' +
+      '<span><span class="row__t">' + esc(e.title) + '</span>' +
+        '<span class="row__m">' + kindTag(e.kind) + '<span>' + esc(e.path) + '</span></span></span>' +
+      '<span class="row__r">' + esc(e.time) + '</span>' +
+    '</button>').join('');
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('search.title') + '</h1><div class="sub">' + t('search.sub') + '</div></div>' +
+      '<div class="vh__a">' + chips + '</div></div>' +
+    '<div class="panes">' +
+      '<div class="pane"><div class="pane__h">' +
+        '<span>' + results.length + ' ' + t('search.results') + '</span>' +
+        '<span class="spacer"></span><span>' + t('search.sort') + ': ' + t('search.byRecent') + '</span>' +
+      '</div>' +
+        (results.length ? rows :
+          '<div class="empty">' + icon('search-x') + '<p>' + t('search.empty') + '</p><p>' + t('search.emptyHint') + '</p></div>') +
+        '<div class="pane__h" style="border-top:1px solid var(--border);border-bottom:0;position:static;margin-top:auto">' +
+          t('search.hint') + '</div>' +
+      '</div>' +
+      '<div class="pane">' + resultDetailHTML(sel) + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── notes ───────────────────────── */
+function notesHTML(){
+  const note = NOTES.filter(n => n.id === state.noteId)[0] || NOTES[0];
+  const rows = NOTES.map(n =>
+    '<button class="row ' + (n.id === note.id ? 'is-sel' : '') + '" data-note="' + n.id + '">' +
+      '<span class="row__i">' + icon('file-text') + '</span>' +
+      '<span><span class="row__t">' + esc(n.title) + '</span>' +
+        '<span class="row__m">' + esc(n.path) + '</span></span>' +
+      '<span class="row__r">' + n.updated + '</span>' +
+    '</button>').join('');
+
+  const draft = state.noteDraft[note.id] !== undefined ? state.noteDraft[note.id] : note.md;
+  const words = draft.split(/\s+/).filter(Boolean).length;
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('notes.title') + '</h1><div class="sub">' + t('notes.sub') + '</div></div>' +
+      '<div class="vh__a"><button class="btn btn--primary" data-act="note">' + icon('file-plus') + t('quick.note') + '</button></div></div>' +
+    '<div class="panes" style="grid-template-columns:264px minmax(0,1fr)">' +
+      '<div class="pane"><div class="pane__h"><span>' + NOTES.length + ' ' + t('notes.title').toLowerCase() + '</span></div>' + rows + '</div>' +
+      '<div class="pane editor">' +
+        '<div class="editor__bar">' +
+          '<span class="path">' + esc(note.path) + '</span>' +
+          '<span class="spacer" style="margin-left:auto"></span>' +
+          '<div class="seg">' +
+            '<button class="' + (state.noteMode === 'preview' ? 'is-on' : '') + '" data-notemode="preview">' + t('notes.preview') + '</button>' +
+            '<button class="' + (state.noteMode === 'edit' ? 'is-on' : '') + '" data-notemode="edit">' + t('notes.edit') + '</button>' +
+          '</div>' +
+          '<button class="btn btn--sm" data-act="save">' + icon('check') + t('common.save') + '</button>' +
+        '</div>' +
+        '<div class="editor__body">' +
+          (state.noteMode === 'edit'
+            ? '<textarea class="editor__ta" id="noteTa" spellcheck="false">' + esc(draft) + '</textarea>'
+            : '<div class="md">' + mdToHtml(draft) + '</div>') +
+        '</div>' +
+        '<div class="editor__foot"><span>' + note.path + '</span><span>·</span><span>' + words + ' ' + t('notes.words') + '</span>' +
+          '<span>·</span><span>' + t('notes.updated') + ' ' + note.updated + '</span>' +
+          '<span style="margin-left:auto;color:var(--green)">' + icon('check') + ' ' + t('notes.saved') + '</span></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── AI records ───────────────────────── */
+function aiHTML(){
+  const sel = AIS.filter(a => a.id === state.aiId)[0] || AIS[0];
+  const rows = AIS.map(a =>
+    '<button class="row ' + (a.id === sel.id ? 'is-sel' : '') + '" data-ai="' + a.id + '">' +
+      '<span class="row__i">' + icon(a.provider === 'Cursor' ? 'mouse-pointer-2' : a.provider === 'Codex' ? 'terminal' : 'sparkles') + '</span>' +
+      '<span><span class="row__t">' + esc(a.title) + '</span>' +
+        '<span class="row__m"><span>' + esc(a.provider) + '</span><span>·</span><span>' + a.msgs + ' ' + t('ai.msgs') + '</span></span></span>' +
+      '<span class="row__r">' + esc(a.date.slice(5, 10)) + '</span>' +
+    '</button>').join('');
+
+  const body = sel.missing ? errorHTML() :
+    '<div class="kv" style="margin-bottom:14px">' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.provider') + '</span><span class="kv__v">' + esc(sel.provider) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.model') + '</span><span class="kv__v">' + esc(sel.model) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.messages') + '</span><span class="kv__v num">' + sel.msgs + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.date') + '</span><span class="kv__v">' + esc(sel.date) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.project') + '</span><span class="kv__v">' + esc(sel.project) + '</span></div>' +
+      '<div class="kv__r"><span class="kv__k">' + t('ai.meta.path') + '</span><span class="kv__v">' + esc(sel.path) + '</span></div>' +
+    '</div>' +
+    '<div class="dt__sh">' + t('ai.summary') + '</div>' +
+    '<div class="snippet" style="margin-bottom:16px">' + esc(sel.summary) + '</div>' +
+    '<div class="dt__sh">' + t('ai.transcript') + '</div>' +
+    sel.transcript.map(x => '<div class="turn ' + (x.role === 'user' ? 'turn--user' : '') + '">' +
+      '<div class="turn__role">' + x.role + '</div><div class="turn__body md">' + mdToHtml(x.text) + '</div></div>').join('');
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('ai.title') + '</h1><div class="sub">' + t('ai.sub') + '</div></div>' +
+      '<div class="vh__a"><button class="btn btn--primary" data-act="capture">' + icon('plus') + t('common.capture') + '</button></div></div>' +
+    '<div class="panes">' +
+      '<div class="pane"><div class="pane__h"><span>' + AIS.length + ' ' + t('ai.title').toLowerCase() + '</span></div>' + rows + '</div>' +
+      '<div class="pane"><div class="detail">' +
+        '<h2 class="dt__title">' + esc(sel.title) + '</h2>' +
+        '<div class="dt__meta"><span class="tag tag--blue">' + esc(sel.provider) + '</span>' +
+          '<span>' + esc(sel.date) + '</span><span>·</span><span>' + sel.msgs + ' ' + t('ai.msgs') + '</span></div>' +
+        '<div class="dt__acts">' +
+          '<button class="btn btn--primary" data-act="open">' + icon('external-link') + t('common.open') + '</button>' +
+          '<button class="btn" data-act="copy-path">' + icon('copy') + t('common.copyPath') + '</button>' +
+        '</div>' + body +
+      '</div></div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── clipboard ───────────────────────── */
+function clipHTML(){
+  const sel = CLIPS.filter(c => c.id === state.clipId)[0] || CLIPS[0];
+  const rows = CLIPS.map(c =>
+    '<button class="row ' + (c.id === sel.id ? 'is-sel' : '') + '" data-clip="' + c.id + '">' +
+      '<span class="row__i">' + icon(c.kind === 'image' ? 'image' : 'type') + '</span>' +
+      '<span><span class="row__t">' + (c.sensitive ? t('clip.privacyNote') : esc(c.text.split('\n')[0])) + '</span>' +
+        '<span class="row__m"><span>' + esc(c.app) + '</span><span>·</span><span>' + c.size + '</span>' +
+        (c.sensitive ? '<span class="tag tag--yellow" style="height:14px">' + t('dash.privacy') + '</span>' : '') + '</span></span>' +
+      '<span class="row__r">' + c.time + '</span>' +
+    '</button>').join('');
+
+  const body = sel.sensitive
+    ? '<div class="errorbox" style="margin:0"><div class="errorbox__t" style="color:var(--yellow)">' + icon('shield') +
+      t('clip.privacyNote') + '</div><p>' + t('clip.privacyHint') + '</p></div>'
+    : (sel.kind === 'image'
+      ? '<div class="snippet" style="display:grid;place-items:center;padding:34px 12px;color:var(--muted)">' + icon('image') + '<p style="margin:8px 0 0">' + esc(sel.text) + ' · 1440×900</p></div>'
+      : '<div class="snippet">' + esc(sel.text) + '</div>');
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('clip.title') + '</h1><div class="sub">' + t('clip.sub') + '</div></div>' +
+      '<div class="vh__a"><span class="tag tag--green">' + icon('circle') + t('dash.on') + '</span></div></div>' +
+    '<div class="panes">' +
+      '<div class="pane"><div class="pane__h"><span>' + CLIPS.length + ' ' + t('clip.title').toLowerCase() + '</span>' +
+        '<span class="spacer"></span><span>' + t('clip.monitor') + ' · 240</span></div>' + rows + '</div>' +
+      '<div class="pane"><div class="detail">' +
+        '<h2 class="dt__title">' + (sel.sensitive ? t('clip.privacyNote') : esc(sel.text.split('\n')[0]).slice(0, 90)) + '</h2>' +
+        '<div class="dt__meta"><span class="tag">' + (sel.kind === 'image' ? 'image/png' : 'text/plain') + '</span>' +
+          '<span>' + esc(sel.app) + '</span><span>·</span><span>' + sel.time + '</span></div>' +
+        '<div class="dt__acts">' +
+          (sel.sensitive ? '' :
+            '<button class="btn btn--primary" data-act="copy">' + icon('copy') + t('clip.copy') + '</button>' +
+            '<button class="btn" data-act="reveal">' + icon('file-code') + t('clip.raw') + '</button>') +
+        '</div>' + body +
+        '<div class="kv" style="margin-top:16px">' +
+          '<div class="kv__r"><span class="kv__k">' + t('clip.meta.captured') + '</span><span class="kv__v">2026-11-12 ' + sel.time + ' ago</span></div>' +
+          '<div class="kv__r"><span class="kv__k">' + t('clip.meta.source') + '</span><span class="kv__v">' + esc(sel.app) + '</span></div>' +
+          '<div class="kv__r"><span class="kv__k">' + t('clip.meta.size') + '</span><span class="kv__v">' + sel.size + '</span></div>' +
+          '<div class="kv__r"><span class="kv__k">' + t('clip.meta.hash') + '</span><span class="kv__v">' + sel.hash + '</span></div>' +
+        '</div>' +
+      '</div></div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── settings ───────────────────────── */
+function settingsHTML(){
+  const group = SETTINGS.filter(g => g.id === state.settingsId)[0] || SETTINGS[0];
+
+  const nav = SETTINGS.map(g =>
+    '<button class="snav__i ' + (g.id === group.id ? 'is-on' : '') + '" data-snav="' + g.id + '">' +
+    t('set.groups.' + g.id) + '</button>').join('');
+
+  let content = '';
+  if (group.rows && group.rows.type === 'keys'){
+    content = '<div class="keys">' + KEYS.map(k =>
+      '<div class="keys__r"><span>' + L(k.l) + '</span><span class="k">' +
+      k.k.map(x => '<kbd>' + x + '</kbd>').join('') + '</span></div>').join('') + '</div>';
+  } else {
+    content = (group.rows || []).map((r, i) => {
+      let ctl = '';
+      const c = r.ctl || {};
+      if (c.type === 'value') ctl = '<span class="fval">' + esc(c.value) + '</span>';
+      else if (c.type === 'switch') ctl = '<button class="switch ' + (c.on ? 'is-on' : '') + '" data-toggle aria-label="toggle"></button>';
+      else if (c.type === 'seg'){
+        const opts = Array.isArray(c.options) ? c.options : (c.options[state.lang] || c.options.en);
+        ctl = '<div class="seg">' + opts.map((o, j) =>
+          '<button class="' + (j === c.on ? 'is-on' : '') + '" data-seg="' + i + ':' + j + '">' + o + '</button>').join('') + '</div>';
+      }
+      else if (c.type === 'input') ctl = '<input class="input" style="width:260px" value="' + esc(c.value) + '" spellcheck="false" />';
+      else if (c.type === 'theme') ctl = '<div class="seg">' +
+        '<button class="' + (state.theme === 'dark' ? 'is-on' : '') + '" data-set-theme="dark">Dark</button>' +
+        '<button class="' + (state.theme === 'light' ? 'is-on' : '') + '" data-set-theme="light">Light</button></div>';
+      else if (c.type === 'lang') ctl = '<div class="seg">' +
+        '<button class="' + (state.lang === 'en' ? 'is-on' : '') + '" data-set-lang="en">English</button>' +
+        '<button class="' + (state.lang === 'zh' ? 'is-on' : '') + '" data-set-lang="zh">中文</button></div>';
+
+      if (r.act) ctl += '<button class="btn btn--sm" data-act="' + (r.act.toast || 'saved') + '">' +
+        icon(r.act.icon) + L(r.act.label) + '</button>';
+
+      return '<div class="frow"><div><div class="frow__l">' + L(r.label) +
+        (r.note === 'warn' ? ' <span class="tag tag--yellow">' + t('dash.monitor') + '</span>' : '') +
+        '</div><div class="frow__h">' + L(r.hint) + '</div></div>' +
+        '<div class="frow__c">' + ctl + '</div></div>';
+    }).join('');
+  }
+
+  return '<div class="view">' +
+    '<div class="vh"><div><h1>' + t('set.title') + '</h1><div class="sub">' + t('set.sub') + '</div></div></div>' +
+    '<div class="settings">' +
+      '<div class="snav">' + nav + '</div>' +
+      '<div class="sform"><h2 class="sform__h">' + t('set.groups.' + group.id) + '</h2>' +
+        '<div class="sform__s">~/gitmemo/knowledge · main</div>' + content + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ───────────────────────── render ───────────────────────── */
+const VIEWS = {dashboard:dashHTML, search:searchHTML, notes:notesHTML, ai:aiHTML, clipboard:clipHTML, settings:settingsHTML};
+
+function render(){
+  const active = document.activeElement;
+  const focusId = active && active.id ? active.id : null;
+  const caret = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
+
+  const viewHTML = (VIEWS[state.view] || dashHTML)();
+  const html = sidebarHTML() +
+    '<div class="main">' + toolbarHTML() + viewHTML + statusbarHTML() + '</div>';
+
+  $('#app').innerHTML = html;
+  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : 'en';
+  if (window.lucide) window.lucide.createIcons();
+
+  if (focusId){
+    const el = document.getElementById(focusId);
+    if (el){
+      el.focus();
+      if (caret !== null && el.setSelectionRange){ try { el.setSelectionRange(caret, caret); } catch(e){} }
+    }
+  }
+}
+
+function go(view){
+  if (state.view === view) return;
+  state.view = view;
+  if (view === 'search' && state.filter !== 'all') state.filter = 'all';
+  render();
+}
+
+/* ───────────────────────── events ───────────────────────── */
+document.addEventListener('click', function(ev){
+  const el = ev.target.closest('[data-view],[data-act],[data-chip],[data-result],[data-note],[data-ai],[data-clip],[data-snav],[data-toggle],[data-seg],[data-set-theme],[data-set-lang],[data-notemode],[data-theme-toggle],[data-lang]');
+  if (!el) return;
+  const d = el.dataset;
+
+  if (d.view){ go(d.view); return; }
+  if (d.chip){ state.filter = d.chip; state.selResult = 0; render(); return; }
+  if (d.result !== undefined){
+    const list = filteredIndex();
+    const res = list[Number(d.result)];
+    if (res){
+      state.selResult = Number(d.result);
+      if (state.q.trim() || state.view === 'search'){ state.view = 'search'; }
+    }
+    if (d.goto === 'search'){ state.view = 'search'; state.q = ''; }
+    render(); return;
+  }
+  if (d.note){ state.noteId = d.note; state.noteMode = 'preview'; render(); return; }
+  if (d.ai){ state.aiId = d.ai; render(); return; }
+  if (d.clip){ state.clipId = d.clip; render(); return; }
+  if (d.snav){ state.settingsId = d.snav; render(); return; }
+  if (d.notemode){
+    if (state.noteMode === 'edit'){
+      const ta = $('#noteTa');
+      if (ta) state.noteDraft[state.noteId] = ta.value;
+    }
+    state.noteMode = d.notemode; render(); return;
+  }
+  if (d.toggle){ el.classList.toggle('is-on'); return; }
+  if (d.seg){ toast('saved'); return; }
+  if (d.setTheme){ state.theme = d.setTheme; render(); return; }
+  if (d.setLang){ state.lang = d.setLang; render(); return; }
+  if (d.themeToggle !== undefined && ev.target.closest('[data-theme-toggle]')){
+    state.theme = state.theme === 'dark' ? 'light' : 'dark'; render(); return;
+  }
+  if (d.lang !== undefined && ev.target.closest('[data-lang]')){
+    state.lang = state.lang === 'en' ? 'zh' : 'en'; render(); return;
+  }
+
+  if (d.act){
+    switch (d.act){
+      case 'capture': toast('capture'); break;
+      case 'note': state.view = 'notes'; state.noteMode = 'edit'; render(); break;
+      case 'sync': toast('sync'); break;
+      case 'import': toast('capture'); break;
+      case 'copy': toast('copy'); break;
+      case 'copy-path': toast('copy'); break;
+      case 'reveal': toast('reveal'); break;
+      case 'open': toast('capture'); break;
+      case 'reindex': toast('reindex'); break;
+      case 'save': {
+        const ta = $('#noteTa');
+        if (ta) state.noteDraft[state.noteId] = ta.value;
+        toast('saved');
+        break;
+      }
+      default: toast('saved');
+    }
+  }
+});
+
+document.addEventListener('input', function(ev){
+  if (ev.target.id === 'q'){
+    state.q = ev.target.value;
+    if (state.view !== 'search' && state.q.trim().length >= 1) state.view = 'search';
+    state.selResult = 0;
+    render();
+  }
+  if (ev.target.id === 'noteTa'){
+    state.noteDraft[state.noteId] = ev.target.value;
+  }
+});
+
+document.addEventListener('keydown', function(ev){
+  const mod = ev.metaKey || ev.ctrlKey;
+  if (mod && ev.key.toLowerCase() === 'k'){ ev.preventDefault(); const q = $('#q'); if (q) q.focus(); }
+  if (mod && ev.key.toLowerCase() === 'n'){ ev.preventDefault(); state.view = 'notes'; state.noteMode = 'edit'; render(); }
+  if (mod && /^[1-6]$/.test(ev.key)){
+    ev.preventDefault();
+    const order = ['dashboard','search','notes','ai','clipboard','settings'];
+    go(order[Number(ev.key) - 1]);
+  }
+  if (ev.key === 'Escape'){
+    const q = $('#q');
+    if (q){ q.value = ''; }
+    state.q = ''; state.selResult = 0;
+    if (state.view === 'search') render();
+  }
+});
+
+/* boot */
+render();
+})();
+
+</script>
+</body>
+</html>
