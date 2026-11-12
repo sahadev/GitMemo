@@ -7409,6 +7409,50 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 .gm-inst-identity-spacer { flex: 1; }
 
+/* 搜索入口、主题与语言切换：与刷新按钮并排，尺寸跟着身份栏走 */
+.gm-inst-identity-search {
+  align-items: center;
+  background: var(--gm-color-bg-surface);
+  border: var(--gm-border-w) solid var(--gm-line);
+  border-radius: var(--gm-radius-control);
+  color: var(--gm-text-3);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  gap: var(--gm-space-2);
+  height: 26px;
+  max-width: 220px;
+  padding: 0 var(--gm-space-3);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.gm-inst-identity-search:hover {
+  background: var(--bg-hover);
+  border-color: var(--gm-line-strong);
+  color: var(--gm-text-2);
+}
+
+.gm-inst-identity-search:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 1px;
+}
+
+.gm-inst-identity-search-label {
+  font-family: var(--gm-font-mono);
+  font-size: var(--gm-font-2xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-inst-identity-lang {
+  font-family: var(--gm-font-mono);
+  font-size: var(--gm-font-2xs);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  min-width: 26px;
+}
+
 /* 2 · 两列主体 */
 .gm-inst-body {
   display: flex;
@@ -7742,10 +7786,15 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-main { padding: var(--gm-space-3); }
 }
 
+@media (max-width: 1023px) {
+  .gm-inst-identity-search { max-width: 160px; }
+}
+
 @media (max-width: 900px) {
   .gm-inst-identity { flex-wrap: wrap; gap: var(--gm-space-2); }
   .gm-inst-identity-status,
   .gm-inst-identity-count { display: none; }
+  .gm-inst-identity-search { display: none; }
   .gm-inst-identity-path { max-width: 100%; }
 }
 

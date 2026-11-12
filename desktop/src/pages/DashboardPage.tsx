@@ -12,7 +12,7 @@ import {useFileWatcher} from "../hooks/useFileWatcher";
 import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
-import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft} from "lucide-react";
+import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft, Sun, Moon} from "lucide-react";
 import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
@@ -73,7 +73,7 @@ function loadDashboardRecentOnce() {
 }
 
 export default function DashboardPage({ onNavigate, active = false }: { onNavigate?: (page: Page) => void; active?: boolean }) {
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { showToast } = useToast();
   const { isMobile, isDesktop } = usePlatformFlags();
   const { isSyncing, isSuccess, isFailed, gitStatus, refreshGitStatus } = useSync();
@@ -82,6 +82,8 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     claudeEnabled,
     cursorEnabled,
     integrationStatusChecked,
+    theme,
+    toggleTheme,
     setNotesTab,
     setAiRecordsTab,
     setPendingOpenPath,
@@ -386,6 +388,29 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             : ""}
         </span>
         <span className="gm-inst-identity-spacer" />
+        <button
+          type="button"
+          className="gm-inst-identity-search"
+          onClick={() => onNavigate?.("search")}
+          title={t("nav.search")}
+        >
+          <AppIcon icon={Search} size="2xs" />
+          <span className="gm-inst-identity-search-label">{t("nav.search")}</span>
+        </button>
+        <Button
+          variant="toolbar"
+          onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+          title={t("settings.language")}
+          className="gm-inst-identity-lang"
+        >
+          {locale === "zh" ? "EN" : "中"}
+        </Button>
+        <Button
+          variant="toolbar"
+          onClick={toggleTheme}
+          title={t("settings.appearance")}
+          icon={theme === "dark" ? Sun : Moon}
+        />
         {!activityOpen ? (
           <Button
             variant="toolbar"
