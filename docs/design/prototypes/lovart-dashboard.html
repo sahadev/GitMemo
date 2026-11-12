@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GitMemo — Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────────────────────────────
+   Tokens
+   ───────────────────────────────────────────── */
+:root{
+  --font-ui:'Inter','SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-display:'Cormorant Garamond','Iowan Old Style','Palatino Linotype',Georgia,serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --bg:#100F09;
+  --panel:#181713;
+  --card:#22211D;
+  --card-2:#292821;
+  --text:#F5F4EF;
+  --text-2:#A5A39B;
+  --muted:#8A887F;
+  --lime:#E0FF66;
+  --lime-text:#E0FF66;
+  --lime-soft:rgba(224,255,102,.08);
+  --lime-line:rgba(224,255,102,.34);
+  --on-lime:#12110A;
+  --border:rgba(245,244,239,.12);
+  --hair:rgba(245,244,239,.07);
+  --border-strong:rgba(245,244,239,.24);
+  --hover:rgba(245,244,239,.045);
+  --amber:#E8C578;
+  --green:#9CD98A;
+  --sel:rgba(224,255,102,.22);
+  --shadow:0 22px 60px rgba(0,0,0,.5);
+  --r:10px;
+  color-scheme:dark;
+}
+[data-theme="light"]{
+  --bg:#F4F1E8;
+  --panel:#EDE9DE;
+  --card:#FAF8F1;
+  --card-2:#FFFFFF;
+  --text:#14130D;
+  --text-2:#5D5A50;
+  --muted:#7E7B6C;
+  --lime:#CFEB4A;
+  --lime-text:#5F7A05;
+  --lime-soft:rgba(160,190,30,.14);
+  --lime-line:rgba(140,165,25,.45);
+  --on-lime:#171603;
+  --border:rgba(20,19,13,.14);
+  --hair:rgba(20,19,13,.08);
+  --border-strong:rgba(20,19,13,.28);
+  --hover:rgba(20,19,13,.045);
+  --amber:#8A5F0F;
+  --green:#3F7A34;
+  --sel:rgba(160,190,30,.35);
+  --shadow:0 18px 44px rgba(35,30,15,.14);
+  color-scheme:light;
+}
+
+/* ─────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-ui);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+::selection{background:var(--sel);color:var(--text)}
+button{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.lucide{width:16px;height:16px;stroke-width:1.6;flex:none}
+.mono{font-family:var(--font-mono);font-size:11px;letter-spacing:.01em;font-variant-ligatures:none}
+.serif{font-family:var(--font-display);font-weight:400}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border);border:3px solid transparent;background-clip:content-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-strong);background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ─────────────────────────────────────────────
+   Shell
+   ───────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);height:100vh}
+
+/* Sidebar */
+.sidebar{
+  display:flex;flex-direction:column;
+  background:var(--panel);
+  border-right:1px solid var(--hair);
+  padding:20px 14px 14px;
+  min-height:0;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 20px}
+.brand__mark{
+  width:22px;height:22px;border-radius:6px;
+  background:var(--lime);color:var(--on-lime);
+  display:grid;place-items:center;
+  font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:-.06em;
+}
+.brand__name{font-size:14px;font-weight:500;letter-spacing:-.015em}
+.brand__meta{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:1px}
+
+.nav{display:flex;flex-direction:column;gap:1px;overflow-y:auto;min-height:0;padding-bottom:8px}
+.nav__label{padding:0 10px;margin:14px 0 7px}
+.nav__item{
+  display:flex;align-items:center;gap:10px;
+  height:32px;padding:0 10px;border-radius:6px;
+  color:var(--text-2);font-size:13px;letter-spacing:-.005em;
+  background:transparent;border:0;cursor:pointer;text-align:left;
+  transition:background .15s ease,color .15s ease;
+  width:100%;
+}
+.nav__item:hover{background:var(--hover);color:var(--text)}
+.nav__item:focus-visible{outline:2px solid var(--lime-line);outline-offset:-1px}
+.nav__item .lucide{color:var(--muted);transition:color .15s ease}
+.nav__item:hover .lucide{color:var(--text-2)}
+.nav__item.is-active{background:var(--lime-soft);color:var(--text)}
+.nav__item.is-active .lucide{color:var(--lime-text)}
+.nav__item .count{
+  margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--muted);
+  letter-spacing:.04em;
+}
+.nav__item.is-active .count{color:var(--text-2)}
+
+.sidebar__foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--hair)}
+.repo{
+  border:1px solid var(--hair);border-radius:8px;padding:10px 11px;
+  background:color-mix(in srgb,var(--card) 55%,transparent);
+}
+.repo__top{display:flex;align-items:center;gap:7px}
+.repo__branch{font-family:var(--font-mono);font-size:11px;color:var(--text)}
+.repo__state{margin-left:auto;display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10px;color:var(--green)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex:none}
+.repo__line{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between;gap:8px}
+.repo__line b{color:var(--text-2);font-weight:400}
+
+/* ─────────────────────────────────────────────
+   Main + topbar
+   ───────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.topbar{
+  display:flex;align-items:center;gap:14px;
+  height:58px;flex:none;padding:0 40px 0 32px;
+  border-bottom:1px solid var(--hair);
+}
+.crumbs{display:flex;align-items:center;gap:8px;color:var(--muted);min-width:0}
+.crumbs .lucide{width:13px;height:13px}
+.crumbs__path{font-family:var(--font-mono);font-size:11px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar__right{display:flex;align-items:center;gap:8px;margin-left:auto}
+
+.search{
+  display:flex;align-items:center;gap:9px;
+  height:34px;width:100%;max-width:400px;
+  padding:0 10px;border:1px solid var(--border);border-radius:7px;
+  background:var(--card);color:var(--muted);
+  transition:border-color .16s ease,background .16s ease;
+}
+.search:focus-within{border-color:var(--lime-line);background:var(--card-2)}
+.search .lucide{width:14px;height:14px}
+.search input{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);
+  font-size:13px;font-family:var(--font-ui);letter-spacing:-.005em;
+}
+.search input::placeholder{color:var(--muted)}
+.search kbd{flex:none}
+
+kbd{
+  font-family:var(--font-mono);font-size:10px;line-height:1;
+  padding:3px 5px;border-radius:4px;
+  border:1px solid var(--border);color:var(--muted);
+  background:color-mix(in srgb,var(--card) 60%,transparent);
+  white-space:nowrap;
+}
+.icon-btn{
+  width:32px;height:32px;display:grid;place-items:center;
+  border:1px solid transparent;border-radius:6px;background:transparent;
+  color:var(--text-2);cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+.icon-btn:hover{background:var(--hover);color:var(--text);border-color:var(--hair)}
+.icon-btn:focus-visible{outline:2px solid var(--lime-line);outline-offset:1px}
+
+/* ─────────────────────────────────────────────
+   View header
+   ───────────────────────────────────────────── */
+.scroll{overflow-y:auto;min-height:0;flex:1;scrollbar-gutter:stable}
+.view{padding:0 40px 56px;max-width:1560px}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:32px 0 24px}
+.view-head .eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.view-head h1{
+  font-family:var(--font-display);font-weight:300;
+  font-size:clamp(30px,3.1vw,44px);line-height:1.02;letter-spacing:-.018em;
+  margin:0;
+}
+.view-head h1 em{font-style:italic;font-weight:300}
+.lede{color:var(--text-2);font-size:13.5px;line-height:1.6;max-width:56ch;margin:10px 0 0}
+.head-actions{display:flex;align-items:center;gap:8px;flex:none;padding-bottom:4px}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  height:34px;padding:0 13px;border-radius:7px;
+  border:1px solid var(--border);background:transparent;color:var(--text);
+  font-size:13px;letter-spacing:-.005em;cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--hover);border-color:var(--border-strong)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--lime-line);outline-offset:2px}
+.btn .lucide{width:14px;height:14px}
+.btn--ghost{border-color:transparent;color:var(--text-2)}
+.btn--ghost:hover{color:var(--text)}
+.btn--primary{
+  background:var(--lime);border-color:transparent;color:var(--on-lime);font-weight:500;
+}
+.btn--primary:hover{background:color-mix(in srgb,var(--lime) 88%,#fff);border-color:transparent}
+.btn--primary kbd{border-color:rgba(0,0,0,.22);color:rgba(18,17,10,.55);background:transparent}
+.btn--sm{height:28px;padding:0 10px;font-size:12px;border-radius:6px}
+
+/* ─────────────────────────────────────────────
+   Stat strip
+   ───────────────────────────────────────────── */
+.stats{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  border:1px solid var(--border);border-radius:var(--r);
+  background:var(--card);overflow:hidden;
+}
+.stat{padding:16px 20px 17px;border-left:1px solid var(--hair);position:relative}
+.stat:first-child{border-left:0}
+.stat__label{display:block}
+.stat__value{
+  font-family:var(--font-display);font-weight:400;font-size:33px;line-height:1.15;
+  letter-spacing:-.015em;margin-top:9px;display:flex;align-items:baseline;gap:7px;
+  font-variant-numeric:lining-nums;
+}
+.stat__delta{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.02em}
+.stat__delta.up{color:var(--lime-text)}
+.stat__note{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:5px}
+
+/* ─────────────────────────────────────────────
+   Grid + cards
+   ───────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,.86fr);gap:22px;margin-top:22px;align-items:start}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card__head{display:flex;align-items:center;gap:12px;padding:15px 18px 13px;border-bottom:1px solid var(--hair)}
+.card__title{font-family:var(--font-display);font-size:20px;font-weight:400;letter-spacing:-.01em;line-height:1.2;margin:0}
+.card__sub{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.02em}
+.card__head > .spacer{margin-left:auto}
+.card__body{padding:2px 0}
+
+/* filter chips */
+.chips{display:flex;align-items:center;gap:2px;margin-left:auto}
+.chip{
+  height:25px;padding:0 9px;border-radius:5px;border:1px solid transparent;background:transparent;
+  color:var(--muted);font-size:11.5px;cursor:pointer;transition:color .15s,background .15s,border-color .15s;
+  letter-spacing:-.005em;
+}
+.chip:hover{color:var(--text);background:var(--hover)}
+.chip.is-on{color:var(--text);border-color:var(--border);background:var(--card-2)}
+.chip:focus-visible{outline:2px solid var(--lime-line);outline-offset:1px}
+
+/* rows */
+.row{
+  display:grid;grid-template-columns:30px minmax(0,1fr) auto;
+  align-items:center;gap:13px;
+  padding:12px 18px;border-top:1px solid var(--hair);
+  cursor:pointer;transition:background .14s ease;
+  position:relative;
+}
+.card__body > .row:first-child{border-top:0}
+.row:hover{background:var(--hover)}
+.row:focus-visible{outline:2px solid var(--lime-line);outline-offset:-2px}
+.row__icon{
+  width:30px;height:30px;border-radius:7px;display:grid;place-items:center;
+  border:1px solid var(--hair);background:color-mix(in srgb,var(--card-2) 70%,transparent);
+  color:var(--text-2);
+}
+.row__icon .lucide{width:14px;height:14px}
+.row__icon.is-ai{color:var(--lime-text);border-color:var(--lime-line)}
+.row__title{
+  font-size:13.5px;letter-spacing:-.008em;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.row__meta{
+  display:flex;align-items:center;gap:7px;margin-top:4px;
+  font-family:var(--font-mono);font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;
+}
+.row__meta .sep{opacity:.5}
+.row__meta .lucide{width:10px;height:10px}
+.row__meta > span:has(.lucide){display:inline-flex}
+.row__meta .path{overflow:hidden;text-overflow:ellipsis}
+.row__right{display:flex;align-items:center;gap:12px;flex:none}
+.row__time{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.02em}
+.row__arrow{color:var(--muted);opacity:0;transform:translateX(-3px);transition:opacity .16s,transform .16s}
+.row:hover .row__arrow{opacity:1;transform:none}
+.row__arrow .lucide{width:13px;height:13px}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 6px;border-radius:4px;
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--hair);color:var(--muted);
+}
+.badge--lime{color:var(--lime-text);border-color:var(--lime-line);background:var(--lime-soft)}
+.badge--amber{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
+.badge--quiet{color:var(--text-2)}
+
+/* git status */
+.git{padding:4px 18px 16px}
+.git__row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+.git__row:last-of-type{border-bottom:0}
+.git__k{color:var(--text-2)}
+.git__v{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text);text-align:right}
+.git__v.is-warn{color:var(--amber)}
+.git__v.is-ok{color:var(--green)}
+.git__v.is-lime{color:var(--lime-text)}
+.git__bar{display:flex;gap:3px;margin:2px 0 14px}
+.git__bar span{height:3px;flex:1;background:var(--hair);border-radius:2px}
+.git__bar span.on{background:var(--lime-text)}
+.git__actions{display:flex;gap:8px}
+.git__actions .btn{flex:1;justify-content:center}
+
+/* quick actions */
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hair)}
+.qa__btn{
+  display:flex;flex-direction:column;align-items:flex-start;gap:9px;
+  padding:14px 16px;background:var(--card);border:0;cursor:pointer;text-align:left;
+  color:var(--text-2);transition:background .15s,color .15s;
+}
+.qa__btn:hover{background:var(--card-2);color:var(--text)}
+.qa__btn:focus-visible{outline:2px solid var(--lime-line);outline-offset:-2px}
+.qa__btn .lucide{width:15px;height:15px;color:var(--muted)}
+.qa__btn:hover .lucide{color:var(--lime-text)}
+.qa__label{font-size:12.5px;letter-spacing:-.005em}
+.qa__kbd{font-family:var(--font-mono);font-size:9.5px;color:var(--muted);letter-spacing:.04em}
+
+/* sources */
+.sources{padding:6px 18px 14px}
+.source{padding:9px 0;border-bottom:1px solid var(--hair)}
+.source:last-child{border-bottom:0}
+.source__top{display:flex;align-items:baseline;gap:8px;font-size:12.5px;color:var(--text-2)}
+.source__n{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--text)}
+.source__bar{height:2px;background:var(--hair);margin-top:8px;border-radius:2px;overflow:hidden}
+.source__bar i{display:block;height:100%;background:var(--lime-text);opacity:.75}
+
+/* empty state */
+.empty{padding:44px 18px;text-align:center;color:var(--muted)}
+.empty .lucide{width:20px;height:20px;margin-bottom:10px;color:var(--border-strong)}
+.empty p{margin:0;font-size:12.5px}
+
+/* section list view */
+.listcard{margin-top:0}
+.listfoot{display:flex;align-items:center;gap:9px;margin-top:12px;padding-left:2px;color:var(--muted)}
+.listfoot b{color:var(--text-2);font-weight:400}
+.section-bar{display:flex;align-items:center;gap:10px;margin:4px 0 18px;flex-wrap:wrap}
+.section-bar .search{max-width:320px;height:32px;background:var(--card)}
+.section-bar .spacer{margin-left:auto}
+
+/* settings */
+.settings{display:flex;flex-direction:column;gap:18px;max-width:760px}
+.field{display:flex;align-items:center;gap:20px;padding:15px 18px;border-top:1px solid var(--hair);font-size:13px}
+.card__body > .field:first-child{border-top:0}
+.field__label{color:var(--text)}
+.field__hint{font-size:11.5px;color:var(--muted);margin-top:3px;max-width:52ch}
+.field__ctl{margin-left:auto;flex:none;display:flex;align-items:center;gap:8px}
+.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{
+  height:27px;padding:0 11px;border:0;background:transparent;color:var(--muted);
+  font-size:11.5px;cursor:pointer;transition:background .15s,color .15s;
+}
+.seg button.is-on{background:var(--lime-soft);color:var(--text)}
+.seg button + button{border-left:1px solid var(--border)}
+.switch{
+  width:34px;height:20px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card-2);position:relative;cursor:pointer;transition:background .18s,border-color .18s;
+}
+.switch::after{
+  content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:var(--text-2);transition:transform .18s ease,background .18s;
+}
+.switch.is-on{background:var(--lime-soft);border-color:var(--lime-line)}
+.switch.is-on::after{transform:translateX(14px);background:var(--lime)}
+.switch:focus-visible{outline:2px solid var(--lime-line);outline-offset:2px}
+
+/* ─────────────────────────────────────────────
+   Dialog + toast
+   ───────────────────────────────────────────── */
+.backdrop{
+  position:fixed;inset:0;background:rgba(8,7,3,.62);backdrop-filter:blur(6px);
+  display:grid;place-items:center;padding:24px;z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+[data-theme="light"] .backdrop{background:rgba(40,34,18,.32)}
+.backdrop.is-open{opacity:1;pointer-events:auto}
+.dialog{
+  width:min(560px,100%);background:var(--card);border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);overflow:hidden;
+  transform:translateY(8px) scale(.99);transition:transform .2s cubic-bezier(.2,.7,.2,1);
+}
+.backdrop.is-open .dialog{transform:none}
+.dialog__head{display:flex;align-items:flex-start;gap:14px;padding:20px 22px 16px}
+.dialog__title{font-family:var(--font-display);font-size:24px;font-weight:400;letter-spacing:-.012em;margin:0;line-height:1.15}
+.dialog__hint{font-size:12px;color:var(--muted);margin-top:4px}
+.dialog__body{padding:0 22px}
+.dialog__body textarea{
+  width:100%;min-height:132px;resize:vertical;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  padding:12px 13px;outline:0;transition:border-color .16s;
+}
+.dialog__body textarea:focus{border-color:var(--lime-line)}
+.dialog__meta{display:flex;align-items:center;gap:8px;margin:11px 0 0;font-family:var(--font-mono);font-size:10.5px;color:var(--muted)}
+.dialog__foot{display:flex;align-items:center;gap:8px;padding:18px 22px 20px}
+.dialog__foot .spacer{margin-left:auto}
+
+.toast{
+  position:fixed;right:24px;bottom:24px;z-index:70;
+  display:flex;align-items:center;gap:9px;
+  background:var(--card-2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;font-size:12.5px;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(8px);pointer-events:none;
+  transition:opacity .2s,transform .2s;
+}
+.toast.is-on{opacity:1;transform:none}
+.toast .lucide{width:14px;height:14px;color:var(--lime-text)}
+
+/* ─────────────────────────────────────────────
+   Responsive
+   ───────────────────────────────────────────── */
+@media (max-width:1340px){
+  .grid{grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr)}
+  .topbar{padding-right:32px}
+  .view{padding-right:32px;padding-left:32px}
+}
+@media (max-width:1160px){
+  .app{grid-template-columns:232px minmax(0,1fr)}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--hair)}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:66px minmax(0,1fr)}
+  .sidebar{padding:16px 9px 12px;align-items:center}
+  .brand{padding:0 0 16px;gap:0}
+  .brand__text,.nav__label,.nav__item span,.nav__item .count,.repo,.sidebar__foot{display:none}
+  .nav{width:100%;align-items:center}
+  .nav__item{justify-content:center;padding:0}
+  .nav__spacer{display:none}
+  .topbar{padding:0 18px;height:54px}
+  .crumbs{display:none}
+  .view{padding:0 18px 40px}
+  .view-head{flex-direction:column;align-items:flex-start;gap:16px;padding:24px 0 18px}
+  .head-actions{width:100%;justify-content:flex-end}
+  .row{grid-template-columns:30px minmax(0,1fr) auto;padding:11px 14px;gap:11px}
+  .row__meta .path,.row__meta .sep{display:none}
+  .card__head{padding:13px 14px 11px;flex-wrap:wrap}
+  .git,.sources{padding-left:14px;padding-right:14px}
+}
+@media (max-width:620px){
+  .stats{grid-template-columns:1fr}
+  .stat{border-left:0}
+  .stat + .stat{border-top:1px solid var(--hair)}
+  .activity-time{display:none}
+  .chips{width:100%;margin:8px 0 0;overflow-x:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ══ Sidebar ══ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__mark">gm</div>
+      <div class="brand__text">
+        <div class="brand__name">GitMemo</div>
+        <div class="brand__meta">local knowledge repo</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <div class="nav__label eyebrow">Workspace</div>
+      <button class="nav__item is-active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+      <button class="nav__item" data-view="search"><i data-lucide="search"></i><span>Search</span><span class="count">&#8984;K</span></button>
+      <button class="nav__item" data-view="aiRecords"><i data-lucide="sparkles"></i><span>AI Records</span><span class="count">412</span></button>
+      <button class="nav__item" data-view="notes"><i data-lucide="file-text"></i><span>Notes</span><span class="count">268</span></button>
+      <button class="nav__item" data-view="clipboard"><i data-lucide="clipboard"></i><span>Clipboard</span></button>
+      <button class="nav__item" data-view="favorites"><i data-lucide="star"></i><span>Favorites</span></button>
+      <div class="nav__label eyebrow">Library</div>
+      <button class="nav__item" data-view="externalFiles"><i data-lucide="folder-open"></i><span>External Files</span></button>
+      <button class="nav__item" data-view="settings"><i data-lucide="settings"></i><span>Settings</span></button>
+    </nav>
+
+    <div class="sidebar__foot">
+      <div class="repo">
+        <div class="repo__top">
+          <i data-lucide="git-branch" style="width:12px;height:12px;color:var(--muted)"></i>
+          <span class="repo__branch">main</span>
+          <span class="repo__state"><span class="dot"></span>synced</span>
+        </div>
+        <div class="repo__line"><span>last commit</span><b>a41f9c2</b></div>
+        <div class="repo__line"><span>unpushed</span><b>3</b></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ Main ══ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">
+        <i data-lucide="hard-drive"></i>
+        <span class="crumbs__path">~/gitmemo/knowledge</span>
+        <span class="mono" style="color:var(--border-strong)">/</span>
+        <span class="crumbs__path" id="crumbView">dashboard</span>
+      </div>
+      <div class="topbar__right">
+        <label class="search" for="globalSearch">
+          <i data-lucide="search"></i>
+          <input id="globalSearch" type="text" placeholder="Search knowledge&#8230;" autocomplete="off" spellcheck="false" />
+          <kbd>&#8984;K</kbd>
+        </label>
+        <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"><i data-lucide="moon"></i></button>
+        <button class="icon-btn" data-action="sync" aria-label="Sync repository"><i data-lucide="refresh-cw"></i></button>
+      </div>
+    </div>
+
+    <div class="scroll" id="scroll">
+      <div class="view" id="view"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ══ Capture dialog ══ -->
+<div class="backdrop" id="captureDialog">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="captureTitle">
+    <div class="dialog__head">
+      <div>
+        <h2 class="dialog__title" id="captureTitle">Capture context</h2>
+        <div class="dialog__hint">Committed to your local repository, then indexed for search.</div>
+      </div>
+      <button class="icon-btn" style="margin-left:auto" data-action="close-dialog" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="dialog__body">
+      <textarea id="captureText" spellcheck="false" placeholder="Paste a snippet, a terminal output, or a thought&#8230;"></textarea>
+      <div class="dialog__meta">
+        <i data-lucide="git-commit-horizontal" style="width:12px;height:12px"></i>
+        <span>notes/2026-11-12-<span id="slug">capture</span>.md</span>
+        <span style="margin-left:auto">main</span>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--ghost btn--sm" data-action="from-clipboard"><i data-lucide="clipboard-paste"></i>From clipboard</button>
+      <div class="spacer"></div>
+      <button class="btn btn--sm" data-action="close-dialog">Cancel</button>
+      <button class="btn btn--primary btn--sm" data-action="save-capture"><i data-lucide="check"></i>Save capture</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i data-lucide="check"></i><span id="toastText">Done</span></div>
+
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ── Data ───────────────────────────────────────── */
+  const KIND = {
+    ai:   { label:'AI record',    icon:'sparkles',       hint:'Claude Code' },
+    conv: { label:'Conversation', icon:'message-square', hint:'Cursor' },
+    note: { label:'Note',         icon:'file-text',      hint:'Notes' },
+    clip: { label:'Clip',         icon:'clipboard',     hint:'Clipboard' },
+    file: { label:'File',         icon:'file',           hint:'External' }
+  };
+
+  const ENTRIES = [
+    { kind:'ai',   title:'Refactoring the sync worker for retry semantics', meta:'Claude Code · 24 messages', path:'records/2026-11-12-sync-retry.json', time:'12 min', fav:true },
+    { kind:'note', title:'Conflict resolution: rebase vs merge for local captures', meta:'edited 3 times', path:'notes/2026-11-12-conflict-resolution.md', time:'48 min', fav:true },
+    { kind:'clip', title:'Dockerfile for Tauri 2 + WebKitGTK on Ubuntu 22.04', meta:'Clipboard · 3.1 KB', path:'clips/2026-11-12-1102-dockerfile.md', time:'1 h' },
+    { kind:'conv', title:'Why does a Tauri command return null on first invoke?', meta:'Cursor · 18 messages', path:'threads/2026-11-12-tauri-null.json', time:'2 h' },
+    { kind:'ai',   title:'Codex: moving the clipboard watcher onto the async runtime', meta:'Codex · 31 messages', path:'records/2026-11-12-clipboard-async.json', time:'3 h' },
+    { kind:'note', title:'Weekly review — capture volume up 34%', meta:'draft', path:'notes/2026-11-11-weekly-review.md', time:'yesterday' },
+    { kind:'file', title:'DESIGN.md', meta:'External file · 14 KB', path:'~/Code/other/GitMemo-desktop/docs/design/DESIGN.md', time:'yesterday', fav:true },
+    { kind:'clip', title:'Postgres 16 connection string with sslmode=require', meta:'Clipboard · 0.4 KB', path:'clips/2026-11-11-1740-postgres-dsn.md', time:'yesterday' },
+    { kind:'note', title:'Notes on local-first sync protocols — CRDT vs Git', meta:'1,840 words', path:'notes/2026-11-10-sync-protocols.md', time:'2 d' },
+    { kind:'ai',   title:'Claude Code: summarizing 46 captured conversations', meta:'Claude Code · 9 messages', path:'records/2026-11-10-summarize-captures.json', time:'2 d' },
+    { kind:'conv', title:'Cursor: overriding Mantine dark theme tokens', meta:'Cursor · 12 messages', path:'threads/2026-11-10-mantine-tokens.json', time:'2 d' },
+    { kind:'file', title:'README_CN.md', meta:'External file · 9 KB', path:'~/Code/other/GitMemo-desktop/README_CN.md', time:'3 d' },
+    { kind:'note', title:'Tauri 2 window state — restoring split pane widths', meta:'920 words', path:'notes/2026-11-09-window-state.md', time:'3 d' },
+    { kind:'clip', title:'du -sh ~/gitmemo/knowledge/* | sort -h', meta:'Clipboard · 0.2 KB', path:'clips/2026-11-09-0930-du-sizes.md', time:'3 d' },
+    { kind:'ai',   title:'Claude Code: wiring the MCP server into the CLI', meta:'Claude Code · 41 messages', path:'records/2026-11-09-mcp-wiring.json', time:'4 d', fav:true },
+    { kind:'note', title:'Indexing strategy: SQLite FTS5 vs. a JSON grep pass', meta:'1,120 words', path:'notes/2026-11-08-indexing-strategy.md', time:'4 d' },
+    { kind:'conv', title:'Codex: why the clipboard watcher misses images', meta:'Codex · 7 messages', path:'threads/2026-11-08-clipboard-images.json', time:'5 d' },
+    { kind:'clip', title:'rebase -i HEAD~3 --autosquash before pushing', meta:'Clipboard · 0.1 KB', path:'clips/2026-11-07-2145-rebase-note.md', time:'5 d' },
+    { kind:'file', title:'technical-architecture.md', meta:'External file · 22 KB', path:'~/Code/other/GitMemo-desktop/docs/technical-architecture.md', time:'6 d' },
+    { kind:'note', title:'Reading notes — The Timeless Way of Building', meta:'draft', path:'notes/2026-11-06-timeless-way.md', time:'6 d', fav:true },
+    { kind:'conv', title:'Cursor: splitting the settings store from the sync store', meta:'Cursor · 26 messages', path:'threads/2026-11-06-settings-store.json', time:'1 w' },
+    { kind:'ai',   title:'Codex: drafting the Android back-navigation fix', meta:'Codex · 15 messages', path:'records/2026-11-05-android-back.json', time:'1 w' }
+  ];
+
+  const SECTIONS = {
+    aiRecords:     { title:'AI Records',    lede:'Conversations captured from Claude Code, Cursor, and Codex — searchable and reusable by any tool.', kinds:['ai','conv'], action:'capture', actionLabel:'Capture' },
+    notes:         { title:'Notes',         lede:'Markdown you wrote here, versioned with your repository.', kinds:['note'], action:'new-note', actionLabel:'New note' },
+    clipboard:     { title:'Clipboard',     lede:'Snippets and screenshots picked up while you work. Sensitive clips stay out.', kinds:['clip'], action:'sync', actionLabel:'Sync' },
+    favorites:     { title:'Favorites',     lede:'Pinned context you return to — kept close to the top of every workflow.', favOnly:true, action:'capture', actionLabel:'Capture' },
+    externalFiles: { title:'External Files', lede:'Markdown living outside the repo, indexed in place without being copied.', kinds:['file'], action:'import', actionLabel:'Import files' }
+  };
+
+  const state = { view:'dashboard', filter:'all', query:'', localQuery:'' };
+
+  /* ── Helpers ────────────────────────────────────── */
+  const $  = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const view = $('#view');
+  const nav = $('#nav');
+  let toastTimer = null;
+
+  function toast(msg){
+    $('#toastText').textContent = msg;
+    const t = $('#toast');
+    t.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('is-on'), 2200);
+  }
+
+  function icon(name, cls){
+    return '<i data-lucide="' + name + '"' + (cls ? ' class="' + cls + '"' : '') + '></i>';
+  }
+
+  function rowHTML(e, opts){
+    opts = opts || {};
+    const k = KIND[e.kind];
+    const badge = opts.badge ? '<span class="badge badge--quiet">' + k.label + '</span>' : '';
+    return '<div class="row" data-row="' + esc(e.path) + '" tabindex="0" role="button">' +
+      '<span class="row__icon ' + (e.kind === 'ai' ? 'is-ai' : '') + '">' + icon(k.icon) + '</span>' +
+      '<span style="min-width:0">' +
+        '<span class="row__title" style="display:block">' + esc(e.title) + '</span>' +
+        '<span class="row__meta">' + badge +
+          (e.fav ? '<span style="color:var(--lime-text)">' + icon('star') + '</span>' : '') +
+          '<span>' + esc(e.meta) + '</span><span class="sep">·</span>' +
+          '<span class="path">' + esc(e.path) + '</span>' +
+        '</span>' +
+      '</span>' +
+      '<span class="row__right">' +
+        '<span class="row__time activity-time">' + esc(e.time) + '</span>' +
+        '<span class="row__arrow">' + icon('arrow-up-right') + '</span>' +
+      '</span>' +
+    '</div>';
+  }
+
+  function sectionHead(title, lede, actions){
+    return '<div class="view-head">' +
+      '<div><div class="eyebrow">' + icon('git-branch') + 'main · 2026</div>' +
+      '<h1>' + title + '</h1><p class="lede">' + lede + '</p></div>' +
+      '<div class="head-actions">' + actions + '</div></div>';
+  }
+
+  const BTN_CAPTURE = '<button class="btn btn--primary" data-action="capture">' + icon('plus') + 'Capture <kbd>⇧⌘C</kbd></button>';
+
+  /* ── Views ──────────────────────────────────────── */
+  function dashboardHTML(){
+    const f = state.filter;
+    const activity = ENTRIES.filter(e => f === 'all' ? true :
+      f === 'ai' ? (e.kind === 'ai' || e.kind === 'conv') :
+      f === 'file' ? e.kind === 'file' : e.kind === f);
+
+    const chips = [['all','All'],['ai','AI'],['note','Notes'],['clip','Clipboard'],['file','Files']]
+      .map(([k,label]) => '<button class="chip ' + (f === k ? 'is-on' : '') + '" data-chip="' + k + '">' + label + '</button>').join('');
+
+    return sectionHead('Dashboard',
+      'Everything captured today — indexed, committed, and ready for Claude Code, Cursor, or Codex.',
+      '<button class="btn" data-action="sync">' + icon('refresh-cw') + 'Sync</button>' + BTN_CAPTURE) +
+
+      '<div class="stats">' +
+        '<div class="stat"><span class="stat__label eyebrow">Records</span>' +
+          '<div class="stat__value">1,284 <span class="stat__delta up">+18</span></div>' +
+          '<div class="stat__note">across 5 sources</div></div>' +
+        '<div class="stat"><span class="stat__label eyebrow">AI conversations</span>' +
+          '<div class="stat__value">412 <span class="stat__delta up">+6</span></div>' +
+          '<div class="stat__note">claude · cursor · codex</div></div>' +
+        '<div class="stat"><span class="stat__label eyebrow">Notes &amp; docs</span>' +
+          '<div class="stat__value">268 <span class="stat__delta up">+3</span></div>' +
+          '<div class="stat__note">142,900 words</div></div>' +
+        '<div class="stat"><span class="stat__label eyebrow">Captured today</span>' +
+          '<div class="stat__value" style="color:var(--lime-text)">27</div>' +
+          '<div class="stat__note">last commit 26 min ago</div></div>' +
+      '</div>' +
+
+      '<div class="grid">' +
+        '<div class="col">' +
+          '<section class="card">' +
+            '<div class="card__head">' +
+              '<h2 class="card__title">Recent activity</h2>' +
+              '<div class="chips">' + chips + '</div>' +
+            '</div>' +
+            '<div class="card__body">' +
+              (activity.length ? activity.slice(0, 7).map(e => rowHTML(e, {badge:true})).join('')
+                : '<div class="empty">' + icon('inbox') + '<p>Nothing captured in this source yet.</p></div>') +
+            '</div>' +
+          '</section>' +
+
+          '<section class="card">' +
+            '<div class="card__head">' +
+              '<h2 class="card__title">Knowledge workspace</h2>' +
+              '<span class="card__sub">recently opened</span>' +
+              '<button class="btn btn--ghost btn--sm spacer" data-view="search">Browse all ' + icon('arrow-right') + '</button>' +
+            '</div>' +
+            '<div class="card__body">' +
+              ENTRIES.filter(e => e.kind === 'note' || e.kind === 'file').slice(0, 4)
+                .map(e => rowHTML(e, {badge:false})).join('') +
+            '</div>' +
+          '</section>' +
+        '</div>' +
+
+        '<div class="col">' +
+          '<section class="card">' +
+            '<div class="card__head">' +
+              '<h2 class="card__title">Git status</h2>' +
+              '<span class="card__sub" style="margin-left:auto">~/gitmemo/knowledge</span>' +
+            '</div>' +
+            '<div class="git">' +
+              '<div class="git__row"><span class="git__k">Branch</span><span class="git__v">main</span></div>' +
+              '<div class="git__row"><span class="git__k">Working tree</span><span class="git__v is-warn">2 modified</span></div>' +
+              '<div class="git__row"><span class="git__k">Unpushed commits</span><span class="git__v is-lime">3 ahead</span></div>' +
+              '<div class="git__row"><span class="git__k">Remote · origin</span><span class="git__v is-ok">up to date</span></div>' +
+              '<div class="git__row"><span class="git__k">Last commit</span><span class="git__v">a41f9c2 · 26 min</span></div>' +
+              '<div class="git__actions">' +
+                '<button class="btn btn--sm" data-action="sync">' + icon('refresh-cw') + 'Push</button>' +
+                '<button class="btn btn--sm" data-action="history">' + icon('git-commit-horizontal') + 'History</button>' +
+              '</div>' +
+            '</div>' +
+          '</section>' +
+
+          '<section class="card">' +
+            '<div class="card__head"><h2 class="card__title">Quick actions</h2></div>' +
+            '<div class="qa">' +
+              '<button class="qa__btn" data-action="capture">' + icon('plus') + '<span class="qa__label">Capture context</span><span class="qa__kbd">⇧⌘C</span></button>' +
+              '<button class="qa__btn" data-action="new-note">' + icon('file-plus') + '<span class="qa__label">New note</span><span class="qa__kbd">⌘N</span></button>' +
+              '<button class="qa__btn" data-view="search">' + icon('search') + '<span class="qa__label">Search knowledge</span><span class="qa__kbd">⌘K</span></button>' +
+              '<button class="qa__btn" data-action="import">' + icon('download') + '<span class="qa__label">Import files</span><span class="qa__kbd">⌘O</span></button>' +
+            '</div>' +
+          '</section>' +
+
+          '<section class="card">' +
+            '<div class="card__head"><h2 class="card__title">Capture sources</h2>' +
+              '<span class="card__sub" style="margin-left:auto">this month</span></div>' +
+            '<div class="sources">' +
+              [['Claude Code',186],['Cursor',112],['Codex',74],['Clipboard',240],['External files',58]]
+                .map(([name,n]) => '<div class="source"><div class="source__top"><span>' + name +
+                  '</span><span class="source__n">' + n + '</span></div>' +
+                  '<div class="source__bar"><i style="width:' + Math.round(n/240*100) + '%"></i></div></div>').join('') +
+            '</div>' +
+          '</section>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function listHTML(key){
+    const s = SECTIONS[key];
+    let items = ENTRIES.filter(e => s.favOnly ? e.fav : s.kinds.indexOf(e.kind) > -1);
+    const total = items.length;
+    const q = state.localQuery.trim().toLowerCase();
+    if (q) items = items.filter(e => (e.title + ' ' + e.meta + ' ' + e.path).toLowerCase().indexOf(q) > -1);
+
+    const ACTION_ICON = { capture:'plus', 'new-note':'file-plus', import:'download' };
+    const actions = '<button class="btn" data-action="sync">' + icon('refresh-cw') + 'Sync</button>' +
+      (s.action !== 'sync' ? '<button class="btn btn--primary" data-action="' + s.action + '">' +
+        icon(ACTION_ICON[s.action] || 'plus') + s.actionLabel + '</button>' : '');
+
+    return sectionHead(s.title, s.lede, actions) +
+      '<div class="section-bar">' +
+        '<label class="search" style="max-width:300px">' + icon('search') +
+          '<input type="text" data-role="local-search" placeholder="Filter ' + s.title.toLowerCase() + '…" value="' + esc(state.localQuery) + '" spellcheck="false" />' +
+        '</label>' +
+        '<span class="mono" style="color:var(--muted)">' + items.length + ' of ' + total + '</span>' +
+        '<div class="spacer"></div>' +
+        '<span class="mono" style="color:var(--muted)">sorted by last commit</span>' +
+      '</div>' +
+      '<section class="card listcard"><div class="card__body">' +
+        (items.length ? items.map(e => rowHTML(e, {badge:true})).join('')
+          : '<div class="empty">' + icon('search-x') + '<p>No records match “' + esc(state.localQuery) + '”.</p></div>') +
+      '</div></section>' +
+      '<div class="mono listfoot"><span><b>' + total + '</b> records</span><span style="opacity:.5">·</span>' +
+      '<span>branch <b>main</b></span><span style="opacity:.5">·</span>' +
+      '<span>last commit <b>a41f9c2</b></span><span style="opacity:.5">·</span>' +
+      '<span>most recent <b>' + (total ? esc((s.favOnly ? ENTRIES.filter(e => e.fav) : ENTRIES.filter(e => s.kinds.indexOf(e.kind) > -1))[0].time) : '—') + ' ago</b></span></div>';
+  }
+
+  function searchHTML(){
+    const q = state.query.trim().toLowerCase();
+    const results = q ? ENTRIES.filter(e => (e.title + ' ' + e.meta + ' ' + e.path).toLowerCase().indexOf(q) > -1) : ENTRIES.slice(0, 6);
+    return sectionHead('Search', 'Full-text across notes, clips, AI records, and indexed external files. Local index — no network round trip.',
+      '<button class="btn" data-action="reindex">' + icon('refresh-cw') + 'Reindex</button>') +
+      '<div class="section-bar">' +
+        '<label class="search" style="max-width:420px;height:36px">' + icon('search') +
+          '<input type="text" id="searchViewInput" placeholder="Search everything…" value="' + esc(state.query) + '" spellcheck="false" />' +
+          '<kbd>esc</kbd></label>' +
+        '<span class="mono" style="color:var(--muted)">' + (q ? results.length + ' results' : 'recent') + '</span>' +
+      '</div>' +
+      '<section class="card"><div class="card__body">' +
+        (results.length ? results.map(e => rowHTML(e, {badge:true})).join('')
+          : '<div class="empty">' + icon('search-x') + '<p>Nothing indexed for “' + esc(state.query) + '”.</p></div>') +
+      '</div></section>';
+  }
+
+  function settingsHTML(){
+    return sectionHead('Settings', 'Local paths, capture behaviour, and sync — all stored in your repository.',
+      '<button class="btn" data-action="open-vault">' + icon('lock') + 'Vault</button>') +
+      '<div class="settings">' +
+        '<section class="card"><div class="card__head"><h2 class="card__title">Appearance</h2></div><div class="card__body">' +
+          '<div class="field"><div><div class="field__label">Theme</div><div class="field__hint">Dark is the default. Light keeps the same warm paper tone.</div></div>' +
+            '<div class="field__ctl"><div class="seg" id="themeSeg">' +
+              '<button data-theme-set="dark" class="is-on">Dark</button><button data-theme-set="light">Light</button>' +
+            '</div></div></div>' +
+          '<div class="field"><div><div class="field__label">Display typeface</div><div class="field__hint">Cormorant Garamond for headings, Inter for interface text.</div></div>' +
+            '<div class="field__ctl mono" style="color:var(--text-2)">Cormorant · Inter</div></div>' +
+        '</div></section>' +
+        '<section class="card"><div class="card__head"><h2 class="card__title">Repository</h2></div><div class="card__body">' +
+          '<div class="field"><div><div class="field__label">Local path</div><div class="field__hint">Every capture is written here as Markdown or JSON before indexing.</div></div>' +
+            '<div class="field__ctl"><span class="mono" style="color:var(--text-2)">~/gitmemo/knowledge</span><button class="btn btn--sm" data-action="reveal">Reveal</button></div></div>' +
+          '<div class="field"><div><div class="field__label">Remote</div><div class="field__hint">origin · main · pushed every 15 minutes.</div></div>' +
+            '<div class="field__ctl mono" style="color:var(--text-2)">git@github.com:zhuanz/knowledge.git</div></div>' +
+          '<div class="field"><div><div class="field__label">Auto-commit captures</div><div class="field__hint">Create a commit for each captured item.</div></div>' +
+            '<div class="field__ctl"><button class="switch is-on" data-toggle aria-label="Toggle auto-commit"></button></div></div>' +
+        '</div></section>' +
+        '<section class="card"><div class="card__head"><h2 class="card__title">Capture</h2></div><div class="card__body">' +
+          '<div class="field"><div><div class="field__label">Clipboard monitoring</div><div class="field__hint">Sensitive clips are skipped automatically. 240 clips this month.</div></div>' +
+            '<div class="field__ctl"><button class="switch is-on" data-toggle aria-label="Toggle clipboard monitoring"></button></div></div>' +
+          '<div class="field"><div><div class="field__label">AI conversation capture</div><div class="field__hint">Claude Code, Cursor, and Codex sessions are recorded on exit.</div></div>' +
+            '<div class="field__ctl"><button class="switch is-on" data-toggle aria-label="Toggle AI capture"></button></div></div>' +
+          '<div class="field"><div><div class="field__label">Index</div><div class="field__hint">1,284 records · rebuilt 26 minutes ago.</div></div>' +
+            '<div class="field__ctl"><button class="btn btn--sm" data-action="reindex">' + icon('refresh-cw') + 'Reindex</button></div></div>' +
+        '</div></section>' +
+      '</div>';
+  }
+
+  /* ── Render ─────────────────────────────────────── */
+  function render(){
+    const v = state.view;
+    if (v === 'dashboard') view.innerHTML = dashboardHTML();
+    else if (v === 'search') view.innerHTML = searchHTML();
+    else if (v === 'settings') view.innerHTML = settingsHTML();
+    else view.innerHTML = listHTML(v);
+
+    $$('.nav__item', nav).forEach(b => b.classList.toggle('is-active', b.dataset.view === v));
+    $('#crumbView').textContent = (SECTIONS[v] ? SECTIONS[v].title : v === 'dashboard' ? 'dashboard' : v).toLowerCase();
+
+    if (window.lucide) window.lucide.createIcons();
+
+    const focusTarget = $('#searchViewInput');
+    if (focusTarget && state.focusSearch) { focusTarget.focus(); state.focusSearch = false; }
+    $('#scroll').scrollTop = 0;
+  }
+
+  function go(next){
+    if (next === state.view) return;
+    state.view = next;
+    state.localQuery = '';
+    render();
+  }
+
+  /* ── Events ─────────────────────────────────────── */
+  document.addEventListener('click', function(ev){
+    const viewBtn = ev.target.closest('[data-view]');
+    if (viewBtn) { go(viewBtn.dataset.view); return; }
+
+    const chip = ev.target.closest('[data-chip]');
+    if (chip) { state.filter = chip.dataset.chip; render(); return; }
+
+    const row = ev.target.closest('[data-row]');
+    if (row) { toast('Opening ' + row.dataset.row.split('/').pop()); return; }
+
+    const seg = ev.target.closest('[data-theme-set]');
+    if (seg) { setTheme(seg.dataset.themeSet); return; }
+
+    const sw = ev.target.closest('[data-toggle]');
+    if (sw) { sw.classList.toggle('is-on'); return; }
+
+    const act = ev.target.closest('[data-action]');
+    if (!act) return;
+    switch (act.dataset.action) {
+      case 'capture': openDialog(); break;
+      case 'new-note':
+        openDialog();
+        $('#captureTitle').textContent = 'New note';
+        $('#captureText').placeholder = 'First line becomes the title…';
+        break;
+      case 'close-dialog': closeDialog(); break;
+      case 'save-capture': saveCapture(); break;
+      case 'from-clipboard':
+        $('#captureText').value = '$ grep -rn "createIcons" src/ | head -5';
+        toast('Pasted from clipboard');
+        break;
+      case 'sync': toast('Pushing 3 commits to origin/main'); break;
+      case 'history': toast('git log --oneline -20'); break;
+      case 'reindex': toast('Rebuilding local index — 1,284 records'); break;
+      case 'import': toast('Choose Markdown files to import'); break;
+      case 'reveal': toast('Revealed ~/gitmemo/knowledge'); break;
+      case 'open-vault': toast('Vault requires a passphrase'); break;
+    }
+  });
+
+  document.addEventListener('keydown', function(ev){
+    const mod = ev.metaKey || ev.ctrlKey;
+    if (mod && ev.key.toLowerCase() === 'k') { ev.preventDefault(); $('#globalSearch').focus(); }
+    if (mod && ev.key.toLowerCase() === 'n') { ev.preventDefault(); openDialog(); }
+    if (ev.key === 'Escape') { closeDialog(); $('#globalSearch').blur(); }
+  });
+
+  const globalSearch = $('#globalSearch');
+  globalSearch.addEventListener('input', function(){
+    state.query = globalSearch.value;
+    if (globalSearch.value.trim().length >= 2 && state.view !== 'search') {
+      state.view = 'search';
+      render();
+    } else if (state.view === 'search') {
+      render();
+    }
+  });
+  globalSearch.addEventListener('keydown', function(ev){
+    if (ev.key === 'Escape') { globalSearch.value = ''; state.query = ''; if (state.view === 'search') render(); }
+  });
+
+  document.addEventListener('input', function(ev){
+    if (ev.target.matches('[data-role="local-search"]')) {
+      state.localQuery = ev.target.value;
+      const pos = ev.target.selectionStart;
+      render();
+      const next = $('[data-role="local-search"]');
+      if (next) { next.focus(); try { next.setSelectionRange(pos, pos); } catch(e){} }
+    }
+    if (ev.target.id === 'searchViewInput') {
+      state.query = ev.target.value;
+      const pos = ev.target.selectionStart;
+      render();
+      const next = $('#searchViewInput');
+      if (next) { next.focus(); try { next.setSelectionRange(pos, pos); } catch(e){} }
+    }
+  });
+
+  /* ── Dialog ─────────────────────────────────────── */
+  const dlg = $('#captureDialog');
+  function openDialog(){
+    dlg.classList.add('is-open');
+    setTimeout(function(){ $('#captureText').focus(); }, 60);
+  }
+  function closeDialog(){ dlg.classList.remove('is-open'); }
+  dlg.addEventListener('mousedown', function(ev){ if (ev.target === dlg) closeDialog(); });
+  $('#captureText').addEventListener('input', function(ev){
+    const first = ev.target.value.trim().split('\n')[0] || 'capture';
+    $('#slug').textContent = first.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28) || 'capture';
+  });
+  function saveCapture(){
+    const val = $('#captureText').value.trim();
+    if (!val) { toast('Write something first'); return; }
+    closeDialog();
+    toast('Committed to notes/2026-11-12-' + $('#slug').textContent + '.md');
+    $('#captureText').value = '';
+    $('#captureTitle').textContent = 'Capture context';
+  }
+
+  /* ── Theme ──────────────────────────────────────── */
+  function setTheme(mode){
+    document.documentElement.dataset.theme = mode;
+    const btn = $('#themeBtn');
+    btn.innerHTML = '<i data-lucide="' + (mode === 'dark' ? 'moon' : 'sun') + '"></i>';
+    $$('[data-theme-set]').forEach(b => b.classList.toggle('is-on', b.dataset.themeSet === mode));
+    if (window.lucide) window.lucide.createIcons();
+  }
+  $('#themeBtn').addEventListener('click', function(){
+    setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+  });
+
+  /* ── Boot ───────────────────────────────────────── */
+  render();
+  if (window.lucide) window.lucide.createIcons();
+})();
+</script>
+</body>
+</html>
