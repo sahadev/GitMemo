@@ -194,6 +194,8 @@
     "cliCardInstalled": "CLI v{0}",
     "cliCardUpgrade": "CLI v{0}, recommend v{1}",
     "cliCardTooOld": "CLI v{0} is too old, upgrade to v{1}",
+    "cliBlocked": "Local CLI v{0} is too old and commits every screenshot on sync. Do not sync from the command line until you upgrade to v{1}.",
+    "cliBlockedAction": "Open settings",
     "cliCardCopyInstallCommand": "Copy install command",
     "cliCardCommandCopied": "Install command copied. Run it in your terminal.",
     "cliCardDismiss": "Dismiss this hint",

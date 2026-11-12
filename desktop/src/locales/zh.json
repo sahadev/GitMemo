@@ -194,6 +194,8 @@
     "cliCardInstalled": "CLI v{0}",
     "cliCardUpgrade": "CLI v{0}，建议 v{1}",
     "cliCardTooOld": "CLI v{0} 过低，必须升级到 v{1}",
+    "cliBlocked": "本机 CLI v{0} 版本过低，同步时会把截图全部提交上去。升级到 v{1} 之前，请不要使用命令行同步。",
+    "cliBlockedAction": "去设置升级",
     "cliCardCopyInstallCommand": "复制安装命令",
     "cliCardCommandCopied": "已复制安装命令，请到终端中执行。",
     "cliCardDismiss": "关闭此提示",

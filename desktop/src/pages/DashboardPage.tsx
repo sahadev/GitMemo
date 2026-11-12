@@ -12,11 +12,12 @@ import {useFileWatcher} from "../hooks/useFileWatcher";
 import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
-import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft, Sun, Moon} from "lucide-react";
+import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft, Sun, Moon, TriangleAlert} from "lucide-react";
 import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
 import {formatTitleWithShortcut} from "../utils/shortcuts";
+import {isCliBelowMinimum} from "../domain/cli/cliStatus";
 import {type NoteResult} from "../types/notes";
 
 
@@ -87,8 +88,20 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     setNotesTab,
     setAiRecordsTab,
     setPendingOpenPath,
+    cliStatus,
+    cliStatusChecked,
+    refreshCliStatus,
   } = useAppStore();
   useRelativeTimeTick();
+
+  // 本机 CLI 低于过滤基线时，同步会把所有截图一次性提交上去。这属于安全提示，
+  // 所以每次进入仪表盘都重新探测，而不是等用户自己去设置页点检测。
+  useEffect(() => {
+    if (!isDesktop || !active) return;
+    void refreshCliStatus();
+  }, [isDesktop, active, refreshCliStatus]);
+
+  const cliOutdated = isDesktop && cliStatusChecked && isCliBelowMinimum(cliStatus);
 
   const openRecord = useCallback((item: RecentItem) => {
     if (!canOpenDashboardRecentItem(isDesktop, item)) return;
@@ -436,6 +449,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           iconSpin={isSyncing}
         />
       </header>
+
+      {cliOutdated ? (
+        <div className="gm-inst-cli-warning" role="alert">
+          <AppIcon icon={TriangleAlert} size="2xs" tone="danger" />
+          <span className="gm-inst-cli-warning-text">
+            {t("dashboard.cliBlocked", cliStatus?.version || "?", cliStatus?.latest_version ?? "?")}
+          </span>
+          <Button variant="secondary" onClick={() => onNavigate?.("settings")}>
+            {t("dashboard.cliBlockedAction")}
+          </Button>
+        </div>
+      ) : null}
 
       <div className="gm-inst-body" data-activity={activityOpen ? "open" : "closed"}>
 

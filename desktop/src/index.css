@@ -7453,6 +7453,26 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   min-width: 26px;
 }
 
+/* CLI 低于过滤基线：不可关闭的强提示，压在身份栏与本体之间。
+   这类警告不给关闭入口——关掉就意味着用户会继续用旧版本同步并灌图片。 */
+.gm-inst-cli-warning {
+  align-items: center;
+  background: var(--gm-color-bg-surface);
+  border-bottom: var(--gm-border-w) solid var(--gm-line);
+  border-left: 2px solid var(--gm-danger);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gm-space-3);
+  padding: var(--gm-space-2) var(--gm-space-5);
+}
+.gm-inst-cli-warning-text {
+  color: var(--gm-text-2);
+  flex: 1 1 320px;
+  font-size: var(--gm-font-xs);
+  line-height: 1.5;
+  min-width: 0;
+}
+
 /* 2 · 两列主体 */
 .gm-inst-body {
   display: flex;

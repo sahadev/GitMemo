@@ -120,6 +120,7 @@ function App() {
     sidebarCollapsed,
     toggleSidebarCollapsed,
     mobileEditorActive,
+    refreshCliStatus,
   } = useAppStore();
   const shortcuts = useMemo(() => withDefaultShortcuts(settings?.shortcuts), [settings?.shortcuts]);
   const pageOrder = getAppPageOrder(isDesktop);
@@ -140,6 +141,13 @@ function App() {
   useEffect(() => {
     initializedRef.current = initialized;
   }, [initialized]);
+
+  // 桌面端会把本机 CLI 注册成编辑器的 MCP server。低于过滤基线的版本在同步时会把
+  // 所有截图一次性提交，所以启动就探测一次，而不是等用户自己进设置页。
+  useEffect(() => {
+    if (!isDesktop) return;
+    void refreshCliStatus();
+  }, [isDesktop, refreshCliStatus]);
 
   // Lazy-mount: track visited pages so they stay mounted once opened
   useEffect(() => {
