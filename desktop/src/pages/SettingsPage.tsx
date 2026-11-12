@@ -159,6 +159,7 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
     updateStatus, updateVersion, updateDate, updateBody, updateProgress, updateError, updateErrorStage,
     pendingUpdateDetailsOpen, consumeUpdateDetailsOpen,
     checkForUpdates, installUpdate,
+    settingsTargetSection, consumeSettingsSection,
   } = useAppStore();
   const [branch, setBranch] = useState("");
   const [branchInput, setBranchInput] = useState("");
@@ -793,6 +794,13 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
   }, []);
   const closeSection = useCallback(() => setActiveSection(null), []);
 
+  // 从别的页面点进来时直接落到指定分组，避免用户还要在分组列表里再找一遍。
+  useEffect(() => {
+    if (!active || !settingsTargetSection) return;
+    openSection(settingsTargetSection as SettingsSection);
+    consumeSettingsSection();
+  }, [active, settingsTargetSection, openSection, consumeSettingsSection]);
+
   // Entering a sub-page starts at the top; going back restores the index position.
   useEffect(() => {
     settingsScrollRef.current?.scrollTo({ top: activeSection === null ? indexScrollTopRef.current : 0 });
@@ -1030,8 +1038,8 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
               icon={Terminal}
               title={t("settings.cliCapability")}
               description={t("settings.cliCapabilityDesc")}
-              status={cliStatusView.label}
-              statusTone={cliStatusView.tone}
+              status={cliStatus?.path ? undefined : cliStatusView.label}
+              statusTone={cliStatus?.path ? undefined : cliStatusView.tone}
             >
                   <SettingsControlGroup wrap>
                     <SettingsActionButton
@@ -1051,8 +1059,9 @@ export default function SettingsPage({ onNavigate, active = false, registerMobil
                   </SettingsControlGroup>
                 </SettingsRow>
                 {cliStatus?.path ? (
-                  <SettingsRowInset>
+                  <SettingsRowInset className="gm-settings-cli-meta">
                     <SettingsMonoValue max="full">{cliStatus.path}</SettingsMonoValue>
+                    <SettingsStatus tone={cliStatusView.tone}>{cliStatusView.label}</SettingsStatus>
                   </SettingsRowInset>
                 ) : null}
               </SettingsSubStack>

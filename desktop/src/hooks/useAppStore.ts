@@ -145,6 +145,10 @@ interface AppStore {
 
   // Cross-page record opening
   pendingOpenPath: string | null;
+  /** 跨页跳转时希望在设置页直接展开的分组。 */
+  settingsTargetSection: string | null;
+  requestSettingsSection: (section: string) => void;
+  consumeSettingsSection: () => void;
   setPendingOpenPath: (path: string | null) => void;
   consumePendingOpenPath: () => void;
 
@@ -212,6 +216,7 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
   notesTab: "scratch",
   aiRecordsTab: "conversations",
   pendingOpenPath: null,
+  settingsTargetSection: null,
   appMeta: null,
   cliStatus: null,
   cliStatusChecked: false,
@@ -337,6 +342,14 @@ const useAppStoreInternal = create<AppStore>((set, get) => ({
 
   consumePendingOpenPath: () => {
     set({ pendingOpenPath: null });
+  },
+
+  requestSettingsSection: (section) => {
+    set({ settingsTargetSection: section });
+  },
+
+  consumeSettingsSection: () => {
+    set({ settingsTargetSection: null });
   },
 
   checkForUpdates: async () => {

@@ -12,7 +12,7 @@ import {useFileWatcher} from "../hooks/useFileWatcher";
 import {usePlatformFlags} from "../hooks/usePlatform";
 import {AppIcon} from "../components/base/AppIcon";
 import {Button} from "../components/base/Button";
-import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft, Sun, Moon, TriangleAlert} from "lucide-react";
+import {GitBranch, RefreshCw, Circle, Search, X, PanelLeft, Sun, Moon, TriangleAlert, Languages} from "lucide-react";
 import {canOpenDashboardRecentItem, canSaveDashboardQuickNote, DASHBOARD_QUICK_NOTE_SAVE_SHORTCUT, formatDashboardText, formatDashboardSizeKb, formatDashboardCount, getDashboardDisplayedRepoSizeKb, getDashboardCategoryRoute, getDashboardDisplayedFileCount, getDashboardSyncStatus, getDashboardContentCategory, getDashboardVisibleRecentItems, isDashboardEditorConfigured, shouldSaveDashboardQuickNoteFromKeyboard, type AppStats, type RecentItem} from "../components/domain/dashboard/dashboardLogic";
 
 import type { Page } from "../App";
@@ -91,15 +91,16 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     cliStatus,
     cliStatusChecked,
     refreshCliStatus,
+    requestSettingsSection,
   } = useAppStore();
   useRelativeTimeTick();
 
   // 本机 CLI 低于过滤基线时，同步会把所有截图一次性提交上去。这属于安全提示，
   // 所以每次进入仪表盘都重新探测，而不是等用户自己去设置页点检测。
   useEffect(() => {
-    if (!isDesktop || !active) return;
+    if (!isDesktop || !active || cliStatusChecked) return;
     void refreshCliStatus();
-  }, [isDesktop, active, refreshCliStatus]);
+  }, [isDesktop, active, cliStatusChecked, refreshCliStatus]);
 
   const cliOutdated = isDesktop && cliStatusChecked && isCliBelowMinimum(cliStatus);
 
@@ -285,8 +286,14 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
     void saveQuickNote();
   }, [quickNoteDraft, quickNotePlaceholder, saveQuickNote]);
 
+  // 切回仪表盘不必每次都重拉全量：统计与最近条目都有缓存，重复请求只会让
+  // 页面在原地等网络。手动刷新按钮仍然随时可用。
+  const lastAutoLoadRef = useRef(0);
   useEffect(() => {
     if (!active) return;
+    const now = Date.now();
+    if (now - lastAutoLoadRef.current < 60_000) return;
+    lastAutoLoadRef.current = now;
     loadData();
     void refreshGitStatus();
   }, [active, loadData, refreshGitStatus]);
@@ -401,23 +408,18 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
             : ""}
         </span>
         <span className="gm-inst-identity-spacer" />
-        <button
-          type="button"
-          className="gm-inst-identity-search"
+        <Button
+          variant="toolbar"
           onClick={() => onNavigate?.("search")}
           title={t("nav.search")}
-        >
-          <AppIcon icon={Search} size="2xs" />
-          <span className="gm-inst-identity-search-label">{t("nav.search")}</span>
-        </button>
+          icon={Search}
+        />
         <Button
           variant="toolbar"
           onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-          title={t("settings.language")}
-          className="gm-inst-identity-lang"
-        >
-          {locale === "zh" ? "EN" : "中"}
-        </Button>
+          title={`${t("settings.language")} · ${locale === "zh" ? "中文" : "English"}`}
+          icon={Languages}
+        />
         <Button
           variant="toolbar"
           onClick={toggleTheme}
@@ -456,7 +458,15 @@ export default function DashboardPage({ onNavigate, active = false }: { onNaviga
           <span className="gm-inst-cli-warning-text">
             {t("dashboard.cliBlocked", cliStatus?.version || "?", cliStatus?.latest_version ?? "?")}
           </span>
-          <Button variant="secondary" onClick={() => onNavigate?.("settings")}>
+          <Button
+            variant="ghost"
+            tone="danger"
+            onClick={() => {
+              // 直接落到 CLI 那一组，否则用户还要自己在分组列表里再找一遍。
+              requestSettingsSection("integrations");
+              onNavigate?.("settings");
+            }}
+          >
             {t("dashboard.cliBlockedAction")}
           </Button>
         </div>

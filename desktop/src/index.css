@@ -4666,6 +4666,16 @@ a:focus-visible {
   min-width: 0;
   padding-left: var(--gm-size-settings-row-icon-offset);
 }
+/* CLI 路径与版本放同一行，版本不再单独占一行。
+   inset 是 substack 的独立子项，会额外吃到一份 gap，抵消掉才能和其它行的
+   description → status 间距一致。 */
+.gm-settings-cli-meta {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gm-space-3);
+  margin-top: calc(-1 * var(--gm-icon-text-gap));
+}
 
 .gm-settings-page[data-mobile="true"] .gm-settings-indented-field-group {
   align-items: stretch;
@@ -7409,49 +7419,7 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 }
 .gm-inst-identity-spacer { flex: 1; }
 
-/* 搜索入口、主题与语言切换：与刷新按钮并排，尺寸跟着身份栏走 */
-.gm-inst-identity-search {
-  align-items: center;
-  background: var(--gm-color-bg-surface);
-  border: var(--gm-border-w) solid var(--gm-line);
-  border-radius: var(--gm-radius-control);
-  color: var(--gm-text-3);
-  cursor: pointer;
-  display: inline-flex;
-  flex: none;
-  gap: var(--gm-space-2);
-  height: 26px;
-  max-width: 220px;
-  padding: 0 var(--gm-space-3);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.gm-inst-identity-search:hover {
-  background: var(--bg-hover);
-  border-color: var(--gm-line-strong);
-  color: var(--gm-text-2);
-}
-
-.gm-inst-identity-search:focus-visible {
-  outline: 2px solid var(--gm-accent);
-  outline-offset: 1px;
-}
-
-.gm-inst-identity-search-label {
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gm-inst-identity-lang {
-  font-family: var(--gm-font-mono);
-  font-size: var(--gm-font-2xs);
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  min-width: 26px;
-}
+/* 搜索、语言、主题与刷新：同一套工具栏按钮，尺寸跟着身份栏走 */
 
 /* CLI 低于过滤基线：不可关闭的强提示，压在身份栏与本体之间。
    这类警告不给关闭入口——关掉就意味着用户会继续用旧版本同步并灌图片。 */
@@ -7524,7 +7492,9 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
 .gm-inst-list-count { color: var(--gm-text-2); }
 .gm-inst-list-head .gm-inst-list-count { margin-left: auto; }
 .gm-favorites-count { white-space: nowrap; }
-.gm-inst-list-rows { flex: 1; min-height: 0; }
+/* 列表容器自己滚。父级 surface 是 overflow:hidden，这里不设 overflow 的话
+   条目一多就会被裁掉且滚不动。 */
+.gm-inst-list-rows { flex: 1; min-height: 0; overflow-y: auto; }
 .gm-inst-list-row {
   align-items: center;
   background: transparent;
@@ -7806,15 +7776,10 @@ html[data-mobile="true"][data-mobile-extra-top-safe-area="true"] body {
   .gm-inst-main { padding: var(--gm-space-3); }
 }
 
-@media (max-width: 1023px) {
-  .gm-inst-identity-search { max-width: 160px; }
-}
-
 @media (max-width: 900px) {
   .gm-inst-identity { flex-wrap: wrap; gap: var(--gm-space-2); }
   .gm-inst-identity-status,
   .gm-inst-identity-count { display: none; }
-  .gm-inst-identity-search { display: none; }
   .gm-inst-identity-path { max-width: 100%; }
 }
 

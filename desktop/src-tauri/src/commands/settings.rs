@@ -162,6 +162,9 @@ pub struct CliStatus {
     /// Such a build stages every clipboard capture it finds, so it must not be
     /// used to write the repository.
     pub below_minimum: bool,
+    /// Lowest CLI version that can filter clipboard captures. Shown so the user
+    /// sees the exact target instead of "some newer version".
+    pub minimum_version: String,
     pub update_url: Option<String>,
     pub release_url: Option<String>,
     pub notes: Vec<String>,
@@ -473,30 +476,46 @@ fn cli_update_from_recent_releases() -> Result<CliUpdateInfo, String> {
     Err("No CLI release found for this platform".to_string())
 }
 
+/// Cache for the latest CLI release lookup.
+///
+/// Both lookups hit github.com (up to 8s each), and `get_cli_status` runs every
+/// time the dashboard becomes visible. Without a cache, switching pages stalled
+/// the UI for seconds waiting on a network round trip that changes at most once
+/// per release.
 #[cfg(not(target_os = "android"))]
 fn latest_cli_update_info() -> Result<CliUpdateInfo, String> {
-    cli_update_from_manifest().or_else(|_| cli_update_from_recent_releases())
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{Duration, Instant};
+
+    const TTL: Duration = Duration::from_secs(600);
+
+    static CACHE: OnceLock<Mutex<Option<(CliUpdateInfo, Instant)>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(None));
+
+    if let Ok(guard) = cache.lock() {
+        if let Some((info, fetched_at)) = guard.as_ref() {
+            if fetched_at.elapsed() < TTL {
+                return Ok(info.clone());
+            }
+        }
+    }
+
+    let fresh = cli_update_from_manifest().or_else(|_| cli_update_from_recent_releases())?;
+    if let Ok(mut guard) = cache.lock() {
+        *guard = Some((fresh.clone(), Instant::now()));
+    }
+    Ok(fresh)
 }
 
 #[tauri::command]
-pub fn get_cli_status() -> Result<CliStatus, String> {
-    #[cfg(target_os = "android")]
-    {
-        Ok(CliStatus {
-            installed: false,
-            path: String::new(),
-            version: String::new(),
-            latest_version: None,
-            update_available: false,
-            below_minimum: false,
-            update_url: None,
-            release_url: None,
-            notes: Vec::new(),
-            check_error: None,
-        })
-    }
+pub async fn get_cli_status() -> Result<CliStatus, String> {
+    tokio::task::spawn_blocking(get_cli_status_blocking)
+        .await
+        .map_err(|e| e.to_string())?
+}
 
-    #[cfg(not(target_os = "android"))]
+#[cfg(not(target_os = "android"))]
+fn get_cli_status_blocking() -> Result<CliStatus, String> {
     {
         let update_info = latest_cli_update_info();
 
@@ -509,6 +528,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
                 latest_version: latest.as_ref().map(|info| info.version.clone()),
                 update_available: false,
                 below_minimum: false,
+                minimum_version: gitmemo_core::storage::git::MIN_COMPATIBLE_CLI_VERSION.to_string(),
                 update_url: latest.as_ref().and_then(|info| info.update_url.clone()),
                 release_url: latest.as_ref().and_then(|info| info.release_url.clone()),
                 notes: latest.map(|info| info.notes).unwrap_or_default(),
@@ -544,6 +564,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
             latest_version,
             update_available,
             below_minimum,
+            minimum_version: gitmemo_core::storage::git::MIN_COMPATIBLE_CLI_VERSION.to_string(),
             update_url,
             release_url,
             notes,
@@ -551,6 +572,26 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
         })
     }
 }
+
+#[cfg(target_os = "android")]
+fn get_cli_status_blocking() -> Result<CliStatus, String> {
+    {
+        Ok(CliStatus {
+            installed: false,
+            path: String::new(),
+            version: String::new(),
+            latest_version: None,
+            update_available: false,
+            below_minimum: false,
+            minimum_version: String::new(),
+            update_url: None,
+            release_url: None,
+            notes: Vec::new(),
+            check_error: None,
+        })
+    }
+}
+
 
 #[cfg(desktop)]
 #[tauri::command]
