@@ -185,6 +185,24 @@ button{font:inherit;color:inherit}
 .gm-inst-identity-status[data-tone="success"] .dot{background:var(--gm-success)}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--gm-text-3);flex:none}
 .gm-inst-identity-spacer{flex:1}
+.gm-inst-identity-search{
+  display:flex;align-items:center;gap:6px;flex:none;
+  width:212px;height:24px;padding:0 7px;
+  border:var(--gm-border-w) solid var(--gm-line);border-radius:var(--gm-r-1);
+  background:var(--gm-surface);color:var(--gm-text-3);
+  transition:border-color .15s,box-shadow .15s;
+}
+.gm-inst-identity-search:focus-within{border-color:var(--gm-accent);box-shadow:0 0 0 2px var(--gm-accent-soft)}
+.gm-inst-identity-search input{
+  flex:1;min-width:0;border:0;outline:0;background:none;
+  font-family:inherit;font-size:var(--gm-font-2xs);color:var(--gm-text);
+}
+.gm-inst-identity-search input::placeholder{color:var(--gm-text-3)}
+.gm-inst-identity-search kbd{
+  font-family:inherit;font-size:9px;padding:1px 3px;border-radius:2px;
+  border:var(--gm-border-w) solid var(--gm-line);color:var(--gm-text-3);white-space:nowrap;
+}
+.gm-toolbar-button[data-toggle="lang"]{font-size:10px;font-weight:600;letter-spacing:.02em}
 .gm-toolbar-button{
   display:grid;place-items:center;width:26px;height:26px;padding:0;
   background:none;border:var(--gm-border-w) solid transparent;border-radius:var(--gm-r-1);
@@ -329,8 +347,12 @@ button{font:inherit;color:inherit}
 @media (max-width:1023px){
   .gm-inst-main{padding:var(--gm-space-3)}
 }
+@media (max-width:1100px){
+  .gm-inst-identity-search{width:150px}
+}
 @media (max-width:900px){
   .gm-inst-identity-status{display:none}
+  .gm-inst-identity-search{display:none}
 }
 @media (max-width:767px){
   .gm-inst-gauges{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -417,6 +439,13 @@ button{font:inherit;color:inherit}
           已同步 · 26 分钟前提交
         </span>
         <span class="gm-inst-identity-spacer"></span>
+        <label class="gm-inst-identity-search">
+          <i data-lucide="search" style="width:12px;height:12px"></i>
+          <input type="text" placeholder="搜索知识库" spellcheck="false" autocomplete="off" />
+          <kbd>⌘K</kbd>
+        </label>
+        <button class="gm-toolbar-button" data-toggle="theme" title="切换深色 / 浅色"><i data-lucide="moon"></i></button>
+        <button class="gm-toolbar-button" data-toggle="lang" title="Switch language">中</button>
         <button class="gm-toolbar-button" title="刷新"><i data-lucide="refresh-cw"></i></button>
       </header>
 
