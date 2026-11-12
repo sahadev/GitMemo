@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GitMemo — 仪表盘（新视觉 token，原结构）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   只替换视觉 token。类名、层级、行列结构与现有页面一致：
+   .gm-app-shell > .gm-sidebar + .gm-inst-dashboard
+   ============================================================ */
+:root{
+  --gm-font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  /* 版面 */
+  --gm-canvas:#1A1817;
+  --gm-surface:#1F1D1C;
+  --gm-elevated:#252220;
+
+  /* 文字 */
+  --gm-text:#FDFCFC;
+  --gm-text-2:#B0ADAC;
+  --gm-text-3:#8A8786;
+
+  /* 线 */
+  --gm-line:rgba(253,252,252,.08);
+  --gm-line-strong:rgba(253,252,252,.16);
+
+  /* 主色 */
+  --gm-accent:#007AFF;
+  --gm-accent-hover:#3D9BFF;
+  --gm-accent-soft:rgba(0,122,255,.14);
+  --gm-accent-border:rgba(0,122,255,.45);
+
+  /* 语义 */
+  --gm-warning:#FF9F0A;
+  --gm-success:#30D158;
+  --gm-danger:#FF453A;
+
+  /* 分类色（克制的一档） */
+  --gm-tag-chat:#7C9CFF;
+  --gm-tag-note:#A9A6A5;
+  --gm-tag-clip:#6FBF9A;
+  --gm-tag-plan:#C9A063;
+
+  /* 尺度 */
+  --gm-font-2xs:11px;
+  --gm-font-sm:13px;
+  --gm-font-md:15px;
+  --gm-font-2xl:24px;
+  --gm-space-1:2px;
+  --gm-space-2:4px;
+  --gm-space-3:8px;
+  --gm-space-4:12px;
+  --gm-border-w:1px;
+  --gm-r-1:4px;
+  --gm-r-2:6px;
+  --gm-size-sidebar-width:224px;
+  --gm-size-card-rail:3px;
+  --gm-control-height-lg:36px;
+  --gm-density-header:34px;
+  --gm-density-subheader:28px;
+  --gm-density-row:32px;
+  --gm-density-row-compact:30px;
+  --gm-leading-title:1.25;
+
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--gm-canvas);color:var(--gm-text);
+  font-family:var(--gm-font-mono);font-size:var(--gm-font-sm);
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit}
+.lucide{width:15px;height:15px;stroke-width:1.7;flex:none}
+::selection{background:var(--gm-accent-soft)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--gm-line-strong);border:3px solid transparent;background-clip:content-box;border-radius:6px}
+
+/* ── 外壳 ───────────────────────────────────────────────── */
+.gm-app-shell{display:flex;height:100vh;overflow:hidden;background:var(--gm-canvas)}
+.gm-app-sidebar-shell{flex:none;width:var(--gm-size-sidebar-width);height:100%}
+.gm-app-main{display:flex;flex:1;min-width:0;min-height:0;overflow:hidden;background:var(--gm-canvas)}
+
+/* ── 侧栏 ───────────────────────────────────────────────── */
+.gm-sidebar{
+  display:flex;flex-direction:column;height:100%;width:100%;
+  background:var(--gm-surface);border-right:var(--gm-border-w) solid var(--gm-line);
+}
+.gm-sidebar-brand{
+  display:flex;align-items:center;justify-content:center;
+  padding:var(--gm-space-4) var(--gm-space-3);
+  border-bottom:var(--gm-border-w) solid var(--gm-line);
+}
+.gm-sidebar-brand-main{display:flex;align-items:center;gap:var(--gm-space-3);min-width:0}
+.gm-sidebar-logo{
+  width:22px;height:22px;border-radius:50%;flex:none;
+  display:grid;place-items:center;
+  background:var(--gm-accent);color:#fff;
+  font-size:10px;font-weight:700;letter-spacing:-.04em;
+}
+.gm-sidebar-brand-copy{min-width:0}
+.gm-sidebar-brand-title{display:block;font-size:var(--gm-font-md);font-weight:700;line-height:1.15}
+.gm-sidebar-brand-subtitle{display:block;margin-top:var(--gm-space-1);font-size:var(--gm-font-2xs);color:var(--gm-text-3)}
+
+.gm-sidebar-nav{display:flex;flex:1;flex-direction:column;gap:var(--gm-space-2);padding:var(--gm-space-3);overflow-y:auto;scrollbar-width:none}
+.gm-sidebar-nav::-webkit-scrollbar{display:none}
+
+.gm-sidebar-nav-item{
+  display:flex;align-items:center;gap:var(--gm-space-3);
+  width:100%;min-height:var(--gm-control-height-lg);
+  padding:var(--gm-space-3);
+  background:transparent;border:var(--gm-border-w) solid transparent;
+  border-left:var(--gm-size-card-rail) solid transparent;
+  border-radius:var(--gm-r-1);
+  color:var(--gm-text-2);text-align:left;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.gm-sidebar-nav-item:hover{background:rgba(253,252,252,.05);color:var(--gm-text)}
+.gm-sidebar-nav-item[data-active="true"]{
+  background:var(--gm-accent-soft);border-color:var(--gm-accent-border);
+  border-left-color:var(--gm-accent);color:var(--gm-text);
+}
+.gm-sidebar-nav-item[data-active="true"] .gm-sidebar-nav-icon{color:var(--gm-accent)}
+.gm-sidebar-nav-label{flex:1;font-size:var(--gm-font-sm);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gm-sidebar-nav-count{
+  min-width:18px;height:16px;padding:0 4px;border-radius:3px;
+  display:grid;place-items:center;
+  background:rgba(255,69,58,.16);color:#FF8A80;font-size:9px;font-weight:600;
+}
+.gm-sidebar-more-chevron{margin-left:auto;color:currentColor;opacity:.7}
+.gm-sidebar-footer{border-top:var(--gm-border-w) solid var(--gm-line);padding:var(--gm-space-3)}
+.gm-sidebar-sync-button{
+  display:flex;align-items:center;gap:var(--gm-space-2);width:100%;
+  padding:var(--gm-space-3);background:transparent;
+  border:var(--gm-border-w) solid transparent;border-radius:var(--gm-r-1);
+  color:var(--gm-text-2);font-size:var(--gm-font-2xs);cursor:pointer;text-align:left;
+  transition:background .15s,color .15s;
+}
+.gm-sidebar-sync-button:hover{background:rgba(253,252,252,.05);color:var(--gm-text)}
+.gm-sidebar-sync-button[data-status="success"]{color:var(--gm-success)}
+.gm-sidebar-sync-meta{
+  display:flex;gap:var(--gm-space-3);margin:var(--gm-space-2) 0 var(--gm-space-3);
+  padding:0 var(--gm-space-3);font-size:var(--gm-font-2xs);color:var(--gm-text-3);
+}
+.gm-sidebar-sync-meta [data-tone="warning"]{color:var(--gm-warning)}
+.gm-sidebar-version{
+  display:flex;align-items:center;gap:var(--gm-space-2);
+  width:100%;padding:var(--gm-space-1) var(--gm-space-3);
+  background:none;border:0;color:var(--gm-text-3);
+  font-size:var(--gm-font-2xs);cursor:pointer;text-align:left;
+}
+.gm-sidebar-version:hover{color:var(--gm-text-2)}
+.gm-sidebar-release-time{margin:0;padding:0 var(--gm-space-3);font-size:10px;color:var(--gm-text-3);opacity:.8}
+
+/* ── 仪表盘 ─────────────────────────────────────────────── */
+.gm-inst-dashboard{
+  display:flex;flex:1;flex-direction:column;height:100%;min-width:0;min-height:0;
+  background:var(--gm-canvas);color:var(--gm-text);
+}
+
+/* 1 · 身份栏 */
+.gm-inst-identity{
+  display:flex;align-items:center;gap:var(--gm-space-4);flex:none;
+  height:var(--gm-density-header);padding:0 var(--gm-space-4);
+  border-bottom:var(--gm-border-w) solid var(--gm-line-strong);
+}
+.gm-inst-identity-mark{
+  font-size:var(--gm-font-2xs);font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+}
+.gm-inst-identity-path{
+  font-size:var(--gm-font-2xs);color:var(--gm-text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.gm-inst-identity-status{
+  display:inline-flex;align-items:center;gap:var(--gm-space-2);
+  font-size:var(--gm-font-2xs);color:var(--gm-text-2);white-space:nowrap;
+}
+.gm-inst-identity-status[data-tone="success"] .dot{background:var(--gm-success)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gm-text-3);flex:none}
+.gm-inst-identity-spacer{flex:1}
+.gm-toolbar-button{
+  display:grid;place-items:center;width:26px;height:26px;padding:0;
+  background:none;border:var(--gm-border-w) solid transparent;border-radius:var(--gm-r-1);
+  color:var(--gm-text-2);cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+.gm-toolbar-button:hover{background:rgba(253,252,252,.05);color:var(--gm-text);border-color:var(--gm-line)}
+.gm-toolbar-button:focus-visible{outline:2px solid var(--gm-accent);outline-offset:1px}
+
+.gm-inst-body{display:flex;flex:1;flex-direction:column;min-height:0}
+.gm-inst-main{display:flex;flex:1;flex-direction:column;min-height:0;overflow-y:auto;padding:var(--gm-space-4)}
+
+/* 4a · 仪表带 */
+.gm-inst-gauges{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));flex:none;
+  border-bottom:var(--gm-border-w) solid var(--gm-line);
+}
+.gm-inst-gauge{
+  display:flex;flex-direction:column;min-width:0;
+  padding:var(--gm-space-4);border-left:var(--gm-border-w) solid var(--gm-line);
+}
+.gm-inst-gauge:first-child{border-left:0}
+.gm-inst-gauge-label{font-size:var(--gm-font-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-text-3)}
+.gm-inst-gauge-value{
+  margin-top:var(--gm-space-1);
+  font-size:var(--gm-font-2xl);line-height:var(--gm-leading-title);
+  font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+}
+.gm-inst-gauge-bar{display:block;position:relative;height:2px;margin-top:var(--gm-space-3);background:var(--gm-line)}
+.gm-inst-gauge-bar::after{content:"";position:absolute;inset:0 auto 0 0;background:var(--gm-accent);width:0}
+.gm-inst-gauge[data-level="1"] .gm-inst-gauge-bar::after{width:20%}
+.gm-inst-gauge[data-level="2"] .gm-inst-gauge-bar::after{width:40%}
+.gm-inst-gauge[data-level="3"] .gm-inst-gauge-bar::after{width:60%}
+.gm-inst-gauge[data-level="4"] .gm-inst-gauge-bar::after{width:80%}
+.gm-inst-gauge[data-level="5"] .gm-inst-gauge-bar::after{width:100%}
+.gm-inst-gauge-detail{margin-top:var(--gm-space-3);font-size:var(--gm-font-2xs);color:var(--gm-text-3)}
+
+/* 5 · 命令输入 + 最近条目 */
+.gm-inst-lower{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gm-space-4);flex:none;margin-top:var(--gm-space-4);min-height:0}
+
+.gm-inst-command{
+  display:flex;flex-direction:column;min-height:304px;min-width:0;
+  border:var(--gm-border-w) solid var(--gm-line-strong);border-radius:var(--gm-r-2);
+  background:var(--gm-surface);overflow:hidden;
+}
+.gm-inst-command-head{
+  display:flex;align-items:center;justify-content:space-between;flex:none;
+  height:var(--gm-density-subheader);padding:0 var(--gm-space-4);
+  border-bottom:var(--gm-border-w) solid var(--gm-line);
+  font-size:var(--gm-font-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-text-3);
+}
+.gm-inst-command-open{
+  background:none;border:0;padding:0;color:var(--gm-accent);cursor:pointer;
+  font:inherit;letter-spacing:inherit;text-transform:inherit;
+}
+.gm-inst-command-field{
+  display:flex;flex:1;align-items:flex-start;gap:var(--gm-space-3);min-height:0;
+  padding:var(--gm-space-4);transition:box-shadow .15s,border-color .15s;
+}
+.gm-inst-command-field:focus-within{box-shadow:inset 0 0 0 1px var(--gm-accent);border-radius:var(--gm-r-1)}
+.gm-inst-command-sigil{color:var(--gm-accent);font-size:var(--gm-font-sm);line-height:1.6}
+.gm-inst-command-input{
+  flex:1;min-height:176px;background:transparent;border:0;outline:none;resize:none;
+  color:var(--gm-text);font-family:var(--gm-font-mono);font-size:var(--gm-font-sm);line-height:1.6;
+}
+.gm-inst-command-input::placeholder{color:var(--gm-text-3)}
+.gm-inst-command-caret{
+  display:block;flex:none;width:1px;height:var(--gm-font-sm);margin-top:2px;
+  background:var(--gm-accent);animation:blink 1.1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+.gm-inst-command-keys{
+  display:flex;align-items:center;gap:var(--gm-space-3);flex:none;
+  height:var(--gm-density-row-compact);padding:0 var(--gm-space-4);
+  border-top:var(--gm-border-w) solid var(--gm-line);
+  font-size:var(--gm-font-2xs);color:var(--gm-text-3);
+}
+.gm-inst-command-save,
+.gm-inst-command-new{
+  padding:2px var(--gm-space-3);background:transparent;
+  border:var(--gm-border-w) solid var(--gm-line-strong);border-radius:var(--gm-r-1);
+  color:var(--gm-text);font:inherit;cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.gm-inst-command-save{margin-left:auto}
+.gm-inst-command-save:hover:not(:disabled),
+.gm-inst-command-new:hover{border-color:var(--gm-accent);color:var(--gm-accent)}
+.gm-inst-command-save:hover:not(:disabled){background:var(--gm-accent-soft)}
+.gm-inst-command-save:disabled{color:var(--gm-text-3);cursor:not-allowed}
+.gm-inst-command-save:focus-visible,
+.gm-inst-command-new:focus-visible,
+.gm-inst-command-open:focus-visible{outline:2px solid var(--gm-accent);outline-offset:1px}
+
+/* 3 · 最近条目 */
+.gm-inst-list{
+  display:flex;flex:none;flex-direction:column;min-width:0;min-height:0;
+  margin-top:var(--gm-space-4);border-top:var(--gm-border-w) solid var(--gm-line);
+}
+.gm-inst-list-head{
+  display:flex;align-items:center;justify-content:space-between;flex:none;
+  height:var(--gm-density-header);padding:0 var(--gm-space-4);
+  border-bottom:var(--gm-border-w) solid var(--gm-line);
+  font-size:var(--gm-font-2xs);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-text-3);
+}
+.gm-inst-list-count{margin-left:auto;color:var(--gm-text-2)}
+.gm-inst-list-close{
+  display:flex;padding:var(--gm-space-1);margin-left:var(--gm-space-3);
+  background:none;border:0;border-radius:var(--gm-r-1);color:var(--gm-text-3);cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.gm-inst-list-close:hover{background:rgba(253,252,252,.05);color:var(--gm-text)}
+.gm-inst-list-rows{flex:1;min-height:0}
+.gm-inst-list-row{
+  display:grid;align-items:center;gap:var(--gm-space-4);width:100%;
+  height:var(--gm-density-row);padding:0 var(--gm-space-4);
+  background:transparent;border:0;border-bottom:var(--gm-border-w) solid var(--gm-line);
+  color:var(--gm-text);font-size:var(--gm-font-sm);text-align:left;cursor:pointer;
+  transition:background .15s;
+}
+.gm-inst-list-row--recent{grid-template-columns:84px 56px minmax(0,1fr) 88px 56px}
+.gm-inst-list-row:hover{background:rgba(253,252,252,.04)}
+.gm-inst-list-row:focus-visible{outline:2px solid var(--gm-accent);outline-offset:-2px}
+.gm-inst-list-time,
+.gm-inst-list-type,
+.gm-inst-list-source,
+.gm-inst-list-state{
+  font-size:var(--gm-font-2xs);color:var(--gm-text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.gm-inst-list-time{font-variant-numeric:tabular-nums}
+.gm-inst-list-type[data-kind="conversation"]{color:var(--gm-tag-chat)}
+.gm-inst-list-type[data-kind="manual"],
+.gm-inst-list-type[data-kind="scratch"]{color:var(--gm-tag-note)}
+.gm-inst-list-type[data-kind="clip"]{color:var(--gm-tag-clip)}
+.gm-inst-list-type[data-kind="plan"]{color:var(--gm-tag-plan)}
+.gm-inst-list-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gm-inst-list-source{text-align:right}
+.gm-inst-list-state{text-align:right}
+.gm-inst-list-state[data-state="new"]{color:var(--gm-accent)}
+.gm-inst-list-state[data-state="draft"]{color:var(--gm-warning)}
+.gm-inst-list-state[data-state="synced"]{color:var(--gm-text-3)}
+
+@media (max-width:1023px){
+  .gm-inst-main{padding:var(--gm-space-3)}
+}
+@media (max-width:900px){
+  .gm-inst-identity-status{display:none}
+}
+@media (max-width:767px){
+  .gm-inst-gauges{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gm-inst-gauge:nth-child(odd){border-left:0}
+  .gm-inst-gauge:nth-child(n+3){border-top:var(--gm-border-w) solid var(--gm-line)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="gm-app-shell">
+
+  <!-- 侧栏（结构未动） -->
+  <aside class="gm-app-sidebar-shell">
+    <div class="gm-sidebar">
+      <div class="gm-sidebar-brand">
+        <div class="gm-sidebar-brand-main">
+          <div class="gm-sidebar-logo">gm</div>
+          <div class="gm-sidebar-brand-copy">
+            <span class="gm-sidebar-brand-title">GitMemo</span>
+            <span class="gm-sidebar-brand-subtitle">Local-First Knowledge Base</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="gm-sidebar-nav">
+        <button class="gm-sidebar-nav-item" data-active="true">
+          <i data-lucide="layout-dashboard" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">仪表盘</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="search" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">搜索</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="message-square" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">AI记录</span>
+          <span class="gm-sidebar-nav-count">12</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="sticky-note" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">笔记</span>
+          <span class="gm-sidebar-nav-count">3</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="clipboard" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">剪贴板</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="star" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">收藏</span>
+        </button>
+        <button class="gm-sidebar-nav-item">
+          <i data-lucide="more-horizontal" class="gm-sidebar-nav-icon"></i>
+          <span class="gm-sidebar-nav-label">更多</span>
+          <i data-lucide="chevron-down" class="gm-sidebar-more-chevron" style="width:13px;height:13px"></i>
+        </button>
+      </nav>
+
+      <div class="gm-sidebar-footer">
+        <button class="gm-sidebar-sync-button" data-status="success">
+          <i data-lucide="refresh-cw" style="width:12px;height:12px"></i>
+          <span>已同步 · 26 分钟前</span>
+        </button>
+        <p class="gm-sidebar-sync-meta">
+          <span>main</span>
+          <span>全部已推送</span>
+        </p>
+        <button class="gm-sidebar-version">GitMemo Desktop v0.41.2</button>
+        <p class="gm-sidebar-release-time">2026-11-10</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 仪表盘（结构未动） -->
+  <main class="gm-app-main">
+    <div class="gm-inst-dashboard">
+
+      <header class="gm-inst-identity">
+        <span class="gm-inst-identity-mark">仪表盘</span>
+        <span class="gm-inst-identity-path">/Users/zhuangz/gitmemo · main</span>
+        <span class="gm-inst-identity-status" data-tone="success">
+          <span class="dot"></span>
+          已同步 · 26 分钟前提交
+        </span>
+        <span class="gm-inst-identity-spacer"></span>
+        <button class="gm-toolbar-button" title="刷新"><i data-lucide="refresh-cw"></i></button>
+      </header>
+
+      <div class="gm-inst-body">
+        <div class="gm-inst-main">
+
+          <div class="gm-inst-gauges">
+            <div class="gm-inst-gauge" data-level="5">
+              <span class="gm-inst-gauge-label">条目总数</span>
+              <span class="gm-inst-gauge-value">1,284</span>
+              <span class="gm-inst-gauge-bar"></span>
+              <span class="gm-inst-gauge-detail">38.2 MB</span>
+            </div>
+            <div class="gm-inst-gauge" data-level="5">
+              <span class="gm-inst-gauge-label">对话</span>
+              <span class="gm-inst-gauge-value">412</span>
+              <span class="gm-inst-gauge-bar"></span>
+              <span class="gm-inst-gauge-detail">3 个工具来源</span>
+            </div>
+            <div class="gm-inst-gauge" data-level="5">
+              <span class="gm-inst-gauge-label">笔记</span>
+              <span class="gm-inst-gauge-value">268</span>
+              <span class="gm-inst-gauge-bar"></span>
+              <span class="gm-inst-gauge-detail">文档 142 篇</span>
+            </div>
+            <div class="gm-inst-gauge" data-level="5">
+              <span class="gm-inst-gauge-label">剪贴板</span>
+              <span class="gm-inst-gauge-value">240</span>
+              <span class="gm-inst-gauge-bar"></span>
+              <span class="gm-inst-gauge-detail">图片 58 张</span>
+            </div>
+            <div class="gm-inst-gauge" data-level="4">
+              <span class="gm-inst-gauge-label">计划</span>
+              <span class="gm-inst-gauge-value">12</span>
+              <span class="gm-inst-gauge-bar"></span>
+              <span class="gm-inst-gauge-detail">最近 26 分钟</span>
+            </div>
+          </div>
+
+          <div class="gm-inst-lower">
+
+            <section class="gm-inst-command">
+              <div class="gm-inst-command-head">
+                <span>笔记快记</span>
+                <button class="gm-inst-command-open">打开</button>
+              </div>
+              <div class="gm-inst-command-field">
+                <span class="gm-inst-command-sigil" aria-hidden="true">&gt;</span>
+                <textarea class="gm-inst-command-input" rows="2" placeholder="记点什么，第一行会成为标题（Cmd/Ctrl+S 保存）"></textarea>
+                <span class="gm-inst-command-caret" aria-hidden="true"></span>
+              </div>
+              <div class="gm-inst-command-keys">
+                <span>⌘S 保存</span>
+                <button class="gm-inst-command-save" disabled>保存</button>
+                <button class="gm-inst-command-template gm-inst-command-new">插入模板</button>
+                <button class="gm-inst-command-new">取剪贴板</button>
+                <button class="gm-inst-command-new">新建一篇</button>
+              </div>
+            </section>
+
+            <section class="gm-inst-list">
+              <div class="gm-inst-list-head">
+                <span>最近动态</span>
+                <span class="gm-inst-list-count">12</span>
+                <button class="gm-inst-list-close" title="关闭最近动态"><i data-lucide="x" style="width:12px;height:12px"></i></button>
+              </div>
+              <div class="gm-inst-list-rows">
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">12 分钟前</span>
+                  <span class="gm-inst-list-type" data-kind="conversation">对话</span>
+                  <span class="gm-inst-list-title">Refactoring the sync worker for retry semantics</span>
+                  <span class="gm-inst-list-source">claude-code</span>
+                  <span class="gm-inst-list-state" data-state="new">新增</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">48 分钟前</span>
+                  <span class="gm-inst-list-type" data-kind="manual">笔记</span>
+                  <span class="gm-inst-list-title">冲突处理：本地捕获用 rebase 还是 merge</span>
+                  <span class="gm-inst-list-source">local</span>
+                  <span class="gm-inst-list-state" data-state="draft">草稿</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">1 小时前</span>
+                  <span class="gm-inst-list-type" data-kind="clip">剪贴板</span>
+                  <span class="gm-inst-list-title">docker run --rm -v $PWD:/app -w /app node:20 pnpm test</span>
+                  <span class="gm-inst-list-source">terminal</span>
+                  <span class="gm-inst-list-state" data-state="synced">已同步</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">2 小时前</span>
+                  <span class="gm-inst-list-type" data-kind="conversation">对话</span>
+                  <span class="gm-inst-list-title">Why does a Tauri command return null on first invoke?</span>
+                  <span class="gm-inst-list-source">cursor</span>
+                  <span class="gm-inst-list-state" data-state="synced">已同步</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">3 小时前</span>
+                  <span class="gm-inst-list-type" data-kind="scratch">便签</span>
+                  <span class="gm-inst-list-title">把剪贴板监听挪到 async runtime</span>
+                  <span class="gm-inst-list-source">local</span>
+                  <span class="gm-inst-list-state" data-state="draft">草稿</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">昨天</span>
+                  <span class="gm-inst-list-type" data-kind="plan">计划</span>
+                  <span class="gm-inst-list-title">搜索索引：FTS5 vs JSON grep 的取舍</span>
+                  <span class="gm-inst-list-source">codex</span>
+                  <span class="gm-inst-list-state" data-state="synced">已同步</span>
+                </button>
+                <button class="gm-inst-list-row gm-inst-list-row--recent">
+                  <span class="gm-inst-list-time">昨天</span>
+                  <span class="gm-inst-list-type" data-kind="manual">笔记</span>
+                  <span class="gm-inst-list-title">Weekly review — 捕获量上涨 34%</span>
+                  <span class="gm-inst-list-source">local</span>
+                  <span class="gm-inst-list-state" data-state="synced">已同步</span>
+                </button>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>if (window.lucide) window.lucide.createIcons();</script>
+</body>
+</html>
