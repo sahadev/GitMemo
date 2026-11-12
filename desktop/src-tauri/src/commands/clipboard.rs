@@ -629,21 +629,22 @@ pub(crate) mod desktop_poll {
         );
         std::fs::write(&md_path, &md).map_err(|e| e.to_string())?;
 
+        // Keep the image out of git until the user syncs it from its detail
+        // page. Both files are registered so the detail page can show the pair,
+        // but the commit filter below is driven by path rules, not by this
+        // registry - a damaged registry must never stage the image.
+        let png_rel = format!("clips/{}/{}", date_str, png_filename);
         if settings::current_settings().commit_clipboard_images {
             let dir = sync_dir.clone();
+            let allowed: Vec<String> = vec![png_rel.clone(), rel_path.clone()];
             std::thread::spawn(move || {
-                let _ = git::commit_and_push(&dir, "clip: screenshot");
+                let refs: Vec<&str> = allowed.iter().map(|s| s.as_str()).collect();
+                let _ = git::commit_and_push_allowing(&dir, "clip: screenshot", &refs);
             });
-        } else {
-            // Keep the image out of git until the user syncs it from its detail
-            // page. Registering both files keeps the commit filter and the
-            // detail-page status in sync.
-            let png_rel = format!("clips/{}/{}", date_str, png_filename);
-            if let Err(e) =
-                gitmemo_core::storage::pending_images::add(&sync_dir, &[&png_rel, &rel_path])
-            {
-                log::warn!("Failed to mark screenshot as pending sync: {}", e);
-            }
+        } else if let Err(e) =
+            gitmemo_core::storage::pending_images::add(&sync_dir, &[&png_rel, &rel_path])
+        {
+            log::error!("Failed to mark screenshot as pending sync: {}", e);
         }
 
         Ok(ClipboardEvent {

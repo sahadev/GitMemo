@@ -92,6 +92,7 @@ export interface CliStatus {
   version: string;
   latest_version: string | null;
   update_available: boolean;
+  below_minimum: boolean;
   update_url: string | null;
   release_url: string | null;
   notes: string[];

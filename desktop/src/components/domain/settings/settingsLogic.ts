@@ -3,6 +3,7 @@ import type { GitStatus } from "../../../hooks/useSync";
 import {
   getCliStatusTone,
   hasCliUpdateAvailable,
+  isCliBelowMinimum,
   isCliInstalled,
   isCliStatusKnown,
 } from "../../../domain/cli/cliStatus";
@@ -270,6 +271,12 @@ export function getSettingsCliStatusView(input: {
   }
   if (!isCliInstalled(input.cliStatus)) {
     return { label: t("settings.cliMissing"), tone: "warning" as const };
+  }
+  if (isCliBelowMinimum(input.cliStatus)) {
+    return {
+      label: t("settings.cliTooOld", input.cliStatus.version || "?", input.cliStatus.latest_version ?? "?"),
+      tone: "danger" as const,
+    };
   }
   if (hasCliUpdateAvailable(input.cliStatus)) {
     return {

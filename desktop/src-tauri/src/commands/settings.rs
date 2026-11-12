@@ -158,6 +158,10 @@ pub struct CliStatus {
     pub version: String,
     pub latest_version: Option<String>,
     pub update_available: bool,
+    /// True when the installed CLI predates [`gitmemo_core::storage::git::MIN_COMPATIBLE_CLI_VERSION`].
+    /// Such a build stages every clipboard capture it finds, so it must not be
+    /// used to write the repository.
+    pub below_minimum: bool,
     pub update_url: Option<String>,
     pub release_url: Option<String>,
     pub notes: Vec<String>,
@@ -484,6 +488,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
             version: String::new(),
             latest_version: None,
             update_available: false,
+            below_minimum: false,
             update_url: None,
             release_url: None,
             notes: Vec::new(),
@@ -503,6 +508,7 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
                 version: String::new(),
                 latest_version: latest.as_ref().map(|info| info.version.clone()),
                 update_available: false,
+                below_minimum: false,
                 update_url: latest.as_ref().and_then(|info| info.update_url.clone()),
                 release_url: latest.as_ref().and_then(|info| info.release_url.clone()),
                 notes: latest.map(|info| info.notes).unwrap_or_default(),
@@ -526,12 +532,18 @@ pub fn get_cli_status() -> Result<CliStatus, String> {
                 Err(e) => (None, false, None, None, Vec::new(), Some(e)),
             };
 
+        let below_minimum = version_is_newer(
+            gitmemo_core::storage::git::MIN_COMPATIBLE_CLI_VERSION,
+            &version,
+        );
+
         Ok(CliStatus {
             installed: true,
             path,
             version,
             latest_version,
             update_available,
+            below_minimum,
             update_url,
             release_url,
             notes,

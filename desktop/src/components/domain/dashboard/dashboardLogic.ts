@@ -5,6 +5,7 @@ import type { AppIconTone } from "../../base/AppIcon";
 import {
   getCliStatusTone,
   hasCliUpdateAvailable,
+  isCliBelowMinimum,
   isCliInstalled,
   isCliStatusKnown,
   needsCliAttention,
@@ -257,6 +258,13 @@ export function shouldShowCliCapabilityCard(
 export function getCliStatusText(cliStatus: CliStatus | null): DashboardText {
   if (!isCliStatusKnown(cliStatus)) return { kind: "translation", key: "dashboard.cliCardChecking" };
   if (!isCliInstalled(cliStatus)) return { kind: "translation", key: "dashboard.cliCardNotInstalled" };
+  if (isCliBelowMinimum(cliStatus)) {
+    return {
+      kind: "translation",
+      key: "dashboard.cliCardTooOld",
+      args: [cliStatus.version || "?", cliStatus.latest_version ?? "?"],
+    };
+  }
   if (hasCliUpdateAvailable(cliStatus)) {
     return {
       kind: "translation",
@@ -271,7 +279,7 @@ export function getCliStatusText(cliStatus: CliStatus | null): DashboardText {
   };
 }
 
-export function getCliStatusBadgeTone(cliStatus: CliStatus | null): Extract<AppIconTone, "success" | "warning" | "muted"> {
+export function getCliStatusBadgeTone(cliStatus: CliStatus | null): Extract<AppIconTone, "success" | "warning" | "muted" | "danger"> {
   return getCliStatusTone(cliStatus);
 }
 

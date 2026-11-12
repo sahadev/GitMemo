@@ -512,9 +512,12 @@ fn fast_forward_to_remote(repo: &git2::Repository, branch: &str) -> anyhow::Resu
 
 #[cfg(target_os = "android")]
 fn commit_all(repo: &git2::Repository, message: &str) -> anyhow::Result<Option<git2::Oid>> {
+    let workdir = repo
+        .workdir()
+        .ok_or_else(|| anyhow::anyhow!("bare repository has no working tree"))?
+        .to_path_buf();
     let mut index = repo.index()?;
-    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)?;
-    index.write()?;
+    gitmemo_core::storage::git::stage_all_excluding_pending_captures(&workdir, &mut index)?;
 
     let tree_id = index.write_tree()?;
     let tree = repo.find_tree(tree_id)?;
